@@ -49,3 +49,6 @@ supabase/.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Supabase Studio local (snippets guardados desde la UI)
+supabase/snippets/

@@ -31,10 +31,16 @@ delete from public.tenants where id = '10000000-0000-0000-0000-000000000001';
 -- 1. Usuarios (auth.users + auth.identities) — contraseña demo: Demo2025!
 --    Documentadas en README-SCHEMA.md.
 -- =============================================================================
+-- Nota: las columnas de token (confirmation_token, recovery_token, etc.) se
+-- inicializan en '' (no NULL): GoTrue las lee como strings de Go y un NULL
+-- provoca "Database error querying schema" al iniciar sesión.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at
+  created_at, updated_at,
+  confirmation_token, recovery_token, email_change,
+  email_change_token_new, email_change_token_current,
+  phone_change, phone_change_token, reauthentication_token
 )
 select
   '00000000-0000-0000-0000-000000000000',
@@ -43,7 +49,8 @@ select
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   jsonb_build_object('nombre', u.nombre),
-  now(), now()
+  now(), now(),
+  '', '', '', '', '', '', '', ''
 from (values
   ('a0000000-0000-0000-0000-000000000001', 'coordinador@empresademo.example', '[DEMO] Coordinador de Sostenibilidad'),
   ('a0000000-0000-0000-0000-000000000002', 'rh@empresademo.example',          '[DEMO] Responsable RH'),
