@@ -190,7 +190,9 @@ export type Database = {
           descripcion: string
           id: string
           norma: Database["public"]["Enums"]["norma_niif"]
+          ods: string | null
           pilar: Database["public"]["Enums"]["pilar_niif"]
+          seccion_indice: string | null
           version_taxonomia: string
         }
         Insert: {
@@ -200,7 +202,9 @@ export type Database = {
           descripcion: string
           id?: string
           norma: Database["public"]["Enums"]["norma_niif"]
+          ods?: string | null
           pilar: Database["public"]["Enums"]["pilar_niif"]
+          seccion_indice?: string | null
           version_taxonomia?: string
         }
         Update: {
@@ -210,7 +214,9 @@ export type Database = {
           descripcion?: string
           id?: string
           norma?: Database["public"]["Enums"]["norma_niif"]
+          ods?: string | null
           pilar?: Database["public"]["Enums"]["pilar_niif"]
+          seccion_indice?: string | null
           version_taxonomia?: string
         }
         Relationships: []

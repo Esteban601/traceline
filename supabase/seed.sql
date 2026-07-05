@@ -5,9 +5,10 @@
 -- aquí se siembra es DEMO y así se etiqueta (tenant, reporte y usuarios llevan
 -- el prefijo [DEMO]; correos usan el TLD reservado .example).
 --
--- Los códigos de datapoint usan la convención de marcador 'S1/S2-REF-PEND-NN':
--- describen fielmente la divulgación NIIF S1/S2 pero NO afirman un número de
--- párrafo exacto — pendiente de verificación/mapeo manual contra la norma.
+-- Los códigos de datapoint provienen VERBATIM del catálogo oficial de la
+-- taxonomía NIIF S1/S2 (catalogo_taxonomia_S1_S2.csv, plantilla base de la
+-- firma): codigo, norma, pilar, seccion_indice, descripcion y ods se cargan sin
+-- modificación de texto.
 --
 -- Se ejecuta durante `supabase db reset` como rol postgres (BYPASSRLS): las
 -- políticas RLS no obstruyen la carga; los triggers SÍ se disparan.
@@ -100,42 +101,101 @@ values ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-0000000
         '[DEMO] Informe Anual Sustentable 2025', 2025, 'activo');
 
 -- =============================================================================
--- 5. Datapoints de taxonomía NIIF S1/S2 (~30, núcleo)
---    codigo = marcador REF-PEND (ver nota de cabecera).
+-- 5. Datapoints de taxonomía NIIF S1/S2 (91, catálogo oficial completo)
+--    codigo, norma, pilar, seccion_indice, descripcion y ods VERBATIM del CSV.
 -- =============================================================================
-insert into public.datapoints_taxonomia (codigo, norma, pilar, descripcion) values
-  -- ---- NIIF S1 (requisitos generales) ----
-  ('S1-REF-PEND-01', 'S1', 'gobernanza', 'Órgano(s) de gobierno responsable(s) de la supervisión de riesgos y oportunidades relacionados con la sostenibilidad'),
-  ('S1-REF-PEND-02', 'S1', 'gobernanza', 'Competencias y capacidades del órgano de gobierno en materia de sostenibilidad'),
-  ('S1-REF-PEND-03', 'S1', 'gobernanza', 'Rol de la dirección en la evaluación y gestión de riesgos y oportunidades de sostenibilidad'),
-  ('S1-REF-PEND-04', 'S1', 'estrategia', 'Riesgos y oportunidades de sostenibilidad que razonablemente podrían afectar flujos de efectivo, acceso a financiamiento o costo de capital'),
-  ('S1-REF-PEND-05', 'S1', 'estrategia', 'Efectos actuales y previstos sobre el modelo de negocio y la cadena de valor'),
-  ('S1-REF-PEND-06', 'S1', 'estrategia', 'Efectos sobre la estrategia y la toma de decisiones de la entidad'),
-  ('S1-REF-PEND-07', 'S1', 'estrategia', 'Efectos actuales y previstos sobre la situación financiera, el desempeño financiero y los flujos de efectivo'),
-  ('S1-REF-PEND-08', 'S1', 'estrategia', 'Resiliencia de la estrategia y del modelo de negocio ante riesgos de sostenibilidad'),
-  ('S1-REF-PEND-09', 'S1', 'riesgos',    'Procesos para identificar y evaluar riesgos de sostenibilidad'),
-  ('S1-REF-PEND-10', 'S1', 'riesgos',    'Procesos para priorizar y monitorear los riesgos de sostenibilidad'),
-  ('S1-REF-PEND-11', 'S1', 'riesgos',    'Integración de la gestión de riesgos de sostenibilidad en la gestión de riesgos general de la entidad'),
-  ('S1-REF-PEND-12', 'S1', 'metricas',   'Métricas utilizadas para medir y monitorear los riesgos y oportunidades de sostenibilidad'),
-  ('S1-REF-PEND-13', 'S1', 'metricas',   'Objetivos (targets) establecidos y desempeño frente a ellos'),
-  ('S1-REF-PEND-14', 'S1', 'metricas',   'Información comparativa y revisión de estimaciones e incertidumbres de medición'),
-  -- ---- NIIF S2 (clima) ----
-  ('S2-REF-PEND-01', 'S2', 'gobernanza', 'Órgano de gobierno responsable de la supervisión de riesgos y oportunidades relacionados con el clima'),
-  ('S2-REF-PEND-02', 'S2', 'gobernanza', 'Rol de la dirección en los procesos de gestión de riesgos y oportunidades climáticas'),
-  ('S2-REF-PEND-03', 'S2', 'estrategia', 'Riesgos físicos del clima (agudos y crónicos) identificados y su horizonte temporal'),
-  ('S2-REF-PEND-04', 'S2', 'estrategia', 'Riesgos de transición climática (política y legal, tecnología, mercado y reputación)'),
-  ('S2-REF-PEND-05', 'S2', 'estrategia', 'Oportunidades relacionadas con el clima identificadas por la entidad'),
-  ('S2-REF-PEND-06', 'S2', 'estrategia', 'Efectos de los riesgos y oportunidades climáticos en el modelo de negocio y la cadena de valor'),
-  ('S2-REF-PEND-07', 'S2', 'estrategia', 'Plan de transición climática, incluidos supuestos clave y dependencias'),
-  ('S2-REF-PEND-08', 'S2', 'estrategia', 'Resiliencia climática evaluada mediante análisis de escenarios'),
-  ('S2-REF-PEND-09', 'S2', 'riesgos',    'Procesos para identificar, evaluar y priorizar riesgos relacionados con el clima'),
-  ('S2-REF-PEND-10', 'S2', 'riesgos',    'Integración de la gestión de riesgos climáticos en la gestión de riesgos general'),
-  ('S2-REF-PEND-11', 'S2', 'metricas',   'Emisiones brutas de GEI de Alcance 1 (tCO2e), conforme al GHG Protocol'),
-  ('S2-REF-PEND-12', 'S2', 'metricas',   'Emisiones brutas de GEI de Alcance 2 (tCO2e), basadas en ubicación y/o en mercado, conforme al GHG Protocol'),
-  ('S2-REF-PEND-13', 'S2', 'metricas',   'Emisiones brutas de GEI de Alcance 3 (tCO2e) y categorías aplicables, conforme al GHG Protocol'),
-  ('S2-REF-PEND-14', 'S2', 'metricas',   'Metodología, factores de emisión y supuestos utilizados en el cálculo del inventario de GEI'),
-  ('S2-REF-PEND-15', 'S2', 'metricas',   'Objetivos climáticos, incluidas metas de reducción de emisiones de GEI y avance frente a ellas'),
-  ('S2-REF-PEND-16', 'S2', 'metricas',   'Métricas intersectoriales: riesgos físicos y de transición, oportunidades, capital desplegado, precio interno del carbono y remuneración vinculada al clima');
+insert into public.datapoints_taxonomia (codigo, norma, pilar, seccion_indice, descripcion, ods) values
+  ('IFRS S1 2023-06-26 40 a', 'S1', 'estrategia', '3. Gobernanza', 'Explicación de por qué no se proporcionó información cuantitativa sobre los efectos financieros actuales o previstos de un riesgo o oportunidad identificado', null),
+  ('NIIF S1 27(a)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'Órgano u órganos de gobernanza o personas responsables de la supervisión de los riesgos y oportunidades relacionados con la sostenibilidad', null),
+  ('NIIF S1 27(a)(i)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'Cómo se reflejan las responsabilidades relativas a los riesgos y oportunidades relacionados con la sostenibilidad en los términos de referencia a, mandatos, descripciones de funciones y otras políticas relacionadas aplicables a dichos órganos o personas.', null),
+  ('NIIF S1 27(a)(ii)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'Cómo determina el órgano o los órganos o las personas si se dispone o se desarrollarán las habilidades y competencias adecuadas para supervisar las estrategias diseñadas para responder a los riesgos y oportunidades relacionados con la sostenibilidad.', null),
+  ('NIIF S1 27(a)(iii)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'Cómo y con qué frecuencia se informa a los órganos o personas sobre los riesgos y oportunidades relacionados con la sostenibilidad.', null),
+  ('NIIF S1 27(a)(iv)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'Cómo tiene en cuenta el órgano o los órganos los riesgos y oportunidades relacionados con la sostenibilidad al supervisar la estrategia de la entidad, sus decisiones sobre transacciones importantes y sus procesos de gestión de riesgos y políticas relacionadas, incluyendo si el órgano o los órganos han considerado las compensaciones asociadas a esos riesgos y oportunidades.', null),
+  ('NIIF S1 27(a)(v)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'La forma en que el órgano o los órganos o la persona o personas supervisan el establecimiento de objetivos relacionados con los riesgos y las oportunidades relacionados con la sostenibilidad, y controlan los avances hacia la consecución de los objetivos (desarrollados en el apartado "Metricas y Objetivos", sección "Objetivos", del presente informe).', null),
+  ('NIIF S1 27(b)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'La gerencia en los procesos de gobernanza, los controles y los procedimientos utilizados para vigilar, gestionar y supervisar los riesgos y las oportunidades relacionados con la sostenibilidad', null),
+  ('NIIF S1 27(b)(i)', 'S1', 'gobernanza', '1. La organización y su prácticas de presentación de informes', 'En el papel de la gerencia en los procesos de gobernanza, los controles y los procedimientos utilizados para vigilar, gestionar y supervisar los riesgos y las oportunidades relacionadas con la sostenibilidad ¿La función se delega en un cargo específico de la dirección o en un comité a nivel de dirección?', null),
+  ('NIIF S1 30(a)y(b)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Riesgos y oportunidades relacionados con la sostenibilidad que podría esperarse razonablemente que afecten a las perspectivas de la entidad.', null),
+  ('NIIF S1 30(c)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Explicar cómo define la entidad el "corto plazo", el "medio plazo" y el "largo plazo" y cómo se vinculan estas definiciones a los horizontes de planificación utilizados por la entidad para la toma de decisiones estratégicas.', '8. Trabajo decente y crecimiento económico'),
+  ('NIIF S1 32(a)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Descripción de los efectos actuales y previstos de los riesgos y oportunidades relacionados con la sostenibilidad sobre el modelo de negocio y la cadena de valor [bloque de texto]', null),
+  ('NIIF S1 32(b)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Descripción de dónde se concentran en el modelo de negocio y en la cadena de valor de la entidad los riesgos y oportunidades relacionados con la sostenibilidad.', null),
+  ('NIIF S1 33(a)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Cómo se ha respondido y prevé responder a los riesgos y oportunidades relacionados con la sostenibilidad en su estrategia y toma de decisiones.', null),
+  ('NIIF S1 33(b)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Progresos realizados en relación con los planes que la entidad haya revelado en periodos anteriores sobre los que se informa, incluida la información cuantitativa y cualitativa.', null),
+  ('NIIF S1 33(c)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Compensaciones entre los riesgos relacionados con la sostenibilidad y las oportunidades que la entidad consideró.', null),
+  ('NIIF S1 35(a)', 'S1', 'estrategia', '2. Actividades y trabajadores', 'Cómo los riesgos y oportunidades relacionados con la sostenibilidad han afectado a su situación financiera durante el periodo sobre el que se informa', '8. Trabajo decente y crecimiento económico'),
+  ('NIIF S1 35(b)', 'S1', 'estrategia', '3. Gobernanza', 'Riesgos y oportunidades relacionados con la sostenibilidad identificados para los que existe un riesgo significativo de un ajuste material o con importancia relativa dentro del próximo periodo anual sobre el que se informa sobre los importes en libros de los activos y pasivos informados en los estados financieros relacionados', null),
+  ('NIIF S1 35(c)(i)(ii)', 'S1', 'estrategia', '3. Gobernanza', 'En términos generales, los riesgos y oportunidades identificados en este informe pueden influir en el corto, medio y largo plazo en los siguientes elementos: Ingresos: Cambios en patrones de tráfico, restricciones operativas, ajustes tarifarios o pérdida temporal de capacidad pueden afectar los ingresos de peaje y servicios asociados. Costos y gastos de operación (OpEx): Incremento en costos de mantenimiento correctivo, seguridad, energía, seguros o cumplimiento normativo. Oportunidades como eficiencia energética, la economía circular o la digitalización pueden contribuir a reducir costos operativos en el mediano plazo. Inversiones en activos fijos (CapEx): Necesidad de inversiones adicionales para reforzar infraestructura, implementar tecnologías de monitoreo, modernizar equipos o cumplir con requerimientos ambientales y de seguridad. Valor de los activos y provisiones: Cambios en supuestos de deterioro, vida útil, provisiones por mantenimiento mayor o contingencias pueden generar impactos en el balance. Costo de financiamiento y acceso a capital: La gestión efectiva de los riesgos ASG puede influir en el acceso a financiamiento verde o sostenible, mientras que un deterioro reputacional o incumplimientos pueden encarecer el costo del capital.', null),
+  ('NIIF S1 35(d)', 'S1', 'estrategia', '3. Gobernanza', 'Como se espera que cambien su rendimineto financiero a corto, medio y largo plazo, dada su estrategia para gestionar los riesgos y oportunidades relacionados con la sostenibilidad', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S1 41', 'S1', 'estrategia', '3. Gobernanza', 'Evaluación cualitativa y, en su caso, cuantitativa de la resiliencia de su estrategia y modelo de negocio en relación con sus riesgos relacionados con la sostenibilidad, incluyendo información sobre cómo se llevó a cabo la evaluación y su horizonte temporal.', null),
+  ('NIIF S1 44 (a)(i)a(v)', 'S1', 'riesgos', '3. Gobernanza', 'Procesos y políticas relacionadas que la entidad utiliza para identificar, evaluar, priorizar y supervisar los riesgos relacionados con la sostenibilidad', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S1 44 (a)(vi)', 'S1', 'riesgos', '3. Gobernanza', '¿La entidad ha cambiado los procesos que utiliza en comparación con el periodo de información anterior?', null),
+  ('NIIF S1 44 (b)', 'S1', 'riesgos', '3. Gobernanza', 'Procesos utilizados para identificar, evaluar, priorizar y supervisar las oportunidades relacionadas con la sostenibilidad', null),
+  ('NIIF S1 44 (c)', 'S1', 'riesgos', '3. Gobernanza', 'Grado y forma en que los procesos de identificación, evaluación, priorización y seguimiento de los riesgos y oportunidades relacionados con la sostenibilidad se integran en el proceso global de gestión de riesgos de la entidad e informan al respecto.', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S1 46 a 50', 'S1', 'metricas', '3. Gobernanza', 'Métricas para riesgos y oportunidades de sostenibilidad: métricas requeridas por NIIF/SASB/CDSB/Apéndice C-NIIF S1 y métricas propias de la entidad (fuente, tipo, validación por tercero, método de cálculo, datos, limitaciones y supuestos)', null),
+  ('NIIF S1 51', 'S1', 'metricas', '3. Gobernanza', 'Objetivos que se ha fijado la entidad y requeridos para cumplir por ley o regulación para supervisar el progreso hacia la consecución de sus objetivos estratégicos en relación con ese riesgo u oportunidad relacionados con la sostenibilidad.', null),
+  ('NIIF S1 72', 'S1', 'metricas', '3. Gobernanza', '¿La entidad cumple con todos los requerimientos de las Normas NIIF de Información a Revelar sobre Sostenibilidad explícitamente y sin reservas?', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S1 74', 'S1', 'metricas', '3. Gobernanza', 'Revelar la información que se considere necesaria por la Emisora a que hace referencia el apartado "Juicios, incertidumbres y errores" de la NIIF S1', null),
+  ('NIIF S2 10(a), (b)y(c)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Riesgos y oportunidades climáticos: nombre, descripción, tipo de riesgo climático (físico/transición) y horizontes temporales en los que cabe esperar razonablemente que se produzcan sus efectos', null),
+  ('NIIF S2 10(d)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Explicar cómo define la entidad el "corto plazo", el "medio plazo" y el "largo plazo" y cómo se vinculan estas definiciones a los horizontes de planificación utilizados por la entidad para la toma de decisiones estratégicas.', null),
+  ('NIIF S2 13(a)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Descripción de los efectos actuales y previstos de los riesgos y oportunidades relacionados con el clima sobre el modelo de negocio y la cadena de valor de la entidad', null),
+  ('NIIF S2 13(b)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Descripción de dónde se concentran en el modelo de negocio y en la cadena de valor de la entidad los riesgos y oportunidades relacionados con el clima.', null),
+  ('NIIF S2 14(a)(i)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Los cambios actuales y previstos en el modelo de negocio de la entidad, incluida su asignación de recursos, para abordar los riesgos y oportunidades relacionados con el clima', null),
+  ('NIIF S2 14(a)(ii)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Los esfuerzos directos actuales y previstos de reducción o adaptación', null),
+  ('NIIF S2 14(a)(iii)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Los esfuerzos indirectos actuales y previstos de reducción o adaptación', null),
+  ('NIIF S2 14(a)(iv)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Planes de transición relacionado con el clima que tenga la entidad, incluida la información sobre los supuestos clave utilizados en el desarrollo de su plan de transición, y las dependencias en las que se basa el plan de transición de la entida.', null),
+  ('NIIF S2 14(a)(v)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Cómo prevé la entidad alcanzar cualquier objetivo relacionado con el clima, incluido cualquier objetivo de emisiones de gases de efecto invernadero, descrito de conformidad con los desarrollados en el apartado "Metricas y Objetivos", sección "Objetivos relacionados con el clima", del presente informe)', null),
+  ('NIIF S2 14(b)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Forma en que la entidad está dotando de recursos a las actividades reveladas en su estrategia y toma de decisiones, así como sus planes de seguir haciéndolo:', null),
+  ('NIIF S2 14(c)', 'S2', 'estrategia', '4. Estrategia, políticas y prácticas', 'Información cuantitativa y cualitativa sobre el progreso de los planes revelados en periodos anteriores sobre los que se informa de acuerdo con su estrategia y toma de decisiones:', null),
+  ('NIIF S2 16(a)', 'S2', 'estrategia', '5. Participación de los grupos de interés', 'Cómo los riesgos y oportunidades relacionados con el clima han afectado a su situación financiera durante el periodo sobre el que se informa', null),
+  ('NIIF S2 16(b)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Riesgos y oportunidades relacionados con el clima identificados para los que existe un riesgo significativo de un ajuste material o con importancia relativa dentro del próximo periodo anual sobre el que se informa sobre los importes en libros de los activos y pasivos informados en los estados financieros relacionados', null),
+  ('NIIF S2 16(c)(i)(ii)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Como se espera que cambie su situación financiera a corto, medio y largo plazo, dada su estrategia para gestionar los riesgos y oportunidades relacionados con el clima (Considerar: i) sus planes de inversión y disposición (por ejemplo, planes de desembolso de capital, adquisiciones y desinversiones importantes, negocios conjuntos, transformación de negocios, innovación, nuevas áreas de negocio y retiros de activos), incluidos los planes con los que la entidad no esté compromet ida contractualmente; y (ii) sus fuentes de financiación previstas para la implementación de su estrategia)', null),
+  ('NIIF S2 16(d)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Como se espera que cambien su rendimineto financiero a corto, medio y largo plazo, dada su estrategia para gestionar los riesgos y oportunidades relacionados con el clima', null),
+  ('NIIF S2 22(a)(i)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Evaluación de su resiliencia climática en la fecha de presentación incluidos los efectos identificados en el análisis del escenario relacionado con el clima.', null),
+  ('NIIF S2 22(a)(ii)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Áreas significativas de incertidumbre consideradas en la evaluación de la resiliencia climática', null),
+  ('NIIF S2 22(a)(iii)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Como espera que afecten su capacidad de respuesta ante el cambio climático, a corto, mediano y largo plazo, los recursos financieros y operativos disponibles para hacer frente al riesgo y aprovechar las oportunidades, incluido el acceso al capital.', null),
+  ('NIIF S2 22(b)(i)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Analisis de escenarios', null),
+  ('NIIF S2 22(b)(ii)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Supuestos clave que la entidad realizó en el análisis', null),
+  ('NIIF S2 22(b)(iii)', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Periodo sobre el que se informa en el que se ha llevado a cabo el análisis del escenario', null),
+  ('NIIF S2 25 (a)(i)a(v)', 'S2', 'riesgos', '6. Contenidos sobre los temas materiales', 'Procesos y políticas relacionadas que la entidad utiliza para identificar, evaluar, priorizar y supervisar los riesgos relacionados con el clima', null),
+  ('NIIF S2 25 (a)(vi)', 'S2', 'riesgos', '6. Contenidos sobre los temas materiales', '¿La entidad ha cambiado los procesos que utiliza en comparación con el periodo de información anterior?', null),
+  ('NIIF S2 25 (b)', 'S2', 'riesgos', '6. Contenidos sobre los temas materiales', 'Procesos que utiliza la entidad para identificar, evaluar, priorizar y supervisar las oportunidades relacionadas con el clima, incluida la información sobre si la entidad utiliza, y de qué manera, el análisis de escenarios relacionados con el clima para fundamentar su identificación de oportunidades relacionadas con el clima', null),
+  ('NIIF S2 25 (c)', 'S2', 'riesgos', '6. Contenidos sobre los temas materiales', 'Grado y forma en que los procesos de identificación, evaluación, priorización y seguimiento de los riesgos y oportunidades relacionados con el clima se integran en el proceso global de gestión de riesgos de la entidad e informan al respecto', null),
+  ('NIIF S2 29 (a)(i)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre sus emisiones brutas absolutas de gases de efecto invernadero generadas durante el periodo sobre el que se informa, expresadas en toneladas métricas equivalentes de CO2 (CO2e) :', null),
+  ('NIIF S2 29 (a)(ii)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre la medición de sus emisiones de gases de efecto invernadero de conformidad con el Protocolo sobre Gases de Efecto Invernadero (Un Estándar Corporativo de Contabilidad y Reporte (2004))', null),
+  ('NIIF S2 29 (a)(iii)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre el enfoque que utiliza para medir sus emisiones de gases de efecto invernadero', null),
+  ('NIIF S2 29 (a)(iv) EI5', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Desagregación de las emisiones de gases de efecto invernadero de Alcance 1 y Alcance 2 entre el grupo contable consolidado y otras participadas excluidas.', null),
+  ('NIIF S2 29 (a)(v)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Emisiones de gases de efecto invernadero de Alcance 2', null),
+  ('NIIF S2 29 (a)(vi)(1)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Emisiones de gases de efecto invernadero de Alcance 3', null),
+  ('NIIF S2 29 (a)(vi)(1) EI12', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Extracto de la información a revelar de las emisiones de gases de efecto invernadero de Alcance 3 desagregado en categorías :', null),
+  ('NIIF S2 29 (a)(vi)(2)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información adicional sobre las emisiones de gases de efecto invernadero de la Categoría 15 de la entidad o las asociadas a sus inversiones (emisiones financiadas), si las actividades de la entidad incluyen la gestión de activos, la banca comercial o los seguros:', null),
+  ('NIIF S2 29 (b) B64 y B65 inciso (a)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Riesgos físicos relacionados con el clima: cantidad y porcentaje de activos o actividades empresariales vulnerables, y despliegue de capital aplicado (comparativo anual)', null),
+  ('NIIF S2 29 (b) B64 y B65 inciso (b)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Descripción de dónde se concentran en el modelo de negocio y en la cadena de valor de la entidad los riesgos de transición relacionados con el clima.', null),
+  ('NIIF S2 29 (b) B64 y B65 inciso (c)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Cómo los riesgos de transición relacionados con el clima han afectado a su situación financiera durante el periodo sobre el que se informa', null),
+  ('NIIF S2 29 (c) B64 y B65 inciso (b)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Descripción de dónde se concentran en el modelo de negocio y en la cadena de valor de la entidad los riesgos físicos relacionados con el clima.', null),
+  ('NIIF S2 29 (c) B64 y B65 inciso (c)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Cómo los riesgos de transición relacionados con el clima han afectado a su situación financiera, rendimiento financiero y flujos de efectivo durante el periodo sobre el que se informa', null),
+  ('NIIF S2 29 (d) B64 y B65 inciso (a)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Oportunidades relacionadas con el clima: cantidad y porcentaje de activos o actividades empresariales alineadas, y despliegue de capital aplicado (comparativo anual)', null),
+  ('NIIF S2 29 (d) B64 y B65 inciso (b)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Descripción de dónde se concentran en el modelo de negocio y en la cadena de valor de la entidad las oportunidades relacionados con el clima.', null),
+  ('NIIF S2 29 (d) B64 y B65 inciso (c)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Cómo las oportunidades relacionadas con el clima han afectado a su situación financiera, rendimiento financiero y flujos de efectivo durante el periodo sobre el que se informa', null),
+  ('NIIF S2 29 (e)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre la cantidad de gasto de capital, financiación o inversión aplicada a los riesgos y oportunidades relacionados con el clima:', null),
+  ('NIIF S2 29 (f) (i) y (ii)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', '¿La entidad está aplicando un precio del carbono en la toma de decisiones?', null),
+  ('NIIF S2 29 (g) (i) y (ii)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', '¿Las consideraciones relacionadas con el clima se tienen en cuenta en la remuneración de los ejecutivos ?', null),
+  ('NIIF S2 30', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Cantidad y porcentaje de activos o actividades empresariales vulnerables a los riesgos de transición relacionados con el clima', null),
+  ('NIIF S2 32', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Seleccionar el tipo de sector o sectores en las que participa:', null),
+  ('NIIF S2 33', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Objetivos cuantitativos y cualitativos relacionados con el clima establecidos para supervisar el progreso hacia la consecución de sus objetivos estratégicos y objetivos requeridos por ley o regulación, incluido cualquier objetivo de emisiones de gases de efecto invernadero.', null),
+  ('NIIF S2 34', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre su enfoque para establecer y revisar cada objetivo, y sobre cómo supervisa el progreso con respecto a cada objetivo', null),
+  ('NIIF S2 35', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre sus resultados en relación con cada objetivo relacionado con el clima y un análisis de las tendencias o cambios en los resultados de la entidad', null),
+  ('NIIF S2 36 (a)a(d)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Objetivo de emisiones de gases de efecto invernadero', null),
+  ('NIIF S2 36 (e)(i)a(iv)', 'S2', 'metricas', '6. Contenidos sobre los temas materiales', 'Información sobre el uso previsto por la entidad de créditos de carbono para compensar las emisiones de gases de efecto invernadero con el fin de alcanzar cualquier objetivo de emisiones de gases de efecto invernadero en términos netos.', null),
+  ('NIIF S2 6 (a)', 'S2', 'gobernanza', '3. Gobernanza', 'Órgano u órganos de gobernanza o personas responsables de la supervisión de los riesgos y oportunidades relacionados con el clima', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S2 6 (a)(i)', 'S2', 'gobernanza', '3. Gobernanza', 'Indicar cómo se reflejan las responsabilidades relativas a los riesgos y oportunidades relacionados con el cima en los términos de referencia a, mandatos, descripciones de funciones y otras políticas relacionadas aplicables a dichos órganos o personas.', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S2 6 (a)(ii)', 'S2', 'gobernanza', '3. Gobernanza', 'Indicar cómo determina el órgano o los órganos o las personas si se dispone o se desarrollarán las habilidades y competencias adecuadas para supervisar las estrategias diseñadas para responder a los riesgos y oportunidades relacionados con el clima.', null),
+  ('NIIF S2 6 (a)(iii)', 'S2', 'gobernanza', '3. Gobernanza', 'Incicar cómo y con qué frecuencia se informa a los órganos o personas sobre los riesgos y oportunidades relacionados con el clima.', null),
+  ('NIIF S2 6 (a)(iv)', 'S2', 'gobernanza', '3. Gobernanza', 'Indicar cómo tiene en cuenta el órgano o los órganos los riesgos y oportunidades relacionados con la sostenibilidad al supervisar la estrategia de la entidad, sus decisiones sobre transacciones importantes y sus procesos de gestión de riesgos y políticas relacionadas, incluyendo si el órgano o los órganos han considerado las compensaciones asociadas a esos riesgos y oportunidades.', null),
+  ('NIIF S2 6 (a)(v)', 'S2', 'gobernanza', '3. Gobernanza', 'La forma en que el órgano o los órganos o la persona o personas supervisan el establecimiento de objetivos relacionados con los riesgos y las oportunidades relacionados con la sostenibilidad, y controlan los avances hacia la consecución de los objetivos (desarrollados en el apartado "Metricas y Objetivos", sección "Objetivos relacionados con el clima", del presente informe).', '5. Igualdad de género 8. Trabajo decente y crecimiento económico'),
+  ('NIIF S2 6(b)', 'S2', 'gobernanza', '4. Estrategia, políticas y prácticas', 'La gerencia en los procesos de gobernanza, los controles y los procedimientos utilizados para vigilar, gestionar y supervisar los riesgos y las oportunidades relacionados con el cima', '16. Paz, justicia e instituciones sólidas'),
+  ('NIIF S2 6(b)(i)', 'S2', 'gobernanza', '4. Estrategia, políticas y prácticas', 'En el papel de la gerencia en los procesos de gobernanza, los controles y los procedimientos utilizados para vigilar, gestionar y supervisar los riesgos y las oportunidades relacionados con el clima ¿La función se delega en un cargo específico de la dirección o en un comité a nivel de dirección?', null),
+  ('NIIF S2 6(b)(ii)', 'S2', 'gobernanza', '4. Estrategia, políticas y prácticas', '¿La gerencia utiliza controles y procedimientos para apoyar la supervisión de los riesgos y oportunidades relacionados con el clima?', null),
+  ('NIIF S2 EI14 a E18', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Emisiones de gases de efecto invernadero de Alcance 1', null),
+  ('NIIF S2 EI19 a EI24', 'S2', 'estrategia', '6. Contenidos sobre los temas materiales', 'Desagregación de una categoría de Alcance 3 por los gases que la componen:', null);
 
 -- =============================================================================
 -- 6. Solicitudes (~20) en lenguaje cliente, repartidas por área.
@@ -176,37 +236,41 @@ values
 insert into public.mapeo_solicitud_datapoint (solicitud_id, datapoint_id)
 select s.sid::uuid, d.id
 from (values
-  ('c0000000-0000-0000-0000-000000000001', 'S1-REF-PEND-12'),  -- plantilla -> métricas S1
-  ('c0000000-0000-0000-0000-000000000002', 'S1-REF-PEND-12'),  -- capacitación -> métricas S1
-  ('c0000000-0000-0000-0000-000000000003', 'S1-REF-PEND-01'),  -- diversidad -> gobernanza
-  ('c0000000-0000-0000-0000-000000000003', 'S1-REF-PEND-12'),  -- diversidad -> métricas
-  ('c0000000-0000-0000-0000-000000000004', 'S1-REF-PEND-12'),  -- rotación % -> métricas
-  ('c0000000-0000-0000-0000-000000000004', 'S1-REF-PEND-13'),  -- rotación % -> objetivos
-  ('c0000000-0000-0000-0000-000000000005', 'S1-REF-PEND-09'),  -- DDHH -> riesgos S1
-  ('c0000000-0000-0000-0000-000000000006', 'S2-REF-PEND-12'),  -- energía -> Alcance 2
-  ('c0000000-0000-0000-0000-000000000006', 'S2-REF-PEND-14'),  -- energía -> metodología GEI
-  ('c0000000-0000-0000-0000-000000000007', 'S2-REF-PEND-11'),  -- Alcance 1 -> Alcance 1
-  ('c0000000-0000-0000-0000-000000000007', 'S2-REF-PEND-14'),  -- Alcance 1 -> metodología GEI
-  ('c0000000-0000-0000-0000-000000000008', 'S2-REF-PEND-12'),  -- Alcance 2 -> Alcance 2
-  ('c0000000-0000-0000-0000-000000000008', 'S2-REF-PEND-14'),  -- Alcance 2 -> metodología GEI
-  ('c0000000-0000-0000-0000-000000000009', 'S1-REF-PEND-12'),  -- agua -> métricas S1
-  ('c0000000-0000-0000-0000-000000000010', 'S1-REF-PEND-12'),  -- residuos -> métricas S1
-  ('c0000000-0000-0000-0000-000000000011', 'S2-REF-PEND-03'),  -- riesgos físicos -> S2 físicos
-  ('c0000000-0000-0000-0000-000000000011', 'S2-REF-PEND-06'),  -- riesgos físicos -> efectos negocio
-  ('c0000000-0000-0000-0000-000000000012', 'S2-REF-PEND-11'),  -- combustibles -> Alcance 1 (mismo dp que #7)
-  ('c0000000-0000-0000-0000-000000000012', 'S2-REF-PEND-14'),  -- combustibles -> metodología GEI
-  ('c0000000-0000-0000-0000-000000000013', 'S1-REF-PEND-07'),  -- inversiones amb. -> efectos financieros
-  ('c0000000-0000-0000-0000-000000000013', 'S2-REF-PEND-16'),  -- inversiones amb. -> capital desplegado
-  ('c0000000-0000-0000-0000-000000000014', 'S1-REF-PEND-07'),  -- ingresos sostenibles -> efectos financieros
-  ('c0000000-0000-0000-0000-000000000015', 'S2-REF-PEND-16'),  -- precio carbono -> métricas intersectoriales
-  ('c0000000-0000-0000-0000-000000000016', 'S1-REF-PEND-07'),  -- efectos financieros clima -> S1 financieros
-  ('c0000000-0000-0000-0000-000000000016', 'S2-REF-PEND-06'),  -- efectos financieros clima -> efectos negocio
-  ('c0000000-0000-0000-0000-000000000017', 'S1-REF-PEND-01'),  -- consejo composición -> gobernanza S1
-  ('c0000000-0000-0000-0000-000000000017', 'S2-REF-PEND-01'),  -- consejo composición -> gobernanza S2
-  ('c0000000-0000-0000-0000-000000000018', 'S1-REF-PEND-02'),  -- consejo competencias -> competencias
-  ('c0000000-0000-0000-0000-000000000019', 'S2-REF-PEND-07'),  -- plan transición -> plan de transición
-  ('c0000000-0000-0000-0000-000000000019', 'S2-REF-PEND-15'),  -- plan transición -> objetivos climáticos
-  ('c0000000-0000-0000-0000-000000000020', 'S2-REF-PEND-08')   -- escenarios -> resiliencia
+  ('c0000000-0000-0000-0000-000000000001', 'NIIF S1 46 a 50'), -- plantilla/rotación -> métricas de sostenibilidad S1 (no hay datapoint social específico) [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000002', 'NIIF S1 46 a 50'), -- horas capacitación -> métricas de sostenibilidad S1 (sin datapoint social específico) [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000003', 'NIIF S1 27(a)'), -- diversidad en órganos de gobierno -> gobernanza S1
+  ('c0000000-0000-0000-0000-000000000003', 'NIIF S1 46 a 50'), -- diversidad plantilla -> métricas de sostenibilidad S1 [DUDOSA parcial]
+  ('c0000000-0000-0000-0000-000000000004', 'NIIF S1 46 a 50'), -- rotación % -> métricas de sostenibilidad S1 [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000004', 'NIIF S1 51'), -- rotación % -> objetivos S1
+  ('c0000000-0000-0000-0000-000000000005', 'NIIF S1 44 (a)(i)a(v)'), -- política DDHH y debida diligencia -> procesos de gestión de riesgos de sostenibilidad S1 (no hay datapoint DDHH específico) [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000006', 'NIIF S2 29 (a)(v)'), -- consumo energía eléctrica -> base de Alcance 2
+  ('c0000000-0000-0000-0000-000000000006', 'NIIF S2 29 (a)(ii)'), -- consumo energía eléctrica -> medición conforme GHG Protocol
+  ('c0000000-0000-0000-0000-000000000007', 'NIIF S2 29 (a)(i)'), -- inventario GEI Alcance 1 -> emisiones brutas absolutas GEI (mapeo indicado en el brief)
+  ('c0000000-0000-0000-0000-000000000007', 'NIIF S2 EI14 a E18'), -- inventario GEI Alcance 1 -> detalle Alcance 1
+  ('c0000000-0000-0000-0000-000000000007', 'NIIF S2 29 (a)(ii)'), -- inventario GEI Alcance 1 -> medición conforme GHG Protocol
+  ('c0000000-0000-0000-0000-000000000008', 'NIIF S2 29 (a)(v)'), -- inventario GEI Alcance 2 -> emisiones Alcance 2
+  ('c0000000-0000-0000-0000-000000000008', 'NIIF S2 29 (a)(ii)'), -- inventario GEI Alcance 2 -> medición conforme GHG Protocol
+  ('c0000000-0000-0000-0000-000000000009', 'NIIF S1 46 a 50'), -- consumo de agua -> métricas de sostenibilidad S1 (no hay datapoint de agua) [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000010', 'NIIF S1 46 a 50'), -- residuos -> métricas de sostenibilidad S1 (no hay datapoint de residuos) [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000011', 'NIIF S2 29 (b) B64 y B65 inciso (a)'), -- riesgos físicos en instalaciones -> activos vulnerables a riesgos físicos
+  ('c0000000-0000-0000-0000-000000000011', 'NIIF S2 10(a), (b)y(c)'), -- riesgos físicos -> identificación de riesgos climáticos (físico/transición)
+  ('c0000000-0000-0000-0000-000000000012', 'NIIF S2 29 (a)(i)'), -- consumo combustibles -> base de emisiones Alcance 1
+  ('c0000000-0000-0000-0000-000000000012', 'NIIF S2 EI14 a E18'), -- consumo combustibles -> detalle Alcance 1
+  ('c0000000-0000-0000-0000-000000000012', 'NIIF S2 29 (a)(ii)'), -- consumo combustibles -> medición conforme GHG Protocol
+  ('c0000000-0000-0000-0000-000000000013', 'NIIF S2 29 (e)'), -- inversiones/gastos ambientales -> gasto de capital, financiación o inversión aplicada al clima
+  ('c0000000-0000-0000-0000-000000000014', 'NIIF S2 29 (d) B64 y B65 inciso (a)'), -- ingresos por productos/servicios sostenibles -> oportunidades climáticas: activos/actividades alineadas [DUDOSA]
+  ('c0000000-0000-0000-0000-000000000015', 'NIIF S2 29 (f) (i) y (ii)'), -- precio interno del carbono -> aplicación de precio del carbono en decisiones
+  ('c0000000-0000-0000-0000-000000000016', 'NIIF S2 16(a)'), -- efectos financieros de riesgos climáticos -> efecto en situación financiera
+  ('c0000000-0000-0000-0000-000000000016', 'NIIF S2 16(b)'), -- efectos financieros -> riesgo de ajuste material en importes en libros
+  ('c0000000-0000-0000-0000-000000000017', 'NIIF S1 27(a)'), -- composición del Consejo -> órgano de gobernanza responsable (sostenibilidad)
+  ('c0000000-0000-0000-0000-000000000017', 'NIIF S2 6 (a)'), -- composición del Consejo -> órgano de gobernanza responsable (clima)
+  ('c0000000-0000-0000-0000-000000000018', 'NIIF S1 27(a)(ii)'), -- competencias del Consejo -> habilidades y competencias (sostenibilidad)
+  ('c0000000-0000-0000-0000-000000000018', 'NIIF S2 6 (a)(ii)'), -- competencias del Consejo -> habilidades y competencias (clima)
+  ('c0000000-0000-0000-0000-000000000019', 'NIIF S2 14(a)(iv)'), -- plan de transición climática -> plan de transición
+  ('c0000000-0000-0000-0000-000000000019', 'NIIF S2 36 (a)a(d)'), -- objetivos de reducción -> objetivo de emisiones GEI
+  ('c0000000-0000-0000-0000-000000000019', 'NIIF S2 33'), -- objetivos de reducción -> objetivos climáticos
+  ('c0000000-0000-0000-0000-000000000020', 'NIIF S2 22(a)(i)'), -- resiliencia climática -> evaluación de resiliencia
+  ('c0000000-0000-0000-0000-000000000020', 'NIIF S2 22(b)(i)')  -- análisis de escenarios -> análisis de escenarios
 ) as s(sid, codigo)
 join public.datapoints_taxonomia d
   on d.codigo = s.codigo and d.version_taxonomia = '2025';
