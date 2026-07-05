@@ -4,6 +4,7 @@ import { getPerfilActual } from "@/lib/data";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { KPIS, contarPorBucket, type EstadoSolicitud } from "@/lib/estados";
 import { MatrizSolicitudes, type FilaMatriz } from "./matriz-solicitudes";
+import { BarraRecordatorios } from "./barra-recordatorios";
 
 export const metadata: Metadata = { title: "Matriz de seguimiento" };
 
@@ -88,18 +89,21 @@ export default async function AdminMatrizPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-gold">
-          Panel interno IRStrat · Seguimiento
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-ink sm:text-4xl">
-          Matriz de seguimiento
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Todas las solicitudes del reporte, su estado y su actividad reciente.
-          Abre cualquiera para revisar evidencia, capturar valores o registrar
-          observaciones.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-gold">
+            Panel interno IRStrat · Seguimiento
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-semibold text-ink sm:text-4xl">
+            Matriz de seguimiento
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+            Todas las solicitudes del reporte, su estado y su actividad reciente.
+            Abre cualquiera para revisar evidencia, capturar valores o registrar
+            observaciones.
+          </p>
+        </div>
+        <BarraRecordatorios />
       </header>
 
       <section aria-label="Resumen por estado">

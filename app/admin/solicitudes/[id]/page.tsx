@@ -375,7 +375,11 @@ export default async function SolicitudStaffPage({
               Revisión interna de IRStrat. Cada cambio queda en la bitácora.
             </p>
             <div className="mt-5">
-              <AccionesStaff solicitudId={sol.id} estadoActual={estado} />
+              <AccionesStaff
+                solicitudId={sol.id}
+                estadoActual={estado}
+                responsable={responsable ? limpiar(responsable.nombre) : null}
+              />
             </div>
           </div>
         </aside>

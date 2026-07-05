@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { cambiarEstado, agregarObservacion, type AccionState } from "./actions";
+import {
+  cambiarEstado,
+  agregarObservacion,
+  enviarSolicitud,
+  type AccionState,
+} from "./actions";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/ui/badge";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
@@ -30,14 +35,18 @@ function Aviso({ state }: { state: AccionState }) {
 export function AccionesStaff({
   solicitudId,
   estadoActual,
+  responsable,
 }: {
   solicitudId: string;
   estadoActual: EstadoSolicitud;
+  responsable: string | null;
 }) {
   const destinos = TRANSICIONES[estadoActual] ?? [];
+  const puedeSolicitar = estadoActual === "pendiente" && !!responsable;
 
   const [estadoState, estadoAction, estadoPending] = useActionState(cambiarEstado, initial);
   const [obsState, obsAction, obsPending] = useActionState(agregarObservacion, initial);
+  const [solState, solAction, solPending] = useActionState(enviarSolicitud, initial);
   const [destino, setDestino] = useState<string>("");
   const obsRef = useRef<HTMLTextAreaElement>(null);
 
@@ -56,6 +65,38 @@ export function AccionesStaff({
 
   return (
     <div className="space-y-6">
+      {/* Enviar solicitud (solo pendientes con responsable) */}
+      {estadoActual === "pendiente" && (
+        <>
+          <div>
+            <h3 className="font-display text-base font-semibold text-ink">
+              Solicitar información
+            </h3>
+            {puedeSolicitar ? (
+              <form action={solAction} className="mt-3 space-y-3">
+                <input type="hidden" name="solicitud_id" value={solicitudId} />
+                <p className="text-sm text-muted">
+                  Envía la solicitud a{" "}
+                  <span className="font-medium text-ink">{responsable}</span> y márcala
+                  como <span className="font-medium">Solicitada</span>.
+                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <Aviso state={solState} />
+                  <Button type="submit" size="sm" loading={solPending} className="ml-auto">
+                    Enviar solicitud
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <p className="mt-3 rounded-xl border border-dashed border-line bg-crema/30 px-3.5 py-3 text-sm text-muted">
+                Asigna un responsable cliente para poder enviar la solicitud.
+              </p>
+            )}
+          </div>
+          <div className="h-px bg-line" aria-hidden />
+        </>
+      )}
+
       {/* Cambiar estado */}
       <div>
         <div className="flex items-center justify-between gap-3">

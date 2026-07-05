@@ -490,6 +490,16 @@ export type Database = {
       }
       fn_current_tenant: { Args: never; Returns: string }
       fn_is_staff: { Args: never; Returns: boolean }
+      fn_log_correo: {
+        Args: {
+          p_accion: string
+          p_detalle: Json
+          p_entidad_id: string
+          p_tenant_id: string
+          p_usuario_id: string
+        }
+        Returns: string
+      }
       fn_puede_ver_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: boolean

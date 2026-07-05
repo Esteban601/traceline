@@ -43,7 +43,11 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const esPublica = RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+  // Las rutas /api se autentican por su cuenta (p. ej. CRON_SECRET); no pasan por
+  // el redirect a /login basado en sesión.
+  const esApi = pathname.startsWith("/api/");
+  const esPublica =
+    esApi || RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 
   if (!user && !esPublica) {
     const url = request.nextUrl.clone();

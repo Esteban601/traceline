@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { EstadoBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
 import { cn } from "@/lib/cn";
+import { enviarSolicitudesMasivo } from "./actions";
+import type { ResumenSolicitud } from "@/lib/solicitar";
 
 export type FilaMatriz = {
   id: string;
@@ -25,10 +28,11 @@ const fmt = new Intl.DateTimeFormat("es-MX", {
   minute: "2-digit",
 });
 
-/**
- * Prioridad de orden por defecto: observaciones y recibidas primero, luego
- * pendientes, luego validadas. Dentro del grupo, actividad más reciente arriba.
- */
+/** Elegible para "Enviar solicitud": pendiente con responsable asignado. */
+function elegible(f: FilaMatriz): boolean {
+  return f.estado === "pendiente" && f.responsable != null;
+}
+
 function grupoPrioridad(estado: EstadoSolicitud): number {
   switch (estado) {
     case "observaciones":
@@ -40,7 +44,7 @@ function grupoPrioridad(estado: EstadoSolicitud): number {
     case "solicitado":
       return 2;
     default:
-      return 3; // validado, congelado
+      return 3;
   }
 }
 
@@ -57,6 +61,9 @@ const ESTADOS_ORDEN: EstadoSolicitud[] = [
 export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
   const [fEstado, setFEstado] = useState<EstadoSolicitud | "todos">("todos");
   const [fArea, setFArea] = useState<string>("todos");
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [resultado, setResultado] = useState<ResumenSolicitud | null>(null);
+  const [pending, startTransition] = useTransition();
 
   const areas = useMemo(
     () =>
@@ -86,6 +93,39 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
       return a.orden - b.orden;
     });
   }, [filas, fEstado, fArea]);
+
+  const elegiblesVisibles = useMemo(() => visibles.filter(elegible), [visibles]);
+  const seleccionadas = useMemo(
+    () => [...sel].filter((id) => filas.some((f) => f.id === id && elegible(f))),
+    [sel, filas]
+  );
+  const todasSel =
+    elegiblesVisibles.length > 0 && elegiblesVisibles.every((f) => sel.has(f.id));
+
+  const toggle = (id: string) =>
+    setSel((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleTodas = () =>
+    setSel((prev) => {
+      const next = new Set(prev);
+      if (todasSel) elegiblesVisibles.forEach((f) => next.delete(f.id));
+      else elegiblesVisibles.forEach((f) => next.add(f.id));
+      return next;
+    });
+
+  const enviar = () => {
+    if (seleccionadas.length === 0) return;
+    startTransition(async () => {
+      const r = await enviarSolicitudesMasivo(seleccionadas);
+      setResultado(r);
+      setSel(new Set());
+    });
+  };
 
   const selectCls =
     "h-9 rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none transition duration-150 focus:border-teal/50";
@@ -139,13 +179,42 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                 setFEstado("todos");
                 setFArea("todos");
               }}
-              className="h-9 rounded-lg px-3 text-sm font-medium text-muted transition duration-150 hover:bg-ink/5 hover:text-ink"
+              className="h-9 whitespace-nowrap rounded-lg px-3 text-sm font-medium text-muted transition duration-150 hover:bg-ink/5 hover:text-ink"
             >
               Limpiar
             </button>
           )}
         </div>
       </div>
+
+      {/* Barra de acción masiva */}
+      {seleccionadas.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-teal/25 bg-teal/[0.04] px-4 py-3">
+          <span className="text-sm text-ink">
+            <span className="font-semibold">{seleccionadas.length}</span>{" "}
+            {seleccionadas.length === 1 ? "solicitud seleccionada" : "solicitudes seleccionadas"}
+            <span className="ml-2 text-muted">se agrupan por responsable</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSel(new Set())}
+              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-muted transition duration-150 hover:bg-ink/5 hover:text-ink"
+            >
+              Cancelar
+            </button>
+            <Button size="sm" onClick={enviar} loading={pending}>
+              {seleccionadas.length === 1
+                ? "Enviar solicitud"
+                : `Enviar solicitudes (${seleccionadas.length})`}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Resultado del envío */}
+      {resultado && (
+        <ResultadoEnvio resultado={resultado} onClose={() => setResultado(null)} />
+      )}
 
       {visibles.length === 0 ? (
         <div className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-16 text-center">
@@ -158,9 +227,19 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
         <div className="overflow-hidden rounded-card border border-line bg-surface shadow-soft">
           {/* Tabla en pantallas medianas+ */}
           <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+            <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                  <th className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Seleccionar todas las pendientes visibles"
+                      checked={todasSel}
+                      onChange={toggleTodas}
+                      disabled={elegiblesVisibles.length === 0}
+                      className="size-4 accent-teal disabled:opacity-40"
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium">Solicitud</th>
                   <th className="px-4 py-3 font-medium">Área</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
@@ -170,68 +249,136 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                 </tr>
               </thead>
               <tbody>
-                {visibles.map((f) => (
-                  <tr
-                    key={f.id}
-                    className="group border-b border-line/70 transition duration-150 last:border-0 hover:bg-teal/[0.03]"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/solicitudes/${f.id}`}
-                        className="font-medium text-ink transition duration-150 group-hover:text-teal"
-                      >
-                        {f.titulo}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted">{f.area ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <EstadoBadge estado={f.estado} />
-                    </td>
-                    <td className="px-4 py-3 text-muted">{f.responsable ?? "—"}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-ink">
-                      {f.numVersiones > 0 ? (
-                        f.numVersiones
-                      ) : (
-                        <span className="text-muted/60">0</span>
+                {visibles.map((f) => {
+                  const puede = elegible(f);
+                  return (
+                    <tr
+                      key={f.id}
+                      className={cn(
+                        "group border-b border-line/70 transition duration-150 last:border-0 hover:bg-teal/[0.03]",
+                        sel.has(f.id) && "bg-teal/[0.05]"
                       )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">
-                      {fmt.format(new Date(f.ultimaActividad))}
-                    </td>
-                  </tr>
-                ))}
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Seleccionar ${f.titulo}`}
+                          checked={sel.has(f.id)}
+                          onChange={() => toggle(f.id)}
+                          disabled={!puede}
+                          title={
+                            puede
+                              ? "Seleccionar para enviar solicitud"
+                              : "Solo pendientes con responsable asignado"
+                          }
+                          className="size-4 accent-teal disabled:cursor-not-allowed disabled:opacity-30"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/solicitudes/${f.id}`}
+                          className="font-medium text-ink transition duration-150 group-hover:text-teal"
+                        >
+                          {f.titulo}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted">{f.area ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <EstadoBadge estado={f.estado} />
+                      </td>
+                      <td className="px-4 py-3 text-muted">{f.responsable ?? "—"}</td>
+                      <td className="px-4 py-3 text-center tabular-nums text-ink">
+                        {f.numVersiones > 0 ? (
+                          f.numVersiones
+                        ) : (
+                          <span className="text-muted/60">0</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-muted">
+                        {fmt.format(new Date(f.ultimaActividad))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Tarjetas apiladas en móvil */}
           <ul className="divide-y divide-line/70 sm:hidden">
-            {visibles.map((f) => (
-              <li key={f.id}>
-                <Link
-                  href={`/admin/solicitudes/${f.id}`}
-                  className="block px-4 py-3.5 transition duration-150 hover:bg-teal/[0.03]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="font-medium text-ink">{f.titulo}</span>
-                    <EstadoBadge estado={f.estado} className="shrink-0" />
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-                    {f.area && <span>{f.area}</span>}
-                    <span>{f.responsable ?? "Sin responsable"}</span>
-                    <span
-                      className={cn(f.numVersiones === 0 && "text-muted/60")}
-                    >
-                      {f.numVersiones} {f.numVersiones === 1 ? "versión" : "versiones"}
-                    </span>
-                    <span>{fmt.format(new Date(f.ultimaActividad))}</span>
-                  </div>
-                </Link>
-              </li>
-            ))}
+            {visibles.map((f) => {
+              const puede = elegible(f);
+              return (
+                <li key={f.id} className="flex items-start gap-3 px-4 py-3.5">
+                  <input
+                    type="checkbox"
+                    aria-label={`Seleccionar ${f.titulo}`}
+                    checked={sel.has(f.id)}
+                    onChange={() => toggle(f.id)}
+                    disabled={!puede}
+                    className="mt-0.5 size-4 shrink-0 accent-teal disabled:opacity-30"
+                  />
+                  <Link href={`/admin/solicitudes/${f.id}`} className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-ink">{f.titulo}</span>
+                      <EstadoBadge estado={f.estado} className="shrink-0" />
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                      {f.area && <span>{f.area}</span>}
+                      <span>{f.responsable ?? "Sin responsable"}</span>
+                      <span className={cn(f.numVersiones === 0 && "text-muted/60")}>
+                        {f.numVersiones} {f.numVersiones === 1 ? "versión" : "versiones"}
+                      </span>
+                      <span>{fmt.format(new Date(f.ultimaActividad))}</span>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
     </section>
+  );
+}
+
+function ResultadoEnvio({
+  resultado,
+  onClose,
+}: {
+  resultado: ResumenSolicitud & { error?: string };
+  onClose: () => void;
+}) {
+  if (resultado.error) {
+    return (
+      <div className="flex items-start justify-between gap-3 rounded-card border border-rojo/30 bg-rojo/5 px-4 py-3">
+        <p className="text-sm text-rojo">{resultado.error}</p>
+        <button onClick={onClose} className="text-sm text-muted hover:text-ink">
+          Cerrar
+        </button>
+      </div>
+    );
+  }
+  const modoNota =
+    resultado.modo === "consola"
+      ? " (modo consola: revisa el log del servidor)"
+      : "";
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-card border border-verde/30 bg-verde/5 px-4 py-3">
+      <div className="text-sm text-ink">
+        <span className="font-semibold text-verde">
+          {resultado.correos} {resultado.correos === 1 ? "correo enviado" : "correos enviados"}
+        </span>{" "}
+        · {resultado.solicitudes} {resultado.solicitudes === 1 ? "solicitud" : "solicitudes"} marcadas como solicitadas
+        {resultado.omitidas > 0 && ` · ${resultado.omitidas} omitidas`}
+        {resultado.fallidos > 0 && (
+          <span className="text-rojo"> · {resultado.fallidos} con error</span>
+        )}
+        <span className="text-muted">{modoNota}</span>
+      </div>
+      <button onClick={onClose} className="shrink-0 text-sm text-muted hover:text-ink">
+        Cerrar
+      </button>
+    </div>
   );
 }
