@@ -18,13 +18,24 @@ export async function login(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
+  if (error || !data.user) {
     return { error: "Correo o contraseña incorrectos." };
   }
 
-  // Solo redirigimos a rutas internas del portal (evita open redirect).
+  // Ruteo por rol: el staff de IRStrat (tenant_id NULL) entra al panel interno;
+  // el cliente/coordinador va a su portal (respetando `next` si es del portal,
+  // solo rutas internas para evitar open redirect).
+  const { data: perfil } = await supabase
+    .from("perfiles_usuario")
+    .select("tenant_id")
+    .eq("id", data.user.id)
+    .single();
+
+  if (perfil != null && perfil.tenant_id === null) {
+    redirect("/admin");
+  }
   redirect(next.startsWith("/portal") ? next : "/portal");
 }
 

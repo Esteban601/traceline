@@ -3,15 +3,23 @@
 import { useFormStatus } from "react-dom";
 import { cn } from "@/lib/cn";
 
-export function LogoutButton() {
+export function LogoutButton({
+  tone = "default",
+}: {
+  /** "invert" para barras oscuras (panel interno teal). */
+  tone?: "default" | "invert";
+}) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
       disabled={pending}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-muted",
-        "transition duration-150 ease-out hover:bg-ink/5 hover:text-ink disabled:opacity-55"
+        "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
+        "transition duration-150 ease-out disabled:opacity-55",
+        tone === "invert"
+          ? "text-crema/80 hover:bg-crema/10 hover:text-crema"
+          : "text-muted hover:bg-ink/5 hover:text-ink"
       )}
     >
       {pending ? (

@@ -6,8 +6,12 @@ import type { Database } from "@/lib/database.types";
 const RUTAS_PUBLICAS = ["/login"];
 
 /**
- * Refresca la sesión de Supabase y protege el portal. Sin sesión → /login.
- * Con sesión en /login → /portal.
+ * Refresca la sesión de Supabase y aplica el ruteo por rol:
+ *   - Sin sesión en ruta privada → /login (recordando el destino en `next`).
+ *   - Con sesión en /login → su home según rol (staff /admin, cliente /portal).
+ *   - Cliente/coordinador que intente entrar a /admin → /portal.
+ * `staff` = perfil de IRStrat (tenant_id NULL), consistente con fn_is_staff() en
+ * la BD y con esStaff() en lib/data.ts.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -48,11 +52,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/portal";
-    url.search = "";
-    return NextResponse.redirect(url);
+  if (user) {
+    // Rol para el ruteo: staff (IRStrat) = perfil con tenant_id NULL.
+    // La política perfiles_select permite leer el propio perfil (id = auth.uid()).
+    const { data: perfil } = await supabase
+      .from("perfiles_usuario")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+    const esStaff = perfil != null && perfil.tenant_id === null;
+
+    const redirigir = (destino: string) => {
+      const url = request.nextUrl.clone();
+      url.pathname = destino;
+      url.search = "";
+      return NextResponse.redirect(url);
+    };
+
+    // Ya autenticado en /login → a su home según rol.
+    if (pathname === "/login") {
+      return redirigir(esStaff ? "/admin" : "/portal");
+    }
+
+    // El panel interno es solo para staff; el cliente/coordinador rebota a /portal.
+    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+      if (!esStaff) return redirigir("/portal");
+    }
   }
 
   return response;
