@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { EstadoBadge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { fmtFecha, deFechaLocal } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 
 export type SolicitudResumen = {
@@ -17,12 +19,6 @@ export type SolicitudResumen = {
   orden: number;
   responsable_cliente_id: string | null;
 };
-
-const fmtFecha = new Intl.DateTimeFormat("es-MX", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
 
 function ordenar(a: SolicitudResumen, b: SolicitudResumen) {
   const ra = ESTADO_META[a.estado].rank;
@@ -98,16 +94,15 @@ export function ListaSolicitudes({
       </div>
 
       {visibles.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-16 text-center">
-          <p className="font-display text-lg font-medium text-ink">
-            Sin solicitudes por ahora
-          </p>
-          <p className="mt-1 text-sm text-muted">
-            {canToggle && soloMias
+        <EmptyState
+          glifo="◦"
+          titulo="Sin solicitudes por ahora"
+          descripcion={
+            canToggle && soloMias
               ? "No tienes solicitudes asignadas directamente. Cambia a “Todas”."
-              : "Cuando IRStrat te solicite información, aparecerá aquí."}
-          </p>
-        </div>
+              : "Cuando IRStrat te solicite información, aparecerá aquí."
+          }
+        />
       ) : (
         <ul className="space-y-2.5">
           {visibles.map((s) => (
@@ -159,7 +154,7 @@ export function ListaSolicitudes({
                           <rect x="3" y="4" width="18" height="18" rx="2" />
                           <path d="M16 2v4M8 2v4M3 10h18" />
                         </svg>
-                        Límite {fmtFecha.format(new Date(`${s.fecha_limite}T00:00:00`))}
+                        Límite {fmtFecha(deFechaLocal(s.fecha_limite))}
                       </span>
                     )}
                   </div>

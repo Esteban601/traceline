@@ -4,24 +4,15 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/data";
 import { EstadoBadge, Chip } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
 import { UploadEvidencia } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
 
 export const metadata: Metadata = { title: "Solicitud" };
 
-const fmtFechaHora = new Intl.DateTimeFormat("es-MX", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-const fmtFecha = new Intl.DateTimeFormat("es-MX", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
 const fmtNum = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 });
 
 function limpiar(nombre?: string | null): string {
@@ -111,16 +102,24 @@ export default async function SolicitudPage({
 
   return (
     <div className="space-y-8">
-      {/* Migas / volver */}
-      <Link
-        href="/portal"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition duration-150 hover:text-teal"
-      >
-        <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
-        Volver al tablero
-      </Link>
+      <div className="space-y-3">
+        <Breadcrumb
+          items={[
+            { label: "Portal", href: "/portal" },
+            { label: "Solicitudes", href: "/portal" },
+            { label: sol.titulo },
+          ]}
+        />
+        <Link
+          href="/portal"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition duration-150 hover:text-teal"
+        >
+          <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Volver al tablero
+        </Link>
+      </div>
 
       {/* Encabezado de la solicitud */}
       <header className="space-y-4">
@@ -154,7 +153,7 @@ export default async function SolicitudPage({
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Fecha límite</dt>
               <dd className="mt-0.5 font-medium text-ink">
-                {fmtFecha.format(new Date(`${sol.fecha_limite}T00:00:00`))}
+                {fmtFechaLarga(deFechaLocal(sol.fecha_limite))}
               </dd>
             </div>
           )}
@@ -174,9 +173,12 @@ export default async function SolicitudPage({
               Historial de evidencias
             </h2>
             {evs.length === 0 ? (
-              <p className="rounded-card border border-dashed border-line bg-surface/60 px-5 py-10 text-center text-sm text-muted">
-                Aún no se ha cargado evidencia para esta solicitud.
-              </p>
+              <EmptyState
+                compacto
+                glifo="↑"
+                titulo="Aún sin evidencia"
+                descripcion="Cuando cargues un archivo aparecerá aquí, versionado."
+              />
             ) : (
               <ul className="space-y-3">
                 {evs.map((ev, i) => {
@@ -213,7 +215,7 @@ export default async function SolicitudPage({
                               {ev.periodo_cubierto && <span>Periodo: {ev.periodo_cubierto}</span>}
                               {ev.area_origen && <span>Origen: {ev.area_origen}</span>}
                               <span>Por {limpiar(ev.subio?.nombre)}</span>
-                              <span>{fmtFechaHora.format(new Date(ev.created_at))}</span>
+                              <span>{fmtFechaHora(ev.created_at)}</span>
                             </div>
                           </div>
                         </div>
@@ -263,9 +265,12 @@ export default async function SolicitudPage({
               Conversación
             </h2>
             {coms.length === 0 ? (
-              <p className="text-sm text-muted">
-                Sin comentarios todavía. Si tienes dudas, escríbelas abajo.
-              </p>
+              <EmptyState
+                compacto
+                glifo="“"
+                titulo="Sin comentarios todavía"
+                descripcion="Si tienes dudas sobre esta solicitud, escríbelas abajo."
+              />
             ) : (
               <ul className="space-y-3">
                 {coms.map((c) => (
@@ -292,7 +297,7 @@ export default async function SolicitudPage({
                         )}
                       </div>
                       <time className="text-xs text-muted">
-                        {fmtFechaHora.format(new Date(c.created_at))}
+                        {fmtFechaHora(c.created_at)}
                       </time>
                     </div>
                     <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/90">

@@ -16,7 +16,7 @@ export function KpiCard({
       {/* Barra de acento del bucket */}
       <span className={cn("absolute inset-x-0 top-0 h-1", c.dot)} aria-hidden />
       <div className={cn("font-display text-4xl font-semibold tabular-nums", c.text)}>
-        {value}
+        {value.toLocaleString("es-MX")}
       </div>
       <div className="mt-1 text-xs font-medium uppercase tracking-wide text-muted">
         {label}

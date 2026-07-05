@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { EstadoBadge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { relativo, fmtFechaHora } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 
 export type FilaMatriz = {
@@ -17,13 +19,6 @@ export type FilaMatriz = {
   ultimaActividad: string;
 };
 
-const fmt = new Intl.DateTimeFormat("es-MX", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 /**
  * Prioridad de orden por defecto: observaciones y recibidas primero, luego
@@ -148,12 +143,11 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
       </div>
 
       {visibles.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-16 text-center">
-          <p className="font-display text-lg font-medium text-ink">Sin coincidencias</p>
-          <p className="mt-1 text-sm text-muted">
-            Ninguna solicitud cumple los filtros seleccionados.
-          </p>
-        </div>
+        <EmptyState
+          glifo="⁝"
+          titulo="Sin coincidencias"
+          descripcion="Ninguna solicitud cumple los filtros seleccionados."
+        />
       ) : (
         <div className="overflow-hidden rounded-card border border-line bg-surface shadow-soft">
           {/* Tabla en pantallas medianas+ */}
@@ -195,8 +189,11 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                         <span className="text-muted/60">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">
-                      {fmt.format(new Date(f.ultimaActividad))}
+                    <td
+                      className="whitespace-nowrap px-4 py-3 text-muted"
+                      title={fmtFechaHora(f.ultimaActividad)}
+                    >
+                      {relativo(f.ultimaActividad)}
                     </td>
                   </tr>
                 ))}
@@ -224,7 +221,9 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                     >
                       {f.numVersiones} {f.numVersiones === 1 ? "versión" : "versiones"}
                     </span>
-                    <span>{fmt.format(new Date(f.ultimaActividad))}</span>
+                    <span title={fmtFechaHora(f.ultimaActividad)}>
+                      {relativo(f.ultimaActividad)}
+                    </span>
                   </div>
                 </Link>
               </li>

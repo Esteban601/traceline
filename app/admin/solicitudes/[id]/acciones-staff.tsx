@@ -4,28 +4,12 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { cambiarEstado, agregarObservacion, type AccionState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
 import { TRANSICIONES } from "@/lib/transiciones";
 
 const initial: AccionState = { ok: false, error: null, mensaje: null };
-
-function Aviso({ state }: { state: AccionState }) {
-  if (state.error) {
-    return (
-      <p role="alert" className="text-sm text-rojo">
-        {state.error}
-      </p>
-    );
-  }
-  if (state.ok && state.mensaje) {
-    return (
-      <p role="status" className="text-sm text-verde">
-        {state.mensaje}
-      </p>
-    );
-  }
-  return null;
-}
 
 export function AccionesStaff({
   solicitudId,
@@ -35,21 +19,49 @@ export function AccionesStaff({
   estadoActual: EstadoSolicitud;
 }) {
   const destinos = TRANSICIONES[estadoActual] ?? [];
+  const toast = useToast();
 
   const [estadoState, estadoAction, estadoPending] = useActionState(cambiarEstado, initial);
   const [obsState, obsAction, obsPending] = useActionState(agregarObservacion, initial);
   const [destino, setDestino] = useState<string>("");
+  const [confirmar, setConfirmar] = useState(false);
   const obsRef = useRef<HTMLTextAreaElement>(null);
 
-  // Al aplicar un cambio de estado, resetea la selección.
+  // Feedback de cambio de estado.
   useEffect(() => {
-    if (estadoState.ok) setDestino("");
-  }, [estadoState.ok]);
+    if (estadoState.ok) {
+      setDestino("");
+      if (estadoState.mensaje) toast.success(estadoState.mensaje);
+    } else if (estadoState.error) {
+      toast.error(estadoState.error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estadoState]);
 
-  // Al enviar una observación, limpia el textarea.
+  // Feedback de observación.
   useEffect(() => {
-    if (obsState.ok && obsRef.current) obsRef.current.value = "";
-  }, [obsState.ok]);
+    if (obsState.ok) {
+      if (obsRef.current) obsRef.current.value = "";
+      toast.success(obsState.mensaje ?? "Observación enviada.");
+    } else if (obsState.error) {
+      toast.error(obsState.error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obsState]);
+
+  const aplicarEstado = () => {
+    const fd = new FormData();
+    fd.set("solicitud_id", solicitudId);
+    fd.set("estado", destino);
+    estadoAction(fd);
+  };
+
+  const onAplicar = () => {
+    if (!destino) return;
+    // 'validado' se percibe como irreversible en la demo → confirmar.
+    if (destino === "validado") setConfirmar(true);
+    else aplicarEstado();
+  };
 
   const selectCls =
     "h-11 w-full rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 focus:border-teal/50 focus:bg-surface disabled:opacity-55";
@@ -67,15 +79,15 @@ export function AccionesStaff({
             No hay transiciones disponibles desde este estado.
           </p>
         ) : (
-          <form action={estadoAction} className="mt-3 space-y-3">
-            <input type="hidden" name="solicitud_id" value={solicitudId} />
+          <div className="mt-3 space-y-3">
+            <label htmlFor="nuevo-estado" className="sr-only">
+              Nuevo estado
+            </label>
             <select
-              name="estado"
-              required
+              id="nuevo-estado"
               value={destino}
               onChange={(e) => setDestino(e.target.value)}
               className={selectCls}
-              aria-label="Nuevo estado"
             >
               <option value="" disabled>
                 Cambiar estado a…
@@ -86,19 +98,18 @@ export function AccionesStaff({
                 </option>
               ))}
             </select>
-            <div className="flex items-center justify-between gap-3">
-              <Aviso state={estadoState} />
+            <div className="flex justify-end">
               <Button
-                type="submit"
+                type="button"
                 size="sm"
+                onClick={onAplicar}
                 loading={estadoPending}
                 disabled={!destino}
-                className="ml-auto"
               >
                 Aplicar
               </Button>
             </div>
-          </form>
+          </div>
         )}
       </div>
 
@@ -115,7 +126,11 @@ export function AccionesStaff({
         </p>
         <form action={obsAction} className="mt-3 space-y-3">
           <input type="hidden" name="solicitud_id" value={solicitudId} />
+          <label htmlFor="obs-contenido" className="sr-only">
+            Observación
+          </label>
           <textarea
+            id="obs-contenido"
             ref={obsRef}
             name="contenido"
             required
@@ -123,20 +138,27 @@ export function AccionesStaff({
             placeholder="Describe qué debe corregir o aclarar el cliente…"
             className="w-full resize-y rounded-xl border border-line bg-crema/40 px-3.5 py-3 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50 focus:bg-surface"
           />
-          <div className="flex items-center justify-between gap-3">
-            <Aviso state={obsState} />
-            <Button
-              type="submit"
-              size="sm"
-              variant="danger"
-              loading={obsPending}
-              className="ml-auto"
-            >
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" variant="danger" loading={obsPending}>
               Enviar observación
             </Button>
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        open={confirmar}
+        titulo="¿Validar esta solicitud?"
+        descripcion="Marcarás la solicitud como validada. Es la señal de que la evidencia quedó aceptada; en la demo se trata como un paso definitivo."
+        confirmar="Sí, validar"
+        cancelar="Cancelar"
+        cargando={estadoPending}
+        onConfirm={() => {
+          setConfirmar(false);
+          aplicarEstado();
+        }}
+        onCancel={() => setConfirmar(false)}
+      />
     </div>
   );
 }

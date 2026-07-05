@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { subirEvidencia, type SubirState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { EstadoSolicitud } from "@/lib/estados";
 
@@ -28,6 +29,7 @@ export function UploadEvidencia({
   estado: EstadoSolicitud;
 }) {
   const [state, formAction, pending] = useActionState(subirEvidencia, initial);
+  const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -49,8 +51,17 @@ export function UploadEvidencia({
       setValor("");
       setPeriodoCaptura("");
       if (inputRef.current) inputRef.current.value = "";
+      toast.success(
+        state.version != null
+          ? `Evidencia registrada como versión v${state.version}.`
+          : "Evidencia registrada."
+      );
+      if (state.error) toast.error(state.error); // captura parcial
+    } else if (state.error) {
+      toast.error(state.error);
     }
-  }, [state.ok]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   if (bloqueado) {
     return (
@@ -248,31 +259,10 @@ export function UploadEvidencia({
         </div>
       )}
 
-      {/* Feedback */}
-      {state.ok && state.version != null && (
-        <div
-          role="status"
-          className={cn(
-            "flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm",
-            state.error
-              ? "border-gold/30 bg-gold/10 text-ink"
-              : "border-verde/25 bg-verde/10 text-verde"
-          )}
-        >
-          <svg aria-hidden viewBox="0 0 24 24" className="mt-0.5 size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          <span>
-            {state.error
-              ? state.error
-              : `Evidencia registrada como versión v${state.version}.`}
-          </span>
-        </div>
-      )}
-
-      {(localError || (state.error && !state.ok)) && (
+      {/* Error de validación previo al envío (el resultado del servidor va a toast) */}
+      {localError && (
         <p role="alert" className="rounded-lg border border-rojo/25 bg-rojo/10 px-3.5 py-2.5 text-sm text-rojo">
-          {localError ?? state.error}
+          {localError}
         </p>
       )}
 
