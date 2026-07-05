@@ -34,7 +34,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-medium",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium",
         "transition duration-150 ease-out",
         "disabled:opacity-55 disabled:cursor-not-allowed",
         VARIANTS[variant],

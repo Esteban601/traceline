@@ -15,7 +15,7 @@ export function LogoutButton({
       type="submit"
       disabled={pending}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium",
         "transition duration-150 ease-out disabled:opacity-55",
         tone === "invert"
           ? "text-crema/80 hover:bg-crema/10 hover:text-crema"

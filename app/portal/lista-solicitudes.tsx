@@ -76,7 +76,7 @@ export function ListaSolicitudes({
               aria-selected={!soloMias}
               onClick={() => setSoloMias(false)}
               className={cn(
-                "rounded-pill px-3.5 py-1.5 font-medium transition duration-150",
+                "whitespace-nowrap rounded-pill px-3.5 py-1.5 font-medium transition duration-150",
                 !soloMias ? "bg-teal text-crema shadow-soft" : "text-muted hover:text-ink"
               )}
             >
@@ -87,7 +87,7 @@ export function ListaSolicitudes({
               aria-selected={soloMias}
               onClick={() => setSoloMias(true)}
               className={cn(
-                "rounded-pill px-3.5 py-1.5 font-medium transition duration-150",
+                "whitespace-nowrap rounded-pill px-3.5 py-1.5 font-medium transition duration-150",
                 soloMias ? "bg-teal text-crema shadow-soft" : "text-muted hover:text-ink"
               )}
             >

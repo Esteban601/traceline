@@ -17,12 +17,17 @@
   --color-teal-dark: #0a3a34;  /* primario hover / activo */
   --color-gold: #be9130;       /* acento */
 
-  /* Semáforo de estados */
-  --color-ambar: #b47a1c;      /* pendientes */
-  --color-azul: #2e6ca6;       /* recibidas */
-  --color-rojo: #b0402f;       /* con observaciones */
-  --color-verde: #2f7a55;      /* validadas */
-  --color-gris: #6b7975;       /* congelado / neutro */
+  /* Semáforo de estados
+     Los pares llevan un tono claro y uno fuerte para distinguir A SIMPLE VISTA
+     (además del ícono) estados de un mismo "dueño": ámbar = le toca al cliente,
+     azul = nos toca a nosotros. */
+  --color-ambar: #b47a1c;         /* pendiente (le toca al cliente) */
+  --color-ambar-fuerte: #8a5210;  /* solicitado (ámbar más oscuro/saturado) */
+  --color-azul: #2e6ca6;          /* recibido (nos toca a nosotros) */
+  --color-azul-fuerte: #1e4e7c;   /* en revisión (azul más oscuro/saturado) */
+  --color-rojo: #b0402f;          /* con observaciones */
+  --color-verde: #2f7a55;         /* validado */
+  --color-gris: #6b7975;          /* congelado / neutro */
 
   /* Radios */
   --radius-card: 1rem;         /* 16px */
