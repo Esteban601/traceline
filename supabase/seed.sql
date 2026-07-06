@@ -285,7 +285,15 @@ insert into storage.objects (id, bucket_id, name, owner_id, metadata) values
   (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000006/consumo_energia_2025_v2.xlsx', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
   (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000007/inventario_gei_alcance1_2025.xlsx', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
   (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000001/plantilla_rotacion_2025.xlsx', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000009/consumo_agua_2025.pdf', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/pdf"}'::jsonb);
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000009/consumo_agua_2025.pdf', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
+  -- Objetos de coherencia: solicitudes en estado avanzado que carecían de evidencia.
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000002/horas_capacitacion_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000003/diversidad_inclusion_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000004/indice_rotacion_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000013/inversiones_ambientales_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000004', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000017/consejo_composicion_esg_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000018/consejo_competencias_esg_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb);
 
 -- =============================================================================
 -- 9. Evidencias (APPEND ONLY). La columna version la asigna el trigger.
@@ -301,7 +309,19 @@ insert into public.evidencias (id, solicitud_id, archivo_path, nombre_original, 
   -- #1 plantilla
   ('d0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000001/plantilla_rotacion_2025.xlsx', 'plantilla_rotacion_2025.xlsx', '2025 (cierre)', 'RH', 'a0000000-0000-0000-0000-000000000002', 'Plantilla al 31-dic con altas y bajas.'),
   -- #9 agua
-  ('d0000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000009/consumo_agua_2025.pdf', 'consumo_agua_2025.pdf', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Reporte de consumo por fuente.');
+  ('d0000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000009/consumo_agua_2025.pdf', 'consumo_agua_2025.pdf', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Reporte de consumo por fuente.'),
+  -- ---- Evidencias de coherencia ----
+  -- Solicitudes ya en estado avanzado (recibido/en_revision/observaciones/validado)
+  -- que carecían de evidencia. Como su estado NO es pendiente/solicitado, el
+  -- trigger AFTER INSERT (que solo promueve pendiente/solicitado -> recibido) es
+  -- un no-op: el estado declarado se conserva (incluido #17 'validado').
+  ('d0000000-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000002/horas_capacitacion_2025_DEMO.xlsx', 'horas_capacitacion_2025_DEMO.xlsx', '2025 (ene-dic)', 'RH', 'a0000000-0000-0000-0000-000000000002', 'Registro de horas de formación por colaborador.'),
+  ('d0000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000003/diversidad_inclusion_2025_DEMO.pdf', 'diversidad_inclusion_2025_DEMO.pdf', '2025 (cierre)', 'RH', 'a0000000-0000-0000-0000-000000000002', 'Distribución por género en plantilla y órganos de gobierno.'),
+  ('d0000000-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000004/indice_rotacion_2025_DEMO.xlsx', 'indice_rotacion_2025_DEMO.xlsx', '2025 (ene-dic)', 'RH', 'a0000000-0000-0000-0000-000000000002', 'Primer envío; pendiente de conciliar el denominador (ver observación).'),
+  ('d0000000-0000-0000-0000-000000000009', 'c0000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000013/inversiones_ambientales_2025_DEMO.xlsx', 'inversiones_ambientales_2025_DEMO.xlsx', '2025 (ene-dic)', 'Finanzas', 'a0000000-0000-0000-0000-000000000004', 'Desglose de CAPEX/OPEX ambiental por proyecto.'),
+  ('d0000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-000000000017', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000017/consejo_composicion_esg_2025_DEMO.pdf', 'consejo_composicion_esg_2025_DEMO.pdf', '2025 (cierre)', 'Gobierno Corporativo', 'a0000000-0000-0000-0000-000000000001', 'Integrantes del Consejo, comités y mandatos ESG.'),
+  ('d0000000-0000-0000-0000-00000000000b', 'c0000000-0000-0000-0000-000000000018', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000018/consejo_competencias_esg_2025_DEMO.pdf', 'consejo_competencias_esg_2025_DEMO.pdf', '2025 (cierre)', 'Gobierno Corporativo', 'a0000000-0000-0000-0000-000000000001', 'Matriz de competencias de los consejeros en sostenibilidad y clima.'),
+  ('d0000000-0000-0000-0000-00000000000c', 'c0000000-0000-0000-0000-000000000019', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'plan_transicion_climatica_2025_DEMO.pdf', '2025 (ene-dic)', 'Dirección', 'a0000000-0000-0000-0000-000000000001', 'Plan de transición: metas de reducción, alcance y año base.');
 
 -- =============================================================================
 -- 10. Capturas de valor (APPEND ONLY). Correcciones = filas nuevas.
@@ -317,7 +337,12 @@ insert into public.capturas_valor (solicitud_id, evidencia_id, valor, unidad, pe
   -- #1 plantilla
   ('c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000004', 412, 'personas', '2025', 'b0000000-0000-0000-0000-000000000001', true),
   -- #9 agua
-  ('c0000000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000005', 32450, 'm3', '2025', 'b0000000-0000-0000-0000-000000000001', true);
+  ('c0000000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000005', 32450, 'm3', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  -- Capturas de coherencia (solicitudes cuantitativas con evidencia nueva)
+  -- #2 horas de capacitación
+  ('c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000006', 8450, 'horas', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  -- #4 índice de rotación voluntaria
+  ('c0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000008', 12.4, '%', '2025', 'b0000000-0000-0000-0000-000000000001', true);
 
 -- =============================================================================
 -- 11. Comentarios / observaciones
