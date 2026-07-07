@@ -21,7 +21,9 @@ export async function login(
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.user) {
-    return { error: "Correo o contraseña incorrectos." };
+    return {
+      error: "No pudimos validar esos datos. Revisa tu correo y contraseña e inténtalo de nuevo.",
+    };
   }
 
   // Ruteo por rol: el staff de IRStrat (tenant_id NULL) entra al panel interno;

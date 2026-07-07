@@ -2,24 +2,44 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { dispararRecordatorios } from "./actions";
-import type { ResumenRecordatorios } from "@/lib/recordatorios";
 
 export function BarraRecordatorios() {
-  const [resultado, setResultado] = useState<(ResumenRecordatorios & { error?: string }) | null>(
-    null
-  );
+  const [confirmar, setConfirmar] = useState(false);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
+  // Envío de recordatorios: confirmado por ConfirmDialog (efecto externo: manda
+  // correos), resultado por toast (enviados/omitidos por la regla anti-spam).
   const disparar = () =>
     startTransition(async () => {
       const r = await dispararRecordatorios();
-      setResultado(r);
+      setConfirmar(false);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      if (r.responsables === 0) {
+        toast.success("Sin pendientes por recordar.");
+        return;
+      }
+      const nota = r.modo === "consola" ? " (modo consola: revisa el log)" : "";
+      const partes = [
+        `${r.enviados} ${r.enviados === 1 ? "recordatorio enviado" : "recordatorios enviados"}`,
+      ];
+      if (r.omitidos > 0) partes.push(`${r.omitidos} omitidos (regla de 5 días)`);
+      if (r.fallidos > 0) {
+        toast.error(`${partes.join(" · ")} · ${r.fallidos} con error${nota}`);
+      } else {
+        toast.success(`${partes.join(" · ")}${nota}`);
+      }
     });
 
   return (
-    <div className="flex flex-col items-stretch gap-2 sm:items-end">
-      <Button variant="secondary" size="sm" onClick={disparar} loading={pending}>
+    <>
+      <Button variant="secondary" size="sm" onClick={() => setConfirmar(true)} loading={pending}>
         {!pending && (
           <svg
             aria-hidden
@@ -38,28 +58,16 @@ export function BarraRecordatorios() {
         {pending ? "Enviando…" : "Enviar recordatorios ahora"}
       </Button>
 
-      {resultado &&
-        (resultado.error ? (
-          <p role="alert" className="text-xs text-rojo sm:text-right">
-            {resultado.error}
-          </p>
-        ) : (
-          <p role="status" className="max-w-xs text-xs text-muted sm:text-right">
-            <span className="font-semibold text-verde">
-              {resultado.enviados} {resultado.enviados === 1 ? "recordatorio enviado" : "recordatorios enviados"}
-            </span>
-            {resultado.omitidos > 0 && (
-              <> · {resultado.omitidos} omitidos (regla de 5 días)</>
-            )}
-            {resultado.fallidos > 0 && (
-              <span className="text-rojo"> · {resultado.fallidos} con error</span>
-            )}
-            {resultado.responsables === 0 && " · sin pendientes por recordar"}
-            {resultado.modo === "consola" && (
-              <span className="block">Modo consola: revisa el log del servidor.</span>
-            )}
-          </p>
-        ))}
-    </div>
+      <ConfirmDialog
+        open={confirmar}
+        titulo="¿Enviar recordatorios ahora?"
+        descripcion="Se enviará un correo digest a cada responsable con solicitudes pendientes o con observaciones. No se reenvía a quien recibió uno en los últimos 5 días."
+        confirmar="Enviar recordatorios"
+        cancelar="Cancelar"
+        cargando={pending}
+        onConfirm={disparar}
+        onCancel={() => setConfirmar(false)}
+      />
+    </>
   );
 }

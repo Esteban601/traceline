@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TONO_CLASSES, ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
 import { COBERTURA_META, COBERTURA_ORDEN, type Cobertura } from "@/lib/cobertura";
 import { ExportButton } from "./export-button";
@@ -252,12 +253,11 @@ export function CoberturaView({ datapoints }: { datapoints: DatapointCobertura[]
 
       {/* Grupos colapsables */}
       {grupos.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-16 text-center">
-          <p className="font-display text-lg font-medium text-ink">Sin datapoints</p>
-          <p className="mt-1 text-sm text-muted">
-            Ningún datapoint cumple los filtros seleccionados.
-          </p>
-        </div>
+        <EmptyState
+          glifo="⁝"
+          titulo="Sin datapoints"
+          descripcion="Ningún datapoint cumple los filtros seleccionados."
+        />
       ) : (
         <div className="space-y-3">
           {grupos.map((g) => (

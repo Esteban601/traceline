@@ -21,13 +21,15 @@
      Los pares llevan un tono claro y uno fuerte para distinguir A SIMPLE VISTA
      (además del ícono) estados de un mismo "dueño": ámbar = le toca al cliente,
      azul = nos toca a nosotros. */
-  --color-ambar: #b47a1c;         /* pendiente (le toca al cliente) */
-  --color-ambar-fuerte: #8a5210;  /* solicitado (ámbar más oscuro/saturado) */
-  --color-azul: #2e6ca6;          /* recibido (nos toca a nosotros) */
+  /* Valores calibrados para contraste AA (≥4.5:1 como texto sobre crema/tint;
+     ambar y gris se oscurecieron levemente para cumplirlo — ver DESIGN.md). */
+  --color-ambar: #97621a;         /* pendiente (le toca al cliente) — 4.66:1 */
+  --color-ambar-fuerte: #8a5210;  /* solicitado (ámbar más oscuro/saturado) — 5.8:1 */
+  --color-azul: #2e6ca6;          /* recibido (nos toca a nosotros) — 4.98:1 */
   --color-azul-fuerte: #1e4e7c;   /* en revisión (azul más oscuro/saturado) */
-  --color-rojo: #b0402f;          /* con observaciones */
-  --color-verde: #2f7a55;         /* validado */
-  --color-gris: #6b7975;          /* congelado / neutro */
+  --color-rojo: #b0402f;          /* con observaciones — 5.2:1 */
+  --color-verde: #2f7a55;         /* validado — 4.7:1 */
+  --color-gris: #62706c;          /* congelado / neutro — 4.69:1 */
 
   /* Radios */
   --radius-card: 1rem;         /* 16px */
@@ -72,10 +74,40 @@
     background-color: rgba(14, 79, 71, 0.14);
   }
 
-  /* Foco accesible y consistente */
+  /* Foco accesible y consistente: anillo dorado de la paleta, visible sobre
+     superficies claras y sobre la barra teal del panel. */
   :focus-visible {
-    outline: 2px solid var(--color-teal);
+    outline: 2px solid var(--color-gold);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@layer utilities {
+  .toast-enter {
+    animation: toast-in 180ms ease-out;
+  }
+
+  /* Respeta la preferencia del usuario: sin transforms/animaciones. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

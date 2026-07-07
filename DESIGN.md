@@ -59,13 +59,13 @@ Fuente única de verdad: `lib/estados.ts` (`ESTADO_META` → `tono` + `icono` +
 
 | Estado | Token (tono) | Hex | Ícono | Dueño / bucket KPI |
 |--------|--------------|-----|-------|--------------------|
-| `pendiente` | `ambar` | `#B47A1C` | círculo vacío | Cliente · **Pendientes** |
+| `pendiente` | `ambar` | `#97621A` | círculo vacío | Cliente · **Pendientes** |
 | `solicitado` | `ambar-fuerte` | `#8A5210` | flecha de envío | Cliente · **Pendientes** |
 | `recibido` | `azul` | `#2E6CA6` | bandeja de entrada | Nosotros · **Recibidas** |
 | `en_revision` | `azul-fuerte` | `#1E4E7C` | lupa | Nosotros · **Recibidas** |
 | `observaciones` | `rojo` | `#B0402F` | alerta | Cliente · **Con observaciones** |
 | `validado` | `verde` | `#2F7A55` | check | — · **Validadas** |
-| `congelado` | `gris` | `#6B7975` | candado | — · **Validadas** |
+| `congelado` | `gris` | `#62706C` | candado | — · **Validadas** |
 
 Los buckets de KPI agregan los pares (pendiente+solicitado → *Pendientes*;
 recibido+en_revisión → *Recibidas*) y usan el tono base (`ambar`, `azul`).
@@ -113,9 +113,17 @@ Uso en badges/tints: texto `text-<tono>`, fondo `bg-<tono>/10`, borde
 
 ## Foco / accesibilidad
 
-- `:focus-visible` con anillo teal (definido en `globals.css`).
-- Contraste AA: `ink`/`muted` sobre `crema`/`surface`; tonos de estado usados
-  como texto sobre fondo claro.
+- `:focus-visible` con **anillo dorado** (`--color-gold`, definido en
+  `globals.css`), visible sobre superficies claras y sobre la barra teal.
+- **Contraste AA (≥4.5:1) como texto sobre crema/tint** — verificado y medido:
+  `ink`, `muted` (4.8), y los tonos de estado usados como texto de badge:
+  `azul` (4.98), `azul-fuerte`, `verde` (4.7), `rojo` (5.2), `ambar` (4.66),
+  `ambar-fuerte` (5.8), `gris` (4.69). `ambar` y `gris` se **oscurecieron
+  levemente** respecto de su valor original (que quedaba en ~3.3 y ~4.1) para
+  cumplir AA sin cambiar la identidad de la paleta. El **dorado** es acento
+  decorativo (eyebrows, líneas), no texto de cuerpo.
+- Botones de ícono llevan `aria-label`; los íconos decorativos, `aria-hidden`.
+- `prefers-reduced-motion`: se neutralizan transiciones/animaciones (globals).
 - Objetivos táctiles ≥ 40px en móvil.
 
 ---
@@ -134,13 +142,35 @@ Uso en badges/tints: texto `text-<tono>`, fondo `bg-<tono>/10`, borde
 - **`Card`** — superficie con `bg-surface border border-line rounded-card
   shadow-soft`.
 - **`Field`** — label + input/textarea con estilos consistentes.
+- **`Toast` / `useToast`** — feedback de acciones (componente propio, sin
+  librería). `useToast().success|error(mensaje)`. Éxito en `verde`, error en
+  `rojo`, ícono, auto-cierre (~5s) y cierre manual; stack abajo-derecha con
+  `aria-live`. Montado una vez en el root layout (`ToastProvider`).
+- **`EmptyState`** — estado vacío editorial: glifo tipográfico sobrio + título +
+  descripción sobre fondo punteado. Nunca una lista vacía silenciosa.
+- **`Breadcrumb`** — orientación en vistas de detalle; el último crumb es la
+  página actual (texto `ink`, truncado). Acompaña un botón "Volver" consistente.
+- **`ConfirmDialog`** — confirmación propia (no `window.confirm`) para acciones
+  con efecto externo o percibidas como irreversibles: `role=dialog`, `aria-modal`,
+  Escape cancela, backdrop clicable, foco inicial en la acción principal.
+
+## Feedback, fechas y orientación
+
+- **Toasts** para el resultado de toda acción (subir evidencia con nº de versión,
+  observación, cambio de estado, comentario, export). El feedback no depende de
+  ver el refresh; los mensajes de error son útiles, no técnicos.
+- **Fechas humanizadas** (`lib/fechas.ts`, es-MX, fuente única): `fmtFecha`
+  ("25 feb 2026"), `fmtFechaLarga`, `fmtFechaHora`, y `relativo` ("hace 2 días",
+  "ayer") para actividad reciente. Números con separador de miles (`es-MX`).
+- **Favicon** env-driven (`app/icon.tsx`): inicial de `NEXT_PUBLIC_APP_NAME`
+  sobre teal, consistente con el logotipo del header.
 
 ## Patrones de estado (UI)
 
-- **Loading**: `loading.tsx` con skeletons (bloques `bg-line/50 animate-pulse`).
-  Nunca pantalla en blanco silenciosa.
+- **Loading**: `loading.tsx` con skeletons editoriales (bloques
+  `bg-line/50 animate-pulse`), no spinners genéricos. Nunca pantalla en blanco.
 - **Error**: `error.tsx` con mensaje claro y acción de reintento.
-- **Vacío**: mensaje editorial centrado con ícono/acento, no tabla vacía.
+- **Vacío**: `EmptyState` — glifo + mensaje editorial, no tabla vacía.
 - **Listas largas (accordion)**: cuando un catálogo es extenso (p. ej. la vista
   de cobertura, 91 datapoints), se agrupa en secciones colapsables. Por defecto
   **todas colapsadas**: el encabezado muestra título, conteo y un mini-resumen

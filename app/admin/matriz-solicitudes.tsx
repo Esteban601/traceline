@@ -4,10 +4,13 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { EstadoBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { relativo, fmtFechaHora } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 import { enviarSolicitudesMasivo } from "./actions";
-import type { ResumenSolicitud } from "@/lib/solicitar";
 
 export type FilaMatriz = {
   id: string;
@@ -19,14 +22,6 @@ export type FilaMatriz = {
   numVersiones: number;
   ultimaActividad: string;
 };
-
-const fmt = new Intl.DateTimeFormat("es-MX", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 /** Elegible para "Enviar solicitud": pendiente con responsable asignado. */
 function elegible(f: FilaMatriz): boolean {
@@ -62,8 +57,9 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
   const [fEstado, setFEstado] = useState<EstadoSolicitud | "todos">("todos");
   const [fArea, setFArea] = useState<string>("todos");
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const [resultado, setResultado] = useState<ResumenSolicitud | null>(null);
+  const [confirmar, setConfirmar] = useState(false);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
   const areas = useMemo(
     () =>
@@ -118,12 +114,29 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
       return next;
     });
 
+  // Envío masivo: confirmado por ConfirmDialog (efecto externo: manda correos),
+  // resultado por toast (enviados/omitidas).
   const enviar = () => {
     if (seleccionadas.length === 0) return;
     startTransition(async () => {
       const r = await enviarSolicitudesMasivo(seleccionadas);
-      setResultado(r);
+      setConfirmar(false);
       setSel(new Set());
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      const nota = r.modo === "consola" ? " (modo consola: revisa el log)" : "";
+      const partes = [
+        `${r.correos} ${r.correos === 1 ? "correo enviado" : "correos enviados"}`,
+        `${r.solicitudes} ${r.solicitudes === 1 ? "solicitud" : "solicitudes"} marcadas`,
+      ];
+      if (r.omitidas > 0) partes.push(`${r.omitidas} omitidas`);
+      if (r.fallidos > 0) {
+        toast.error(`${partes.join(" · ")} · ${r.fallidos} con error${nota}`);
+      } else {
+        toast.success(`${partes.join(" · ")}${nota}`);
+      }
     });
   };
 
@@ -202,7 +215,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
             >
               Cancelar
             </button>
-            <Button size="sm" onClick={enviar} loading={pending}>
+            <Button size="sm" onClick={() => setConfirmar(true)} loading={pending}>
               {seleccionadas.length === 1
                 ? "Enviar solicitud"
                 : `Enviar solicitudes (${seleccionadas.length})`}
@@ -211,18 +224,12 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
         </div>
       )}
 
-      {/* Resultado del envío */}
-      {resultado && (
-        <ResultadoEnvio resultado={resultado} onClose={() => setResultado(null)} />
-      )}
-
       {visibles.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-16 text-center">
-          <p className="font-display text-lg font-medium text-ink">Sin coincidencias</p>
-          <p className="mt-1 text-sm text-muted">
-            Ninguna solicitud cumple los filtros seleccionados.
-          </p>
-        </div>
+        <EmptyState
+          glifo="⁝"
+          titulo="Sin coincidencias"
+          descripcion="Ninguna solicitud cumple los filtros seleccionados."
+        />
       ) : (
         <div className="overflow-hidden rounded-card border border-line bg-surface shadow-soft">
           {/* Tabla en pantallas medianas+ */}
@@ -294,8 +301,11 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                           <span className="text-muted/60">0</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-muted">
-                        {fmt.format(new Date(f.ultimaActividad))}
+                      <td
+                        className="whitespace-nowrap px-4 py-3 text-muted"
+                        title={fmtFechaHora(f.ultimaActividad)}
+                      >
+                        {relativo(f.ultimaActividad)}
                       </td>
                     </tr>
                   );
@@ -329,7 +339,9 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                       <span className={cn(f.numVersiones === 0 && "text-muted/60")}>
                         {f.numVersiones} {f.numVersiones === 1 ? "versión" : "versiones"}
                       </span>
-                      <span>{fmt.format(new Date(f.ultimaActividad))}</span>
+                      <span title={fmtFechaHora(f.ultimaActividad)}>
+                        {relativo(f.ultimaActividad)}
+                      </span>
                     </div>
                   </Link>
                 </li>
@@ -338,47 +350,21 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
           </ul>
         </div>
       )}
-    </section>
-  );
-}
 
-function ResultadoEnvio({
-  resultado,
-  onClose,
-}: {
-  resultado: ResumenSolicitud & { error?: string };
-  onClose: () => void;
-}) {
-  if (resultado.error) {
-    return (
-      <div className="flex items-start justify-between gap-3 rounded-card border border-rojo/30 bg-rojo/5 px-4 py-3">
-        <p className="text-sm text-rojo">{resultado.error}</p>
-        <button onClick={onClose} className="text-sm text-muted hover:text-ink">
-          Cerrar
-        </button>
-      </div>
-    );
-  }
-  const modoNota =
-    resultado.modo === "consola"
-      ? " (modo consola: revisa el log del servidor)"
-      : "";
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-card border border-verde/30 bg-verde/5 px-4 py-3">
-      <div className="text-sm text-ink">
-        <span className="font-semibold text-verde">
-          {resultado.correos} {resultado.correos === 1 ? "correo enviado" : "correos enviados"}
-        </span>{" "}
-        · {resultado.solicitudes} {resultado.solicitudes === 1 ? "solicitud" : "solicitudes"} marcadas como solicitadas
-        {resultado.omitidas > 0 && ` · ${resultado.omitidas} omitidas`}
-        {resultado.fallidos > 0 && (
-          <span className="text-rojo"> · {resultado.fallidos} con error</span>
-        )}
-        <span className="text-muted">{modoNota}</span>
-      </div>
-      <button onClick={onClose} className="shrink-0 text-sm text-muted hover:text-ink">
-        Cerrar
-      </button>
-    </div>
+      <ConfirmDialog
+        open={confirmar}
+        titulo={
+          seleccionadas.length === 1
+            ? "¿Enviar la solicitud?"
+            : `¿Enviar ${seleccionadas.length} solicitudes?`
+        }
+        descripcion="Se enviará un correo por responsable con sus solicitudes y cada una pasará a “Solicitada”."
+        confirmar="Enviar"
+        cancelar="Cancelar"
+        cargando={pending}
+        onConfirm={enviar}
+        onCancel={() => setConfirmar(false)}
+      />
+    </section>
   );
 }

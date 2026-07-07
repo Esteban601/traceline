@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sora, Inter } from "next/font/google";
 import "./globals.css";
 import { APP_NAME } from "@/lib/app";
+import { ToastProvider } from "@/components/ui/toast";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -32,7 +33,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${sora.variable} ${inter.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

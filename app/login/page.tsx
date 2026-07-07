@@ -34,14 +34,15 @@ export default async function LoginPage({
 
         <div className="relative max-w-md">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold">
-            Evidencia ESG · NIIF S1/S2
+            IRStrat · Vert
           </p>
           <h1 className="mt-4 font-display text-4xl font-semibold leading-tight">
-            Trazabilidad de la evidencia de sostenibilidad, de principio a fin.
+            Evidencia trazable para NIIF S1/S2.
           </h1>
           <p className="mt-5 text-base leading-relaxed text-crema/80">
-            Consulta tus solicitudes de información, carga evidencia versionada y
-            da seguimiento a su validación para el Informe Anual Sustentable.
+            Recibe tus solicitudes de información, carga evidencia versionada y
+            sigue su validación de principio a fin, lista para el aseguramiento
+            del Informe Anual Sustentable.
           </p>
         </div>
 
@@ -59,10 +60,10 @@ export default async function LoginPage({
             </span>
           </div>
           <h2 className="font-display text-2xl font-semibold text-ink">
-            Bienvenido
+            Te damos la bienvenida
           </h2>
           <p className="mt-1.5 text-sm text-muted">
-            Ingresa para acceder a tu portal de evidencia.
+            Ingresa con tu correo para continuar a tu portal de evidencia.
           </p>
           <div className="mt-8">
             <LoginForm next={next ?? "/portal"} />
