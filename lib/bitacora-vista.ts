@@ -1,0 +1,110 @@
+import type { Tono } from "@/lib/estados";
+import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+
+// =============================================================================
+// Presentación de la bitácora (timeline de solicitud y vista global). Mapea cada
+// acción a una etiqueta legible y un tono, y arma un resumen a partir del detalle.
+// La bitácora es la fuente de verdad; aquí solo se le da forma editorial.
+// =============================================================================
+
+export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
+  evidencia_creada: { label: "Evidencia cargada", tono: "azul" },
+  captura_creada: { label: "Valor capturado", tono: "azul" },
+  cambio_estado: { label: "Cambio de estado", tono: "ambar-fuerte" },
+  solicitud_enviada: { label: "Solicitud enviada", tono: "ambar-fuerte" },
+  recordatorio_enviado: { label: "Recordatorio enviado", tono: "ambar" },
+  aviso_observacion: { label: "Observación notificada", tono: "rojo" },
+  solicitud_creada: { label: "Solicitud creada", tono: "verde" },
+  solicitud_editada: { label: "Solicitud editada", tono: "gris" },
+  solicitud_eliminada: { label: "Solicitud eliminada", tono: "rojo" },
+  usuario_creado: { label: "Usuario creado", tono: "verde" },
+  usuario_desactivado: { label: "Usuario desactivado", tono: "rojo" },
+  usuario_reactivado: { label: "Usuario reactivado", tono: "verde" },
+  plantilla_creada: { label: "Plantilla creada", tono: "verde" },
+  reporte_creado_desde_plantilla: { label: "Reporte creado", tono: "verde" },
+  reporte_congelado: { label: "Reporte congelado", tono: "gris" },
+};
+
+export function accionMeta(accion: string): { label: string; tono: Tono } {
+  return ACCION_META[accion] ?? { label: accion, tono: "gris" };
+}
+
+/** Entidades reales de la bitácora, para el filtro de la vista global. */
+export const ENTIDADES: { value: string; label: string }[] = [
+  { value: "solicitudes", label: "Solicitudes" },
+  { value: "evidencias", label: "Evidencias" },
+  { value: "capturas_valor", label: "Capturas de valor" },
+  { value: "correo", label: "Correos" },
+  { value: "perfiles_usuario", label: "Usuarios" },
+  { value: "plantillas", label: "Plantillas" },
+  { value: "reportes", label: "Reportes" },
+];
+
+type Detalle = Record<string, unknown> | null;
+
+function s(detalle: Detalle, k: string): string | null {
+  const v = detalle?.[k];
+  return typeof v === "string" ? v : null;
+}
+function n(detalle: Detalle, k: string): number | null {
+  const v = detalle?.[k];
+  return typeof v === "number" ? v : null;
+}
+function limpiar(v: string | null): string | null {
+  return v ? v.replace(/\[DEMO\]\s*/i, "").trim() : null;
+}
+
+const estadoLabel = (e: string | null): string =>
+  e && e in ESTADO_META ? ESTADO_META[e as EstadoSolicitud].label : (e ?? "—");
+
+/** Resumen legible de una entrada de bitácora a partir de su detalle. */
+export function resumenBitacora(accion: string, detalle: Detalle): string {
+  switch (accion) {
+    case "cambio_estado":
+      return `${estadoLabel(s(detalle, "estado_anterior"))} → ${estadoLabel(
+        s(detalle, "estado_nuevo")
+      )}`;
+    case "evidencia_creada": {
+      const v = n(detalle, "version");
+      const nombre = s(detalle, "nombre_original");
+      return [v != null ? `v${v}` : null, nombre].filter(Boolean).join(" · ") || "Nueva versión";
+    }
+    case "captura_creada": {
+      const valor = n(detalle, "valor");
+      const unidad = s(detalle, "unidad");
+      return valor != null ? `${valor}${unidad ? ` ${unidad}` : ""}` : "Valor capturado";
+    }
+    case "solicitud_enviada": {
+      const total = n(detalle, "total");
+      const nombre = limpiar(s(detalle, "nombre"));
+      return [nombre, total ? `${total} solicitud(es)` : null].filter(Boolean).join(" · ");
+    }
+    case "recordatorio_enviado":
+    case "aviso_observacion":
+      return limpiar(s(detalle, "nombre")) ?? "Notificación por correo";
+    case "solicitud_creada":
+    case "solicitud_editada":
+    case "solicitud_eliminada":
+      return limpiar(s(detalle, "titulo")) ?? "";
+    case "usuario_creado":
+    case "usuario_desactivado":
+    case "usuario_reactivado":
+      return limpiar(s(detalle, "nombre")) ?? "";
+    case "plantilla_creada": {
+      const nombre = s(detalle, "nombre");
+      const c = n(detalle, "solicitudes");
+      return [nombre, c != null ? `${c} solicitudes` : null].filter(Boolean).join(" · ");
+    }
+    case "reporte_creado_desde_plantilla":
+      return s(detalle, "nombre") ?? "";
+    case "reporte_congelado":
+      return s(detalle, "nombre") ?? "";
+    default:
+      return "";
+  }
+}
+
+/** Justificación de ajuste, si la entrada la trae (evidencia/captura). */
+export function justificacionDe(detalle: Detalle): string | null {
+  return s(detalle, "justificacion");
+}

@@ -17,8 +17,27 @@ export type DatapointCobertura = {
   descripcion: string;
   ods: string | null;
   cobertura: Cobertura;
+  discrepancia: boolean;
   solicitudes: { id: string; titulo: string; estado: EstadoSolicitud }[];
 };
+
+function AlertaDiscrepancia({ className }: { className?: string }) {
+  return (
+    <span
+      title="Discrepancia entre áreas: valores distintos para el mismo datapoint"
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-pill border border-rojo/25 bg-rojo/10 px-2 py-0.5 text-[11px] font-medium text-rojo",
+        className
+      )}
+    >
+      <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <path d="M12 9v4M12 17h.01" />
+      </svg>
+      Discrepancia
+    </span>
+  );
+}
 
 type Norma = "S1" | "S2";
 
@@ -349,6 +368,7 @@ function GrupoCobertura({
   onToggle: () => void;
 }) {
   const grupoId = `grupo-${norma}-${pilar}`;
+  const nDisc = items.filter((d) => d.discrepancia).length;
   return (
     <section className="overflow-hidden rounded-card border border-line bg-surface shadow-soft">
       <button
@@ -381,6 +401,9 @@ function GrupoCobertura({
             <span className="text-sm text-muted">
               {items.length} {items.length === 1 ? "datapoint" : "datapoints"}
             </span>
+            {nDisc > 0 && (
+              <AlertaDiscrepancia className="ml-0.5" />
+            )}
           </div>
           <div className="mt-1">
             <MiniConteo items={items} />
@@ -412,6 +435,7 @@ function DatapointCard({ d }: { d: DatapointCobertura }) {
             <code className="rounded-md bg-teal/5 px-1.5 py-0.5 font-mono text-xs font-medium text-teal">
               {d.codigo}
             </code>
+            {d.discrepancia && <AlertaDiscrepancia />}
             {d.ods && (
               <span
                 title={`ODS: ${d.ods}`}

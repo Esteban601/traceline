@@ -22,7 +22,8 @@ delete from auth.users where id in (
   'a0000000-0000-0000-0000-000000000002',
   'a0000000-0000-0000-0000-000000000003',
   'a0000000-0000-0000-0000-000000000004',
-  'b0000000-0000-0000-0000-000000000001'
+  'b0000000-0000-0000-0000-000000000001',
+  'b0000000-0000-0000-0000-000000000002'
 );  -- cascada elimina perfiles; el resto cae por FK on delete cascade desde reportes/tenant
 delete from public.tenants where id = '10000000-0000-0000-0000-000000000001';
 -- (storage.objects no admite DELETE directo — protect_delete; en re-seed manual
@@ -57,7 +58,8 @@ from (values
   ('a0000000-0000-0000-0000-000000000002', 'rh@empresademo.example',          '[DEMO] Responsable RH'),
   ('a0000000-0000-0000-0000-000000000003', 'operaciones@empresademo.example', '[DEMO] Responsable Operaciones'),
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example',    '[DEMO] Responsable Finanzas'),
-  ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example',        '[DEMO] Analista IRStrat')
+  ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example',        '[DEMO] Analista IRStrat'),
+  ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example',           '[DEMO] Admin IRStrat')
 ) as u(id, email, nombre);
 
 insert into auth.identities (
@@ -73,7 +75,8 @@ from (values
   ('a0000000-0000-0000-0000-000000000002', 'rh@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000003', 'operaciones@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example'),
-  ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example')
+  ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example'),
+  ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example')
 ) as u(id, email);
 
 -- =============================================================================
@@ -91,7 +94,8 @@ insert into public.perfiles_usuario (id, tenant_id, rol, area, nombre, email) va
   ('a0000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'cliente',     'RH',          '[DEMO] Responsable RH',                'rh@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'cliente',     'Operaciones', '[DEMO] Responsable Operaciones',       'operaciones@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'cliente',     'Finanzas',    '[DEMO] Responsable Finanzas',          'finanzas@empresademo.example'),
-  ('b0000000-0000-0000-0000-000000000001', null,                                   'analista',    null,          '[DEMO] Analista IRStrat',              'analista@irstrat.example');
+  ('b0000000-0000-0000-0000-000000000001', null,                                   'analista',    null,          '[DEMO] Analista IRStrat',              'analista@irstrat.example'),
+  ('b0000000-0000-0000-0000-000000000002', null,                                   'admin',       null,          '[DEMO] Admin IRStrat',                 'admin@irstrat.example');
 
 -- =============================================================================
 -- 4. Reporte
@@ -227,7 +231,12 @@ values
   ('c0000000-0000-0000-0000-000000000017', '20000000-0000-0000-0000-000000000001', 'Composición y responsabilidades del Consejo en sostenibilidad', 'Integrantes, comités y mandatos relacionados con ESG.', 'Gobierno Corporativo', false, null, 'validado', 'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '2026-02-12', 170),
   ('c0000000-0000-0000-0000-000000000018', '20000000-0000-0000-0000-000000000001', 'Competencias del Consejo en temas ESG y clima', 'Formación y experiencia de los consejeros en sostenibilidad.', 'Gobierno Corporativo', false, null, 'recibido', 'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '2026-02-24', 180),
   ('c0000000-0000-0000-0000-000000000019', '20000000-0000-0000-0000-000000000001', 'Plan de transición climática y objetivos de reducción', 'Metas de descarbonización, alcance y año base.', 'Dirección', false, null, 'en_revision', 'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '2026-03-05', 190),
-  ('c0000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000001', 'Análisis de escenarios climáticos y resiliencia', 'Escenarios utilizados y conclusiones de resiliencia.', 'Dirección', false, null, 'pendiente', 'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '2026-03-20', 200);
+  ('c0000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000001', 'Análisis de escenarios climáticos y resiliencia', 'Escenarios utilizados y conclusiones de resiliencia.', 'Dirección', false, null, 'pendiente', 'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '2026-03-20', 200),
+  -- ---- Caso de DISCREPANCIA DEMO ----
+  -- Finanzas reporta el consumo eléctrico corporativo con un valor DISTINTO al de
+  -- Operaciones (solicitud #6), misma unidad (kWh) y mismo periodo (2025): alimenta
+  -- el mismo datapoint 'NIIF S2 29 (a)(v)' y dispara la alerta de discrepancia.
+  ('c0000000-0000-0000-0000-000000000021', '20000000-0000-0000-0000-000000000001', 'Consumo eléctrico corporativo 2025 (consolidado Finanzas)', 'Consumo eléctrico total del ejercicio conforme a la contabilidad de Finanzas.', 'Finanzas', true, 'kWh', 'en_revision', 'a0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', '2026-02-20', 210);
 
 -- =============================================================================
 -- 7. Mapeo N:N solicitud <-> datapoint (interno IRStrat).
@@ -270,7 +279,8 @@ from (values
   ('c0000000-0000-0000-0000-000000000019', 'NIIF S2 36 (a)a(d)'), -- objetivos de reducción -> objetivo de emisiones GEI
   ('c0000000-0000-0000-0000-000000000019', 'NIIF S2 33'), -- objetivos de reducción -> objetivos climáticos
   ('c0000000-0000-0000-0000-000000000020', 'NIIF S2 22(a)(i)'), -- resiliencia climática -> evaluación de resiliencia
-  ('c0000000-0000-0000-0000-000000000020', 'NIIF S2 22(b)(i)')  -- análisis de escenarios -> análisis de escenarios
+  ('c0000000-0000-0000-0000-000000000020', 'NIIF S2 22(b)(i)'), -- análisis de escenarios -> análisis de escenarios
+  ('c0000000-0000-0000-0000-000000000021', 'NIIF S2 29 (a)(v)')  -- consumo eléctrico (Finanzas) -> mismo datapoint que #6 (discrepancia)
 ) as s(sid, codigo)
 join public.datapoints_taxonomia d
   on d.codigo = s.codigo and d.version_taxonomia = '2025';
@@ -293,7 +303,8 @@ insert into storage.objects (id, bucket_id, name, owner_id, metadata) values
   (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000013/inversiones_ambientales_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000004', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
   (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000017/consejo_composicion_esg_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
   (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000018/consejo_competencias_esg_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb);
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
+  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000021/consumo_electrico_finanzas_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000004', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb);
 
 -- =============================================================================
 -- 9. Evidencias (APPEND ONLY). La columna version la asigna el trigger.
@@ -321,7 +332,9 @@ insert into public.evidencias (id, solicitud_id, archivo_path, nombre_original, 
   ('d0000000-0000-0000-0000-000000000009', 'c0000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000013/inversiones_ambientales_2025_DEMO.xlsx', 'inversiones_ambientales_2025_DEMO.xlsx', '2025 (ene-dic)', 'Finanzas', 'a0000000-0000-0000-0000-000000000004', 'Desglose de CAPEX/OPEX ambiental por proyecto.'),
   ('d0000000-0000-0000-0000-00000000000a', 'c0000000-0000-0000-0000-000000000017', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000017/consejo_composicion_esg_2025_DEMO.pdf', 'consejo_composicion_esg_2025_DEMO.pdf', '2025 (cierre)', 'Gobierno Corporativo', 'a0000000-0000-0000-0000-000000000001', 'Integrantes del Consejo, comités y mandatos ESG.'),
   ('d0000000-0000-0000-0000-00000000000b', 'c0000000-0000-0000-0000-000000000018', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000018/consejo_competencias_esg_2025_DEMO.pdf', 'consejo_competencias_esg_2025_DEMO.pdf', '2025 (cierre)', 'Gobierno Corporativo', 'a0000000-0000-0000-0000-000000000001', 'Matriz de competencias de los consejeros en sostenibilidad y clima.'),
-  ('d0000000-0000-0000-0000-00000000000c', 'c0000000-0000-0000-0000-000000000019', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'plan_transicion_climatica_2025_DEMO.pdf', '2025 (ene-dic)', 'Dirección', 'a0000000-0000-0000-0000-000000000001', 'Plan de transición: metas de reducción, alcance y año base.');
+  ('d0000000-0000-0000-0000-00000000000c', 'c0000000-0000-0000-0000-000000000019', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'plan_transicion_climatica_2025_DEMO.pdf', '2025 (ene-dic)', 'Dirección', 'a0000000-0000-0000-0000-000000000001', 'Plan de transición: metas de reducción, alcance y año base.'),
+  -- Evidencia del caso de discrepancia (#21, Finanzas)
+  ('d0000000-0000-0000-0000-00000000000d', 'c0000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000021/consumo_electrico_finanzas_2025_DEMO.xlsx', 'consumo_electrico_finanzas_2025_DEMO.xlsx', '2025 (ene-dic)', 'Finanzas', 'a0000000-0000-0000-0000-000000000004', 'Consolidado de Finanzas; difiere del reporte de Operaciones (ver discrepancia).');
 
 -- =============================================================================
 -- 10. Capturas de valor (APPEND ONLY). Correcciones = filas nuevas.
@@ -342,7 +355,10 @@ insert into public.capturas_valor (solicitud_id, evidencia_id, valor, unidad, pe
   -- #2 horas de capacitación
   ('c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000006', 8450, 'horas', '2025', 'b0000000-0000-0000-0000-000000000001', true),
   -- #4 índice de rotación voluntaria
-  ('c0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000008', 12.4, '%', '2025', 'b0000000-0000-0000-0000-000000000001', true);
+  ('c0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000008', 12.4, '%', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  -- #21 consumo eléctrico (Finanzas): 1,912,000 kWh vs 1,875,430 kWh de #6 (Operaciones)
+  -- -> misma unidad (kWh) y periodo (2025), valor distinto = DISCREPANCIA en 'NIIF S2 29 (a)(v)'
+  ('c0000000-0000-0000-0000-000000000021', 'd0000000-0000-0000-0000-00000000000d', 1912000, 'kWh', '2025', 'b0000000-0000-0000-0000-000000000001', true);
 
 -- =============================================================================
 -- 11. Comentarios / observaciones

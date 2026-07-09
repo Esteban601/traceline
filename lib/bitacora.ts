@@ -46,7 +46,8 @@ export type AccionEvento =
   | "usuario_desactivado"
   | "usuario_reactivado"
   | "plantilla_creada"
-  | "reporte_creado_desde_plantilla";
+  | "reporte_creado_desde_plantilla"
+  | "reporte_congelado";
 
 /**
  * Registra un evento de gestión (crear/editar/eliminar solicitud, alta/baja de

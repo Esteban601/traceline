@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/data";
 import { coberturaDe, type Cobertura } from "@/lib/cobertura";
+import { cargarDiscrepancias } from "@/lib/discrepancias";
 import type { EstadoSolicitud } from "@/lib/estados";
 import { CoberturaView, type DatapointCobertura } from "./cobertura-view";
 
@@ -23,17 +24,19 @@ export default async function CoberturaPage() {
 
   const supabase = await createClient();
 
-  const [{ data: dps, error }, { data: mapeo }, { data: sols }] = await Promise.all([
-    supabase
-      .from("datapoints_taxonomia")
-      .select("id, codigo, norma, pilar, seccion_indice, descripcion, ods")
-      .eq("version_taxonomia", "2025")
-      .order("norma")
-      .order("pilar")
-      .order("codigo"),
-    supabase.from("mapeo_solicitud_datapoint").select("solicitud_id, datapoint_id"),
-    supabase.from("solicitudes").select("id, titulo, estado"),
-  ]);
+  const [{ data: dps, error }, { data: mapeo }, { data: sols }, discrepancias] =
+    await Promise.all([
+      supabase
+        .from("datapoints_taxonomia")
+        .select("id, codigo, norma, pilar, seccion_indice, descripcion, ods")
+        .eq("version_taxonomia", "2025")
+        .order("norma")
+        .order("pilar")
+        .order("codigo"),
+      supabase.from("mapeo_solicitud_datapoint").select("solicitud_id, datapoint_id"),
+      supabase.from("solicitudes").select("id, titulo, estado"),
+      cargarDiscrepancias(supabase),
+    ]);
 
   if (error) {
     throw new Error("No se pudo cargar el catálogo de datapoints.");
@@ -70,6 +73,7 @@ export default async function CoberturaPage() {
       descripcion: d.descripcion,
       ods: d.ods,
       cobertura,
+      discrepancia: discrepancias.porDatapoint.has(d.id),
       solicitudes: ligadas,
     };
   });

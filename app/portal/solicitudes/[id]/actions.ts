@@ -27,6 +27,7 @@ export async function subirEvidencia(
   const solicitudId = String(formData.get("solicitud_id") ?? "");
   const periodoCubierto = String(formData.get("periodo_cubierto") ?? "").trim();
   const areaOrigen = String(formData.get("area_origen") ?? "").trim();
+  const justificacion = String(formData.get("justificacion") ?? "").trim();
   const file = formData.get("file");
 
   if (!(file instanceof File) || file.size === 0) {
@@ -54,6 +55,17 @@ export async function subirEvidencia(
       error: "La solicitud está congelada; la carga está deshabilitada.",
     };
   }
+
+  // Justificación obligatoria (>=20 chars) al reemplazar evidencia sobre una
+  // solicitud ya VALIDADA (reabrirá la revisión). Opcional en los demás estados.
+  if (sol.estado === "validado" && justificacion.length < 20) {
+    return {
+      ok: false,
+      error:
+        "Esta solicitud ya fue validada: explica el motivo del ajuste (mínimo 20 caracteres).",
+    };
+  }
+  const justificacionFinal = justificacion || null;
 
   // Tenant a partir del reporte (para construir la ruta de storage).
   const { data: rep } = await supabase
@@ -91,6 +103,7 @@ export async function subirEvidencia(
       periodo_cubierto: periodoCubierto,
       area_origen: areaOrigen || null,
       subido_por: perfil.id,
+      justificacion: justificacionFinal,
       // `version` la asigna el trigger; enviamos un placeholder que será sobreescrito.
       version: 0,
     })
@@ -120,6 +133,7 @@ export async function subirEvidencia(
           periodo: periodoCaptura || null,
           capturado_por: perfil.id,
           confirmado: true,
+          justificacion: justificacionFinal,
         });
         if (capErr) {
           return {

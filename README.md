@@ -12,6 +12,8 @@ emisoras BMV (IRStrat / Vert).
 - ✅ Base de datos, seguridad (RLS), triggers y seeds DEMO.
 - ✅ **Portal del cliente** (autenticación + tablero + detalle de solicitud + carga de evidencia).
 - ✅ **Panel interno de IRStrat** (`/admin`): matriz de seguimiento, detalle staff, cobertura de taxonomía y export a Excel.
+- ✅ **Módulo de gestión (Fase 1, cierre)**: alta/edición/borrado de solicitudes con mapeo a datapoints, gestión de usuarios del cliente y plantillas de checklist (`/admin/plantillas`, `/admin/usuarios`).
+- ✅ **Candado de trazabilidad (Fase 2)**: justificación de ajustes, congelamiento de reporte, alerta de discrepancia entre áreas y bitácora visible (ver más abajo).
 - 🌱 **Correo y recordatorios (Fase 1)** — solicitar, recordar y avisar observaciones vía Resend (rama `fase-1-recordatorios`).
 
 Stack: Next.js 15 (App Router, TypeScript, pnpm) + Supabase local (CLI + Docker).
@@ -47,8 +49,9 @@ Todas las rutas del portal están protegidas por middleware (sin sesión → `/l
 | `rh@empresademo.example` | Cliente acotado por área | **5** solicitudes (RH) |
 | `operaciones@empresademo.example` | Cliente acotado por área | **7** solicitudes (Operaciones) |
 | `finanzas@empresademo.example` | Cliente acotado por área | **4** solicitudes (Finanzas) |
-| `coordinador@empresademo.example` | Coordinador + toggle "Mis/Todas" | **20** solicitudes del tenant |
-| `analista@irstrat.example` | Staff IRStrat (sesión válida; su panel llega después) | Todo |
+| `coordinador@empresademo.example` | Coordinador + toggle "Mis/Todas" | Solicitudes del tenant |
+| `analista@irstrat.example` | Staff IRStrat (panel interno completo) | Todo |
+| `admin@irstrat.example` | Staff IRStrat con rol **admin** (puede congelar reportes) | Todo |
 
 Recorridos sugeridos:
 
@@ -114,6 +117,56 @@ Toda acción de correo queda en `bitacora` (`entidad = 'correo'`, acciones
   ```
   El endpoint agrupa por responsable, respeta la regla anti-spam de 5 días y
   registra cada envío en la bitácora.
+
+## Candado de trazabilidad (Fase 2)
+
+Refuerzos de trazabilidad para aseguramiento, todos con candado **a nivel de base
+de datos** (no solo UI).
+
+### Justificación de ajustes
+
+- Columna `justificacion` en `evidencias` y `capturas_valor`.
+- Al cargar evidencia/captura sobre una solicitud **`validado`**, el formulario
+  **exige** justificación (mín. 20 caracteres) y el estado regresa
+  automáticamente a **`en_revision`** por trigger (`fn_evidencia_after_insert` /
+  `fn_captura_after_insert`), con la justificación registrada en la bitácora.
+- En otros estados el campo es opcional y solo se muestra si ya existe una versión
+  previa ("¿Por qué reemplazas esta evidencia?").
+- La justificación aparece en el historial de versiones (portal y admin).
+
+### Congelamiento de reporte
+
+- `/admin/reportes` → **"Congelar reporte"**, acción de **rol `admin`** (no
+  analista), con confirmación reforzada (reescribir el nombre del reporte).
+- Efecto: `reportes.estado='congelado'`, `fecha_congelamiento=now()` y **todas**
+  sus solicitudes pasan a `congelado`.
+- Candado a nivel BD: con el reporte congelado, se bloquea por trigger el INSERT
+  de evidencias/capturas/comentarios y cualquier UPDATE de sus solicitudes
+  (incluido cambio de estado). La **lectura y el export siguen funcionando**.
+- En el portal, un reporte congelado se muestra en solo-lectura con aviso
+  ("Este informe fue cerrado el {fecha}; la evidencia quedó congelada para
+  aseguramiento").
+- **Descongelar no está implementado, por diseño.** Un reporte congelado no puede
+  revertirse (trigger `fn_bloquea_descongelar`). Si algún día se requiere, es una
+  decisión administrativa que deberá introducirse con **su propia migración**
+  (levantar el trigger de forma controlada y auditada); no es una acción de la UI.
+
+### Alerta de discrepancia entre áreas
+
+- Para cada datapoint con 2+ solicitudes cuantitativas mapeadas, se compara la
+  última captura confirmada de cada una; si hay valores distintos con **misma
+  unidad y mismo periodo**, es una discrepancia (`lib/discrepancias.ts`, sin
+  cambiar el esquema).
+- Se señala con badge en `/admin/cobertura` y con un aviso en el detalle de las
+  solicitudes involucradas (ambos valores, quién capturó y cuándo). Solo staff.
+- El seed incluye un caso DEMO: **consumo eléctrico 2025** reportado por
+  Operaciones (1,875,430 kWh) y Finanzas (1,912,000 kWh) sobre el mismo datapoint.
+
+### Bitácora visible
+
+- Timeline cronológico en el detalle staff de cada solicitud.
+- `/admin/bitacora`: vista global filtrable por cliente, entidad y rango de
+  fechas (solo staff).
 
 ## Documentación
 

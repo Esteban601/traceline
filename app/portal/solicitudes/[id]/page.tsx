@@ -25,6 +25,7 @@ type EvidenciaRow = {
   nombre_original: string;
   periodo_cubierto: string | null;
   area_origen: string | null;
+  justificacion: string | null;
   created_at: string;
   subio: { nombre: string } | null;
 };
@@ -58,7 +59,7 @@ export default async function SolicitudPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio)"
+      "id, titulo, descripcion, area_asignada, estado, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
     )
     .eq("id", id)
     .single();
@@ -70,7 +71,7 @@ export default async function SolicitudPage({
       supabase
         .from("evidencias")
         .select(
-          "id, version, nombre_original, periodo_cubierto, area_origen, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
+          "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
         )
         .eq("solicitud_id", id)
         .order("version", { ascending: false }),
@@ -91,7 +92,13 @@ export default async function SolicitudPage({
   const caps = (capturas ?? []) as unknown as CapturaRow[];
   const coms = (comentarios ?? []) as unknown as ComentarioRow[];
   const estado = sol.estado as EstadoSolicitud;
-  const reporte = sol.reporte as unknown as { nombre: string; ejercicio: number } | null;
+  const reporte = sol.reporte as unknown as {
+    nombre: string;
+    ejercicio: number;
+    estado: "activo" | "congelado";
+    fecha_congelamiento: string | null;
+  } | null;
+  const reporteCongelado = reporte?.estado === "congelado";
 
   const capsPorEvidencia = new Map<string, CapturaRow[]>();
   for (const c of caps) {
@@ -120,6 +127,31 @@ export default async function SolicitudPage({
           Volver al tablero
         </Link>
       </div>
+
+      {reporteCongelado && (
+        <div
+          role="note"
+          className="flex items-start gap-3 rounded-card border border-gris/30 bg-gris/10 px-5 py-4"
+        >
+          <span aria-hidden className="mt-0.5 text-gris">
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="10.5" width="16" height="10" rx="2" />
+              <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+            </svg>
+          </span>
+          <div className="text-sm text-ink">
+            <p className="font-medium">Informe cerrado</p>
+            <p className="mt-0.5 text-muted">
+              {reporte?.fecha_congelamiento
+                ? `Este informe fue cerrado el ${fmtFechaLarga(
+                    deFechaLocal(reporte.fecha_congelamiento.slice(0, 10))
+                  )}; la evidencia quedó congelada para aseguramiento.`
+                : "Este informe fue cerrado; la evidencia quedó congelada para aseguramiento."}{" "}
+              Todo está en solo-lectura.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Encabezado de la solicitud */}
       <header className="space-y-4">
@@ -231,6 +263,17 @@ export default async function SolicitudPage({
                         </a>
                       </div>
 
+                      {ev.justificacion && (
+                        <div className="mt-3 border-t border-line pt-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gold">
+                            Justificación del ajuste
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+                            {ev.justificacion}
+                          </p>
+                        </div>
+                      )}
+
                       {capturasEv.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
                           {capturasEv.map((c) => (
@@ -330,6 +373,8 @@ export default async function SolicitudPage({
                 unidadEsperada={sol.unidad_esperada}
                 areaUsuario={perfil.area ?? sol.area_asignada}
                 estado={estado}
+                tieneVersionPrevia={evs.length > 0}
+                fechaCongelamiento={reporte?.fecha_congelamiento ?? null}
               />
             </div>
           </div>

@@ -89,6 +89,7 @@ export type Database = {
           created_at: string
           evidencia_id: string
           id: string
+          justificacion: string | null
           periodo: string | null
           solicitud_id: string
           unidad: string
@@ -100,6 +101,7 @@ export type Database = {
           created_at?: string
           evidencia_id: string
           id?: string
+          justificacion?: string | null
           periodo?: string | null
           solicitud_id: string
           unidad: string
@@ -111,6 +113,7 @@ export type Database = {
           created_at?: string
           evidencia_id?: string
           id?: string
+          justificacion?: string | null
           periodo?: string | null
           solicitud_id?: string
           unidad?: string
@@ -227,6 +230,7 @@ export type Database = {
           area_origen: string | null
           created_at: string
           id: string
+          justificacion: string | null
           nombre_original: string
           notas: string | null
           periodo_cubierto: string | null
@@ -239,6 +243,7 @@ export type Database = {
           area_origen?: string | null
           created_at?: string
           id?: string
+          justificacion?: string | null
           nombre_original: string
           notas?: string | null
           periodo_cubierto?: string | null
@@ -251,6 +256,7 @@ export type Database = {
           area_origen?: string | null
           created_at?: string
           id?: string
+          justificacion?: string | null
           nombre_original?: string
           notas?: string | null
           periodo_cubierto?: string | null

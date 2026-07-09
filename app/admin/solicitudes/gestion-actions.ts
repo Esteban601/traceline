@@ -231,11 +231,14 @@ export async function editarSolicitud(
   const reporte = sol.reporte as unknown as { id: string; tenant_id: string } | null;
   if (!reporte) return { ok: false, error: "El reporte de la solicitud no existe." };
 
-  // REGLA DURA: una solicitud validada no se edita.
+  // REGLA DURA: una solicitud validada (o congelada) no se edita.
   if (!puedeEditarSolicitud(estado)) {
     return {
       ok: false,
-      error: "La solicitud está validada; no puede editarse.",
+      error:
+        estado === "congelado"
+          ? "El reporte está congelado; sus solicitudes quedaron en solo-lectura."
+          : "La solicitud está validada; no puede editarse.",
     };
   }
 

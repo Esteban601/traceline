@@ -77,11 +77,14 @@ export default async function EditarSolicitudPage({
         {cabecera}
         <div className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-12 text-center">
           <p className="font-display text-lg font-medium text-ink">
-            Esta solicitud está validada
+            {estado === "congelado"
+              ? "Esta solicitud está congelada"
+              : "Esta solicitud está validada"}
           </p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-            Una solicitud validada no puede editarse: su evidencia ya fue aceptada.
-            Si necesitas reabrirla, cambia su estado desde el detalle.
+            {estado === "congelado"
+              ? "El reporte fue cerrado para aseguramiento; sus solicitudes quedaron en solo-lectura."
+              : "Una solicitud validada no puede editarse: su evidencia ya fue aceptada. Si necesitas reabrirla, cambia su estado desde el detalle."}
           </p>
           <Link
             href={backHref}

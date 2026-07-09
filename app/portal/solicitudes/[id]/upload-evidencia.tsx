@@ -5,6 +5,7 @@ import { subirEvidencia, type SubirState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
 import type { EstadoSolicitud } from "@/lib/estados";
 
 const initial: SubirState = { ok: false, error: null };
@@ -21,12 +22,16 @@ export function UploadEvidencia({
   unidadEsperada,
   areaUsuario,
   estado,
+  tieneVersionPrevia,
+  fechaCongelamiento,
 }: {
   solicitudId: string;
   esCuantitativa: boolean;
   unidadEsperada: string | null;
   areaUsuario: string | null;
   estado: EstadoSolicitud;
+  tieneVersionPrevia: boolean;
+  fechaCongelamiento?: string | null;
 }) {
   const [state, formAction, pending] = useActionState(subirEvidencia, initial);
   const toast = useToast();
@@ -38,11 +43,16 @@ export function UploadEvidencia({
   const [valor, setValor] = useState("");
   const [unidad, setUnidad] = useState(unidadEsperada ?? "");
   const [periodoCaptura, setPeriodoCaptura] = useState("");
+  const [justificacion, setJustificacion] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const congelado = estado === "congelado";
   const validado = estado === "validado";
   const bloqueado = congelado;
+  // Campo de justificación: obligatorio si validado; opcional y discreto si ya
+  // hay una versión previa; oculto en la primera carga.
+  const justObligatoria = validado;
+  const mostrarJustificacion = justObligatoria || tieneVersionPrevia;
 
   useEffect(() => {
     if (state.ok) {
@@ -50,6 +60,7 @@ export function UploadEvidencia({
       setPeriodo("");
       setValor("");
       setPeriodoCaptura("");
+      setJustificacion("");
       if (inputRef.current) inputRef.current.value = "";
       toast.success(
         state.version != null
@@ -68,9 +79,12 @@ export function UploadEvidencia({
       <div className="rounded-card border border-gris/25 bg-gris/10 px-5 py-6 text-sm text-ink">
         <p className="font-medium">Carga deshabilitada</p>
         <p className="mt-1 text-muted">
-          Esta solicitud está <strong>congelada</strong> por el cierre del
-          reporte. Para reemplazar evidencia, contacta a tu coordinador de
-          IRStrat.
+          {fechaCongelamiento
+            ? `Este informe fue cerrado el ${fmtFechaLarga(
+                deFechaLocal(fechaCongelamiento.slice(0, 10))
+              )}; la evidencia quedó congelada para aseguramiento.`
+            : "Esta solicitud está congelada por el cierre del reporte."}{" "}
+          Para cualquier ajuste, contacta a tu coordinador de IRStrat.
         </p>
       </div>
     );
@@ -87,11 +101,18 @@ export function UploadEvidencia({
       setLocalError("Selecciona o arrastra un archivo.");
       return;
     }
+    if (justObligatoria && justificacion.trim().length < 20) {
+      setLocalError(
+        "Explica el motivo del ajuste (mínimo 20 caracteres): reabrirá la revisión."
+      );
+      return;
+    }
     const fd = new FormData();
     fd.set("solicitud_id", solicitudId);
     fd.set("file", file);
     fd.set("periodo_cubierto", periodo);
     fd.set("area_origen", area);
+    fd.set("justificacion", justificacion);
     if (esCuantitativa) {
       fd.set("valor", valor);
       fd.set("unidad", unidad);
@@ -108,7 +129,8 @@ export function UploadEvidencia({
       {validado && (
         <div className="rounded-lg border border-gold/30 bg-gold/10 px-3.5 py-2.5 text-sm text-ink">
           Esta solicitud ya fue <strong>validada</strong>. Cargar una nueva
-          versión requerirá una justificación de reemplazo (próximamente).
+          versión <strong>reabrirá la revisión</strong> y exige una justificación
+          del ajuste.
         </div>
       )}
 
@@ -256,6 +278,46 @@ export function UploadEvidencia({
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Justificación: obligatoria si validado, opcional si hay versión previa */}
+      {mostrarJustificacion && (
+        <div
+          className={cn(
+            "space-y-1.5 rounded-card border p-4",
+            justObligatoria ? "border-gold/30 bg-gold/5" : "border-line bg-crema/30"
+          )}
+        >
+          <label htmlFor="justificacion" className="block text-sm font-medium text-ink">
+            {justObligatoria
+              ? "Justificación del ajuste"
+              : "¿Por qué reemplazas esta evidencia?"}{" "}
+            {justObligatoria ? (
+              <span className="text-rojo">*</span>
+            ) : (
+              <span className="font-normal text-muted">· opcional</span>
+            )}
+          </label>
+          <textarea
+            id="justificacion"
+            value={justificacion}
+            onChange={(e) => setJustificacion(e.target.value)}
+            rows={3}
+            required={justObligatoria}
+            minLength={justObligatoria ? 20 : undefined}
+            placeholder={
+              justObligatoria
+                ? "Describe el motivo del ajuste (mínimo 20 caracteres)…"
+                : "Motivo del reemplazo (opcional)…"
+            }
+            className="w-full resize-y rounded-xl border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50"
+          />
+          {justObligatoria && (
+            <p className="text-xs text-muted">
+              {justificacion.trim().length}/20 caracteres mínimos.
+            </p>
+          )}
         </div>
       )}
 

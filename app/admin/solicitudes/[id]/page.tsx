@@ -9,8 +9,10 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { type EstadoSolicitud } from "@/lib/estados";
 import { fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
 import { puedeEditarSolicitud, puedeEliminarSolicitud } from "@/lib/gestion";
+import { cargarDiscrepancias } from "@/lib/discrepancias";
 import { AccionesStaff } from "./acciones-staff";
 import { EliminarSolicitud } from "./eliminar-solicitud";
+import { Timeline, type EventoBitacora } from "./timeline";
 
 export const metadata: Metadata = { title: "Solicitud (interno)" };
 
@@ -26,6 +28,7 @@ type EvidenciaRow = {
   nombre_original: string;
   periodo_cubierto: string | null;
   area_origen: string | null;
+  justificacion: string | null;
   created_at: string;
   subio: { nombre: string } | null;
 };
@@ -76,11 +79,13 @@ export default async function SolicitudStaffPage({
     { data: capturas },
     { data: comentarios },
     { data: mapeo },
+    { data: bitacora },
+    discrepancias,
   ] = await Promise.all([
     supabase
       .from("evidencias")
       .select(
-        "id, version, nombre_original, periodo_cubierto, area_origen, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
+        "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
       )
       .eq("solicitud_id", id)
       .order("version", { ascending: false }),
@@ -104,6 +109,14 @@ export default async function SolicitudStaffPage({
         "datapoint:datapoints_taxonomia!mapeo_solicitud_datapoint_datapoint_id_fkey(codigo, norma, descripcion)"
       )
       .eq("solicitud_id", id),
+    supabase
+      .from("bitacora")
+      .select(
+        "id, created_at, accion, detalle, usuario:perfiles_usuario!bitacora_usuario_id_fkey(nombre)"
+      )
+      .or(`entidad_id.eq.${id},detalle->>solicitud_id.eq.${id}`)
+      .order("created_at", { ascending: false }),
+    cargarDiscrepancias(supabase),
   ]);
 
   const evs = (evidencias ?? []) as unknown as EvidenciaRow[];
@@ -112,6 +125,22 @@ export default async function SolicitudStaffPage({
   const datapoints = ((mapeo ?? []) as unknown as DatapointRow[])
     .map((m) => m.datapoint)
     .filter((d): d is NonNullable<DatapointRow["datapoint"]> => d != null);
+  const eventos = ((bitacora ?? []) as unknown as {
+    id: string;
+    created_at: string;
+    accion: string;
+    detalle: Record<string, unknown> | null;
+    usuario: { nombre: string } | null;
+  }[]).map(
+    (b): EventoBitacora => ({
+      id: b.id,
+      createdAt: b.created_at,
+      accion: b.accion,
+      detalle: b.detalle,
+      usuario: b.usuario?.nombre ?? null,
+    })
+  );
+  const discrepanciasSol = discrepancias.porSolicitud.get(id) ?? [];
   const estado = sol.estado as EstadoSolicitud;
   const reporte = sol.reporte as unknown as { nombre: string; ejercicio: number } | null;
   const responsable = sol.responsable as unknown as {
@@ -199,6 +228,76 @@ export default async function SolicitudStaffPage({
         )}
       </header>
 
+      {discrepanciasSol.length > 0 && (
+        <div className="space-y-3">
+          {discrepanciasSol.map((d, i) => (
+            <div
+              key={i}
+              className="rounded-card border border-rojo/30 bg-rojo/5 p-4 sm:p-5"
+            >
+              <div className="flex items-start gap-2.5">
+                <span aria-hidden className="mt-0.5 text-rojo">
+                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <path d="M12 9v4M12 17h.01" />
+                  </svg>
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-rojo">
+                    Discrepancia entre áreas
+                  </p>
+                  <p className="mt-0.5 text-sm text-ink/90">
+                    Dos solicitudes reportan valores distintos para el mismo
+                    datapoint, con la misma unidad
+                    {d.periodo ? ` y periodo (${d.periodo})` : ""}. Revisa cuál es
+                    el correcto antes de validar.
+                  </p>
+                </div>
+              </div>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {d.capturas.map((c) => (
+                  <li
+                    key={c.solicitudId}
+                    className={
+                      "rounded-xl border bg-surface px-3.5 py-2.5 " +
+                      (c.solicitudId === id ? "border-rojo/40" : "border-line")
+                    }
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-display text-lg font-semibold tabular-nums text-ink">
+                        {fmtNum.format(c.valor)}{" "}
+                        <span className="text-xs font-normal text-muted">{c.unidad}</span>
+                      </span>
+                      {c.solicitudId === id && (
+                        <span className="rounded-pill bg-rojo/10 px-2 py-0.5 text-[11px] font-medium text-rojo">
+                          Esta
+                        </span>
+                      )}
+                    </div>
+                    {c.solicitudId === id ? (
+                      <p className="mt-0.5 truncate text-xs text-muted" title={c.titulo}>
+                        {c.titulo}
+                      </p>
+                    ) : (
+                      <Link
+                        href={`/admin/solicitudes/${c.solicitudId}`}
+                        className="mt-0.5 block truncate text-xs text-teal transition duration-150 hover:text-teal-dark"
+                        title={c.titulo}
+                      >
+                        {c.titulo}
+                      </Link>
+                    )}
+                    <p className="mt-1 text-xs text-muted">
+                      {c.capturadoPor ?? "—"} · {fmtFechaHora(c.capturadoEn)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-10">
           {/* Historial de evidencias */}
@@ -260,6 +359,16 @@ export default async function SolicitudStaffPage({
                         Descargar
                       </a>
                     </div>
+                    {ev.justificacion && (
+                      <div className="mt-3 border-t border-line pt-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-gold">
+                          Justificación del ajuste
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+                          {ev.justificacion}
+                        </p>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -368,6 +477,16 @@ export default async function SolicitudStaffPage({
                 ))}
               </ul>
             )}
+          </section>
+
+          {/* Bitácora de la solicitud */}
+          <section className="space-y-4">
+            <h2 className="font-display text-xl font-semibold text-ink">
+              Bitácora de la solicitud
+            </h2>
+            <div className="rounded-card border border-line bg-surface p-5 shadow-soft sm:p-6">
+              <Timeline eventos={eventos} />
+            </div>
           </section>
         </div>
 

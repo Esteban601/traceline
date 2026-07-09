@@ -20,19 +20,31 @@ function iniciales(nombre: string): string {
  */
 export function AdminHeader({ perfil }: { perfil: PerfilActual }) {
   const pathname = usePathname();
-  type NavKey = "matriz" | "cobertura" | "usuarios" | "plantillas";
+  type NavKey =
+    | "matriz"
+    | "cobertura"
+    | "reportes"
+    | "plantillas"
+    | "usuarios"
+    | "bitacora";
   const activo: NavKey = pathname.startsWith("/admin/cobertura")
     ? "cobertura"
-    : pathname.startsWith("/admin/usuarios")
-      ? "usuarios"
+    : pathname.startsWith("/admin/reportes")
+      ? "reportes"
       : pathname.startsWith("/admin/plantillas")
         ? "plantillas"
-        : "matriz";
+        : pathname.startsWith("/admin/usuarios")
+          ? "usuarios"
+          : pathname.startsWith("/admin/bitacora")
+            ? "bitacora"
+            : "matriz";
   const nav: { href: string; label: string; key: NavKey }[] = [
     { href: "/admin", label: "Matriz", key: "matriz" },
     { href: "/admin/cobertura", label: "Cobertura", key: "cobertura" },
+    { href: "/admin/reportes", label: "Reportes", key: "reportes" },
     { href: "/admin/plantillas", label: "Plantillas", key: "plantillas" },
     { href: "/admin/usuarios", label: "Usuarios", key: "usuarios" },
+    { href: "/admin/bitacora", label: "Bitácora", key: "bitacora" },
   ];
 
   return (

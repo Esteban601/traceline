@@ -9,10 +9,11 @@ import type { EstadoSolicitud } from "@/lib/estados";
 /**
  * ¿La solicitud es editable? REGLA DURA: una solicitud 'validado' no se edita
  * (la evidencia ya quedó aceptada; reabrirla es un cambio de estado, no una
- * edición de campos).
+ * edición de campos). Una 'congelado' tampoco: el reporte cerró para
+ * aseguramiento y todo queda en solo-lectura (candado a nivel BD).
  */
 export function puedeEditarSolicitud(estado: EstadoSolicitud): boolean {
-  return estado !== "validado";
+  return estado !== "validado" && estado !== "congelado";
 }
 
 /**
