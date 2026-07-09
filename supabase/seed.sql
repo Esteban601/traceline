@@ -351,3 +351,33 @@ insert into public.comentarios (solicitud_id, autor_id, contenido, es_observacio
   ('c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'El índice de rotación no concilia con la plantilla reportada. Favor de revisar el denominador (plantilla promedio) y adjuntar la memoria de cálculo.', true),
   ('c0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000002', 'Confirmado, corregimos el denominador y reenviamos esta semana.', false),
   ('c0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000001', 'Evidencia recibida. Estamos validando los factores de emisión contra el GHG Protocol.', false);
+
+-- =============================================================================
+-- 12. Plantilla base [DEMO] — generada desde las 20 solicitudes del reporte demo.
+--     Snapshot de título/descripción/área/tipo/unidad/orden + mapeo a datapoints
+--     (SIN estados ni evidencia). Global de la firma; solo staff la ve.
+-- =============================================================================
+-- Idempotencia: la cascada elimina sus plantilla_solicitudes.
+delete from public.plantillas where id = 'e0000000-0000-0000-0000-000000000001';
+
+insert into public.plantillas (id, nombre, descripcion, creado_por)
+values (
+  'e0000000-0000-0000-0000-000000000001',
+  'Checklist base NIIF S1/S2 [DEMO]',
+  'Set base de solicitudes NIIF S1/S2 generado desde el reporte demo. Clónalo a un reporte nuevo para arrancar un cliente.',
+  'b0000000-0000-0000-0000-000000000001'
+);
+
+insert into public.plantilla_solicitudes
+  (plantilla_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, orden, datapoint_ids)
+select
+  'e0000000-0000-0000-0000-000000000001',
+  s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa, s.unidad_esperada, s.orden,
+  coalesce(
+    array_agg(m.datapoint_id order by m.datapoint_id) filter (where m.datapoint_id is not null),
+    '{}'::uuid[]
+  )
+from public.solicitudes s
+left join public.mapeo_solicitud_datapoint m on m.solicitud_id = s.id
+where s.reporte_id = '20000000-0000-0000-0000-000000000001'
+group by s.id, s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa, s.unidad_esperada, s.orden;

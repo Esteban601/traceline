@@ -8,7 +8,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { type EstadoSolicitud } from "@/lib/estados";
 import { fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { puedeEditarSolicitud, puedeEliminarSolicitud } from "@/lib/gestion";
 import { AccionesStaff } from "./acciones-staff";
+import { EliminarSolicitud } from "./eliminar-solicitud";
 
 export const metadata: Metadata = { title: "Solicitud (interno)" };
 
@@ -384,6 +386,31 @@ export default async function SolicitudStaffPage({
               />
             </div>
           </div>
+
+          {/* Gestión: editar / eliminar */}
+          {(puedeEditarSolicitud(estado) ||
+            puedeEliminarSolicitud(estado, evs.length > 0)) && (
+            <div className="mt-4 rounded-card border border-line bg-surface p-5 shadow-soft">
+              <h2 className="font-display text-base font-semibold text-ink">Gestión</h2>
+              <div className="mt-3 flex flex-col gap-3">
+                {puedeEditarSolicitud(estado) && (
+                  <Link
+                    href={`/admin/solicitudes/${sol.id}/editar`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-teal transition duration-150 hover:text-teal-dark"
+                  >
+                    <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                    </svg>
+                    Editar solicitud
+                  </Link>
+                )}
+                {puedeEliminarSolicitud(estado, evs.length > 0) && (
+                  <EliminarSolicitud solicitudId={sol.id} titulo={sol.titulo} />
+                )}
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>

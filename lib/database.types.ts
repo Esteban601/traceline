@@ -310,6 +310,7 @@ export type Database = {
       }
       perfiles_usuario: {
         Row: {
+          activo: boolean
           area: string | null
           created_at: string
           email: string
@@ -319,6 +320,7 @@ export type Database = {
           tenant_id: string | null
         }
         Insert: {
+          activo?: boolean
           area?: string | null
           created_at?: string
           email: string
@@ -328,6 +330,7 @@ export type Database = {
           tenant_id?: string | null
         }
         Update: {
+          activo?: boolean
           area?: string | null
           created_at?: string
           email?: string
@@ -342,6 +345,85 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantillas: {
+        Row: {
+          created_at: string
+          creado_por: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          created_at?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          created_at?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantillas_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantilla_solicitudes: {
+        Row: {
+          area_asignada: string | null
+          created_at: string
+          datapoint_ids: string[]
+          descripcion: string | null
+          es_cuantitativa: boolean
+          id: string
+          orden: number
+          plantilla_id: string
+          titulo: string
+          unidad_esperada: string | null
+        }
+        Insert: {
+          area_asignada?: string | null
+          created_at?: string
+          datapoint_ids?: string[]
+          descripcion?: string | null
+          es_cuantitativa?: boolean
+          id?: string
+          orden?: number
+          plantilla_id: string
+          titulo: string
+          unidad_esperada?: string | null
+        }
+        Update: {
+          area_asignada?: string | null
+          created_at?: string
+          datapoint_ids?: string[]
+          descripcion?: string | null
+          es_cuantitativa?: boolean
+          id?: string
+          orden?: number
+          plantilla_id?: string
+          titulo?: string
+          unidad_esperada?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantilla_solicitudes_plantilla_id_fkey"
+            columns: ["plantilla_id"]
+            isOneToOne: false
+            referencedRelation: "plantillas"
             referencedColumns: ["id"]
           },
         ]
@@ -494,6 +576,17 @@ export type Database = {
         Args: {
           p_accion: string
           p_detalle: Json
+          p_entidad_id: string
+          p_tenant_id: string
+          p_usuario_id: string
+        }
+        Returns: string
+      }
+      fn_log_evento: {
+        Args: {
+          p_accion: string
+          p_detalle: Json
+          p_entidad: string
           p_entidad_id: string
           p_tenant_id: string
           p_usuario_id: string

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/data";
 import { KpiCard } from "@/components/ui/kpi-card";
@@ -103,7 +104,18 @@ export default async function AdminMatrizPage() {
             observaciones.
           </p>
         </div>
-        <BarraRecordatorios />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <BarraRecordatorios />
+          <Link
+            href="/admin/solicitudes/nueva"
+            className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-teal px-3.5 text-sm font-medium text-crema shadow-soft transition duration-150 hover:bg-teal-dark"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Nueva solicitud
+          </Link>
+        </div>
       </header>
 
       <section aria-label="Resumen por estado">
