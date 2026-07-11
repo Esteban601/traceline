@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -149,7 +149,7 @@ export function SolicitudForm({
     fd.set("responsable_irstrat_id", respIrstrat);
     fd.set("orden", orden);
     for (const id of datapointIds) fd.append("datapoint_ids", id);
-    dispatch(fd);
+    startTransition(() => dispatch(fd));
   };
 
   const cancelar = inicial ? `/admin/solicitudes/${inicial.solicitudId}` : "/admin";

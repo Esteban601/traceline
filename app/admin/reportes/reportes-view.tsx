@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { startTransition, useActionState, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -124,7 +124,7 @@ function CongelarDialog({
     const fd = new FormData();
     fd.set("reporte_id", reporte.id);
     fd.set("confirmacion", texto.trim());
-    dispatch(fd);
+    startTransition(() => dispatch(fd));
   };
 
   return (

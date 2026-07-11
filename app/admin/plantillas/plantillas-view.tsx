@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -97,7 +97,7 @@ function GuardarPlantilla({ reportes }: { reportes: ReporteOpc[] }) {
     fd.set("reporte_id", reporteId);
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
-    dispatch(fd);
+    startTransition(() => dispatch(fd));
   };
 
   return (
@@ -227,7 +227,7 @@ function PlantillaCard({
     fd.set("tenant_id", tenantId);
     fd.set("nombre", nombre);
     fd.set("ejercicio", ejercicio);
-    dispatch(fd);
+    startTransition(() => dispatch(fd));
   };
 
   return (

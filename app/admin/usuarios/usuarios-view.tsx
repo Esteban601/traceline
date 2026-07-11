@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -100,7 +100,7 @@ export function UsuariosView({
     fd.set("tenant_id", tenantId);
     fd.set("rol", rol);
     fd.set("area", rol === "cliente" ? area : "");
-    dispatch(fd);
+    startTransition(() => dispatch(fd));
   };
 
   // Agrupar usuarios por tenant.

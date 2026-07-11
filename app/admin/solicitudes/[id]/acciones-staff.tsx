@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import {
   cambiarEstado,
   agregarObservacion,
@@ -72,7 +72,7 @@ export function AccionesStaff({
     const fd = new FormData();
     fd.set("solicitud_id", solicitudId);
     fd.set("estado", destino);
-    estadoAction(fd);
+    startTransition(() => estadoAction(fd));
   };
 
   const onAplicar = () => {
