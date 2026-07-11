@@ -397,3 +397,179 @@ from public.solicitudes s
 left join public.mapeo_solicitud_datapoint m on m.solicitud_id = s.id
 where s.reporte_id = '20000000-0000-0000-0000-000000000001'
 group by s.id, s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa, s.unidad_esperada, s.orden;
+
+
+-- =============================================================================
+-- 13. Fase 3, Sprint 1 — GEI cuantitativo para el export de la plantilla oficial.
+--     Cubre las dos hojas GEI de 'Taxonomias NIIF S1 y S2': Alcances 1/2/3 (hoja
+--     'NIIF S2 29(a)(i)') y las 15 categorías de Alcance 3 del GHG Protocol (hoja
+--     'NIIF S2 29(a)(vi)(1)'). Las categorías se toman VERBATIM de la plantilla.
+--
+--     Diseño del DEMO: ~mitad validadas (llenan celda), unas con captura sin
+--     validar (brecha 'Pendiente de validación') y otras sin captura (brecha
+--     'Sin evidencia'), para que el export demuestre llenado Y huecos.
+--
+--     Va AL FINAL del seed a propósito: el estado 'validado' se fija en un UPDATE
+--     posterior a toda inserción de evidencia/captura, porque los triggers de
+--     Fase 2 reabren 'validado' -> 'en_revision' en cada INSERT de evidencia/captura.
+--
+--     NOTA de diseño: el enlace de estas solicitudes a su datapoint vive en
+--     mapeo_export.datapoint_id (capa de export de Fase 3). A propósito NO se
+--     agregan filas a mapeo_solicitud_datapoint: el detector de discrepancias
+--     (lib/discrepancias.ts) agrupa por datapoint+unidad+periodo y marcaría como
+--     "discrepancia" el desglose legítimo de Alcance 3 (15 categorías, valores
+--     distintos, mismo datapoint) y los tres alcances sobre 29(a)(i). Mapearlas a
+--     la capa de cobertura queda para un sprint posterior que refine ese detector.
+-- =============================================================================
+
+-- 13.0 Al activar Alcance 2 (c…0008) con valor, su mapeo base a 29(a)(ii)
+--      ("medición conforme GHG Protocol", compartido con Alcance 1 c…0007)
+--      generaría una falsa discrepancia tCO2e (dos alcances distintos, mismo
+--      datapoint). Su datapoint de VALOR es 29(a)(v), que se conserva; aquí se
+--      retira solo la fila redundante para dejar UNA discrepancia (la de kWh).
+delete from public.mapeo_solicitud_datapoint
+ where solicitud_id = 'c0000000-0000-0000-0000-000000000008'
+   and datapoint_id = (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(ii)' and version_taxonomia = '2025');
+
+-- 13.1 Solicitudes cuantitativas nuevas (Alcance 3 total + 15 categorías).
+insert into public.solicitudes
+  (id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, estado, responsable_cliente_id, responsable_irstrat_id, fecha_limite, orden)
+values
+  ('c3000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — total (todas las categorías)', 'Suma de emisiones indirectas de Alcance 3 conforme al GHG Protocol.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 220),
+  ('c3000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 1-Bienes y servicios adquiridos', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 230),
+  ('c3000000-0000-0000-0000-000000000102', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 2-Bienes de capital', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 240),
+  ('c3000000-0000-0000-0000-000000000103', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 3-Actividades relacionadas con el combustible y la energía no incluidas en las emisiones de gases de efecto invernadero de Alcance 1 o Alcance 2', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 250),
+  ('c3000000-0000-0000-0000-000000000104', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 4-Transporte y distribución', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 260),
+  ('c3000000-0000-0000-0000-000000000105', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 5-Residuos generados en las operaciones', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 270),
+  ('c3000000-0000-0000-0000-000000000106', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 6-Viajes de negocios', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 280),
+  ('c3000000-0000-0000-0000-000000000107', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 7: Desplazamientos de los empleados', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 290),
+  ('c3000000-0000-0000-0000-000000000108', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 8-Activos en arrendamiento financiero', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 300),
+  ('c3000000-0000-0000-0000-000000000109', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 9-Transporte y distribución', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'pendiente', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 310),
+  ('c3000000-0000-0000-0000-000000000110', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 10-Transformación de los productos vendidos', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'pendiente', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 320),
+  ('c3000000-0000-0000-0000-000000000111', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 11-Uso de los productos vendidos', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 330),
+  ('c3000000-0000-0000-0000-000000000112', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 12-Tratamiento de los productos vendidos al final de su vida útil', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'pendiente', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 340),
+  ('c3000000-0000-0000-0000-000000000113', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 13-Activos arrendados en fases posteriores', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'pendiente', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 350),
+  ('c3000000-0000-0000-0000-000000000114', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 14-Franquicias', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'pendiente', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 360),
+  ('c3000000-0000-0000-0000-000000000115', '20000000-0000-0000-0000-000000000001', 'Emisiones GEI Alcance 3 — Categoría 15-Inversiones', 'Emisiones de la categoría de Alcance 3 (GHG Protocol) para el inventario GEI.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-15', 370);
+
+-- 13.2 Evidencias (una por solicitud con datos; el trigger asigna 'version').
+insert into public.evidencias (id, solicitud_id, archivo_path, nombre_original, periodo_cubierto, area_origen, subido_por, notas) values
+  ('d3000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000008/inventario_gei_alcance2_2025_DEMO.xlsx', 'inventario_gei_alcance2_2025_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Emisiones de Alcance 2 (ubicación y mercado), ambos ejercicios.'),
+  ('d3000000-0000-0000-0000-000000000001', 'c3000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000001/inventario_gei_alcance3_total_DEMO.xlsx', 'inventario_gei_alcance3_total_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Consolidado de Alcance 3 (todas las categorías), ambos ejercicios.'),
+  ('d3000000-0000-0000-0000-000000000101', 'c3000000-0000-0000-0000-000000000101', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000101/gei_alcance3_cat1_DEMO.xlsx', 'gei_alcance3_cat1_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 1 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000102', 'c3000000-0000-0000-0000-000000000102', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000102/gei_alcance3_cat2_DEMO.xlsx', 'gei_alcance3_cat2_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 2 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000103', 'c3000000-0000-0000-0000-000000000103', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000103/gei_alcance3_cat3_DEMO.xlsx', 'gei_alcance3_cat3_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 3 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000104', 'c3000000-0000-0000-0000-000000000104', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000104/gei_alcance3_cat4_DEMO.xlsx', 'gei_alcance3_cat4_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 4 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000105', 'c3000000-0000-0000-0000-000000000105', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000105/gei_alcance3_cat5_DEMO.xlsx', 'gei_alcance3_cat5_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 5 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000106', 'c3000000-0000-0000-0000-000000000106', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000106/gei_alcance3_cat6_DEMO.xlsx', 'gei_alcance3_cat6_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 6 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000107', 'c3000000-0000-0000-0000-000000000107', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000107/gei_alcance3_cat7_DEMO.xlsx', 'gei_alcance3_cat7_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 7 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000108', 'c3000000-0000-0000-0000-000000000108', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000108/gei_alcance3_cat8_DEMO.xlsx', 'gei_alcance3_cat8_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 8 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000111', 'c3000000-0000-0000-0000-000000000111', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000111/gei_alcance3_cat11_DEMO.xlsx', 'gei_alcance3_cat11_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 11 de Alcance 3.'),
+  ('d3000000-0000-0000-0000-000000000115', 'c3000000-0000-0000-0000-000000000115', '10000000-0000-0000-0000-000000000001/c3000000-0000-0000-0000-000000000115/gei_alcance3_cat15_DEMO.xlsx', 'gei_alcance3_cat15_DEMO.xlsx', '2025 (ene-dic)', 'Operaciones', 'a0000000-0000-0000-0000-000000000003', 'Soporte de la categoría 15 de Alcance 3.');
+
+-- 13.3 Capturas de valor (confirmadas). Para 'lleno' y 'pendiente': 2025 y 2024.
+--      Alcance 1 (c0007) conserva SOLO su captura 2025 de la §10 (última = 2025):
+--      así no colisiona con Alcance 2 (última = 2024) en su datapoint compartido
+--      29(a)(ii) y no genera una falsa discrepancia. Queda 'Pendiente' en el export.
+insert into public.capturas_valor (solicitud_id, evidencia_id, valor, unidad, periodo, capturado_por, confirmado) values
+  ('c0000000-0000-0000-0000-000000000008', 'd3000000-0000-0000-0000-000000000002', 3120.4, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c0000000-0000-0000-0000-000000000008', 'd3000000-0000-0000-0000-000000000002', 2980.1, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000001', 'd3000000-0000-0000-0000-000000000001', 15750.0, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000001', 'd3000000-0000-0000-0000-000000000001', 14992.3, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000101', 'd3000000-0000-0000-0000-000000000101', 1240, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000101', 'd3000000-0000-0000-0000-000000000101', 1180.5, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000102', 'd3000000-0000-0000-0000-000000000102', 305.7, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000102', 'd3000000-0000-0000-0000-000000000102', 288, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000103', 'd3000000-0000-0000-0000-000000000103', 512.4, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000103', 'd3000000-0000-0000-0000-000000000103', 497.1, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000104', 'd3000000-0000-0000-0000-000000000104', 2110.9, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000104', 'd3000000-0000-0000-0000-000000000104', 1975.4, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000105', 'd3000000-0000-0000-0000-000000000105', 88.3, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000105', 'd3000000-0000-0000-0000-000000000105', 91.2, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000106', 'd3000000-0000-0000-0000-000000000106', 143.6, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000106', 'd3000000-0000-0000-0000-000000000106', 120.8, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000107', 'd3000000-0000-0000-0000-000000000107', 64.2, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000107', 'd3000000-0000-0000-0000-000000000107', 59.9, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000108', 'd3000000-0000-0000-0000-000000000108', 41, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000108', 'd3000000-0000-0000-0000-000000000108', 38.5, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000111', 'd3000000-0000-0000-0000-000000000111', 9820, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000111', 'd3000000-0000-0000-0000-000000000111', 9410.7, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000115', 'd3000000-0000-0000-0000-000000000115', 1500, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  ('c3000000-0000-0000-0000-000000000115', 'd3000000-0000-0000-0000-000000000115', 1450, 'tCO2e', '2024', 'b0000000-0000-0000-0000-000000000001', true);
+
+-- 13.4 Mapeo celda↔dato de las dos hojas GEI (leído de la plantilla real).
+--      Etiquetas (categoría verbatim + unidad) y celdas de valor por año.
+insert into public.mapeo_export (hoja, celda, etiqueta) values
+  ('NIIF S2 29(a)(i)', 'A3', 'Alcance 1'),
+  ('NIIF S2 29(a)(i)', 'B3', 'tCO2e'),
+  ('NIIF S2 29(a)(i)', 'A4', 'Alcance 2'),
+  ('NIIF S2 29(a)(i)', 'B4', 'tCO2e'),
+  ('NIIF S2 29(a)(i)', 'A5', 'Alcance 3'),
+  ('NIIF S2 29(a)(i)', 'B5', 'tCO2e'),
+  ('NIIF S2 29(a)(vi)(1)', 'A4', 'Categoría 1-Bienes y servicios adquiridos'),
+  ('NIIF S2 29(a)(vi)(1)', 'A5', 'Categoría 2-Bienes de capital'),
+  ('NIIF S2 29(a)(vi)(1)', 'A6', 'Categoría 3-Actividades relacionadas con el combustible y la energía no incluidas en las emisiones de gases de efecto invernadero de Alcance 1 o Alcance 2'),
+  ('NIIF S2 29(a)(vi)(1)', 'A7', 'Categoría 4-Transporte y distribución'),
+  ('NIIF S2 29(a)(vi)(1)', 'A8', 'Categoría 5-Residuos generados en las operaciones'),
+  ('NIIF S2 29(a)(vi)(1)', 'A9', 'Categoría 6-Viajes de negocios'),
+  ('NIIF S2 29(a)(vi)(1)', 'A10', 'Categoría 7: Desplazamientos de los empleados'),
+  ('NIIF S2 29(a)(vi)(1)', 'A11', 'Categoría 8-Activos en arrendamiento financiero'),
+  ('NIIF S2 29(a)(vi)(1)', 'A12', 'Categoría 9-Transporte y distribución'),
+  ('NIIF S2 29(a)(vi)(1)', 'A13', 'Categoría 10-Transformación de los productos vendidos'),
+  ('NIIF S2 29(a)(vi)(1)', 'A14', 'Categoría 11-Uso de los productos vendidos'),
+  ('NIIF S2 29(a)(vi)(1)', 'A15', 'Categoría 12-Tratamiento de los productos vendidos al final de su vida útil'),
+  ('NIIF S2 29(a)(vi)(1)', 'A16', 'Categoría 13-Activos arrendados en fases posteriores'),
+  ('NIIF S2 29(a)(vi)(1)', 'A17', 'Categoría 14-Franquicias'),
+  ('NIIF S2 29(a)(vi)(1)', 'A18', 'Categoría 15-Inversiones');
+
+insert into public.mapeo_export (hoja, celda, solicitud_id, datapoint_id, ejercicio, celda_nota) values
+  ('NIIF S2 29(a)(i)', 'C3', 'c0000000-0000-0000-0000-000000000007', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2025, 'E3'),
+  ('NIIF S2 29(a)(i)', 'D3', 'c0000000-0000-0000-0000-000000000007', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2024, 'E3'),
+  ('NIIF S2 29(a)(i)', 'C4', 'c0000000-0000-0000-0000-000000000008', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2025, 'E4'),
+  ('NIIF S2 29(a)(i)', 'D4', 'c0000000-0000-0000-0000-000000000008', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2024, 'E4'),
+  ('NIIF S2 29(a)(i)', 'C5', 'c3000000-0000-0000-0000-000000000001', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2025, 'E5'),
+  ('NIIF S2 29(a)(i)', 'D5', 'c3000000-0000-0000-0000-000000000001', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2024, 'E5'),
+  ('NIIF S2 29(a)(vi)(1)', 'B4', 'c3000000-0000-0000-0000-000000000101', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D4'),
+  ('NIIF S2 29(a)(vi)(1)', 'C4', 'c3000000-0000-0000-0000-000000000101', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D4'),
+  ('NIIF S2 29(a)(vi)(1)', 'B5', 'c3000000-0000-0000-0000-000000000102', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D5'),
+  ('NIIF S2 29(a)(vi)(1)', 'C5', 'c3000000-0000-0000-0000-000000000102', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D5'),
+  ('NIIF S2 29(a)(vi)(1)', 'B6', 'c3000000-0000-0000-0000-000000000103', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D6'),
+  ('NIIF S2 29(a)(vi)(1)', 'C6', 'c3000000-0000-0000-0000-000000000103', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D6'),
+  ('NIIF S2 29(a)(vi)(1)', 'B7', 'c3000000-0000-0000-0000-000000000104', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D7'),
+  ('NIIF S2 29(a)(vi)(1)', 'C7', 'c3000000-0000-0000-0000-000000000104', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D7'),
+  ('NIIF S2 29(a)(vi)(1)', 'B8', 'c3000000-0000-0000-0000-000000000105', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D8'),
+  ('NIIF S2 29(a)(vi)(1)', 'C8', 'c3000000-0000-0000-0000-000000000105', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D8'),
+  ('NIIF S2 29(a)(vi)(1)', 'B9', 'c3000000-0000-0000-0000-000000000106', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D9'),
+  ('NIIF S2 29(a)(vi)(1)', 'C9', 'c3000000-0000-0000-0000-000000000106', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D9'),
+  ('NIIF S2 29(a)(vi)(1)', 'B10', 'c3000000-0000-0000-0000-000000000107', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D10'),
+  ('NIIF S2 29(a)(vi)(1)', 'C10', 'c3000000-0000-0000-0000-000000000107', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D10'),
+  ('NIIF S2 29(a)(vi)(1)', 'B11', 'c3000000-0000-0000-0000-000000000108', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D11'),
+  ('NIIF S2 29(a)(vi)(1)', 'C11', 'c3000000-0000-0000-0000-000000000108', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D11'),
+  ('NIIF S2 29(a)(vi)(1)', 'B12', 'c3000000-0000-0000-0000-000000000109', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D12'),
+  ('NIIF S2 29(a)(vi)(1)', 'C12', 'c3000000-0000-0000-0000-000000000109', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D12'),
+  ('NIIF S2 29(a)(vi)(1)', 'B13', 'c3000000-0000-0000-0000-000000000110', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D13'),
+  ('NIIF S2 29(a)(vi)(1)', 'C13', 'c3000000-0000-0000-0000-000000000110', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D13'),
+  ('NIIF S2 29(a)(vi)(1)', 'B14', 'c3000000-0000-0000-0000-000000000111', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D14'),
+  ('NIIF S2 29(a)(vi)(1)', 'C14', 'c3000000-0000-0000-0000-000000000111', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D14'),
+  ('NIIF S2 29(a)(vi)(1)', 'B15', 'c3000000-0000-0000-0000-000000000112', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D15'),
+  ('NIIF S2 29(a)(vi)(1)', 'C15', 'c3000000-0000-0000-0000-000000000112', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D15'),
+  ('NIIF S2 29(a)(vi)(1)', 'B16', 'c3000000-0000-0000-0000-000000000113', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D16'),
+  ('NIIF S2 29(a)(vi)(1)', 'C16', 'c3000000-0000-0000-0000-000000000113', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D16'),
+  ('NIIF S2 29(a)(vi)(1)', 'B17', 'c3000000-0000-0000-0000-000000000114', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D17'),
+  ('NIIF S2 29(a)(vi)(1)', 'C17', 'c3000000-0000-0000-0000-000000000114', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D17'),
+  ('NIIF S2 29(a)(vi)(1)', 'B18', 'c3000000-0000-0000-0000-000000000115', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D18'),
+  ('NIIF S2 29(a)(vi)(1)', 'C18', 'c3000000-0000-0000-0000-000000000115', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D18');
+
+-- 13.5 Fijar 'validado' DESPUÉS de toda inserción (los triggers ya no reabren).
+--      Solo estas entran a la plantilla oficial; el resto queda como brecha.
+update public.solicitudes set estado = 'validado' where id in (
+  'c0000000-0000-0000-0000-000000000008',
+  'c3000000-0000-0000-0000-000000000001',
+  'c3000000-0000-0000-0000-000000000101',
+  'c3000000-0000-0000-0000-000000000102',
+  'c3000000-0000-0000-0000-000000000104',
+  'c3000000-0000-0000-0000-000000000105',
+  'c3000000-0000-0000-0000-000000000106',
+  'c3000000-0000-0000-0000-000000000107',
+  'c3000000-0000-0000-0000-000000000111'
+);

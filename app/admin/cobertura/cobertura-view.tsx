@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TONO_CLASSES, ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
 import { COBERTURA_META, COBERTURA_ORDEN, type Cobertura } from "@/lib/cobertura";
 import { ExportButton } from "./export-button";
+import { TaxonomiaExportButton } from "./taxonomia-export-button";
 
 export type DatapointCobertura = {
   id: string;
@@ -144,7 +145,10 @@ export function CoberturaView({ datapoints }: { datapoints: DatapointCobertura[]
             evidencia de sus solicitudes ligadas.
           </p>
         </div>
-        <ExportButton />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <TaxonomiaExportButton />
+          <ExportButton />
+        </div>
       </header>
 
       {/* KPIs editoriales — reflejan el universo filtrado */}

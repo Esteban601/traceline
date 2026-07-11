@@ -281,6 +281,60 @@ export type Database = {
           },
         ]
       }
+      mapeo_export: {
+        Row: {
+          activo: boolean
+          celda: string
+          celda_nota: string | null
+          created_at: string
+          datapoint_id: string | null
+          ejercicio: number | null
+          etiqueta: string | null
+          hoja: string
+          id: string
+          solicitud_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          celda: string
+          celda_nota?: string | null
+          created_at?: string
+          datapoint_id?: string | null
+          ejercicio?: number | null
+          etiqueta?: string | null
+          hoja: string
+          id?: string
+          solicitud_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          celda?: string
+          celda_nota?: string | null
+          created_at?: string
+          datapoint_id?: string | null
+          ejercicio?: number | null
+          etiqueta?: string | null
+          hoja?: string
+          id?: string
+          solicitud_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mapeo_export_datapoint_id_fkey"
+            columns: ["datapoint_id"]
+            isOneToOne: false
+            referencedRelation: "datapoints_taxonomia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mapeo_export_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mapeo_solicitud_datapoint: {
         Row: {
           created_at: string
