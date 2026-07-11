@@ -47,7 +47,12 @@ export type AccionEvento =
   | "usuario_reactivado"
   | "plantilla_creada"
   | "reporte_creado_desde_plantilla"
-  | "reporte_congelado";
+  | "reporte_congelado"
+  | "registro_creado"
+  | "registro_editado"
+  | "registro_desactivado"
+  | "registro_reactivado"
+  | "registro_valores_capturados";
 
 /**
  * Registra un evento de gestión (crear/editar/eliminar solicitud, alta/baja de
@@ -61,7 +66,12 @@ export async function logEvento(
     tenantId: string | null;
     usuarioId: string | null;
     accion: AccionEvento;
-    entidad: "solicitudes" | "perfiles_usuario" | "plantillas" | "reportes";
+    entidad:
+      | "solicitudes"
+      | "perfiles_usuario"
+      | "plantillas"
+      | "reportes"
+      | "registros_clima";
     entidadId: string | null;
     detalle: Record<string, unknown>;
   }

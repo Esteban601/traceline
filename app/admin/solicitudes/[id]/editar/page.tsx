@@ -27,7 +27,7 @@ export default async function EditarSolicitudPage({
   const { data: sol } = await db
     .from("solicitudes")
     .select(
-      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, responsable_cliente_id, responsable_irstrat_id, orden"
+      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave"
     )
     .eq("id", id)
     .single();
@@ -109,6 +109,7 @@ export default async function EditarSolicitudPage({
     responsable_cliente_id: sol.responsable_cliente_id ?? "",
     responsable_irstrat_id: sol.responsable_irstrat_id ?? "",
     orden: String(sol.orden ?? ""),
+    rubro_clave: sol.rubro_clave ?? "",
     datapointIds: (mapeo ?? []).map((m) => m.datapoint_id),
   };
 

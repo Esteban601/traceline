@@ -32,6 +32,7 @@ type CamposSolicitud = {
   responsable_cliente_id: string | null;
   responsable_irstrat_id: string | null;
   orden: number | null;
+  rubro_clave: string | null;
   datapointIds: string[];
 };
 
@@ -55,6 +56,7 @@ function leerCampos(fd: FormData): CamposSolicitud {
     responsable_cliente_id: texto(fd, "responsable_cliente_id"),
     responsable_irstrat_id: texto(fd, "responsable_irstrat_id"),
     orden,
+    rubro_clave: texto(fd, "rubro_clave"),
     datapointIds: Array.from(new Set(fd.getAll("datapoint_ids").map((v) => String(v)))).filter(
       Boolean
     ),
@@ -170,6 +172,7 @@ export async function crearSolicitud(
       responsable_cliente_id: campos.responsable_cliente_id,
       responsable_irstrat_id: campos.responsable_irstrat_id,
       orden,
+      rubro_clave: campos.rubro_clave,
       // estado se queda en el default 'pendiente'.
     })
     .select("id")
@@ -260,6 +263,7 @@ export async function editarSolicitud(
     fecha_limite: campos.fecha_limite,
     responsable_cliente_id: campos.responsable_cliente_id,
     responsable_irstrat_id: campos.responsable_irstrat_id,
+    rubro_clave: campos.rubro_clave,
   };
   if (campos.orden != null) update.orden = campos.orden;
 

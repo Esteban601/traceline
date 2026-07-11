@@ -488,6 +488,101 @@ export type Database = {
           },
         ]
       }
+      registros_clima: {
+        Row: {
+          activo: boolean
+          created_at: string
+          descripcion: string | null
+          horizonte_temporal: string | null
+          id: string
+          nombre: string
+          orden: number
+          reporte_id: string
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          horizonte_temporal?: string | null
+          id?: string
+          nombre: string
+          orden?: number
+          reporte_id: string
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          horizonte_temporal?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          reporte_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_clima_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registros_clima_valores: {
+        Row: {
+          cantidad_activos: number | null
+          capital_desplegado: number | null
+          capturado_por: string | null
+          created_at: string
+          ejercicio: number
+          id: string
+          notas: string | null
+          porcentaje: number | null
+          registro_id: string
+        }
+        Insert: {
+          cantidad_activos?: number | null
+          capital_desplegado?: number | null
+          capturado_por?: string | null
+          created_at?: string
+          ejercicio: number
+          id?: string
+          notas?: string | null
+          porcentaje?: number | null
+          registro_id: string
+        }
+        Update: {
+          cantidad_activos?: number | null
+          capital_desplegado?: number | null
+          capturado_por?: string | null
+          created_at?: string
+          ejercicio?: number
+          id?: string
+          notas?: string | null
+          porcentaje?: number | null
+          registro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_clima_valores_capturado_por_fkey"
+            columns: ["capturado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_clima_valores_registro_id_fkey"
+            columns: ["registro_id"]
+            isOneToOne: false
+            referencedRelation: "registros_clima"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reportes: {
         Row: {
           created_at: string
@@ -539,6 +634,7 @@ export type Database = {
           reporte_id: string
           responsable_cliente_id: string | null
           responsable_irstrat_id: string | null
+          rubro_clave: string | null
           titulo: string
           unidad_esperada: string | null
         }
@@ -554,6 +650,7 @@ export type Database = {
           reporte_id: string
           responsable_cliente_id?: string | null
           responsable_irstrat_id?: string | null
+          rubro_clave?: string | null
           titulo: string
           unidad_esperada?: string | null
         }
@@ -569,6 +666,7 @@ export type Database = {
           reporte_id?: string
           responsable_cliente_id?: string | null
           responsable_irstrat_id?: string | null
+          rubro_clave?: string | null
           titulo?: string
           unidad_esperada?: string | null
         }

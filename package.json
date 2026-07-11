@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start -p ${PORT:-3000}",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify:export": "node scripts/verify-export.mjs"
   },
   "engines": {
     "node": "22.x"

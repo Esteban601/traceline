@@ -151,22 +151,61 @@ de datos** (no solo UI).
   decisión administrativa que deberá introducirse con **su propia migración**
   (levantar el trigger de forma controlada y auditada); no es una acción de la UI.
 
-### Alerta de discrepancia entre áreas
+### Alerta de discrepancia entre áreas (refinada por `rubro_clave`, Fase 3)
 
-- Para cada datapoint con 2+ solicitudes cuantitativas mapeadas, se compara la
-  última captura confirmada de cada una; si hay valores distintos con **misma
-  unidad y mismo periodo**, es una discrepancia (`lib/discrepancias.ts`, sin
-  cambiar el esquema).
+- Dos solicitudes solo se comparan si comparten el mismo **`rubro_clave`**
+  (columna en `solicitudes`): significa que capturan el mismo concepto del mundo
+  real y deben cuadrar. Se compara la última captura confirmada de cada una; si
+  hay valores distintos con **misma unidad y periodo**, es una discrepancia
+  (`lib/discrepancias.ts`). Una solicitud **sin `rubro_clave` nunca participa**.
+- El campo `rubro_clave` es opcional en el formulario de crear/editar solicitud
+  ("solo si dos áreas capturan el mismo concepto y deben cuadrar").
+- Esto evita falsos positivos por **desgloses legítimos** (p. ej. las 15
+  categorías de Alcance 3 mapean al mismo datapoint con valores distintos, pero
+  no llevan `rubro_clave` → no disparan alerta).
 - Se señala con badge en `/admin/cobertura` y con un aviso en el detalle de las
-  solicitudes involucradas (ambos valores, quién capturó y cuándo). Solo staff.
-- El seed incluye un caso DEMO: **consumo eléctrico 2025** reportado por
-  Operaciones (1,875,430 kWh) y Finanzas (1,912,000 kWh) sobre el mismo datapoint.
+  solicitudes involucradas. Solo staff.
+- Caso DEMO: **consumo eléctrico 2025** reportado por Operaciones (1,875,430 kWh)
+  y Finanzas (1,912,000 kWh), ambas con `rubro_clave='consumo_electrico_total'`.
 
 ### Bitácora visible
 
 - Timeline cronológico en el detalle staff de cada solicitud.
 - `/admin/bitacora`: vista global filtrable por cliente, entidad y rango de
   fechas (solo staff).
+
+## Taxonomía oficial: llenado del Excel (Fase 3)
+
+Motor que genera una **copia de la plantilla oficial** de la firma
+(`assets/taxonomia-base.xlsx`) llenada desde los datos validados de la
+plataforma, vía `exceljs`. Botón **"Generar Excel de taxonomía"** en
+`/admin/cobertura` (solo staff).
+
+- **Regla dura:** a las hojas de datos solo entra el valor de la última captura
+  **confirmada** cuya solicitud esté **`validado`** (o el valor vigente de un
+  registro **activo**). Lo no validado no entra: en su lugar va una nota de
+  brecha (`Pendiente de validación en plataforma` / `Sin evidencia` /
+  `Sin datos del ejercicio`). Pie discreto `[DEMO]` en cada hoja llenada.
+- **Hojas GEI** (`29(a)(i)`, `29(a)(vi)(1)`): mapeo fijo **celda↔dato** en la
+  tabla `mapeo_export` (categoría×año → celda), construido leyendo la plantilla.
+- **Hojas de registros** (`S2 10`, `29(b)`, `30`, `29(d)`): **escritura
+  posicional** — el nº de registros es dinámico y se llenan slots secuenciales
+  por sección; por eso *no* usan `mapeo_export`. Si hay más registros que slots,
+  se escriben los que caben y se anota `+N registros adicionales en plataforma`.
+
+### Verificación end-to-end (`verify:export`)
+
+Prueba la **ruta HTTP autenticada** (no solo el motor): forja sesión de admin con
+`@supabase/ssr`, invoca el export y valida HTTP 200 + las 6 hojas llenadas + las
+reglas duras. Requiere el server corriendo y el seed aplicado:
+
+```bash
+supabase start && pnpm dev      # en una terminal
+pnpm verify:export              # en otra (usa admin@irstrat.example por defecto)
+# baseUrl / credenciales configurables:
+#   pnpm verify:export http://localhost:3000
+#   ADMIN_EMAIL=... ADMIN_PASSWORD=... pnpm verify:export
+```
 
 ## Documentación
 

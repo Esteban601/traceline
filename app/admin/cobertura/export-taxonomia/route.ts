@@ -38,6 +38,190 @@ type CapRow = {
   confirmado: boolean;
   created_at: string;
 };
+type RegRow = {
+  id: string;
+  tipo: string;
+  nombre: string;
+  descripcion: string | null;
+  horizonte_temporal: string | null;
+  orden: number;
+};
+type RegValRow = {
+  registro_id: string;
+  ejercicio: number;
+  cantidad_activos: number | null;
+  porcentaje: number | null;
+  capital_desplegado: number | null;
+  created_at: string;
+};
+
+const NOTA_SIN_DATOS = "Sin datos del ejercicio";
+const TIPO_LABEL: Record<string, string> = {
+  riesgo_fisico: "Físico",
+  riesgo_transicion: "Transición",
+  oportunidad: "Oportunidad",
+};
+
+// Layout POSICIONAL de las 4 hojas de registros. A diferencia de las hojas GEI
+// (mapeo fijo celda↔dato en mapeo_export), aquí el nº de registros es dinámico y
+// se escriben secuencialmente en los slots de cada sección; por eso NO viven en
+// mapeo_export. Ver justificación en el commit.
+type GrupoAnio = { cantidad: string; pct: string; capital: string };
+type RegSeccion = {
+  hoja: string;
+  tipos: string[];
+  filaInicio: number;
+  filaFin: number;
+  descriptivo: boolean; // S2 10: nombre/desc/tipo/horizonte, sin valores
+  cols: {
+    nombre: string;
+    descripcion?: string;
+    tipo?: string;
+    horizonte: string;
+    v2025?: GrupoAnio;
+    v2024?: GrupoAnio;
+  };
+};
+
+const G2025: GrupoAnio = { cantidad: "C", pct: "D", capital: "E" };
+const G2024: GrupoAnio = { cantidad: "H", pct: "I", capital: "J" };
+
+const REG_SECCIONES: RegSeccion[] = [
+  // NIIF S2 10 — dos secciones en una hoja (Riesgos rows 4-11, Oportunidades 13-17).
+  {
+    hoja: "NIIF S2 10",
+    tipos: ["riesgo_fisico", "riesgo_transicion"],
+    filaInicio: 4,
+    filaFin: 11,
+    descriptivo: true,
+    cols: { nombre: "A", descripcion: "B", tipo: "C", horizonte: "D" },
+  },
+  {
+    hoja: "NIIF S2 10",
+    tipos: ["oportunidad"],
+    filaInicio: 13,
+    filaFin: 17,
+    descriptivo: true,
+    cols: { nombre: "A", descripcion: "B", tipo: "C", horizonte: "D" },
+  },
+  // Hojas de valores (datos 2025 en C/D/E, 2024 en H/I/J).
+  {
+    hoja: "NIIF S2 29(b)",
+    tipos: ["riesgo_fisico"],
+    filaInicio: 5,
+    filaFin: 20,
+    descriptivo: false,
+    cols: { nombre: "A", horizonte: "B", v2025: G2025, v2024: G2024 },
+  },
+  {
+    hoja: "NIIF S2 30",
+    tipos: ["riesgo_transicion"],
+    filaInicio: 5,
+    filaFin: 14,
+    descriptivo: false,
+    cols: { nombre: "A", horizonte: "B", v2025: G2025, v2024: G2024 },
+  },
+  {
+    hoja: "NIIF S2 29(d)",
+    tipos: ["oportunidad"],
+    filaInicio: 5,
+    filaFin: 20,
+    descriptivo: false,
+    cols: { nombre: "A", horizonte: "B", v2025: G2025, v2024: G2024 },
+  },
+];
+
+function limpiarNombre(nombre: string): string {
+  return nombre.replace(/\[DEMO\]\s*/i, "").trim();
+}
+
+/**
+ * Escribe los registros de clima en sus 4 hojas por posición (secuencial dentro
+ * de cada sección). Registros activos únicamente. Devuelve nº de filas escritas.
+ * Marca `hojasTocadas` para el pie [DEMO] (footer bajo el último slot de la hoja).
+ */
+function escribirRegistros(
+  wb: ExcelJS.Workbook,
+  registros: RegRow[],
+  vigentePorReg: Map<string, Map<number, RegValRow>>,
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+): number {
+  let escritas = 0;
+  for (const sec of REG_SECCIONES) {
+    const ws = wb.getWorksheet(sec.hoja);
+    if (!ws) continue;
+    const lista = registros
+      .filter((r) => sec.tipos.includes(r.tipo))
+      .sort((a, b) => a.orden - b.orden);
+    const slots = sec.filaFin - sec.filaInicio + 1;
+    const visibles = lista.slice(0, slots);
+
+    let ultimaFilaUsada = sec.filaInicio - 1;
+    visibles.forEach((r, i) => {
+      const fila = sec.filaInicio + i;
+      ws.getCell(`${sec.cols.nombre}${fila}`).value = limpiarNombre(r.nombre);
+      ws.getCell(`${sec.cols.horizonte}${fila}`).value = r.horizonte_temporal ?? "";
+
+      if (sec.descriptivo) {
+        if (sec.cols.descripcion)
+          ws.getCell(`${sec.cols.descripcion}${fila}`).value = r.descripcion ?? "";
+        if (sec.cols.tipo)
+          ws.getCell(`${sec.cols.tipo}${fila}`).value = TIPO_LABEL[r.tipo] ?? r.tipo;
+      } else {
+        const vig = vigentePorReg.get(r.id);
+        for (const [anio, grupo] of [
+          [2025, sec.cols.v2025] as const,
+          [2024, sec.cols.v2024] as const,
+        ]) {
+          if (!grupo) continue;
+          const v = vig?.get(anio);
+          const tieneDato =
+            v &&
+            (v.cantidad_activos != null ||
+              v.porcentaje != null ||
+              v.capital_desplegado != null);
+          if (tieneDato) {
+            if (v!.cantidad_activos != null) {
+              const c = ws.getCell(`${grupo.cantidad}${fila}`);
+              c.value = v!.cantidad_activos;
+              c.numFmt = "#,##0.###";
+            }
+            if (v!.porcentaje != null) {
+              const c = ws.getCell(`${grupo.pct}${fila}`);
+              c.value = v!.porcentaje;
+              c.numFmt = "#,##0.0";
+            }
+            if (v!.capital_desplegado != null) {
+              const c = ws.getCell(`${grupo.capital}${fila}`);
+              c.value = v!.capital_desplegado;
+              c.numFmt = "#,##0.###";
+            }
+          } else {
+            // Sin valores del ejercicio: brecha en la primera celda del grupo.
+            ws.getCell(`${grupo.cantidad}${fila}`).value = NOTA_SIN_DATOS;
+          }
+        }
+      }
+      ultimaFilaUsada = fila;
+      escritas++;
+    });
+
+    // Overflow: más registros que slots → nota en la última fila usada.
+    const extras = lista.length - visibles.length;
+    if (extras > 0 && visibles.length > 0) {
+      const cell = ws.getCell(`${sec.cols.nombre}${ultimaFilaUsada}`);
+      cell.value = `${limpiarNombre(
+        visibles[visibles.length - 1].nombre
+      )}  (+${extras} registros adicionales en plataforma)`;
+    }
+
+    // Pie: bajo el último slot de la hoja (no en medio de una sección).
+    const prev = hojasTocadas.get(sec.hoja) ?? { ws, ultimaFila: 0 };
+    prev.ultimaFila = Math.max(prev.ultimaFila, sec.filaFin);
+    hojasTocadas.set(sec.hoja, prev);
+  }
+  return escritas;
+}
 
 function slugify(s: string): string {
   return s
@@ -59,18 +243,34 @@ export async function GET() {
 
   const supabase = await createClient();
 
-  const [{ data: mapeo, error: mapErr }, { data: sols }, { data: caps }] =
-    await Promise.all([
-      supabase
-        .from("mapeo_export")
-        .select("hoja, celda, ejercicio, solicitud_id, etiqueta, celda_nota")
-        .eq("activo", true),
-      supabase.from("solicitudes").select("id, estado, reporte_id"),
-      supabase
-        .from("capturas_valor")
-        .select("solicitud_id, valor, periodo, confirmado, created_at")
-        .order("created_at", { ascending: true }),
-    ]);
+  const [
+    { data: mapeo, error: mapErr },
+    { data: sols },
+    { data: caps },
+    { data: registros },
+    { data: regValores },
+  ] = await Promise.all([
+    supabase
+      .from("mapeo_export")
+      .select("hoja, celda, ejercicio, solicitud_id, etiqueta, celda_nota")
+      .eq("activo", true),
+    supabase.from("solicitudes").select("id, estado, reporte_id"),
+    supabase
+      .from("capturas_valor")
+      .select("solicitud_id, valor, periodo, confirmado, created_at")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("registros_clima")
+      .select("id, tipo, nombre, descripcion, horizonte_temporal, orden")
+      .eq("activo", true)
+      .order("orden", { ascending: true }),
+    supabase
+      .from("registros_clima_valores")
+      .select(
+        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_desplegado, created_at"
+      )
+      .order("created_at", { ascending: true }),
+  ]);
 
   if (mapErr || !mapeo) {
     return NextResponse.json(
@@ -109,6 +309,15 @@ export async function GET() {
     }
     return v;
   };
+
+  // Valor vigente por (registro, ejercicio): la última fila insertada gana
+  // (valores llegan asc por created_at → APPEND ONLY, corrección = fila nueva).
+  const vigentePorReg = new Map<string, Map<number, RegValRow>>();
+  for (const v of (regValores ?? []) as RegValRow[]) {
+    const porAnio = vigentePorReg.get(v.registro_id) ?? new Map<number, RegValRow>();
+    porAnio.set(v.ejercicio, v);
+    vigentePorReg.set(v.registro_id, porAnio);
+  }
 
   // ---------------------------------------------------------------------------
   // Cargar la plantilla oficial y escribir solo las celdas mapeadas.
@@ -176,6 +385,14 @@ export async function GET() {
     else huecosSin++;
   }
 
+  // Registros de riesgos/oportunidades (escritura posicional en 4 hojas).
+  const registrosEscritos = escribirRegistros(
+    wb,
+    (registros ?? []) as RegRow[],
+    vigentePorReg,
+    hojasTocadas
+  );
+
   // Pie discreto en cada hoja llenada.
   const fechaHoy = fmtFecha.format(new Date());
   const pie = `Generado por ${APP_NAME} — ${fechaHoy} — [DEMO]`;
@@ -211,7 +428,8 @@ export async function GET() {
 
   console.log(
     `[export-taxonomia] etiquetas=${etiquetas} llenadas=${llenadas} ` +
-      `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} archivo=${filename}`
+      `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} ` +
+      `registros=${registrosEscritos} archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {

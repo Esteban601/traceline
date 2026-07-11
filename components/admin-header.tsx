@@ -23,24 +23,28 @@ export function AdminHeader({ perfil }: { perfil: PerfilActual }) {
   type NavKey =
     | "matriz"
     | "cobertura"
+    | "registros"
     | "reportes"
     | "plantillas"
     | "usuarios"
     | "bitacora";
   const activo: NavKey = pathname.startsWith("/admin/cobertura")
     ? "cobertura"
-    : pathname.startsWith("/admin/reportes")
-      ? "reportes"
-      : pathname.startsWith("/admin/plantillas")
-        ? "plantillas"
-        : pathname.startsWith("/admin/usuarios")
-          ? "usuarios"
-          : pathname.startsWith("/admin/bitacora")
-            ? "bitacora"
-            : "matriz";
+    : pathname.startsWith("/admin/registros")
+      ? "registros"
+      : pathname.startsWith("/admin/reportes")
+        ? "reportes"
+        : pathname.startsWith("/admin/plantillas")
+          ? "plantillas"
+          : pathname.startsWith("/admin/usuarios")
+            ? "usuarios"
+            : pathname.startsWith("/admin/bitacora")
+              ? "bitacora"
+              : "matriz";
   const nav: { href: string; label: string; key: NavKey }[] = [
     { href: "/admin", label: "Matriz", key: "matriz" },
     { href: "/admin/cobertura", label: "Cobertura", key: "cobertura" },
+    { href: "/admin/registros", label: "Clima", key: "registros" },
     { href: "/admin/reportes", label: "Reportes", key: "reportes" },
     { href: "/admin/plantillas", label: "Plantillas", key: "plantillas" },
     { href: "/admin/usuarios", label: "Usuarios", key: "usuarios" },

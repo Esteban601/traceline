@@ -36,6 +36,7 @@ export type ValoresIniciales = {
   responsable_cliente_id: string;
   responsable_irstrat_id: string;
   orden: string;
+  rubro_clave: string;
   datapointIds: string[];
 };
 
@@ -86,6 +87,7 @@ export function SolicitudForm({
   const [respCliente, setRespCliente] = useState(inicial?.responsable_cliente_id ?? "");
   const [respIrstrat, setRespIrstrat] = useState(inicial?.responsable_irstrat_id ?? "");
   const [orden, setOrden] = useState(inicial?.orden ?? "");
+  const [rubroClave, setRubroClave] = useState(inicial?.rubro_clave ?? "");
   const [datapointIds, setDatapointIds] = useState<string[]>(inicial?.datapointIds ?? []);
 
   const reporte = useMemo(
@@ -148,6 +150,7 @@ export function SolicitudForm({
     fd.set("responsable_cliente_id", respCliente);
     fd.set("responsable_irstrat_id", respIrstrat);
     fd.set("orden", orden);
+    fd.set("rubro_clave", rubroClave);
     for (const id of datapointIds) fd.append("datapoint_ids", id);
     startTransition(() => dispatch(fd));
   };
@@ -312,6 +315,26 @@ export function SolicitudForm({
             className={inputCls}
           />
         </div>
+      </div>
+
+      {/* Rubro clave (discrepancias) */}
+      <div>
+        <label htmlFor="rubro_clave" className={labelCls}>
+          Rubro clave <span className="font-normal text-muted">· opcional</span>
+        </label>
+        <input
+          id="rubro_clave"
+          value={rubroClave}
+          onChange={(e) => setRubroClave(e.target.value)}
+          placeholder="p. ej. consumo_electrico_total"
+          className={inputCls}
+        />
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          Solo si dos áreas capturan el mismo concepto y deben cuadrar: escribe la
+          misma etiqueta en ambas solicitudes. Con la misma unidad y periodo,
+          valores distintos disparan la alerta de discrepancia. Déjalo vacío si es
+          un dato independiente (no participa en discrepancias).
+        </p>
       </div>
 
       {/* Responsables */}

@@ -573,3 +573,81 @@ update public.solicitudes set estado = 'validado' where id in (
   'c3000000-0000-0000-0000-000000000107',
   'c3000000-0000-0000-0000-000000000111'
 );
+
+-- =============================================================================
+-- 14. Fase 3, Sprint 2 — rubro_clave, restauración de mapeos GEI, fix #1/#17 y
+--     registros de riesgos/oportunidades climáticos.
+-- =============================================================================
+
+-- 14.1 rubro_clave: las DOS solicitudes de consumo eléctrico capturan el mismo
+--      concepto (consumo eléctrico total del ejercicio) y deben cuadrar. Es la
+--      discrepancia intencional de la demo (Operaciones #6 vs Finanzas #21).
+update public.solicitudes set rubro_clave = 'consumo_electrico_total'
+ where id in (
+   'c0000000-0000-0000-0000-000000000006',
+   'c0000000-0000-0000-0000-000000000021'
+ );
+
+-- 14.2 Restaura en mapeo_solicitud_datapoint las ligas GEI que el Sprint 1 dejó
+--      solo en mapeo_export (para que cobertura muestre solicitudes en esos
+--      datapoints). Con el detector por rubro_clave (estas NO llevan rubro) el
+--      desglose de Alcance 3 ya NO genera falsas discrepancias.
+insert into public.mapeo_solicitud_datapoint (solicitud_id, datapoint_id)
+select s.sid::uuid, d.id
+from (values
+  ('c0000000-0000-0000-0000-000000000008', 'NIIF S2 29 (a)(i)'),          -- Alcance 2
+  ('c3000000-0000-0000-0000-000000000001', 'NIIF S2 29 (a)(i)'),          -- Alcance 3 total
+  ('c3000000-0000-0000-0000-000000000001', 'NIIF S2 29 (a)(vi)(1)'),
+  ('c3000000-0000-0000-0000-000000000101', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000102', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000103', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000104', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000105', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000106', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000107', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000108', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000109', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000110', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000111', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000112', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000113', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000114', 'NIIF S2 29 (a)(vi)(1) EI12'),
+  ('c3000000-0000-0000-0000-000000000115', 'NIIF S2 29 (a)(vi)(1) EI12')
+) as s(sid, codigo)
+join public.datapoints_taxonomia d on d.codigo = s.codigo and d.version_taxonomia = '2025'
+on conflict do nothing;
+
+-- 14.3 Fix #1/#17: quedaron declaradas 'validado' en §6 pero los triggers de
+--      Fase 2 las reabrieron a 'en_revision' al insertar su evidencia (§9). Se
+--      fijan aquí, DESPUÉS de toda inserción de evidencia/captura, igual que el
+--      patrón del Sprint 1 (§13.5).
+update public.solicitudes set estado = 'validado'
+ where id in (
+   'c0000000-0000-0000-0000-000000000001',  -- Plantilla y rotación de personal 2025
+   'c0000000-0000-0000-0000-000000000017'   -- Composición del Consejo en sostenibilidad
+ );
+
+-- 14.4 Registros de riesgos y oportunidades climáticos (DEMO) -----------------
+--      3 riesgos (2 físicos, 1 transición) + 2 oportunidades. Valores de ambos
+--      ejercicios en la mayoría; una oportunidad SIN valores (demuestra brecha).
+insert into public.registros_clima (id, reporte_id, tipo, nombre, descripcion, horizonte_temporal, orden, activo) values
+  ('f0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'riesgo_fisico',     '[DEMO] Estrés hídrico en planta norte',            'Reducción de disponibilidad de agua para procesos en la planta norte por sequías recurrentes.', 'Mediano plazo (3-5 años)', 10, true),
+  ('f0000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'riesgo_fisico',     '[DEMO] Inundación costera en centro de distribución', 'Exposición del centro de distribución del golfo a marejadas e inundación por elevación del nivel del mar.', 'Largo plazo (>10 años)', 20, true),
+  ('f0000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', 'riesgo_transicion', '[DEMO] Precio del carbono y endurecimiento regulatorio', 'Aumento de costos operativos por impuestos al carbono y regulación de emisiones en jurisdicciones clave.', 'Mediano plazo (3-5 años)', 30, true),
+  ('f0000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001', 'oportunidad',       '[DEMO] Eficiencia energética en operaciones',      'Ahorro por eficiencia energética y autoconsumo solar en instalaciones propias.', 'Corto plazo (1-2 años)', 40, true),
+  ('f0000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000001', 'oportunidad',       '[DEMO] Línea de productos bajos en carbono',       'Nueva línea de productos de baja huella para mercados con preferencia sostenible.', 'Largo plazo (>10 años)', 50, true);
+
+insert into public.registros_clima_valores (registro_id, ejercicio, cantidad_activos, porcentaje, capital_desplegado, notas, capturado_por) values
+  -- R1 estrés hídrico (ambos ejercicios)
+  ('f0000000-0000-0000-0000-000000000001', 2025, 3, 12.5, 450000,  'Tres sitios con captación propia en zona de sequía.', 'b0000000-0000-0000-0000-000000000001'),
+  ('f0000000-0000-0000-0000-000000000001', 2024, 2, 8.0,  300000,  null, 'b0000000-0000-0000-0000-000000000001'),
+  -- R2 inundación costera (ambos ejercicios)
+  ('f0000000-0000-0000-0000-000000000002', 2025, 1, 4.2,  180000,  null, 'b0000000-0000-0000-0000-000000000001'),
+  ('f0000000-0000-0000-0000-000000000002', 2024, 1, 4.0,  150000,  null, 'b0000000-0000-0000-0000-000000000001'),
+  -- R3 precio del carbono (ambos ejercicios)
+  ('f0000000-0000-0000-0000-000000000003', 2025, 5, 22.0, 1200000, 'Cobertura ampliada a la operación de exportación.', 'b0000000-0000-0000-0000-000000000001'),
+  ('f0000000-0000-0000-0000-000000000003', 2024, 4, 18.5, 900000,  null, 'b0000000-0000-0000-0000-000000000001'),
+  -- O1 eficiencia energética (ambos ejercicios)
+  ('f0000000-0000-0000-0000-000000000004', 2025, 6, 30.0, 2100000, 'Incluye autoconsumo solar en dos plantas.', 'b0000000-0000-0000-0000-000000000001'),
+  ('f0000000-0000-0000-0000-000000000004', 2024, 5, 25.0, 1750000, null, 'b0000000-0000-0000-0000-000000000001');
+  -- O2 (línea de productos bajos en carbono): SIN valores — demuestra la brecha 'Sin datos del ejercicio'.
