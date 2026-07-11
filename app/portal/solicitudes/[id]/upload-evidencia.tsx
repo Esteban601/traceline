@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { subirEvidencia, type SubirState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -118,7 +118,7 @@ export function UploadEvidencia({
       fd.set("unidad", unidad);
       fd.set("periodo_captura", periodoCaptura);
     }
-    formAction(fd);
+    startTransition(() => formAction(fd));
   }
 
   const inputClass =
