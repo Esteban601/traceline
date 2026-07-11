@@ -50,6 +50,12 @@ comment on column public.mapeo_export.celda is 'Referencia de celda A1 (columna+
 comment on column public.mapeo_export.etiqueta is 'Texto literal a escribir (categoría verbatim de la plantilla, unidad…). Celdas de etiqueta.';
 comment on column public.mapeo_export.celda_nota is 'Celda de la columna Notas/Brechas de la fila; recibe la brecha cuando el valor no entra por no estar validado.';
 
+-- Grants — las tablas nuevas NO quedan cubiertas por el grant "on all tables" de
+-- la migración inicial (ese grant es puntual, no futuro): se otorgan aquí. Sin
+-- esto, RLS niega el acceso incluso al staff ("permission denied for table").
+grant select, insert, update, delete on public.mapeo_export to authenticated;
+grant select on public.mapeo_export to service_role;
+
 -- RLS — mapeo interno de IRStrat: solo staff (mismo patrón que mapeo_solicitud_datapoint).
 alter table public.mapeo_export enable row level security;
 

@@ -113,6 +113,7 @@ export async function GET() {
   // ---------------------------------------------------------------------------
   // Cargar la plantilla oficial y escribir solo las celdas mapeadas.
   // ---------------------------------------------------------------------------
+  try {
   const buf = await fs.readFile(PLANTILLA);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buf as unknown as ArrayBuffer);
@@ -222,4 +223,11 @@ export async function GET() {
       "Cache-Control": "no-store",
     },
   });
+  } catch (err) {
+    console.error("[export-taxonomia] fallo al construir la plantilla:", err);
+    return NextResponse.json(
+      { error: "No se pudo construir la plantilla de taxonomía." },
+      { status: 500 }
+    );
+  }
 }
