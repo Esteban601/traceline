@@ -651,3 +651,92 @@ insert into public.registros_clima_valores (registro_id, ejercicio, cantidad_act
   ('f0000000-0000-0000-0000-000000000004', 2025, 6, 30.0, 2100000, 'Incluye autoconsumo solar en dos plantas.', 'b0000000-0000-0000-0000-000000000001'),
   ('f0000000-0000-0000-0000-000000000004', 2024, 5, 25.0, 1750000, null, 'b0000000-0000-0000-0000-000000000001');
   -- O2 (línea de productos bajos en carbono): SIN valores — demuestra la brecha 'Sin datos del ejercicio'.
+
+-- 15. Fase 3, Sprint 3 — Objetivos climáticos y de sostenibilidad (DEMO) -------
+--     Alimentan 5 hojas: S1 51 (todos), S2 33/34/35/36(a-d) (solo climáticos).
+--       O1: climático absoluto GEI  — ficha completa.
+--       O2: climático de intensidad — ficha completa.
+--       O3: sostenibilidad general  — naturaleza 'oportunidad' (sección Oportunidades de S1 51).
+--       O4: climático INCOMPLETO    — sin ficha hermana => brecha 'Sección pendiente en plataforma'.
+insert into public.objetivos (
+  id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta,
+  parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo,
+  alineacion_acuerdo_internacional, orden, activo
+) values
+  ('d0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001',
+   'climatico', 'riesgo',
+   '[DEMO] Reducción absoluta de emisiones GEI (Alcance 1 y 2)',
+   'Reducir las emisiones absolutas de gases de efecto invernadero de Alcance 1 y 2 respecto del año base.',
+   'Cuantitativo', 'tCO2e absolutas (Alcance 1 + 2, con base en el mercado)',
+   'Reducir 42% las emisiones absolutas de Alcance 1 y 2 al 2030',
+   'Toda la entidad (operaciones propias)', '2024–2030', '2023',
+   'Reducción intermedia de 25% al 2027', 'Absoluto',
+   'Alineado con la trayectoria de 1.5 °C del Acuerdo de París; compromiso presentado a SBTi.',
+   10, true),
+  ('d0000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001',
+   'climatico', 'riesgo',
+   '[DEMO] Intensidad de carbono por tonelada producida',
+   'Reducir la intensidad de emisiones por unidad de producción física.',
+   'Cuantitativo', 'tCO2e por tonelada producida',
+   'Reducir 50% la intensidad de emisiones al 2030',
+   'Unidades de negocio manufactureras', '2024–2030', '2022',
+   'Reducción intermedia de 30% al 2027', 'De intensidad',
+   'Consistente con el enfoque de contracción y convergencia del Acuerdo de París.',
+   20, true),
+  ('d0000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001',
+   'sostenibilidad', 'oportunidad',
+   '[DEMO] Mujeres en posiciones de liderazgo',
+   'Incrementar la proporción de mujeres en puestos de dirección y gerencia.',
+   'Cuantitativo', 'Porcentaje de mujeres en posiciones de liderazgo',
+   'Alcanzar 40% de mujeres en liderazgo al 2028',
+   'Toda la entidad', '2024–2028', '2023',
+   'Alcanzar 30% al 2026', null, null,
+   30, true),
+  ('d0000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001',
+   'climatico', 'riesgo',
+   '[DEMO] Consumo de energía renovable',
+   'Incrementar la participación de energía renovable en el consumo total.',
+   'Cuantitativo', 'Porcentaje de energía renovable sobre el consumo total',
+   null, null, '2024–2030', null, null, null, null,
+   40, true);
+
+-- Fichas hermanas (S2 34/35/36 y columnas H/I de S1 51). O4 se deja SIN ficha.
+insert into public.objetivos_detalle (
+  objetivo_id, validacion_tercero, procesos_revision, metricas_supervision,
+  revisiones, resultados, analisis_tendencias, gases_cubiertos,
+  alcances_cubiertos, bruto_neto, enfoque_descarbonizacion, notas
+) values
+  ('d0000000-0000-0000-0000-000000000001',
+   'Objetivo y metodología validados por SBTi en 2024.',
+   'Revisión anual por el Comité de Sostenibilidad; recalibración cada 3 años.',
+   'tCO2e absolutas de Alcance 1 y 2 reportadas trimestralmente.',
+   'Sin revisiones al objetivo desde su fijación en 2024.',
+   'Reducción de 12% acumulada al cierre 2025 respecto del año base.',
+   'Tendencia descendente sostenida; mayor caída por electrificación de flota.',
+   'CO2, CH4, N2O (expresados en CO2e).',
+   'Alcance 1 y Alcance 2 (con base en el mercado).',
+   'Emisiones brutas.',
+   'No se utiliza un enfoque de descarbonización sectorial.',
+   null),
+  ('d0000000-0000-0000-0000-000000000002',
+   'Metodología de intensidad revisada por consultor externo independiente.',
+   'Revisión semestral del denominador de producción por Operaciones.',
+   'tCO2e por tonelada producida, normalizada por mezcla de producto.',
+   'Ajuste del año base a 2022 tras la adquisición de la planta sur (2024).',
+   'Intensidad reducida 18% respecto de 2022.',
+   'Mejora acelerada por eficiencia térmica; sensible al volumen de producción.',
+   'CO2, CH4, N2O (expresados en CO2e).',
+   'Alcance 1 y Alcance 2.',
+   'Emisiones brutas (intensidad).',
+   'Enfoque de descarbonización sectorial para manufactura.',
+   null),
+  ('d0000000-0000-0000-0000-000000000003',
+   null,
+   'Revisión anual por el Comité de Talento y Cultura.',
+   'Porcentaje de mujeres en el primer y segundo nivel de reporte.',
+   'Sin revisiones al objetivo.',
+   'Avance a 34% de mujeres en liderazgo al cierre 2025.',
+   'Tendencia ascendente; mayor avance en áreas comerciales.',
+   null, null, null, null,
+   null);
+  -- O4 (energía renovable): SIN ficha hermana — demuestra 'Sección pendiente en plataforma'.

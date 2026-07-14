@@ -23,6 +23,15 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   plantilla_creada: { label: "Plantilla creada", tono: "verde" },
   reporte_creado_desde_plantilla: { label: "Reporte creado", tono: "verde" },
   reporte_congelado: { label: "Reporte congelado", tono: "gris" },
+  registro_creado: { label: "Registro de clima creado", tono: "verde" },
+  registro_editado: { label: "Registro de clima editado", tono: "gris" },
+  registro_desactivado: { label: "Registro de clima desactivado", tono: "rojo" },
+  registro_reactivado: { label: "Registro de clima reactivado", tono: "verde" },
+  registro_valores_capturados: { label: "Valores de clima capturados", tono: "azul" },
+  objetivo_creado: { label: "Objetivo creado", tono: "verde" },
+  objetivo_editado: { label: "Objetivo editado", tono: "gris" },
+  objetivo_desactivado: { label: "Objetivo desactivado", tono: "rojo" },
+  objetivo_reactivado: { label: "Objetivo reactivado", tono: "verde" },
 };
 
 export function accionMeta(accion: string): { label: string; tono: Tono } {
@@ -38,6 +47,8 @@ export const ENTIDADES: { value: string; label: string }[] = [
   { value: "perfiles_usuario", label: "Usuarios" },
   { value: "plantillas", label: "Plantillas" },
   { value: "reportes", label: "Reportes" },
+  { value: "registros_clima", label: "Registros de clima" },
+  { value: "objetivos", label: "Objetivos" },
 ];
 
 type Detalle = Record<string, unknown> | null;
@@ -99,6 +110,20 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
       return s(detalle, "nombre") ?? "";
     case "reporte_congelado":
       return s(detalle, "nombre") ?? "";
+    case "registro_creado":
+    case "registro_editado":
+    case "registro_desactivado":
+    case "registro_reactivado":
+      return limpiar(s(detalle, "nombre")) ?? "";
+    case "registro_valores_capturados": {
+      const ej = n(detalle, "ejercicio");
+      return limpiar(s(detalle, "nombre")) ?? (ej != null ? `Ejercicio ${ej}` : "");
+    }
+    case "objetivo_creado":
+    case "objetivo_editado":
+    case "objetivo_desactivado":
+    case "objetivo_reactivado":
+      return limpiar(s(detalle, "nombre")) ?? "";
     default:
       return "";
   }

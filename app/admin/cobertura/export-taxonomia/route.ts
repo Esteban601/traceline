@@ -40,6 +40,7 @@ type CapRow = {
 };
 type RegRow = {
   id: string;
+  reporte_id: string;
   tipo: string;
   nombre: string;
   descripcion: string | null;
@@ -223,6 +224,210 @@ function escribirRegistros(
   return escritas;
 }
 
+// -----------------------------------------------------------------------------
+// Objetivos (Sprint 3) — llenado posicional de 5 hojas.
+//   · S2 33/34/35/36(a-d): SOLO climáticos, en el MISMO orden de filas en las 4
+//     hojas (el lector sigue un objetivo a través de ellas: objetivo #i → fila 3+i).
+//   · S1 51: TODOS los objetivos (ambos ámbitos), en secciones Riesgos (filas
+//     4-12) y Oportunidades (14-18) según `naturaleza`.
+// Campos vacíos → nota en Notas/Brechas de la fila (las hojas S2 tienen esa
+// columna; S1 51 no la tiene, así que las celdas ausentes quedan en blanco).
+// -----------------------------------------------------------------------------
+const NOTA_SECCION = "Sección pendiente en plataforma";
+
+type ObjRow = {
+  id: string;
+  reporte_id: string;
+  ambito: string;
+  naturaleza: string;
+  nombre: string;
+  descripcion: string | null;
+  tipo: string | null;
+  metrica: string | null;
+  meta: string | null;
+  parte_entidad: string | null;
+  periodo_aplicacion: string | null;
+  periodo_base: string | null;
+  hito_intermedio: string | null;
+  tipo_objetivo: string | null;
+  alineacion_acuerdo_internacional: string | null;
+  orden: number;
+};
+type ObjDetRow = {
+  objetivo_id: string;
+  validacion_tercero: string | null;
+  procesos_revision: string | null;
+  metricas_supervision: string | null;
+  revisiones: string | null;
+  resultados: string | null;
+  analisis_tendencias: string | null;
+  gases_cubiertos: string | null;
+  alcances_cubiertos: string | null;
+  bruto_neto: string | null;
+  enfoque_descarbonizacion: string | null;
+  notas: string | null;
+};
+
+function escribirObjetivos(
+  wb: ExcelJS.Workbook,
+  objetivos: ObjRow[], // activos, ordenados por `orden`
+  detallePorObj: Map<string, ObjDetRow>,
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+): number {
+  let escritas = 0;
+  const put = (
+    ws: ExcelJS.Worksheet,
+    addr: string,
+    val: string | null | undefined
+  ) => {
+    if (val != null && String(val).trim() !== "") ws.getCell(addr).value = val;
+  };
+  const marcar = (hoja: string, ws: ExcelJS.Worksheet, fila: number) => {
+    const prev = hojasTocadas.get(hoja) ?? { ws, ultimaFila: 0 };
+    prev.ultimaFila = Math.max(prev.ultimaFila, fila);
+    hojasTocadas.set(hoja, prev);
+  };
+
+  // --- S2 33/34/35/36 — climáticos, mismo orden de filas (3..10) ---
+  const S2_INICIO = 3;
+  const S2_FIN = 10;
+  const climaticos = objetivos.filter((o) => o.ambito === "climatico");
+  const s33 = wb.getWorksheet("NIIF S2 33");
+  const s34 = wb.getWorksheet("NIIF S2 34");
+  const s35 = wb.getWorksheet("NIIF S2 35");
+  const s36 = wb.getWorksheet("NIIF S2 36(a)-(d)");
+  const visClim = climaticos.slice(0, S2_FIN - S2_INICIO + 1);
+
+  // Marca las 4 hojas para el pie [DEMO] aunque no haya climáticos (consistente
+  // con las hojas de registros, que se marcan incondicionalmente).
+  if (s33) marcar("NIIF S2 33", s33, S2_FIN);
+  if (s34) marcar("NIIF S2 34", s34, S2_FIN);
+  if (s35) marcar("NIIF S2 35", s35, S2_FIN);
+  if (s36) marcar("NIIF S2 36(a)-(d)", s36, S2_FIN);
+
+  visClim.forEach((o, i) => {
+    const fila = S2_INICIO + i;
+    const nombre = limpiarNombre(o.nombre);
+    const d = detallePorObj.get(o.id);
+
+    if (s33) {
+      put(s33, `A${fila}`, nombre);
+      put(s33, `B${fila}`, o.tipo);
+      put(s33, `C${fila}`, o.metrica);
+      put(s33, `D${fila}`, o.meta);
+      put(s33, `E${fila}`, o.parte_entidad);
+      put(s33, `F${fila}`, o.periodo_aplicacion);
+      put(s33, `G${fila}`, o.periodo_base);
+      put(s33, `H${fila}`, o.hito_intermedio);
+      put(s33, `I${fila}`, o.tipo_objetivo);
+      put(s33, `J${fila}`, o.alineacion_acuerdo_internacional);
+      const defVacia = !(
+        o.tipo ||
+        o.metrica ||
+        o.meta ||
+        o.parte_entidad ||
+        o.periodo_aplicacion ||
+        o.periodo_base ||
+        o.hito_intermedio ||
+        o.tipo_objetivo ||
+        o.alineacion_acuerdo_internacional
+      );
+      // Notas/Brechas (col K): la nota de sección pendiente si la definición está
+      // vacía; en caso contrario, la nota libre de la ficha (si la hay).
+      if (defVacia) s33.getCell(`K${fila}`).value = NOTA_SECCION;
+      else put(s33, `K${fila}`, d?.notas);
+    }
+    if (s34) {
+      put(s34, `A${fila}`, nombre);
+      put(s34, `B${fila}`, d?.validacion_tercero);
+      put(s34, `C${fila}`, d?.procesos_revision);
+      put(s34, `D${fila}`, d?.metricas_supervision);
+      put(s34, `E${fila}`, d?.revisiones);
+      const vacia = !(
+        d &&
+        (d.validacion_tercero ||
+          d.procesos_revision ||
+          d.metricas_supervision ||
+          d.revisiones)
+      );
+      if (vacia) s34.getCell(`F${fila}`).value = NOTA_SECCION;
+    }
+    if (s35) {
+      put(s35, `A${fila}`, nombre);
+      put(s35, `B${fila}`, d?.resultados);
+      put(s35, `C${fila}`, d?.analisis_tendencias);
+      const vacia = !(d && (d.resultados || d.analisis_tendencias));
+      if (vacia) s35.getCell(`D${fila}`).value = NOTA_SECCION;
+    }
+    if (s36) {
+      put(s36, `A${fila}`, nombre);
+      put(s36, `B${fila}`, d?.gases_cubiertos);
+      put(s36, `C${fila}`, d?.alcances_cubiertos);
+      put(s36, `D${fila}`, d?.bruto_neto);
+      put(s36, `E${fila}`, d?.enfoque_descarbonizacion);
+      const vacia = !(
+        d &&
+        (d.gases_cubiertos ||
+          d.alcances_cubiertos ||
+          d.bruto_neto ||
+          d.enfoque_descarbonizacion)
+      );
+      if (vacia) s36.getCell(`F${fila}`).value = NOTA_SECCION;
+    }
+    escritas++;
+  });
+
+  // Overflow climáticos: nota '+N' en la última fila (col nombre) de las 4 hojas.
+  const extrasClim = climaticos.length - visClim.length;
+  if (extrasClim > 0 && visClim.length > 0) {
+    const filaUlt = S2_INICIO + visClim.length - 1;
+    const ultNombre = limpiarNombre(visClim[visClim.length - 1].nombre);
+    for (const ws of [s33, s34, s35, s36]) {
+      if (ws)
+        ws.getCell(`A${filaUlt}`).value =
+          `${ultNombre}  (+${extrasClim} objetivos adicionales en plataforma)`;
+    }
+  }
+
+  // --- S1 51 — TODOS los objetivos, secciones Riesgos / Oportunidades ---
+  const s51 = wb.getWorksheet("NIIF S1 51");
+  if (s51) {
+    const seccion = (naturaleza: string, inicio: number, fin: number) => {
+      const lista = objetivos.filter((o) => o.naturaleza === naturaleza);
+      const vis = lista.slice(0, fin - inicio + 1);
+      vis.forEach((o, i) => {
+        const fila = inicio + i;
+        const d = detallePorObj.get(o.id);
+        put(s51, `A${fila}`, limpiarNombre(o.nombre));
+        put(s51, `B${fila}`, o.tipo);
+        put(s51, `C${fila}`, o.metrica);
+        put(s51, `D${fila}`, o.descripcion);
+        put(s51, `E${fila}`, o.periodo_aplicacion);
+        put(s51, `F${fila}`, o.periodo_base);
+        put(s51, `G${fila}`, o.hito_intermedio);
+        // H: resultados + análisis de tendencias (columna combinada de la plantilla).
+        const resultado = [d?.resultados, d?.analisis_tendencias]
+          .filter(Boolean)
+          .join(" — ");
+        put(s51, `H${fila}`, resultado);
+        put(s51, `I${fila}`, d?.revisiones);
+        escritas++;
+      });
+      const extras = lista.length - vis.length;
+      if (extras > 0 && vis.length > 0) {
+        const filaUlt = inicio + vis.length - 1;
+        s51.getCell(`A${filaUlt}`).value =
+          `${limpiarNombre(vis[vis.length - 1].nombre)}  (+${extras} adicionales en plataforma)`;
+      }
+    };
+    seccion("riesgo", 4, 12);
+    seccion("oportunidad", 14, 18);
+    marcar("NIIF S1 51", s51, 18);
+  }
+
+  return escritas;
+}
+
 function slugify(s: string): string {
   return s
     .normalize("NFD")
@@ -249,6 +454,8 @@ export async function GET() {
     { data: caps },
     { data: registros },
     { data: regValores },
+    { data: objetivos },
+    { data: objDetalle },
   ] = await Promise.all([
     supabase
       .from("mapeo_export")
@@ -261,7 +468,7 @@ export async function GET() {
       .order("created_at", { ascending: true }),
     supabase
       .from("registros_clima")
-      .select("id, tipo, nombre, descripcion, horizonte_temporal, orden")
+      .select("id, reporte_id, tipo, nombre, descripcion, horizonte_temporal, orden")
       .eq("activo", true)
       .order("orden", { ascending: true }),
     supabase
@@ -270,6 +477,18 @@ export async function GET() {
         "registro_id, ejercicio, cantidad_activos, porcentaje, capital_desplegado, created_at"
       )
       .order("created_at", { ascending: true }),
+    supabase
+      .from("objetivos")
+      .select(
+        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, alineacion_acuerdo_internacional, orden"
+      )
+      .eq("activo", true)
+      .order("orden", { ascending: true }),
+    supabase
+      .from("objetivos_detalle")
+      .select(
+        "objetivo_id, validacion_tercero, procesos_revision, metricas_supervision, revisiones, resultados, analisis_tendencias, gases_cubiertos, alcances_cubiertos, bruto_neto, enfoque_descarbonizacion, notas"
+      ),
   ]);
 
   if (mapErr || !mapeo) {
@@ -292,6 +511,14 @@ export async function GET() {
     estadoSol.set(s.id, s.estado);
     if (s.reporte_id) reporteSol.set(s.id, s.reporte_id);
   }
+
+  // Reporte objetivo del export: el de la primera solicitud mapeada. Acota los
+  // registros de clima y objetivos a ESE reporte (evita mezclar reportes/tenants
+  // en un mismo entregable). Si no se puede determinar, no se filtra (compat).
+  const primerSolId = (mapeo as MapeoRow[]).find((m) => m.solicitud_id)?.solicitud_id;
+  const targetReporteId = primerSolId ? reporteSol.get(primerSolId) ?? null : null;
+  const enReporte = <T extends { reporte_id: string }>(filas: T[]): T[] =>
+    targetReporteId ? filas.filter((f) => f.reporte_id === targetReporteId) : filas;
 
   // Capturas por solicitud (llegan asc → la última confirmada por periodo gana).
   const capsPorSol = new Map<string, CapRow[]>();
@@ -388,8 +615,18 @@ export async function GET() {
   // Registros de riesgos/oportunidades (escritura posicional en 4 hojas).
   const registrosEscritos = escribirRegistros(
     wb,
-    (registros ?? []) as RegRow[],
+    enReporte((registros ?? []) as RegRow[]),
     vigentePorReg,
+    hojasTocadas
+  );
+
+  // Objetivos climáticos y de sostenibilidad (5 hojas: S1 51 + S2 33/34/35/36).
+  const detallePorObj = new Map<string, ObjDetRow>();
+  for (const d of (objDetalle ?? []) as ObjDetRow[]) detallePorObj.set(d.objetivo_id, d);
+  const objetivosEscritos = escribirObjetivos(
+    wb,
+    enReporte((objetivos ?? []) as ObjRow[]),
+    detallePorObj,
     hojasTocadas
   );
 
@@ -405,15 +642,13 @@ export async function GET() {
   // ---------------------------------------------------------------------------
   // Nombre de archivo: taxonomia-{slug-tenant}-{ejercicio}-{fecha}.
   // ---------------------------------------------------------------------------
-  const primerSol = (mapeo as MapeoRow[]).find((m) => m.solicitud_id)?.solicitud_id;
-  const reporteId = primerSol ? reporteSol.get(primerSol) : null;
   let slug = "reporte";
   let ejercicio = new Date().getFullYear();
-  if (reporteId) {
+  if (targetReporteId) {
     const { data: rep } = await supabase
       .from("reportes")
       .select("ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug)")
-      .eq("id", reporteId)
+      .eq("id", targetReporteId)
       .single();
     if (rep) {
       ejercicio = rep.ejercicio;
@@ -429,7 +664,7 @@ export async function GET() {
   console.log(
     `[export-taxonomia] etiquetas=${etiquetas} llenadas=${llenadas} ` +
       `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} ` +
-      `registros=${registrosEscritos} archivo=${filename}`
+      `registros=${registrosEscritos} objetivos=${objetivosEscritos} archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {

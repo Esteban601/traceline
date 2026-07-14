@@ -5,9 +5,10 @@
 // Forja una sesión de admin con @supabase/ssr (las mismas cookies que pondría el
 // navegador), invoca /admin/cobertura/export-taxonomia y valida:
 //   · HTTP 200 + content-type xlsx
-//   · las 6 hojas llenadas (2 GEI + 4 de registros de clima)
+//   · las 11 hojas llenadas (2 GEI + 4 de registros de clima + 5 de objetivos)
 //   · las REGLAS DURAS: una celda de dato NO validado queda vacía y su fila lleva
-//     la nota de brecha correspondiente.
+//     la nota de brecha correspondiente; un objetivo se puede seguir a través de
+//     las 4 hojas S2 33-36 y sus secciones vacías marcan 'Sección pendiente'.
 //
 // Requiere el server corriendo (pnpm dev o pnpm start) y Supabase local con el
 // seed aplicado (supabase db reset). Uso:
@@ -109,6 +110,11 @@ async function main() {
     "NIIF S2 29(b)",
     "NIIF S2 30",
     "NIIF S2 29(d)",
+    "NIIF S1 51",
+    "NIIF S2 33",
+    "NIIF S2 34",
+    "NIIF S2 35",
+    "NIIF S2 36(a)-(d)",
   ];
   console.log("\nHojas presentes:");
   for (const h of hojas) ok(!!wb.getWorksheet(h), `hoja "${h}" existe`);
@@ -152,6 +158,47 @@ async function main() {
   }
   ok(sinDatos, "S2 29(d): al menos una fila con 'Sin datos del ejercicio'");
 
+  // ---------------------------------------------------------------------------
+  // Objetivos (Sprint 3) — 5 hojas: S1 51 + S2 33/34/35/36(a)-(d).
+  // ---------------------------------------------------------------------------
+  const s51 = wb.getWorksheet("NIIF S1 51");
+  const s33 = wb.getWorksheet("NIIF S2 33");
+  const s34 = wb.getWorksheet("NIIF S2 34");
+  const s35 = wb.getWorksheet("NIIF S2 35");
+  const s36 = wb.getWorksheet("NIIF S2 36(a)-(d)");
+  const NOTA_SEC = "Sección pendiente en plataforma";
+
+  console.log("\nObjetivos — S2 33 (definición climática):");
+  ok(cellText(s33, "A3").length > 0, "S2 33: A3 tiene un objetivo climático");
+  ok(cellText(s33, "I3") === "Absoluto", "S2 33: I3 (tipo de objetivo) = 'Absoluto'");
+  ok(cellText(s33, "I4") === "De intensidad", "S2 33: I4 (tipo de objetivo) = 'De intensidad'");
+
+  console.log("\nObjetivos — trazabilidad de un objetivo a través de S2 33-36:");
+  const a3 = cellText(s33, "A3");
+  ok(
+    a3.length > 0 &&
+      cellText(s34, "A3") === a3 &&
+      cellText(s35, "A3") === a3 &&
+      cellText(s36, "A3") === a3,
+    "el objetivo de la fila 3 es el mismo en S2 33/34/35/36"
+  );
+  ok(cellText(s34, "B3").length > 0, "S2 34: B3 (validación) del objetivo completo lleno");
+  ok(cellText(s35, "B3").length > 0, "S2 35: B3 (resultados) del objetivo completo lleno");
+  ok(cellText(s36, "B3").length > 0, "S2 36: B3 (gases cubiertos) del objetivo completo lleno");
+
+  console.log("\nObjetivos — brecha 'Sección pendiente' (objetivo climático incompleto):");
+  // El objetivo sin ficha (energía renovable, fila 5) marca la brecha en cada hoja hermana.
+  ok(cellText(s34, "F5") === NOTA_SEC, "S2 34: F5 = 'Sección pendiente en plataforma'");
+  ok(cellText(s35, "D5") === NOTA_SEC, "S2 35: D5 = 'Sección pendiente en plataforma'");
+  ok(cellText(s36, "F5") === NOTA_SEC, "S2 36: F5 = 'Sección pendiente en plataforma'");
+
+  console.log("\nObjetivos — S1 51 (secciones Riesgos / Oportunidades):");
+  ok(cellText(s51, "A4").length > 0, "S1 51: A4 tiene un objetivo en la sección Riesgos");
+  ok(cellText(s51, "H4").length > 0, "S1 51: H4 (resultados/tendencias) del primer objetivo");
+  let hayOportunidad = false;
+  for (let r = 14; r <= 18; r++) if (cellText(s51, `A${r}`).length > 0) hayOportunidad = true;
+  ok(hayOportunidad, "S1 51: la sección Oportunidades (filas 14-18) tiene al menos un objetivo");
+
   // Pie [DEMO] en las hojas llenadas.
   const conPie = hojas.filter((h) => {
     const ws = wb.getWorksheet(h);
@@ -160,7 +207,7 @@ async function main() {
     }
     return false;
   });
-  ok(conPie.length === 6, `pie [DEMO] en las 6 hojas (encontrado en ${conPie.length})`);
+  ok(conPie.length === 11, `pie [DEMO] en las 11 hojas (encontrado en ${conPie.length})`);
 
   console.log(
     problemas.length === 0

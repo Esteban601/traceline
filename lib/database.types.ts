@@ -368,6 +368,139 @@ export type Database = {
           },
         ]
       }
+      objetivos: {
+        Row: {
+          activo: boolean
+          alineacion_acuerdo_internacional: string | null
+          ambito: string
+          created_at: string
+          descripcion: string | null
+          hito_intermedio: string | null
+          id: string
+          meta: string | null
+          metrica: string | null
+          naturaleza: string
+          nombre: string
+          orden: number
+          parte_entidad: string | null
+          periodo_aplicacion: string | null
+          periodo_base: string | null
+          reporte_id: string
+          tipo: string | null
+          tipo_objetivo: string | null
+        }
+        Insert: {
+          activo?: boolean
+          alineacion_acuerdo_internacional?: string | null
+          ambito: string
+          created_at?: string
+          descripcion?: string | null
+          hito_intermedio?: string | null
+          id?: string
+          meta?: string | null
+          metrica?: string | null
+          naturaleza?: string
+          nombre: string
+          orden?: number
+          parte_entidad?: string | null
+          periodo_aplicacion?: string | null
+          periodo_base?: string | null
+          reporte_id: string
+          tipo?: string | null
+          tipo_objetivo?: string | null
+        }
+        Update: {
+          activo?: boolean
+          alineacion_acuerdo_internacional?: string | null
+          ambito?: string
+          created_at?: string
+          descripcion?: string | null
+          hito_intermedio?: string | null
+          id?: string
+          meta?: string | null
+          metrica?: string | null
+          naturaleza?: string
+          nombre?: string
+          orden?: number
+          parte_entidad?: string | null
+          periodo_aplicacion?: string | null
+          periodo_base?: string | null
+          reporte_id?: string
+          tipo?: string | null
+          tipo_objetivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objetivos_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objetivos_detalle: {
+        Row: {
+          alcances_cubiertos: string | null
+          analisis_tendencias: string | null
+          bruto_neto: string | null
+          created_at: string
+          enfoque_descarbonizacion: string | null
+          gases_cubiertos: string | null
+          id: string
+          metricas_supervision: string | null
+          notas: string | null
+          objetivo_id: string
+          procesos_revision: string | null
+          resultados: string | null
+          revisiones: string | null
+          updated_at: string
+          validacion_tercero: string | null
+        }
+        Insert: {
+          alcances_cubiertos?: string | null
+          analisis_tendencias?: string | null
+          bruto_neto?: string | null
+          created_at?: string
+          enfoque_descarbonizacion?: string | null
+          gases_cubiertos?: string | null
+          id?: string
+          metricas_supervision?: string | null
+          notas?: string | null
+          objetivo_id: string
+          procesos_revision?: string | null
+          resultados?: string | null
+          revisiones?: string | null
+          updated_at?: string
+          validacion_tercero?: string | null
+        }
+        Update: {
+          alcances_cubiertos?: string | null
+          analisis_tendencias?: string | null
+          bruto_neto?: string | null
+          created_at?: string
+          enfoque_descarbonizacion?: string | null
+          gases_cubiertos?: string | null
+          id?: string
+          metricas_supervision?: string | null
+          notas?: string | null
+          objetivo_id?: string
+          procesos_revision?: string | null
+          resultados?: string | null
+          revisiones?: string | null
+          updated_at?: string
+          validacion_tercero?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objetivos_detalle_objetivo_id_fkey"
+            columns: ["objetivo_id"]
+            isOneToOne: true
+            referencedRelation: "objetivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles_usuario: {
         Row: {
           activo: boolean
@@ -405,38 +538,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      plantillas: {
-        Row: {
-          created_at: string
-          creado_por: string | null
-          descripcion: string | null
-          id: string
-          nombre: string
-        }
-        Insert: {
-          created_at?: string
-          creado_por?: string | null
-          descripcion?: string | null
-          id?: string
-          nombre: string
-        }
-        Update: {
-          created_at?: string
-          creado_por?: string | null
-          descripcion?: string | null
-          id?: string
-          nombre?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "plantillas_creado_por_fkey"
-            columns: ["creado_por"]
-            isOneToOne: false
-            referencedRelation: "perfiles_usuario"
             referencedColumns: ["id"]
           },
         ]
@@ -484,6 +585,38 @@ export type Database = {
             columns: ["plantilla_id"]
             isOneToOne: false
             referencedRelation: "plantillas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantillas: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantillas_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
             referencedColumns: ["id"]
           },
         ]
@@ -754,6 +887,10 @@ export type Database = {
       fn_puede_ver_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: boolean
+      }
+      fn_reporte_estado_de_solicitud: {
+        Args: { p_solicitud_id: string }
+        Returns: Database["public"]["Enums"]["estado_reporte"]
       }
       fn_tenant_de_solicitud: {
         Args: { p_solicitud_id: string }
