@@ -25,6 +25,7 @@ export function AdminHeader({ perfil }: { perfil: PerfilActual }) {
     | "cobertura"
     | "registros"
     | "objetivos"
+    | "cuestionarios"
     | "reportes"
     | "plantillas"
     | "usuarios"
@@ -33,9 +34,11 @@ export function AdminHeader({ perfil }: { perfil: PerfilActual }) {
     ? "cobertura"
     : pathname.startsWith("/admin/registros")
       ? "registros"
-      : pathname.startsWith("/admin/objetivos")
-        ? "objetivos"
-        : pathname.startsWith("/admin/reportes")
+      : pathname.startsWith("/admin/cuestionarios")
+        ? "cuestionarios"
+        : pathname.startsWith("/admin/objetivos")
+          ? "objetivos"
+          : pathname.startsWith("/admin/reportes")
           ? "reportes"
           : pathname.startsWith("/admin/plantillas")
             ? "plantillas"
@@ -49,6 +52,7 @@ export function AdminHeader({ perfil }: { perfil: PerfilActual }) {
     { href: "/admin/cobertura", label: "Cobertura", key: "cobertura" },
     { href: "/admin/registros", label: "Clima", key: "registros" },
     { href: "/admin/objetivos", label: "Objetivos", key: "objetivos" },
+    { href: "/admin/cuestionarios", label: "Cuestionarios", key: "cuestionarios" },
     { href: "/admin/reportes", label: "Reportes", key: "reportes" },
     { href: "/admin/plantillas", label: "Plantillas", key: "plantillas" },
     { href: "/admin/usuarios", label: "Usuarios", key: "usuarios" },

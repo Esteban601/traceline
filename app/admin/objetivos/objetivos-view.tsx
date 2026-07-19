@@ -613,6 +613,11 @@ function ObjetivoForm({
               <option value="">—</option>
               <option value="Absoluto">Absoluto</option>
               <option value="De intensidad">De intensidad</option>
+              {/* Preserva-ajeno: un valor libre preexistente no se pierde. */}
+              {c.tipoObjetivo.trim() !== "" &&
+                !["Absoluto", "De intensidad"].includes(c.tipoObjetivo) && (
+                  <option value={c.tipoObjetivo}>{c.tipoObjetivo} (valor previo)</option>
+                )}
             </select>
           </div>
           {campoInput("Métrica utilizada", "metrica", "p. ej. tCO2e absolutas")}

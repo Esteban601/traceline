@@ -5,10 +5,13 @@
 // Forja una sesión de admin con @supabase/ssr (las mismas cookies que pondría el
 // navegador), invoca /admin/cobertura/export-taxonomia y valida:
 //   · HTTP 200 + content-type xlsx
-//   · las 11 hojas llenadas (2 GEI + 4 de registros de clima + 5 de objetivos)
+//   · las 14 hojas llenadas (2 GEI + 4 de registros de clima + 5 de objetivos +
+//     3 de cuestionarios narrativos)
 //   · las REGLAS DURAS: una celda de dato NO validado queda vacía y su fila lleva
 //     la nota de brecha correspondiente; un objetivo se puede seguir a través de
-//     las 4 hojas S2 33-36 y sus secciones vacías marcan 'Sección pendiente'.
+//     las 4 hojas S2 33-36 y sus secciones vacías marcan 'Sección pendiente';
+//     un cuestionario a medias muestra 'Pendiente en plataforma' en las preguntas
+//     sin responder.
 //
 // Requiere el server corriendo (pnpm dev o pnpm start) y Supabase local con el
 // seed aplicado (supabase db reset). Uso:
@@ -115,6 +118,9 @@ async function main() {
     "NIIF S2 34",
     "NIIF S2 35",
     "NIIF S2 36(a)-(d)",
+    "NIIF S2 22(b)(i)",
+    "NIIF S2 22(b)(ii)",
+    "NIIF S2 36(e)(i)-(iv)",
   ];
   console.log("\nHojas presentes:");
   for (const h of hojas) ok(!!wb.getWorksheet(h), `hoja "${h}" existe`);
@@ -199,6 +205,40 @@ async function main() {
   for (let r = 14; r <= 18; r++) if (cellText(s51, `A${r}`).length > 0) hayOportunidad = true;
   ok(hayOportunidad, "S1 51: la sección Oportunidades (filas 14-18) tiene al menos un objetivo");
 
+  // ---------------------------------------------------------------------------
+  // Cuestionarios narrativos (Sprint 4) — 3 hojas: 22(b)(i)/(ii) y 36(e).
+  // ---------------------------------------------------------------------------
+  const c22bi = wb.getWorksheet("NIIF S2 22(b)(i)");
+  const c22bii = wb.getWorksheet("NIIF S2 22(b)(ii)");
+  const c36e = wb.getWorksheet("NIIF S2 36(e)(i)-(iv)");
+  const PEND = "Pendiente en plataforma";
+
+  console.log("\nCuestionarios — S2 22(b)(i) (completo 7/7):");
+  ok(cellText(c22bi, "A3").length > 0, "S2 22(b)(i): A3 tiene la pregunta");
+  ok(cellText(c22bi, "B3").length > 0, "S2 22(b)(i): B3 tiene respuesta");
+  ok(cellText(c22bi, "B9").length > 0, "S2 22(b)(i): B9 (7.ª pregunta) tiene respuesta");
+  let pendBi = false;
+  for (let r = 3; r <= 9; r++) if (cellText(c22bi, `D${r}`) === PEND) pendBi = true;
+  ok(!pendBi, "S2 22(b)(i): sin brechas 'Pendiente en plataforma' (completo)");
+
+  console.log("\nCuestionarios — S2 22(b)(ii) (a medias 3/5, muestra brechas):");
+  ok(cellText(c22bii, "B3").length > 0, "S2 22(b)(ii): B3 tiene respuesta");
+  ok(
+    cellText(c22bii, "D6") === PEND && cellText(c22bii, "D7") === PEND,
+    "S2 22(b)(ii): D6 y D7 (preguntas 4 y 5) = 'Pendiente en plataforma'"
+  );
+  ok(cellText(c22bii, "B6") === "", "S2 22(b)(ii): B6 (pregunta 4 sin responder) VACÍA");
+
+  console.log("\nCuestionarios — S2 36(e) (2 de 5; preguntas verbatim de plantilla):");
+  ok(cellText(c36e, "A3").length > 0, "S2 36(e): A3 conserva la pregunta impresa");
+  ok(cellText(c36e, "B3").length > 0, "S2 36(e): B3 tiene respuesta");
+  ok(
+    cellText(c36e, "D5") === PEND &&
+      cellText(c36e, "D6") === PEND &&
+      cellText(c36e, "D7") === PEND,
+    "S2 36(e): D5-D7 (preguntas 3-5 sin responder) = 'Pendiente en plataforma'"
+  );
+
   // Pie [DEMO] en las hojas llenadas.
   const conPie = hojas.filter((h) => {
     const ws = wb.getWorksheet(h);
@@ -207,7 +247,7 @@ async function main() {
     }
     return false;
   });
-  ok(conPie.length === 11, `pie [DEMO] en las 11 hojas (encontrado en ${conPie.length})`);
+  ok(conPie.length === 14, `pie [DEMO] en las 14 hojas (encontrado en ${conPie.length})`);
 
   console.log(
     problemas.length === 0

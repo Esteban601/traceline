@@ -49,6 +49,38 @@ const TONO_DE = new Map(TIPOS.map((t) => [t.key, t.tono]));
 const LABEL_DE = new Map(TIPOS.map((t) => [t.key, t.label]));
 const EJERCICIOS = [2025, 2024];
 
+// Opciones fijas del horizonte temporal (uniformidad de capturas). El select
+// ofrece solo estas de aquí en adelante; un valor libre preexistente se conserva
+// como opción adicional para no perderlo (patrón "preserva-ajeno").
+const HORIZONTES = [
+  "Corto plazo (1-2 años)",
+  "Mediano plazo (3-5 años)",
+  "Largo plazo (>10 años)",
+];
+
+function SelectHorizonte({
+  value,
+  onChange,
+  id,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  id?: string;
+}) {
+  const ajeno = value.trim() !== "" && !HORIZONTES.includes(value);
+  return (
+    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+      <option value="">—</option>
+      {HORIZONTES.map((h) => (
+        <option key={h} value={h}>
+          {h}
+        </option>
+      ))}
+      {ajeno && <option value={value}>{value} (valor previo)</option>}
+    </select>
+  );
+}
+
 const nf = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 });
 function limpiar(n: string): string {
   return n.replace(/\[DEMO\]\s*/i, "").trim();
@@ -254,13 +286,7 @@ function CrearRegistroForm({
         <label htmlFor="r-horizonte" className={labelCls}>
           Horizonte temporal <span className="font-normal text-muted">· opcional</span>
         </label>
-        <input
-          id="r-horizonte"
-          value={horizonte}
-          onChange={(e) => setHorizonte(e.target.value)}
-          placeholder="Corto / Mediano / Largo plazo"
-          className={inputCls}
-        />
+        <SelectHorizonte id="r-horizonte" value={horizonte} onChange={setHorizonte} />
       </div>
       <div className="flex justify-end gap-2.5 border-t border-line pt-6">
         <button
@@ -505,11 +531,7 @@ function EditarRegistroForm({
       </div>
       <div>
         <label className={labelCls}>Horizonte temporal</label>
-        <input
-          value={horizonte}
-          onChange={(e) => setHorizonte(e.target.value)}
-          className={inputCls}
-        />
+        <SelectHorizonte value={horizonte} onChange={setHorizonte} />
       </div>
       <div className="flex justify-end gap-2.5">
         <button

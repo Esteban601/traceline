@@ -56,7 +56,8 @@ export type AccionEvento =
   | "objetivo_creado"
   | "objetivo_editado"
   | "objetivo_desactivado"
-  | "objetivo_reactivado";
+  | "objetivo_reactivado"
+  | "cuestionario_respondido";
 
 /**
  * Registra un evento de gestión (crear/editar/eliminar solicitud, alta/baja de
@@ -76,7 +77,8 @@ export async function logEvento(
       | "plantillas"
       | "reportes"
       | "registros_clima"
-      | "objetivos";
+      | "objetivos"
+      | "cuestionarios_respuestas";
     entidadId: string | null;
     detalle: Record<string, unknown>;
   }

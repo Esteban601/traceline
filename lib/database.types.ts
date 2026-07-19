@@ -185,6 +185,50 @@ export type Database = {
           },
         ]
       }
+      cuestionarios_respuestas: {
+        Row: {
+          created_at: string
+          hoja: string
+          id: string
+          notas: string | null
+          pregunta_orden: number
+          reporte_id: string
+          respuesta: string | null
+          tipo_dato: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hoja: string
+          id?: string
+          notas?: string | null
+          pregunta_orden: number
+          reporte_id: string
+          respuesta?: string | null
+          tipo_dato?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hoja?: string
+          id?: string
+          notas?: string | null
+          pregunta_orden?: number
+          reporte_id?: string
+          respuesta?: string | null
+          tipo_dato?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuestionarios_respuestas_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       datapoints_taxonomia: {
         Row: {
           activo: boolean

@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { APP_NAME } from "@/lib/app";
+import { CUESTIONARIOS } from "@/lib/cuestionarios";
 
 export const runtime = "nodejs";
 
@@ -428,6 +429,74 @@ function escribirObjetivos(
   return escritas;
 }
 
+// -----------------------------------------------------------------------------
+// Cuestionarios narrativos (Sprint 4) — llenado de 3 hojas (rejilla pregunta/
+// respuesta). Cada hoja: encabezados en fila 2, datos desde la fila 3.
+//   A = pregunta (se escribe solo si la celda está vacía; preserva las preguntas
+//       ya impresas en la plantilla, p. ej. 36(e)).
+//   B = respuesta · C = tipo de dato · D = Notas/Brechas.
+// Pregunta sin respuesta → nota de brecha en Notas (col D). El catálogo de
+// preguntas es fijo y vive en lib/cuestionarios.ts.
+// -----------------------------------------------------------------------------
+const NOTA_CUEST_PENDIENTE = "Pendiente en plataforma";
+const CUEST_FILA_INICIO = 3;
+
+type CuestRow = {
+  reporte_id: string;
+  hoja: string;
+  pregunta_orden: number;
+  respuesta: string | null;
+  tipo_dato: string | null;
+  notas: string | null;
+};
+
+function escribirCuestionarios(
+  wb: ExcelJS.Workbook,
+  respuestas: CuestRow[], // ya acotadas al reporte objetivo
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+): number {
+  let escritas = 0;
+  // Índice respuesta por (hoja, orden).
+  const porClave = new Map<string, CuestRow>();
+  for (const r of respuestas) porClave.set(`${r.hoja}#${r.pregunta_orden}`, r);
+
+  for (const sec of CUESTIONARIOS) {
+    const ws = wb.getWorksheet(sec.hojaExcel);
+    if (!ws) continue;
+
+    let ultimaFila = CUEST_FILA_INICIO - 1;
+    sec.preguntas.forEach((p, i) => {
+      const fila = CUEST_FILA_INICIO + i;
+      // A: pregunta — solo si la plantilla no la trae ya impresa.
+      const celdaA = ws.getCell(`A${fila}`);
+      const aActual = celdaA.value;
+      if (aActual == null || String(aActual).trim() === "") celdaA.value = p.texto;
+
+      const r = porClave.get(`${sec.hoja}#${p.orden}`);
+      const respuesta = r?.respuesta?.trim() || null;
+      const tipoDato = r?.tipo_dato?.trim() || null;
+      const notas = r?.notas?.trim() || null;
+
+      if (respuesta) {
+        ws.getCell(`B${fila}`).value = respuesta;
+        escritas++;
+      }
+      if (tipoDato) ws.getCell(`C${fila}`).value = tipoDato;
+      // Notas/Brechas: la nota libre si la hay; si no hay respuesta, la brecha.
+      const notaCelda = notas ?? (respuesta ? null : NOTA_CUEST_PENDIENTE);
+      if (notaCelda) ws.getCell(`D${fila}`).value = notaCelda;
+
+      ultimaFila = fila;
+    });
+
+    // Marca la hoja para el pie [DEMO] (incondicional, como registros/objetivos).
+    const prev = hojasTocadas.get(sec.hojaExcel) ?? { ws, ultimaFila: 0 };
+    prev.ultimaFila = Math.max(prev.ultimaFila, ultimaFila);
+    hojasTocadas.set(sec.hojaExcel, prev);
+  }
+  return escritas;
+}
+
 function slugify(s: string): string {
   return s
     .normalize("NFD")
@@ -456,6 +525,7 @@ export async function GET() {
     { data: regValores },
     { data: objetivos },
     { data: objDetalle },
+    { data: cuestionarios },
   ] = await Promise.all([
     supabase
       .from("mapeo_export")
@@ -489,6 +559,9 @@ export async function GET() {
       .select(
         "objetivo_id, validacion_tercero, procesos_revision, metricas_supervision, revisiones, resultados, analisis_tendencias, gases_cubiertos, alcances_cubiertos, bruto_neto, enfoque_descarbonizacion, notas"
       ),
+    supabase
+      .from("cuestionarios_respuestas")
+      .select("reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas"),
   ]);
 
   if (mapErr || !mapeo) {
@@ -630,6 +703,13 @@ export async function GET() {
     hojasTocadas
   );
 
+  // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
+  const cuestionariosEscritos = escribirCuestionarios(
+    wb,
+    enReporte((cuestionarios ?? []) as CuestRow[]),
+    hojasTocadas
+  );
+
   // Pie discreto en cada hoja llenada.
   const fechaHoy = fmtFecha.format(new Date());
   const pie = `Generado por ${APP_NAME} — ${fechaHoy} — [DEMO]`;
@@ -664,7 +744,8 @@ export async function GET() {
   console.log(
     `[export-taxonomia] etiquetas=${etiquetas} llenadas=${llenadas} ` +
       `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} ` +
-      `registros=${registrosEscritos} objetivos=${objetivosEscritos} archivo=${filename}`
+      `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
+      `cuestionarios=${cuestionariosEscritos} archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {

@@ -192,11 +192,24 @@ plataforma, vía `exceljs`. Botón **"Generar Excel de taxonomía"** en
   posicional** — el nº de registros es dinámico y se llenan slots secuenciales
   por sección; por eso *no* usan `mapeo_export`. Si hay más registros que slots,
   se escriben los que caben y se anota `+N registros adicionales en plataforma`.
+- **Hojas de objetivos** (`S1 51`, `S2 33/34/35/36(a)-(d)`): escritura posicional;
+  un mismo objetivo climático se sigue por la misma fila en las 4 hojas S2 33-36.
+- **Hojas de cuestionarios** (`S2 22(b)(i)`, `S2 22(b)(ii)`, `S2 36(e)(i)-(iv)`):
+  rejilla pregunta/respuesta. Las **preguntas son fijas de la plantilla** y viven
+  en `lib/cuestionarios.ts` (no en BD): las de `36(e)` son verbatim de la
+  plantilla; las de `22(b)(i)/(ii)` se **derivan 1:1 de los incisos de la norma**
+  NIIF S2 22(b) y quedan **`PENDIENTE-VALIDACIÓN`** hasta confirmación manual. Una
+  pregunta sin responder marca `Pendiente en plataforma` en su columna de notas.
+
+Con esto el export cubre **14 de las 15 hojas** de contenido de la plantilla. La
+hoja restante, **`NIIF S1 46-50`**, queda **condicionada a licenciamiento** (usa
+la taxonomía SASB/ISSB por sector, sujeta a licencia): se documenta como pendiente
+y no se llena en esta fase.
 
 ### Verificación end-to-end (`verify:export`)
 
 Prueba la **ruta HTTP autenticada** (no solo el motor): forja sesión de admin con
-`@supabase/ssr`, invoca el export y valida HTTP 200 + las 6 hojas llenadas + las
+`@supabase/ssr`, invoca el export y valida HTTP 200 + las 14 hojas llenadas + las
 reglas duras. Requiere el server corriendo y el seed aplicado:
 
 ```bash
