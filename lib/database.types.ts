@@ -670,7 +670,7 @@ export type Database = {
           activo: boolean
           created_at: string
           descripcion: string | null
-          horizonte_temporal: string | null
+          horizontes: string[]
           id: string
           nombre: string
           orden: number
@@ -681,7 +681,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           descripcion?: string | null
-          horizonte_temporal?: string | null
+          horizontes?: string[]
           id?: string
           nombre: string
           orden?: number
@@ -692,7 +692,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           descripcion?: string | null
-          horizonte_temporal?: string | null
+          horizontes?: string[]
           id?: string
           nombre?: string
           orden?: number
@@ -712,7 +712,9 @@ export type Database = {
       registros_clima_valores: {
         Row: {
           cantidad_activos: number | null
-          capital_desplegado: number | null
+          capital_financiacion: number | null
+          capital_gasto: number | null
+          capital_inversion: number | null
           capturado_por: string | null
           created_at: string
           ejercicio: number
@@ -723,7 +725,9 @@ export type Database = {
         }
         Insert: {
           cantidad_activos?: number | null
-          capital_desplegado?: number | null
+          capital_financiacion?: number | null
+          capital_gasto?: number | null
+          capital_inversion?: number | null
           capturado_por?: string | null
           created_at?: string
           ejercicio: number
@@ -734,7 +738,9 @@ export type Database = {
         }
         Update: {
           cantidad_activos?: number | null
-          capital_desplegado?: number | null
+          capital_financiacion?: number | null
+          capital_gasto?: number | null
+          capital_inversion?: number | null
           capturado_por?: string | null
           created_at?: string
           ejercicio?: number

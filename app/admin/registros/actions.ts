@@ -15,10 +15,27 @@ export type ValorState = { ok: boolean; error?: string | null; mensaje?: string 
 export type ActivoRegistroState = { ok: boolean; error?: string | null; mensaje?: string | null };
 
 const TIPOS = ["riesgo_fisico", "riesgo_transicion", "oportunidad"] as const;
+const HORIZONTES = ["Corto plazo", "Mediano plazo", "Largo plazo"] as const;
 
 function texto(fd: FormData, k: string): string | null {
   const v = String(fd.get(k) ?? "").trim();
   return v === "" ? null : v;
+}
+
+/**
+ * Horizontes temporales (multi-enum). Acepta las opciones canónicas y conserva
+ * valores libres preexistentes que el cliente reenvíe (preserva-ajeno). Devuelve
+ * el array deduplicado, en el orden canónico primero.
+ */
+function horizontes(fd: FormData): string[] {
+  const crudos = fd
+    .getAll("horizontes")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+  const set = new Set(crudos);
+  const canon = HORIZONTES.filter((h) => set.has(h));
+  const ajenos = [...set].filter((h) => !(HORIZONTES as readonly string[]).includes(h));
+  return [...canon, ...ajenos];
 }
 function numero(fd: FormData, k: string): number | null {
   const raw = String(fd.get(k) ?? "").trim().replace(/,/g, "");
@@ -79,7 +96,7 @@ export async function crearRegistro(
       tipo,
       nombre,
       descripcion: texto(fd, "descripcion"),
-      horizonte_temporal: texto(fd, "horizonte_temporal"),
+      horizontes: horizontes(fd),
       orden,
     })
     .select("id")
@@ -129,7 +146,7 @@ export async function editarRegistro(
     .update({
       nombre,
       descripcion: texto(fd, "descripcion"),
-      horizonte_temporal: texto(fd, "horizonte_temporal"),
+      horizontes: horizontes(fd),
     })
     .eq("id", registroId);
   if (error) return { ok: false, error: "No se pudo guardar el registro." };
@@ -212,9 +229,18 @@ export async function capturarValores(
 
   const cantidad = numero(fd, "cantidad_activos");
   const porcentaje = numero(fd, "porcentaje");
-  const capital = numero(fd, "capital_desplegado");
+  const gasto = numero(fd, "capital_gasto");
+  const financiacion = numero(fd, "capital_financiacion");
+  const inversion = numero(fd, "capital_inversion");
   const notas = texto(fd, "notas");
-  if (cantidad == null && porcentaje == null && capital == null && !notas) {
+  if (
+    cantidad == null &&
+    porcentaje == null &&
+    gasto == null &&
+    financiacion == null &&
+    inversion == null &&
+    !notas
+  ) {
     return { ok: false, error: "Captura al menos un valor o una nota." };
   }
 
@@ -231,7 +257,9 @@ export async function capturarValores(
     ejercicio,
     cantidad_activos: cantidad,
     porcentaje,
-    capital_desplegado: capital,
+    capital_gasto: gasto,
+    capital_financiacion: financiacion,
+    capital_inversion: inversion,
     notas,
     capturado_por: perfil.id,
   });
@@ -243,7 +271,7 @@ export async function capturarValores(
     accion: "registro_valores_capturados",
     entidad: "registros_clima",
     entidadId: registroId,
-    detalle: { ejercicio, cantidad, porcentaje, capital },
+    detalle: { ejercicio, cantidad, porcentaje, gasto, financiacion, inversion },
   });
 
   revalidatePath("/admin/registros");

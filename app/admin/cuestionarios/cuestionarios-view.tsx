@@ -268,6 +268,13 @@ function PreguntaFieldset({
           onChange={(v) => set(rKey, v)}
         />
       )}
+      {p.control === "enum_single" && (
+        <ControlEnumSingle
+          opciones={p.opciones ?? []}
+          value={valor}
+          onChange={(v) => set(rKey, v)}
+        />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {p.tipoDatoLabel ? (
@@ -332,6 +339,42 @@ function ControlBooleano({
             className={cn(
               "rounded-lg px-5 py-2 text-sm font-medium transition duration-150",
               activo ? "bg-teal text-crema shadow-soft" : "text-muted hover:text-ink"
+            )}
+          >
+            {op}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Selección única (enum_single). Clic en la opción activa la limpia.
+function ControlEnumSingle({
+  opciones,
+  value,
+  onChange,
+}: {
+  opciones: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div role="radiogroup" className="flex flex-wrap gap-2">
+      {opciones.map((op) => {
+        const activo = value === op;
+        return (
+          <button
+            key={op}
+            type="button"
+            role="radio"
+            aria-checked={activo}
+            onClick={() => onChange(activo ? "" : op)}
+            className={cn(
+              "rounded-xl border px-3.5 py-2 text-sm font-medium transition duration-150",
+              activo
+                ? "border-teal bg-teal text-crema shadow-soft"
+                : "border-line bg-crema/40 text-muted hover:text-ink"
             )}
           >
             {op}

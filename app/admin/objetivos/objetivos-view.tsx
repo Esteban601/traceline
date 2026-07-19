@@ -20,6 +20,15 @@ import {
   cambiarActivoObjetivo,
   type ObjetivoState,
 } from "./actions";
+import {
+  tiposDe,
+  TIPOS_OBJETIVO,
+  GASES,
+  ALCANCES,
+  BRUTO_NETO,
+  serializarMulti,
+  parsearMulti,
+} from "@/lib/objetivos-opciones";
 
 export type FichaObjetivo = {
   validacionTercero: string | null;
@@ -425,6 +434,69 @@ function desdeObjetivo(o: ObjetivoFila | undefined, reportes: ReporteOpcion[]): 
   };
 }
 
+// Toggle Verdadero / Falso (booleanos oficiales S2 34 / S2 36(d)).
+function ToggleVF({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Verdadero o Falso"
+      className="mt-1.5 inline-flex rounded-xl border border-line bg-crema/40 p-0.5"
+    >
+      {["Verdadero", "Falso"].map((op) => {
+        const activo = value === op;
+        return (
+          <button
+            key={op}
+            type="button"
+            role="radio"
+            aria-checked={activo}
+            onClick={() => onChange(activo ? "" : op)}
+            className={cn(
+              "rounded-lg px-5 py-2 text-sm font-medium transition duration-150",
+              activo ? "bg-teal text-crema shadow-soft" : "text-muted hover:text-ink"
+            )}
+          >
+            {op}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Multi-enum (checkboxes) serializado en el orden canónico.
+function MultiCheck({
+  opciones,
+  value,
+  onChange,
+}: {
+  opciones: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const sel = parsearMulti(value);
+  const toggle = (op: string) => {
+    const has = sel.includes(op);
+    const next = opciones.filter((o) => (o === op ? !has : sel.includes(o)));
+    onChange(serializarMulti(next, opciones));
+  };
+  return (
+    <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+      {opciones.map((op) => (
+        <label key={op} className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={sel.includes(op)}
+            onChange={() => toggle(op)}
+            className="size-4 rounded border-line text-teal focus:ring-2 focus:ring-teal/40"
+          />
+          {op}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function ObjetivoForm({
   reportes,
   objetivo,
@@ -537,7 +609,16 @@ function ObjetivoForm({
             <label className={labelCls}>Ámbito</label>
             <select
               value={c.ambito}
-              onChange={(e) => set("ambito", e.target.value)}
+              onChange={(e) => {
+                const nuevo = e.target.value;
+                // Al cambiar de ámbito, el `tipo` puede dejar de ser válido
+                // (sostenibilidad no admite el de emisiones GEI): se limpia.
+                setC((prev) => ({
+                  ...prev,
+                  ambito: nuevo,
+                  tipo: tiposDe(nuevo).includes(prev.tipo) ? prev.tipo : "",
+                }));
+              }}
               className={inputCls}
             >
               <option value="climatico">Climático (S2)</option>
@@ -597,8 +678,15 @@ function ObjetivoForm({
               className={inputCls}
             >
               <option value="">—</option>
-              <option value="Cuantitativo">Cuantitativo</option>
-              <option value="Cualitativo">Cualitativo</option>
+              {tiposDe(c.ambito).map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+              {/* Preserva-ajeno: un valor previo no listado no se pierde. */}
+              {c.tipo.trim() !== "" && !tiposDe(c.ambito).includes(c.tipo) && (
+                <option value={c.tipo}>{c.tipo} (valor previo)</option>
+              )}
             </select>
           </div>
           <div>
@@ -611,13 +699,15 @@ function ObjetivoForm({
               className={inputCls}
             >
               <option value="">—</option>
-              <option value="Absoluto">Absoluto</option>
-              <option value="De intensidad">De intensidad</option>
-              {/* Preserva-ajeno: un valor libre preexistente no se pierde. */}
-              {c.tipoObjetivo.trim() !== "" &&
-                !["Absoluto", "De intensidad"].includes(c.tipoObjetivo) && (
-                  <option value={c.tipoObjetivo}>{c.tipoObjetivo} (valor previo)</option>
-                )}
+              {TIPOS_OBJETIVO.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+              {/* Preserva-ajeno: un valor previo no listado no se pierde. */}
+              {c.tipoObjetivo.trim() !== "" && !TIPOS_OBJETIVO.includes(c.tipoObjetivo) && (
+                <option value={c.tipoObjetivo}>{c.tipoObjetivo} (valor previo)</option>
+              )}
             </select>
           </div>
           {campoInput("Métrica utilizada", "metrica", "p. ej. tCO2e absolutas")}
@@ -636,10 +726,12 @@ function ObjetivoForm({
 
       {/* Supervisión (S2 34) ---------------------------------------------- */}
       <Seccion titulo="Validación, supervisión y revisión" norma="S2 34">
-        {campoArea(
-          "Validación del objetivo y su metodología por un tercero",
-          "validacionTercero"
-        )}
+        <div>
+          <span className={labelCls}>
+            ¿Validado por un tercero? <span className="font-normal text-muted">· opcional</span>
+          </span>
+          <ToggleVF value={c.validacionTercero} onChange={(v) => set("validacionTercero", v)} />
+        </div>
         {campoArea("Procesos de la entidad para revisar el objetivo", "procesosRevision")}
         {campoArea(
           "Métricas para supervisar el progreso",
@@ -656,8 +748,19 @@ function ObjetivoForm({
 
       {/* Cobertura (S2 36) ------------------------------------------------ */}
       <Seccion titulo="Cobertura del objetivo" norma="S2 36 (a)-(d)">
-        {campoInput("Gases de efecto invernadero cubiertos", "gasesCubiertos", "p. ej. CO2, CH4, N2O")}
-        {campoInput("Alcances cubiertos (1 / 2 / 3)", "alcancesCubiertos", "p. ej. Alcance 1 y 2")}
+        <div>
+          <span className={labelCls}>
+            Gases de efecto invernadero cubiertos{" "}
+            <span className="font-normal text-muted">· opcional</span>
+          </span>
+          <MultiCheck opciones={GASES} value={c.gasesCubiertos} onChange={(v) => set("gasesCubiertos", v)} />
+        </div>
+        <div>
+          <span className={labelCls}>
+            Alcances cubiertos <span className="font-normal text-muted">· opcional</span>
+          </span>
+          <MultiCheck opciones={ALCANCES} value={c.alcancesCubiertos} onChange={(v) => set("alcancesCubiertos", v)} />
+        </div>
         <div>
           <label className={labelCls}>
             Emisiones brutas o netas{" "}
@@ -669,14 +772,26 @@ function ObjetivoForm({
             className={inputCls}
           >
             <option value="">—</option>
-            <option value="Emisiones brutas">Emisiones brutas</option>
-            <option value="Emisiones netas">Emisiones netas</option>
+            {BRUTO_NETO.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+            {c.brutoNeto.trim() !== "" && !BRUTO_NETO.includes(c.brutoNeto) && (
+              <option value={c.brutoNeto}>{c.brutoNeto} (valor previo)</option>
+            )}
           </select>
         </div>
-        {campoArea(
-          "Enfoque de descarbonización sectorial",
-          "enfoqueDescarbonizacion"
-        )}
+        <div>
+          <span className={labelCls}>
+            ¿Enfoque de descarbonización sectorial?{" "}
+            <span className="font-normal text-muted">· opcional</span>
+          </span>
+          <ToggleVF
+            value={c.enfoqueDescarbonizacion}
+            onChange={(v) => set("enfoqueDescarbonizacion", v)}
+          />
+        </div>
         {campoArea("Notas / Brechas", "notas")}
       </Seccion>
 

@@ -27,7 +27,7 @@
 
 export type HojaCuestionario = "S2 22(b)(i)" | "S2 22(b)(ii)" | "S2 36(e)";
 
-export type ControlCuestionario = "texto" | "booleano" | "enum_multi";
+export type ControlCuestionario = "texto" | "booleano" | "enum_multi" | "enum_single";
 
 export const BOOLEANO_OPCIONES = ["Verdadero", "Falso"] as const;
 export const SEPARADOR_ENUM = "; ";
@@ -138,12 +138,19 @@ const S2_36E: PreguntaCuestionario[] = [
     texto: "En qué medida, y de qué manera, el logro de cualquier objetivo de emisiones netas de gases de efecto invernadero se basa en el uso de créditos de carbono" },
   { orden: 2, inciso: "S2 36(e)(ii)", control: "texto", pendienteValidacion: false,
     texto: "Régimen o regímenes de terceros que verificarán o certificarán los créditos de carbono" },
-  { orden: 3, inciso: "S2 36(e)(iii)", control: "texto", pendienteValidacion: false,
+  { orden: 3, inciso: "S2 36(e)(iii)", control: "enum_single", tipoDatoLabel: LABEL_ENUM,
+    opciones: [
+      "Eliminación de carbono basada en la naturaleza",
+      "Eliminación de carbono basada en la tecnología",
+    ],
+    pendienteValidacion: false,
     texto: "El crédito de carbono subyacente a la compensación se basará en la naturaleza o en la eliminación tecnológica de carbono" },
-  { orden: 4, inciso: "S2 36(e)(iii)", control: "texto", pendienteValidacion: false,
+  { orden: 4, inciso: "S2 36(e)(iii)", control: "enum_single", tipoDatoLabel: LABEL_ENUM,
+    opciones: ["Reducción de carbono", "Eliminación de carbono"],
+    pendienteValidacion: false,
     texto: "El crédito de carbono subyacente se compensa mediante la reducción o eliminación de carbono" },
   { orden: 5, inciso: "S2 36(e)(iv)", control: "texto", pendienteValidacion: false,
-    texto: "Información sobre cualquier otro factor necesario para que los usuarios de informes financieros con propósito general comprendan la credibilidad e integridad de los créditos de carbono que la entidad prevé utilizar" },
+    texto: "Información sobre cualquier otro factor necesario para que los usuarios de informes financieros con propósito general comprendan la credibilidad e integridad de los créditos de carbono que la entidad prevé utilizar (por ejemplo, supuestos relativos a la permanencia de la compensación de carbono)" },
 ];
 
 export const CUESTIONARIOS: SeccionCuestionario[] = [

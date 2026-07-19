@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
+import { tiposDe, TIPOS_OBJETIVO } from "@/lib/objetivos-opciones";
 
 export type ObjetivoState = {
   ok: boolean;
@@ -72,6 +73,16 @@ function base(fd: FormData) {
   };
 }
 
+/** Valida los enums oficiales de la definición: `tipo` (condicionado por ámbito)
+ *  y `tipo_objetivo`. Devuelve el mensaje de error o null si son válidos. */
+function validarTipos(ambito: string, b: ReturnType<typeof base>): string | null {
+  if (b.tipo && !tiposDe(ambito).includes(b.tipo))
+    return "El tipo no es válido para el ámbito seleccionado.";
+  if (b.tipo_objetivo && !TIPOS_OBJETIVO.includes(b.tipo_objetivo))
+    return "El tipo de objetivo no es válido.";
+  return null;
+}
+
 // -----------------------------------------------------------------------------
 // Crear objetivo (definición + ficha en una sola alta)
 // -----------------------------------------------------------------------------
@@ -94,6 +105,8 @@ export async function crearObjetivo(
   if (!naturaleza || !NATURALEZAS.includes(naturaleza as (typeof NATURALEZAS)[number]))
     return { ok: false, error: "Naturaleza no válida." };
   if (!b.nombre) return { ok: false, error: "El nombre es obligatorio." };
+  const errTipo = validarTipos(ambito, b);
+  if (errTipo) return { ok: false, error: errTipo };
 
   const db = await createClient();
 
@@ -161,6 +174,8 @@ export async function editarObjetivo(
   if (!naturaleza || !NATURALEZAS.includes(naturaleza as (typeof NATURALEZAS)[number]))
     return { ok: false, error: "Naturaleza no válida." };
   if (!b.nombre) return { ok: false, error: "El nombre es obligatorio." };
+  const errTipo = validarTipos(ambito, b);
+  if (errTipo) return { ok: false, error: errTipo };
 
   const db = await createClient();
   const { data: obj } = await db

@@ -27,12 +27,12 @@ export default async function RegistrosPage() {
       .order("ejercicio", { ascending: false }),
     db
       .from("registros_clima")
-      .select("id, reporte_id, tipo, nombre, descripcion, horizonte_temporal, orden, activo")
+      .select("id, reporte_id, tipo, nombre, descripcion, horizontes, orden, activo")
       .order("orden", { ascending: true }),
     db
       .from("registros_clima_valores")
       .select(
-        "id, registro_id, ejercicio, cantidad_activos, porcentaje, capital_desplegado, notas, created_at, capturado:perfiles_usuario!registros_clima_valores_capturado_por_fkey(nombre)"
+        "id, registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, notas, created_at, capturado:perfiles_usuario!registros_clima_valores_capturado_por_fkey(nombre)"
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -43,7 +43,9 @@ export default async function RegistrosPage() {
     ejercicio: number;
     cantidad_activos: number | null;
     porcentaje: number | null;
-    capital_desplegado: number | null;
+    capital_gasto: number | null;
+    capital_financiacion: number | null;
+    capital_inversion: number | null;
     notas: string | null;
     created_at: string;
     capturado: { nombre: string } | null;
@@ -55,7 +57,9 @@ export default async function RegistrosPage() {
       ejercicio: v.ejercicio,
       cantidad: v.cantidad_activos,
       pct: v.porcentaje,
-      capital: v.capital_desplegado,
+      gasto: v.capital_gasto,
+      financiacion: v.capital_financiacion,
+      inversion: v.capital_inversion,
       notas: v.notas,
       fecha: v.created_at,
       capturadoPor: limpiar(v.capturado?.nombre),
@@ -70,7 +74,7 @@ export default async function RegistrosPage() {
       tipo: string;
       nombre: string;
       descripcion: string | null;
-      horizonte_temporal: string | null;
+      horizontes: string[] | null;
       orden: number;
       activo: boolean;
     }[]
@@ -80,7 +84,7 @@ export default async function RegistrosPage() {
     tipo: r.tipo,
     nombre: r.nombre,
     descripcion: r.descripcion,
-    horizonte: r.horizonte_temporal,
+    horizontes: r.horizontes ?? [],
     orden: r.orden,
     activo: r.activo,
     valores: valoresPorReg.get(r.id) ?? [],

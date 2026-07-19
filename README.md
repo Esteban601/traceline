@@ -192,19 +192,36 @@ plataforma, vía `exceljs`. Botón **"Generar Excel de taxonomía"** en
   posicional** — el nº de registros es dinámico y se llenan slots secuenciales
   por sección; por eso *no* usan `mapeo_export`. Si hay más registros que slots,
   se escriben los que caben y se anota `+N registros adicionales en plataforma`.
+  **Fidelidad v2:** el horizonte temporal es **multi-enum** (se listan los plazos
+  marcados) y el **despliegue de capital** se desglosa en 3 sub-filas por año
+  (`Cantidad de gasto de capital` / `de financiación` / `de inversión`); cada
+  registro ocupa un bloque de 3 filas en `29(b)/30/29(d)`.
 - **Hojas de objetivos** (`S1 51`, `S2 33/34/35/36(a)-(d)`): escritura posicional;
   un mismo objetivo climático se sigue por la misma fila en las 4 hojas S2 33-36.
+  **Fidelidad v2:** tipos oficiales — `tipo` es enum condicionado por ámbito
+  (climático 3 opciones, sostenibilidad 2), `tipo_objetivo` ∈ {Cuantitativo,
+  Absoluto, De intensidad}; gases (7) y alcances (3) son multi-enum; validación por
+  tercero y enfoque de descarbonización son booleanos (`Verdadero`/`Falso`). Las
+  opciones canónicas viven en `lib/objetivos-opciones.ts` (validadas en UI y en la
+  server action).
 - **Hojas de cuestionarios** (`S2 22(b)(i)`, `S2 22(b)(ii)`, `S2 36(e)(i)-(iv)`):
-  rejilla pregunta/respuesta. Las **preguntas son fijas de la plantilla** y viven
-  en `lib/cuestionarios.ts` (no en BD): las de `36(e)` son verbatim de la
-  plantilla; las de `22(b)(i)/(ii)` se **derivan 1:1 de los incisos de la norma**
-  NIIF S2 22(b) y quedan **`PENDIENTE-VALIDACIÓN`** hasta confirmación manual. Una
-  pregunta sin responder marca `Pendiente en plataforma` en su columna de notas.
+  rejilla pregunta/respuesta. Las **preguntas son fijas** de la estructura oficial
+  y viven en `lib/cuestionarios.ts` (no en BD), **validadas contra la fuente**. El
+  control de captura por pregunta (texto / booleano / enum único / enum múltiple)
+  define la serialización de la respuesta. Una pregunta sin responder marca
+  `Pendiente en plataforma` en su columna de notas.
 
-Con esto el export cubre **14 de las 15 hojas** de contenido de la plantilla. La
+Con esto el export cubre **14 de las 15 hojas** de llenado de la plantilla. La
 hoja restante, **`NIIF S1 46-50`**, queda **condicionada a licenciamiento** (usa
-la taxonomía SASB/ISSB por sector, sujeta a licencia): se documenta como pendiente
-y no se llena en esta fase.
+la taxonomía SASB/ISSB por sector, sujeta a licencia): no se llena en esta fase.
+Su especificación (métricas por norma NIIF/SASB/CDSB: nombre, descripción, fuente,
+tipo de métrica, validación por tercero, método de cálculo, datos, limitaciones y
+supuestos) queda documentada aquí para el sprint futuro que la habilite.
+
+**Hoja no construida — `NIIF S2 29(a)(iv)`:** está en el índice de la taxonomía
+(hoja 'Fondo I') pero la plantilla base **no incluye una hoja de llenado** para
+ella. Es una **decisión de negocio pendiente**: no se construye hasta definir su
+estructura de captura; se deja registrada aquí para no perder la traza.
 
 ### Verificación end-to-end (`verify:export`)
 

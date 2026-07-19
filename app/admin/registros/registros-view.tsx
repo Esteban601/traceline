@@ -22,7 +22,9 @@ export type ValorFila = {
   ejercicio: number;
   cantidad: number | null;
   pct: number | null;
-  capital: number | null;
+  gasto: number | null;
+  financiacion: number | null;
+  inversion: number | null;
   notas: string | null;
   fecha: string;
   capturadoPor: string | null;
@@ -33,7 +35,7 @@ export type RegistroFila = {
   tipo: string;
   nombre: string;
   descripcion: string | null;
-  horizonte: string | null;
+  horizontes: string[];
   orden: number;
   activo: boolean;
   valores: ValorFila[]; // historial desc por fecha
@@ -49,35 +51,45 @@ const TONO_DE = new Map(TIPOS.map((t) => [t.key, t.tono]));
 const LABEL_DE = new Map(TIPOS.map((t) => [t.key, t.label]));
 const EJERCICIOS = [2025, 2024];
 
-// Opciones fijas del horizonte temporal (uniformidad de capturas). El select
-// ofrece solo estas de aquí en adelante; un valor libre preexistente se conserva
-// como opción adicional para no perderlo (patrón "preserva-ajeno").
-const HORIZONTES = [
-  "Corto plazo (1-2 años)",
-  "Mediano plazo (3-5 años)",
-  "Largo plazo (>10 años)",
-];
+// Horizonte temporal ahora es MULTI-ENUM (v2): un registro puede cubrir varios
+// plazos. Checkboxes con las opciones canónicas; un valor libre preexistente se
+// conserva como opción adicional (preserva-ajeno).
+const HORIZONTES = ["Corto plazo", "Mediano plazo", "Largo plazo"];
 
-function SelectHorizonte({
+function opcionesHorizonte(seleccionados: string[]): string[] {
+  const ajenos = seleccionados.filter((h) => !HORIZONTES.includes(h));
+  return [...HORIZONTES, ...ajenos];
+}
+
+function CheckboxHorizontes({
   value,
   onChange,
-  id,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  id?: string;
+  value: string[];
+  onChange: (v: string[]) => void;
 }) {
-  const ajeno = value.trim() !== "" && !HORIZONTES.includes(value);
+  const toggle = (op: string) => {
+    const has = value.includes(op);
+    const opciones = opcionesHorizonte(value);
+    onChange(opciones.filter((o) => (o === op ? !has : value.includes(o))));
+  };
   return (
-    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-      <option value="">—</option>
-      {HORIZONTES.map((h) => (
-        <option key={h} value={h}>
-          {h}
-        </option>
+    <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-2">
+      {opcionesHorizonte(value).map((op) => (
+        <label key={op} className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={value.includes(op)}
+            onChange={() => toggle(op)}
+            className="size-4 rounded border-line text-teal focus:ring-2 focus:ring-teal/40"
+          />
+          {op}
+          {!HORIZONTES.includes(op) && (
+            <span className="text-xs text-muted">(valor previo)</span>
+          )}
+        </label>
       ))}
-      {ajeno && <option value={value}>{value} (valor previo)</option>}
-    </select>
+    </div>
   );
 }
 
@@ -182,14 +194,14 @@ function CrearRegistroForm({
   const [tipo, setTipo] = useState("riesgo_fisico");
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [horizonte, setHorizonte] = useState("");
+  const [horizontes, setHorizontes] = useState<string[]>([]);
 
   useEffect(() => {
     if (state.ok) {
       toast.success(state.mensaje ?? "Registro creado.");
       setNombre("");
       setDescripcion("");
-      setHorizonte("");
+      setHorizontes([]);
       onDone();
     } else if (state.error) {
       toast.error(state.error);
@@ -206,7 +218,7 @@ function CrearRegistroForm({
     fd.set("tipo", tipo);
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
-    fd.set("horizonte_temporal", horizonte);
+    horizontes.forEach((h) => fd.append("horizontes", h));
     startTransition(() => dispatch(fd));
   };
 
@@ -283,10 +295,10 @@ function CrearRegistroForm({
         />
       </div>
       <div>
-        <label htmlFor="r-horizonte" className={labelCls}>
-          Horizonte temporal <span className="font-normal text-muted">· opcional</span>
-        </label>
-        <SelectHorizonte id="r-horizonte" value={horizonte} onChange={setHorizonte} />
+        <span className={labelCls}>
+          Horizontes temporales <span className="font-normal text-muted">· opcional</span>
+        </span>
+        <CheckboxHorizontes value={horizontes} onChange={setHorizontes} />
       </div>
       <div className="flex justify-end gap-2.5 border-t border-line pt-6">
         <button
@@ -349,8 +361,10 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
           {registro.descripcion && (
             <p className="mt-1 max-w-2xl text-sm text-muted">{registro.descripcion}</p>
           )}
-          {registro.horizonte && (
-            <p className="mt-1 text-xs text-muted">Horizonte: {registro.horizonte}</p>
+          {registro.horizontes.length > 0 && (
+            <p className="mt-1 text-xs text-muted">
+              Horizontes: {registro.horizontes.join(" · ")}
+            </p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -431,10 +445,25 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
                         {v.pct != null ? `${nf.format(v.pct)} %` : "—"}
                       </dd>
                     </div>
+                    <div className="pt-0.5 text-[11px] uppercase tracking-wide text-muted/80">
+                      Despliegue de capital
+                    </div>
                     <div className="flex justify-between gap-2">
-                      <dt>Capital desplegado</dt>
+                      <dt>· Gasto</dt>
                       <dd className="tabular-nums text-ink">
-                        {v.capital != null ? nf.format(v.capital) : "—"}
+                        {v.gasto != null ? nf.format(v.gasto) : "—"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt>· Financiación</dt>
+                      <dd className="tabular-nums text-ink">
+                        {v.financiacion != null ? nf.format(v.financiacion) : "—"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt>· Inversión</dt>
+                      <dd className="tabular-nums text-ink">
+                        {v.inversion != null ? nf.format(v.inversion) : "—"}
                       </dd>
                     </div>
                     {v.notas && <p className="pt-1 text-ink/80">{v.notas}</p>}
@@ -486,7 +515,7 @@ function EditarRegistroForm({
   const [state, dispatch, pending] = useActionState(editarRegistro, initialReg);
   const [nombre, setNombre] = useState(registro.nombre);
   const [descripcion, setDescripcion] = useState(registro.descripcion ?? "");
-  const [horizonte, setHorizonte] = useState(registro.horizonte ?? "");
+  const [horizontes, setHorizontes] = useState<string[]>(registro.horizontes);
 
   useEffect(() => {
     if (state.ok) {
@@ -505,7 +534,7 @@ function EditarRegistroForm({
     fd.set("registro_id", registro.id);
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
-    fd.set("horizonte_temporal", horizonte);
+    horizontes.forEach((h) => fd.append("horizontes", h));
     startTransition(() => dispatch(fd));
   };
 
@@ -530,8 +559,8 @@ function EditarRegistroForm({
         />
       </div>
       <div>
-        <label className={labelCls}>Horizonte temporal</label>
-        <SelectHorizonte value={horizonte} onChange={setHorizonte} />
+        <span className={labelCls}>Horizontes temporales</span>
+        <CheckboxHorizontes value={horizontes} onChange={setHorizontes} />
       </div>
       <div className="flex justify-end gap-2.5">
         <button
@@ -564,7 +593,9 @@ function CapturarValoresForm({
   const [ejercicio, setEjercicio] = useState(String(EJERCICIOS[0]));
   const [cantidad, setCantidad] = useState("");
   const [pct, setPct] = useState("");
-  const [capital, setCapital] = useState("");
+  const [gasto, setGasto] = useState("");
+  const [financiacion, setFinanciacion] = useState("");
+  const [inversion, setInversion] = useState("");
   const [notas, setNotas] = useState("");
 
   useEffect(() => {
@@ -572,7 +603,9 @@ function CapturarValoresForm({
       toast.success(state.mensaje ?? "Valores registrados.");
       setCantidad("");
       setPct("");
-      setCapital("");
+      setGasto("");
+      setFinanciacion("");
+      setInversion("");
       setNotas("");
       onDone();
     } else if (state.error) {
@@ -583,7 +616,14 @@ function CapturarValoresForm({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cantidad.trim() && !pct.trim() && !capital.trim() && !notas.trim()) {
+    if (
+      !cantidad.trim() &&
+      !pct.trim() &&
+      !gasto.trim() &&
+      !financiacion.trim() &&
+      !inversion.trim() &&
+      !notas.trim()
+    ) {
       return toast.error("Captura al menos un valor o una nota.");
     }
     const fd = new FormData();
@@ -591,7 +631,9 @@ function CapturarValoresForm({
     fd.set("ejercicio", ejercicio);
     fd.set("cantidad_activos", cantidad);
     fd.set("porcentaje", pct);
-    fd.set("capital_desplegado", capital);
+    fd.set("capital_gasto", gasto);
+    fd.set("capital_financiacion", financiacion);
+    fd.set("capital_inversion", inversion);
     fd.set("notas", notas);
     startTransition(() => dispatch(fd));
   };
@@ -637,17 +679,44 @@ function CapturarValoresForm({
             className={inputCls}
           />
         </div>
-        <div>
-          <label className={labelCls}>Capital desplegado</label>
-          <input
-            inputMode="decimal"
-            value={capital}
-            onChange={(e) => setCapital(e.target.value)}
-            placeholder="0"
-            className={inputCls}
-          />
-        </div>
       </div>
+      <fieldset className="rounded-xl border border-line bg-crema/20 p-3.5">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+          Despliegue de capital
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className={labelCls}>Gasto de capital</label>
+            <input
+              inputMode="decimal"
+              value={gasto}
+              onChange={(e) => setGasto(e.target.value)}
+              placeholder="0"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Financiación</label>
+            <input
+              inputMode="decimal"
+              value={financiacion}
+              onChange={(e) => setFinanciacion(e.target.value)}
+              placeholder="0"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Inversión</label>
+            <input
+              inputMode="decimal"
+              value={inversion}
+              onChange={(e) => setInversion(e.target.value)}
+              placeholder="0"
+              className={inputCls}
+            />
+          </div>
+        </div>
+      </fieldset>
       <div>
         <label className={labelCls}>Notas <span className="font-normal text-muted">· opcional</span></label>
         <input value={notas} onChange={(e) => setNotas(e.target.value)} className={inputCls} />

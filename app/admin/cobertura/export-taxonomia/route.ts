@@ -45,7 +45,7 @@ type RegRow = {
   tipo: string;
   nombre: string;
   descripcion: string | null;
-  horizonte_temporal: string | null;
+  horizontes: string[] | null;
   orden: number;
 };
 type RegValRow = {
@@ -53,7 +53,9 @@ type RegValRow = {
   ejercicio: number;
   cantidad_activos: number | null;
   porcentaje: number | null;
-  capital_desplegado: number | null;
+  capital_gasto: number | null;
+  capital_financiacion: number | null;
+  capital_inversion: number | null;
   created_at: string;
 };
 
@@ -68,7 +70,9 @@ const TIPO_LABEL: Record<string, string> = {
 // (mapeo fijo celda↔dato en mapeo_export), aquí el nº de registros es dinámico y
 // se escriben secuencialmente en los slots de cada sección; por eso NO viven en
 // mapeo_export. Ver justificación en el commit.
-type GrupoAnio = { cantidad: string; pct: string; capital: string };
+// El "Despliegue de capital" se desglosa en 3 sub-filas (estructura oficial):
+// una columna de ETIQUETA (capLabel) y una de VALOR (capValue) por año.
+type GrupoAnio = { cantidad: string; pct: string; capLabel: string; capValue: string };
 type RegSeccion = {
   hoja: string;
   tipos: string[];
@@ -85,8 +89,19 @@ type RegSeccion = {
   };
 };
 
-const G2025: GrupoAnio = { cantidad: "C", pct: "D", capital: "E" };
-const G2024: GrupoAnio = { cantidad: "H", pct: "I", capital: "J" };
+const G2025: GrupoAnio = { cantidad: "C", pct: "D", capLabel: "E", capValue: "F" };
+const G2024: GrupoAnio = { cantidad: "H", pct: "I", capLabel: "J", capValue: "K" };
+
+// Sub-filas del despliegue de capital, en orden (etiqueta oficial + campo).
+const CAP_SUBFILAS: { label: string; campo: keyof Pick<
+  RegValRow,
+  "capital_gasto" | "capital_financiacion" | "capital_inversion"
+> }[] = [
+  { label: "Cantidad de gasto de capital", campo: "capital_gasto" },
+  { label: "Cantidad de financiación", campo: "capital_financiacion" },
+  { label: "Cantidad de inversión", campo: "capital_inversion" },
+];
+const REG_BLOQUE = CAP_SUBFILAS.length; // filas que ocupa un registro en las hojas de valores
 
 const REG_SECCIONES: RegSeccion[] = [
   // NIIF S2 10 — dos secciones en una hoja (Riesgos rows 4-11, Oportunidades 13-17).
@@ -149,20 +164,30 @@ function escribirRegistros(
   hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
 ): number {
   let escritas = 0;
+  const num = (ws: ExcelJS.Worksheet, addr: string, val: number, fmt: string) => {
+    const c = ws.getCell(addr);
+    c.value = val;
+    c.numFmt = fmt;
+  };
+
   for (const sec of REG_SECCIONES) {
     const ws = wb.getWorksheet(sec.hoja);
     if (!ws) continue;
     const lista = registros
       .filter((r) => sec.tipos.includes(r.tipo))
       .sort((a, b) => a.orden - b.orden);
-    const slots = sec.filaFin - sec.filaInicio + 1;
+
+    // Descriptivo (S2 10): 1 fila por registro. Valores (29(b)/30/29(d)): cada
+    // registro ocupa un BLOQUE de REG_BLOQUE filas (las 3 sub-filas de capital).
+    const paso = sec.descriptivo ? 1 : REG_BLOQUE;
+    const slots = Math.floor((sec.filaFin - sec.filaInicio + 1) / paso);
     const visibles = lista.slice(0, slots);
 
-    let ultimaFilaUsada = sec.filaInicio - 1;
     visibles.forEach((r, i) => {
-      const fila = sec.filaInicio + i;
+      const fila = sec.filaInicio + i * paso;
+      const horizontes = (r.horizontes ?? []).join("; ");
       ws.getCell(`${sec.cols.nombre}${fila}`).value = limpiarNombre(r.nombre);
-      ws.getCell(`${sec.cols.horizonte}${fila}`).value = r.horizonte_temporal ?? "";
+      ws.getCell(`${sec.cols.horizonte}${fila}`).value = horizontes;
 
       if (sec.descriptivo) {
         if (sec.cols.descripcion)
@@ -181,38 +206,35 @@ function escribirRegistros(
             v &&
             (v.cantidad_activos != null ||
               v.porcentaje != null ||
-              v.capital_desplegado != null);
+              v.capital_gasto != null ||
+              v.capital_financiacion != null ||
+              v.capital_inversion != null);
           if (tieneDato) {
-            if (v!.cantidad_activos != null) {
-              const c = ws.getCell(`${grupo.cantidad}${fila}`);
-              c.value = v!.cantidad_activos;
-              c.numFmt = "#,##0.###";
-            }
-            if (v!.porcentaje != null) {
-              const c = ws.getCell(`${grupo.pct}${fila}`);
-              c.value = v!.porcentaje;
-              c.numFmt = "#,##0.0";
-            }
-            if (v!.capital_desplegado != null) {
-              const c = ws.getCell(`${grupo.capital}${fila}`);
-              c.value = v!.capital_desplegado;
-              c.numFmt = "#,##0.###";
-            }
+            if (v!.cantidad_activos != null)
+              num(ws, `${grupo.cantidad}${fila}`, v!.cantidad_activos, "#,##0.###");
+            if (v!.porcentaje != null)
+              num(ws, `${grupo.pct}${fila}`, v!.porcentaje, "#,##0.0");
+            // Despliegue de capital: 3 sub-filas (etiqueta + valor) del bloque.
+            CAP_SUBFILAS.forEach((sub, j) => {
+              const subFila = fila + j;
+              ws.getCell(`${grupo.capLabel}${subFila}`).value = sub.label;
+              const monto = v![sub.campo];
+              if (monto != null) num(ws, `${grupo.capValue}${subFila}`, monto, "#,##0.###");
+            });
           } else {
             // Sin valores del ejercicio: brecha en la primera celda del grupo.
             ws.getCell(`${grupo.cantidad}${fila}`).value = NOTA_SIN_DATOS;
           }
         }
       }
-      ultimaFilaUsada = fila;
       escritas++;
     });
 
-    // Overflow: más registros que slots → nota en la última fila usada.
+    // Overflow: más registros que slots → nota en la fila de nombre del último.
     const extras = lista.length - visibles.length;
     if (extras > 0 && visibles.length > 0) {
-      const cell = ws.getCell(`${sec.cols.nombre}${ultimaFilaUsada}`);
-      cell.value = `${limpiarNombre(
+      const filaNombre = sec.filaInicio + (visibles.length - 1) * paso;
+      ws.getCell(`${sec.cols.nombre}${filaNombre}`).value = `${limpiarNombre(
         visibles[visibles.length - 1].nombre
       )}  (+${extras} registros adicionales en plataforma)`;
     }
@@ -467,10 +489,11 @@ function escribirCuestionarios(
     let ultimaFila = CUEST_FILA_INICIO - 1;
     sec.preguntas.forEach((p, i) => {
       const fila = CUEST_FILA_INICIO + i;
-      // A: pregunta — solo si la plantilla no la trae ya impresa.
-      const celdaA = ws.getCell(`A${fila}`);
-      const aActual = celdaA.value;
-      if (aActual == null || String(aActual).trim() === "") celdaA.value = p.texto;
+      // A: pregunta — el catálogo (lib/cuestionarios.ts) es la fuente autoritativa
+      // y se sobrescribe sobre el texto impreso: 22(b) llena la rejilla en blanco y
+      // 36(e) recibe los enriquecimientos oficiales (p. ej. el ejemplo de P5). Para
+      // P1-P4 de 36(e) el texto del catálogo es verbatim de la plantilla (idéntico).
+      ws.getCell(`A${fila}`).value = p.texto;
 
       const r = porClave.get(`${sec.hoja}#${p.orden}`);
       const respuesta = r?.respuesta?.trim() || null;
@@ -541,13 +564,13 @@ export async function GET() {
       .order("created_at", { ascending: true }),
     supabase
       .from("registros_clima")
-      .select("id, reporte_id, tipo, nombre, descripcion, horizonte_temporal, orden")
+      .select("id, reporte_id, tipo, nombre, descripcion, horizontes, orden")
       .eq("activo", true)
       .order("orden", { ascending: true }),
     supabase
       .from("registros_clima_valores")
       .select(
-        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_desplegado, created_at"
+        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, created_at"
       )
       .order("created_at", { ascending: true }),
     supabase

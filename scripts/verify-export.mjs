@@ -149,20 +149,44 @@ async function main() {
     "D12 (categoría sin validar) tiene nota de brecha"
   );
 
-  console.log("\nRegistros de clima:");
+  console.log("\nRegistros de clima (v2: horizonte multi + capital en tres):");
   ok(cellText(s10, "A4").length > 0, "S2 10: A4 tiene un riesgo");
   ok(cellText(s10, "C4").length > 0, "S2 10: C4 tiene tipo");
+  // Horizonte multi-enum: el primer riesgo cubre varios plazos (lista con '; ').
+  ok(
+    cellText(s10, "D4").includes("Corto plazo") && cellText(s10, "D4").includes("Mediano plazo"),
+    "S2 10: D4 lista varios horizontes"
+  );
   ok(cellText(s29b, "A5").length > 0, "S2 29(b): A5 tiene riesgo físico");
+  ok(
+    cellText(s29b, "B5").includes("Corto plazo") && cellText(s29b, "B5").includes("Mediano plazo"),
+    "S2 29(b): B5 lista varios horizontes"
+  );
   ok(Number(cellText(s29b, "C5")) > 0, "S2 29(b): C5 (cantidad 2025) tiene número");
+  // Despliegue de capital en 3 sub-filas (etiqueta E + valor F), bloque del 1er registro.
+  ok(
+    cellText(s29b, "E5") === "Cantidad de gasto de capital",
+    "S2 29(b): E5 = 'Cantidad de gasto de capital'"
+  );
+  ok(Number(cellText(s29b, "F5")) > 0, "S2 29(b): F5 (gasto de capital 2025) tiene número");
+  ok(
+    cellText(s29b, "E6") === "Cantidad de financiación",
+    "S2 29(b): E6 = 'Cantidad de financiación' (sub-fila 2)"
+  );
+  ok(
+    cellText(s29b, "E7") === "Cantidad de inversión",
+    "S2 29(b): E7 = 'Cantidad de inversión' (sub-fila 3)"
+  );
   ok(cellText(s30, "A5").length > 0, "S2 30: A5 tiene riesgo de transición");
   ok(cellText(s29d, "A5").length > 0, "S2 29(d): A5 tiene oportunidad");
 
   // Regla dura registros: la oportunidad sin valores muestra 'Sin datos del ejercicio'.
+  // Con bloques de 3 filas, la brecha va en la fila de inicio del bloque (col C).
   let sinDatos = false;
   for (let r = 5; r <= 20; r++) {
     if (cellText(s29d, `C${r}`) === "Sin datos del ejercicio") sinDatos = true;
   }
-  ok(sinDatos, "S2 29(d): al menos una fila con 'Sin datos del ejercicio'");
+  ok(sinDatos, "S2 29(d): al menos un registro con 'Sin datos del ejercicio'");
 
   // ---------------------------------------------------------------------------
   // Objetivos (Sprint 3) — 5 hojas: S1 51 + S2 33/34/35/36(a)-(d).
@@ -174,12 +198,16 @@ async function main() {
   const s36 = wb.getWorksheet("NIIF S2 36(a)-(d)");
   const NOTA_SEC = "Sección pendiente en plataforma";
 
-  console.log("\nObjetivos — S2 33 (definición climática):");
+  console.log("\nObjetivos — S2 33 (definición climática, tipos oficiales):");
   ok(cellText(s33, "A3").length > 0, "S2 33: A3 tiene un objetivo climático");
+  ok(
+    cellText(s33, "B3") === "Objetivo de emisiones de gases de efecto invernadero",
+    "S2 33: B3 (tipo) = 'Objetivo de emisiones de gases de efecto invernadero'"
+  );
   ok(cellText(s33, "I3") === "Absoluto", "S2 33: I3 (tipo de objetivo) = 'Absoluto'");
   ok(cellText(s33, "I4") === "De intensidad", "S2 33: I4 (tipo de objetivo) = 'De intensidad'");
 
-  console.log("\nObjetivos — trazabilidad de un objetivo a través de S2 33-36:");
+  console.log("\nObjetivos — trazabilidad + tipos oficiales S2 34/36:");
   const a3 = cellText(s33, "A3");
   ok(
     a3.length > 0 &&
@@ -188,9 +216,18 @@ async function main() {
       cellText(s36, "A3") === a3,
     "el objetivo de la fila 3 es el mismo en S2 33/34/35/36"
   );
-  ok(cellText(s34, "B3").length > 0, "S2 34: B3 (validación) del objetivo completo lleno");
+  ok(cellText(s34, "B3") === "Verdadero", "S2 34: B3 (validación por tercero) = 'Verdadero' (booleano)");
   ok(cellText(s35, "B3").length > 0, "S2 35: B3 (resultados) del objetivo completo lleno");
-  ok(cellText(s36, "B3").length > 0, "S2 36: B3 (gases cubiertos) del objetivo completo lleno");
+  ok(
+    cellText(s36, "B3").includes("Dióxido de carbono (CO2)"),
+    "S2 36: B3 (gases) lista los gases oficiales (multi-enum)"
+  );
+  ok(cellText(s36, "C3") === "Alcance 1; Alcance 2", "S2 36: C3 (alcances) = 'Alcance 1; Alcance 2'");
+  ok(
+    cellText(s36, "D3") === "Emisiones brutas de gases de efecto invernadero",
+    "S2 36: D3 (bruto/neto) usa el valor oficial completo"
+  );
+  ok(cellText(s36, "E3") === "Falso", "S2 36: E3 (enfoque descarbonización) = 'Falso' (booleano)");
 
   console.log("\nObjetivos — brecha 'Sección pendiente' (objetivo climático incompleto):");
   // El objetivo sin ficha (energía renovable, fila 5) marca la brecha en cada hoja hermana.
@@ -251,9 +288,17 @@ async function main() {
   );
   ok(cellText(c22bii, "B7") === "", "S2 22(b)(ii): B7 (pregunta 5 sin responder) VACÍA");
 
-  console.log("\nCuestionarios — S2 36(e) (2 de 5; preguntas verbatim de plantilla):");
+  console.log("\nCuestionarios — S2 36(e) (2 de 5; P3/P4 enum único, P5 con ejemplo):");
   ok(cellText(c36e, "A3").length > 0, "S2 36(e): A3 conserva la pregunta impresa");
   ok(cellText(c36e, "B3").length > 0, "S2 36(e): B3 tiene respuesta");
+  ok(
+    cellText(c36e, "C5") === "Enumeración",
+    "S2 36(e): C5 (P3 tipo de dato) = 'Enumeración'"
+  );
+  ok(
+    cellText(c36e, "A7").includes("permanencia de la compensación de carbono"),
+    "S2 36(e): A7 (P5) incluye el ejemplo oficial"
+  );
   ok(
     cellText(c36e, "D5") === PEND &&
       cellText(c36e, "D6") === PEND &&
