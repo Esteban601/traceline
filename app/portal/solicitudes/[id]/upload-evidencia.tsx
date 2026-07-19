@@ -16,11 +16,44 @@ function tamano(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const inputClass =
+  "h-11 w-full rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50 focus:bg-surface";
+
+/** Paso numerado dentro de la misma tarjeta (no wizard de páginas). */
+function Paso({
+  n,
+  titulo,
+  ayuda,
+  children,
+}: {
+  n: number;
+  titulo: string;
+  ayuda?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex gap-3.5">
+      <span
+        aria-hidden
+        className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-teal text-xs font-semibold text-crema"
+      >
+        {n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-ink">{titulo}</p>
+        {ayuda && <p className="mt-0.5 text-xs leading-relaxed text-muted">{ayuda}</p>}
+        <div className="mt-2.5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function UploadEvidencia({
   solicitudId,
   esCuantitativa,
   unidadEsperada,
   areaUsuario,
+  reporteEjercicio,
   estado,
   tieneVersionPrevia,
   fechaCongelamiento,
@@ -29,43 +62,50 @@ export function UploadEvidencia({
   esCuantitativa: boolean;
   unidadEsperada: string | null;
   areaUsuario: string | null;
+  reporteEjercicio: number | null;
   estado: EstadoSolicitud;
   tieneVersionPrevia: boolean;
   fechaCongelamiento?: string | null;
 }) {
+  const periodoDefault = reporteEjercicio != null ? String(reporteEjercicio) : "";
   const [state, formAction, pending] = useActionState(subirEvidencia, initial);
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [periodo, setPeriodo] = useState("");
+  const [periodo, setPeriodo] = useState(periodoDefault);
+  // Área: pre-llenada con el área del usuario, mostrada como texto con 'cambiar'.
   const [area, setArea] = useState(areaUsuario ?? "");
+  const [areaEditable, setAreaEditable] = useState(!areaUsuario);
   const [valor, setValor] = useState("");
   const [unidad, setUnidad] = useState(unidadEsperada ?? "");
+  // Periodo de la captura: hereda del paso 2 salvo que el usuario lo cambie.
   const [periodoCaptura, setPeriodoCaptura] = useState("");
+  const [capturaEditable, setCapturaEditable] = useState(false);
   const [justificacion, setJustificacion] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const congelado = estado === "congelado";
   const validado = estado === "validado";
   const bloqueado = congelado;
-  // Campo de justificación: obligatorio si validado; opcional y discreto si ya
-  // hay una versión previa; oculto en la primera carga.
   const justObligatoria = validado;
   const mostrarJustificacion = justObligatoria || tieneVersionPrevia;
+  // Periodo efectivo de la captura (heredado o el editado).
+  const periodoCapturaEfectivo = capturaEditable ? periodoCaptura : periodo;
 
   useEffect(() => {
     if (state.ok) {
       setFile(null);
-      setPeriodo("");
+      setPeriodo(periodoDefault);
       setValor("");
       setPeriodoCaptura("");
+      setCapturaEditable(false);
       setJustificacion("");
       if (inputRef.current) inputRef.current.value = "";
       toast.success(
         state.version != null
-          ? `Evidencia registrada como versión v${state.version}.`
-          : "Evidencia registrada."
+          ? `Listo — guardamos tu archivo como versión v${state.version}.`
+          : "Listo — guardamos tu archivo."
       );
       if (state.error) toast.error(state.error); // captura parcial
     } else if (state.error) {
@@ -77,14 +117,14 @@ export function UploadEvidencia({
   if (bloqueado) {
     return (
       <div className="rounded-card border border-gris/25 bg-gris/10 px-5 py-6 text-sm text-ink">
-        <p className="font-medium">Carga deshabilitada</p>
+        <p className="font-medium">Ya no se puede cargar</p>
         <p className="mt-1 text-muted">
           {fechaCongelamiento
-            ? `Este informe fue cerrado el ${fmtFechaLarga(
+            ? `Este informe se cerró el ${fmtFechaLarga(
                 deFechaLocal(fechaCongelamiento.slice(0, 10))
-              )}; la evidencia quedó congelada para aseguramiento.`
-            : "Esta solicitud está congelada por el cierre del reporte."}{" "}
-          Para cualquier ajuste, contacta a tu coordinador de IRStrat.
+              )} y la información quedó guardada tal cual.`
+            : "Este informe se cerró y la información quedó guardada tal cual."}{" "}
+          Si necesitas un ajuste, escríbele a tu coordinador de IRStrat.
         </p>
       </div>
     );
@@ -98,12 +138,16 @@ export function UploadEvidencia({
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) {
-      setLocalError("Selecciona o arrastra un archivo.");
+      setLocalError("Falta tu archivo: arrástralo o selecciónalo en el paso 1.");
+      return;
+    }
+    if (!periodo.trim()) {
+      setLocalError("Dinos qué periodo cubre el archivo en el paso 2 (por ejemplo, 2025).");
       return;
     }
     if (justObligatoria && justificacion.trim().length < 20) {
       setLocalError(
-        "Explica el motivo del ajuste (mínimo 20 caracteres): reabrirá la revisión."
+        "Cuéntanos brevemente qué cambió (al menos 20 caracteres): volveremos a revisarlo."
       );
       return;
     }
@@ -116,133 +160,144 @@ export function UploadEvidencia({
     if (esCuantitativa) {
       fd.set("valor", valor);
       fd.set("unidad", unidad);
-      fd.set("periodo_captura", periodoCaptura);
+      fd.set("periodo_captura", periodoCapturaEfectivo);
     }
     startTransition(() => formAction(fd));
   }
 
-  const inputClass =
-    "h-11 w-full rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50 focus:bg-surface";
-
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-6">
       {validado && (
         <div className="rounded-lg border border-gold/30 bg-gold/10 px-3.5 py-2.5 text-sm text-ink">
-          Esta solicitud ya fue <strong>validada</strong>. Cargar una nueva
-          versión <strong>reabrirá la revisión</strong> y exige una justificación
-          del ajuste.
+          Esta solicitud ya quedó <strong>validada</strong>. Si subes una versión
+          nueva, <strong>la revisaremos otra vez</strong> y te pediremos que nos
+          digas qué cambió.
         </div>
       )}
 
-      {/* Dropzone */}
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) elegirArchivo(f);
-        }}
-        className={cn(
-          "relative rounded-card border-2 border-dashed px-5 py-8 text-center transition duration-150 ease-out",
-          dragging
-            ? "border-teal bg-teal/5 shadow-lift"
-            : "border-line bg-crema/30 hover:border-teal/40"
-        )}
+      {/* Paso 1 — Tu archivo */}
+      <Paso n={1} titulo="Tu archivo">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) elegirArchivo(f);
+          }}
+          className={cn(
+            "relative rounded-card border-2 border-dashed px-5 py-9 text-center transition duration-150 ease-out",
+            dragging
+              ? "border-teal bg-teal/5 shadow-lift"
+              : "border-line bg-crema/30 hover:border-teal/40"
+          )}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            className="sr-only"
+            id="evidencia-file"
+            onChange={(e) => elegirArchivo(e.target.files?.[0] ?? null)}
+          />
+
+          {file ? (
+            <div className="flex items-center justify-center gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
+                <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                </svg>
+              </span>
+              <div className="min-w-0 text-left">
+                <div className="truncate text-sm font-medium text-ink">{file.name}</div>
+                <div className="text-xs text-muted">{tamano(file.size)}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => elegirArchivo(null)}
+                className="ml-1 rounded-lg px-2 py-1 text-xs font-medium text-muted transition duration-150 hover:bg-ink/5 hover:text-rojo"
+              >
+                Quitar
+              </button>
+            </div>
+          ) : (
+            <label htmlFor="evidencia-file" className="block cursor-pointer">
+              <span className="mx-auto grid size-11 place-items-center rounded-full bg-teal/10 text-teal">
+                <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 16V4M6 10l6-6 6 6" />
+                  <path d="M4 20h16" />
+                </svg>
+              </span>
+              <span className="mt-3 block text-sm font-medium text-ink">
+                Arrastra tu archivo aquí o{" "}
+                <span className="text-teal underline underline-offset-2">explóralo</span>
+              </span>
+              <span className="mt-1 block text-xs text-muted">
+                Excel, PDF, imágenes u otro formato de respaldo
+              </span>
+            </label>
+          )}
+        </div>
+      </Paso>
+
+      {/* Paso 2 — Periodo cubierto */}
+      <Paso
+        n={2}
+        titulo="¿Qué periodo cubre esta información?"
+        ayuda="El año o los trimestres que abarca el archivo, ej. 2025."
       >
         <input
-          ref={inputRef}
-          type="file"
-          className="sr-only"
-          id="evidencia-file"
-          onChange={(e) => elegirArchivo(e.target.files?.[0] ?? null)}
+          id="periodo"
+          value={periodo}
+          onChange={(e) => setPeriodo(e.target.value)}
+          placeholder="Ej. 2025 o Q1–Q4 2025"
+          className={cn(inputClass, "sm:max-w-xs")}
         />
-
-        {file ? (
-          <div className="flex items-center justify-center gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
-              <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <path d="M14 2v6h6" />
-              </svg>
-            </span>
-            <div className="min-w-0 text-left">
-              <div className="truncate text-sm font-medium text-ink">{file.name}</div>
-              <div className="text-xs text-muted">{tamano(file.size)}</div>
+        {/* Área de origen: texto con 'cambiar' discreto, no un campo más. */}
+        <div className="mt-3 text-xs text-muted">
+          {areaEditable ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="area_origen" className="font-medium text-ink">
+                Área de origen
+              </label>
+              <input
+                id="area_origen"
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                placeholder="Ej. Operaciones"
+                className={cn(inputClass, "h-9 w-auto min-w-[10rem] flex-1 sm:max-w-xs")}
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => elegirArchivo(null)}
-              className="ml-1 rounded-lg px-2 py-1 text-xs font-medium text-muted transition duration-150 hover:bg-ink/5 hover:text-rojo"
-            >
-              Quitar
-            </button>
-          </div>
-        ) : (
-          <label htmlFor="evidencia-file" className="block cursor-pointer">
-            <span className="mx-auto grid size-11 place-items-center rounded-full bg-teal/10 text-teal">
-              <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 16V4M6 10l6-6 6 6" />
-                <path d="M4 20h16" />
-              </svg>
+          ) : (
+            <span>
+              Área de origen: <span className="font-medium text-ink">{area}</span>{" "}
+              <button
+                type="button"
+                onClick={() => setAreaEditable(true)}
+                className="font-medium text-teal underline-offset-2 hover:underline"
+              >
+                cambiar
+              </button>
             </span>
-            <span className="mt-3 block text-sm font-medium text-ink">
-              Arrastra tu archivo aquí o{" "}
-              <span className="text-teal underline underline-offset-2">explóralo</span>
-            </span>
-            <span className="mt-1 block text-xs text-muted">
-              Excel, PDF, imágenes u otro formato de respaldo
-            </span>
-          </label>
-        )}
-      </div>
-
-      {/* Metadatos de la evidencia */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label htmlFor="periodo" className="block text-sm font-medium text-ink">
-            Periodo cubierto <span className="text-rojo">*</span>
-          </label>
-          <input
-            id="periodo"
-            value={periodo}
-            onChange={(e) => setPeriodo(e.target.value)}
-            required
-            placeholder="Ej. 2025 o Q1–Q4 2025"
-            className={inputClass}
-          />
+          )}
         </div>
-        <div className="space-y-1.5">
-          <label htmlFor="area_origen" className="block text-sm font-medium text-ink">
-            Área de origen
-          </label>
-          <input
-            id="area_origen"
-            value={area}
-            onChange={(e) => setArea(e.target.value)}
-            placeholder="Ej. Operaciones"
-            className={inputClass}
-          />
-        </div>
-      </div>
+      </Paso>
 
-      {/* Captura de valor (solicitudes cuantitativas) */}
+      {/* Paso 3 — La cifra (solo cuantitativas) */}
       {esCuantitativa && (
-        <div className="rounded-card border border-gold/25 bg-gold/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gold">
-            Captura de valor
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            Registra el dato numérico que respalda esta evidencia (opcional).
-          </p>
-          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <Paso
+          n={3}
+          titulo="La cifra que reportas"
+          ayuda="Escribe el dato principal que respalda este archivo."
+        >
+          <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="valor" className="block text-sm font-medium text-ink">
-                Valor
+              <label htmlFor="valor" className="block text-xs font-medium text-muted">
+                Dato
               </label>
               <input
                 id="valor"
@@ -250,11 +305,11 @@ export function UploadEvidencia({
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
                 placeholder="0"
-                className={inputClass}
+                className={cn(inputClass, "w-36")}
               />
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="unidad" className="block text-sm font-medium text-ink">
+              <label htmlFor="unidad" className="block text-xs font-medium text-muted">
                 Unidad
               </label>
               <input
@@ -262,23 +317,45 @@ export function UploadEvidencia({
                 value={unidad}
                 onChange={(e) => setUnidad(e.target.value)}
                 placeholder="Ej. kWh"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="periodo_captura" className="block text-sm font-medium text-ink">
-                Periodo
-              </label>
-              <input
-                id="periodo_captura"
-                value={periodoCaptura}
-                onChange={(e) => setPeriodoCaptura(e.target.value)}
-                placeholder="Ej. 2025"
-                className={inputClass}
+                className={cn(inputClass, "w-32")}
               />
             </div>
           </div>
-        </div>
+          {/* El periodo de la captura se hereda del paso 2 (editable tras 'cambiar'). */}
+          <div className="mt-2.5 text-xs text-muted">
+            {capturaEditable ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="periodo_captura" className="font-medium text-ink">
+                  Periodo de la cifra
+                </label>
+                <input
+                  id="periodo_captura"
+                  value={periodoCaptura}
+                  onChange={(e) => setPeriodoCaptura(e.target.value)}
+                  placeholder="Ej. 2025"
+                  className={cn(inputClass, "h-9 w-32")}
+                />
+              </div>
+            ) : (
+              <span>
+                Corresponde al periodo{" "}
+                <span className="font-medium text-ink">
+                  {periodo.trim() || "que indiques arriba"}
+                </span>{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPeriodoCaptura(periodo);
+                    setCapturaEditable(true);
+                  }}
+                  className="font-medium text-teal underline-offset-2 hover:underline"
+                >
+                  cambiar
+                </button>
+              </span>
+            )}
+          </div>
+        </Paso>
       )}
 
       {/* Justificación: obligatoria si validado, opcional si hay versión previa */}
@@ -291,37 +368,34 @@ export function UploadEvidencia({
         >
           <label htmlFor="justificacion" className="block text-sm font-medium text-ink">
             {justObligatoria
-              ? "Justificación del ajuste"
-              : "¿Por qué reemplazas esta evidencia?"}{" "}
-            {justObligatoria ? (
-              <span className="text-rojo">*</span>
-            ) : (
-              <span className="font-normal text-muted">· opcional</span>
-            )}
+              ? "¿Qué cambió respecto de lo que ya validamos?"
+              : "¿Por qué reemplazas este archivo?"}
           </label>
+          <p className="text-xs text-muted">
+            {justObligatoria
+              ? "Cuéntanoslo en una o dos líneas (al menos 20 caracteres); con esto reabrimos la revisión."
+              : "Opcional. Una nota rápida nos ayuda a entender el cambio."}
+          </p>
           <textarea
             id="justificacion"
             value={justificacion}
             onChange={(e) => setJustificacion(e.target.value)}
             rows={3}
-            required={justObligatoria}
-            minLength={justObligatoria ? 20 : undefined}
             placeholder={
               justObligatoria
-                ? "Describe el motivo del ajuste (mínimo 20 caracteres)…"
+                ? "Ej. Corregimos el consumo de octubre con la factura definitiva…"
                 : "Motivo del reemplazo (opcional)…"
             }
             className="w-full resize-y rounded-xl border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50"
           />
           {justObligatoria && (
             <p className="text-xs text-muted">
-              {justificacion.trim().length}/20 caracteres mínimos.
+              {justificacion.trim().length}/20 caracteres.
             </p>
           )}
         </div>
       )}
 
-      {/* Error de validación previo al envío (el resultado del servidor va a toast) */}
       {localError && (
         <p role="alert" className="rounded-lg border border-rojo/25 bg-rojo/10 px-3.5 py-2.5 text-sm text-rojo">
           {localError}
@@ -330,7 +404,7 @@ export function UploadEvidencia({
 
       <div className="flex justify-end">
         <Button type="submit" loading={pending} disabled={!file}>
-          Enviar evidencia
+          {estado === "observaciones" ? "Reenviar" : "Enviar"}
         </Button>
       </div>
     </form>

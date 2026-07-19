@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/data";
-import { EstadoBadge, Chip } from "@/components/ui/badge";
+import { Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
-import { fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
+import { fmtFecha, fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { accionCliente, IconoAccion } from "@/app/portal/estado-cliente";
 import { UploadEvidencia } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
 
@@ -107,6 +108,193 @@ export default async function SolicitudPage({
     capsPorEvidencia.set(c.evidencia_id, arr);
   }
 
+  // Acción esperada del cliente (idioma del cliente). Rige la jerarquía: si el
+  // cliente debe actuar, la carga es la protagonista; si no, lo es el resumen.
+  const accion = accionCliente(estado);
+  const esperaEvidencia = accion.esperaCarga && !reporteCongelado;
+  const tAccion = TONO_CLASSES[accion.tono];
+
+  // ---- Bloques reutilizables (se colocan según la jerarquía) ---------------
+  const bloqueCarga = (
+    <div className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
+      <h2 className="font-display text-lg font-semibold text-ink">
+        {estado === "observaciones"
+          ? "Corrige y vuelve a enviar"
+          : esperaEvidencia
+            ? "Sube tu información"
+            : "¿Necesitas actualizar algo?"}
+      </h2>
+      <p className="mt-1 text-sm text-muted">
+        {esperaEvidencia
+          ? "Adjunta el archivo que respalda esta solicitud. Cada carga guarda una versión nueva; la anterior se conserva."
+          : "Puedes cargar una versión nueva si algo cambió. La anterior se conserva."}
+      </p>
+      <div className="mt-5">
+        <UploadEvidencia
+          solicitudId={sol.id}
+          esCuantitativa={sol.es_cuantitativa}
+          unidadEsperada={sol.unidad_esperada}
+          areaUsuario={perfil.area ?? sol.area_asignada}
+          reporteEjercicio={reporte?.ejercicio ?? null}
+          estado={estado}
+          tieneVersionPrevia={evs.length > 0}
+          fechaCongelamiento={reporte?.fecha_congelamiento ?? null}
+        />
+      </div>
+    </div>
+  );
+
+  const bloqueHistorial = (
+    <section className="space-y-4">
+      <h2 className="font-display text-xl font-semibold text-ink">
+        {accion.completada ? "Lo que entregaste" : "Tus entregas"}
+      </h2>
+      {evs.length === 0 ? (
+        <EmptyState
+          compacto
+          glifo="↑"
+          titulo="Aún no has entregado nada"
+          descripcion="Cuando subas un archivo aparecerá aquí, con su periodo y su cifra."
+        />
+      ) : (
+        <ul className="space-y-3">
+          {evs.map((ev, i) => {
+            const capturasEv = capsPorEvidencia.get(ev.id) ?? [];
+            const vigente = i === 0;
+            const previa = evs[i + 1]; // versión inmediatamente anterior (orden desc)
+            return (
+              <li
+                key={ev.id}
+                className="rounded-card border border-line bg-surface p-4 shadow-soft sm:p-5"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    {/* Frase, no metadata */}
+                    <p className="text-sm leading-relaxed text-ink">
+                      Entregaste{" "}
+                      <span className="font-medium">{ev.nombre_original}</span> el{" "}
+                      {fmtFechaLarga(ev.created_at)}
+                      {ev.periodo_cubierto ? (
+                        <>
+                          {" "}
+                          — cubre <span className="font-medium">{ev.periodo_cubierto}</span>
+                        </>
+                      ) : null}
+                      .
+                    </p>
+
+                    {capturasEv.map((c) => (
+                      <p key={c.id} className="mt-1.5 text-sm text-ink">
+                        <span className="text-muted">Reportaste: </span>
+                        <span className="font-semibold tabular-nums">
+                          {fmtNum.format(c.valor)}
+                        </span>{" "}
+                        <span>{c.unidad}</span>
+                        {c.periodo ? <span className="text-muted"> ({c.periodo})</span> : null}
+                        {!c.confirmado && (
+                          <span className="text-muted"> · por confirmar</span>
+                        )}
+                      </p>
+                    ))}
+
+                    {/* La versión pasa a secundario */}
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                      {vigente ? (
+                        <span className="inline-flex items-center gap-1 rounded-pill bg-verde/10 px-2 py-0.5 font-medium text-verde">
+                          Versión vigente
+                        </span>
+                      ) : null}
+                      <span>
+                        versión {ev.version}
+                        {previa
+                          ? `, reemplazó a la del ${fmtFecha(previa.created_at)}`
+                          : ""}
+                      </span>
+                      <span>· {limpiar(ev.subio?.nombre)}</span>
+                    </p>
+                  </div>
+
+                  <a
+                    href={`/portal/descargar/${ev.id}`}
+                    className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
+                  >
+                    <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 4v12M6 10l6 6 6-6" />
+                      <path d="M4 20h16" />
+                    </svg>
+                    Descargar
+                  </a>
+                </div>
+
+                {ev.justificacion && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gold">
+                      Motivo del reemplazo
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+                      {ev.justificacion}
+                    </p>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+
+  const bloqueConversacion = (
+    <section className="space-y-4">
+      <h2 className="font-display text-xl font-semibold text-ink">Conversación</h2>
+      {coms.length === 0 ? (
+        <EmptyState
+          compacto
+          glifo="“"
+          titulo="Sin comentarios todavía"
+          descripcion="Si tienes dudas sobre esta solicitud, escríbelas abajo."
+        />
+      ) : (
+        <ul className="space-y-3">
+          {coms.map((c) => (
+            <li
+              key={c.id}
+              className={
+                "rounded-card border p-4 " +
+                (c.es_observacion
+                  ? "border-rojo/30 bg-rojo/5"
+                  : "border-line bg-surface shadow-soft")
+              }
+            >
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-ink">
+                    {/* El perfil del staff IRStrat no es visible al cliente (RLS);
+                        lo atribuimos al equipo de IRStrat. */}
+                    {c.autor?.nombre ? limpiar(c.autor.nombre) : "Equipo IRStrat"}
+                  </span>
+                  {c.es_observacion && (
+                    <span className="rounded-pill bg-rojo/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-rojo">
+                      Observación
+                    </span>
+                  )}
+                </div>
+                <time className="text-xs text-muted">{fmtFechaHora(c.created_at)}</time>
+              </div>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+                {c.contenido}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="rounded-card border border-line bg-surface p-4 shadow-soft">
+        <ComentarioForm solicitudId={sol.id} />
+      </div>
+    </section>
+  );
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -156,7 +344,15 @@ export default async function SolicitudPage({
       {/* Encabezado de la solicitud */}
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-2.5">
-          <EstadoBadge estado={estado} />
+          <span
+            className={
+              "inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-sm font-medium " +
+              `${tAccion.bg} ${tAccion.text}`
+            }
+          >
+            <IconoAccion tipo={accion.icono} className="size-4" />
+            {accion.titulo}
+          </span>
           {sol.area_asignada && <Chip>{sol.area_asignada}</Chip>}
           {sol.es_cuantitativa && (
             <Chip tono="verde">
@@ -189,197 +385,30 @@ export default async function SolicitudPage({
               </dd>
             </div>
           )}
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-muted">Estado</dt>
-            <dd className="mt-0.5 font-medium text-ink">{ESTADO_META[estado].label}</dd>
-          </div>
         </dl>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-        {/* Columna principal */}
+      {esperaEvidencia ? (
         <div className="space-y-10">
-          {/* Historial de evidencias */}
-          <section className="space-y-4">
-            <h2 className="font-display text-xl font-semibold text-ink">
-              Historial de evidencias
-            </h2>
-            {evs.length === 0 ? (
-              <EmptyState
-                compacto
-                glifo="↑"
-                titulo="Aún sin evidencia"
-                descripcion="Cuando cargues un archivo aparecerá aquí, versionado."
-              />
-            ) : (
-              <ul className="space-y-3">
-                {evs.map((ev, i) => {
-                  const capturasEv = capsPorEvidencia.get(ev.id) ?? [];
-                  return (
-                    <li
-                      key={ev.id}
-                      className="rounded-card border border-line bg-surface p-4 shadow-soft sm:p-5"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <span
-                            className={
-                              "grid size-10 shrink-0 place-items-center rounded-lg font-display text-sm font-semibold " +
-                              (i === 0
-                                ? "bg-teal text-crema"
-                                : "bg-teal/10 text-teal")
-                            }
-                          >
-                            v{ev.version}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate text-sm font-medium text-ink">
-                                {ev.nombre_original}
-                              </span>
-                              {i === 0 && (
-                                <span className="rounded-pill bg-verde/10 px-2 py-0.5 text-[11px] font-medium text-verde">
-                                  Actual
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-                              {ev.periodo_cubierto && <span>Periodo: {ev.periodo_cubierto}</span>}
-                              {ev.area_origen && <span>Origen: {ev.area_origen}</span>}
-                              <span>Por {limpiar(ev.subio?.nombre)}</span>
-                              <span>{fmtFechaHora(ev.created_at)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <a
-                          href={`/portal/descargar/${ev.id}`}
-                          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
-                        >
-                          <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 4v12M6 10l6 6 6-6" />
-                            <path d="M4 20h16" />
-                          </svg>
-                          Descargar
-                        </a>
-                      </div>
-
-                      {ev.justificacion && (
-                        <div className="mt-3 border-t border-line pt-3">
-                          <p className="text-xs font-medium uppercase tracking-wide text-gold">
-                            Justificación del ajuste
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
-                            {ev.justificacion}
-                          </p>
-                        </div>
-                      )}
-
-                      {capturasEv.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-                          {capturasEv.map((c) => (
-                            <span
-                              key={c.id}
-                              className={
-                                "inline-flex items-baseline gap-1 rounded-lg px-2.5 py-1 text-sm " +
-                                (c.confirmado
-                                  ? "bg-verde/10 text-verde"
-                                  : "bg-gris/10 text-gris line-through")
-                              }
-                            >
-                              <span className="font-semibold tabular-nums">
-                                {fmtNum.format(c.valor)}
-                              </span>
-                              <span className="text-xs">{c.unidad}</span>
-                              {c.periodo && <span className="text-xs opacity-70">· {c.periodo}</span>}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-
-          {/* Conversación / observaciones */}
-          <section className="space-y-4">
-            <h2 className="font-display text-xl font-semibold text-ink">
-              Conversación
-            </h2>
-            {coms.length === 0 ? (
-              <EmptyState
-                compacto
-                glifo="“"
-                titulo="Sin comentarios todavía"
-                descripcion="Si tienes dudas sobre esta solicitud, escríbelas abajo."
-              />
-            ) : (
-              <ul className="space-y-3">
-                {coms.map((c) => (
-                  <li
-                    key={c.id}
-                    className={
-                      "rounded-card border p-4 " +
-                      (c.es_observacion
-                        ? "border-rojo/30 bg-rojo/5"
-                        : "border-line bg-surface shadow-soft")
-                    }
-                  >
-                    <div className="mb-1.5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-ink">
-                          {/* El perfil del staff IRStrat no es visible al cliente (RLS);
-                              lo atribuimos al equipo de IRStrat. */}
-                          {c.autor?.nombre ? limpiar(c.autor.nombre) : "Equipo IRStrat"}
-                        </span>
-                        {c.es_observacion && (
-                          <span className="rounded-pill bg-rojo/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-rojo">
-                            Observación
-                          </span>
-                        )}
-                      </div>
-                      <time className="text-xs text-muted">
-                        {fmtFechaHora(c.created_at)}
-                      </time>
-                    </div>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
-                      {c.contenido}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="rounded-card border border-line bg-surface p-4 shadow-soft">
-              <ComentarioForm solicitudId={sol.id} />
-            </div>
-          </section>
-        </div>
-
-        {/* Aside: carga de evidencia */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-card border border-line bg-surface p-5 shadow-card">
-            <h2 className="font-display text-lg font-semibold text-ink">
-              Cargar evidencia
-            </h2>
-            <p className="mt-1 text-sm text-muted">
-              Cada carga crea una versión nueva; la anterior se conserva.
-            </p>
-            <div className="mt-5">
-              <UploadEvidencia
-                solicitudId={sol.id}
-                esCuantitativa={sol.es_cuantitativa}
-                unidadEsperada={sol.unidad_esperada}
-                areaUsuario={perfil.area ?? sol.area_asignada}
-                estado={estado}
-                tieneVersionPrevia={evs.length > 0}
-                fechaCongelamiento={reporte?.fecha_congelamiento ?? null}
-              />
-            </div>
+          {/* Protagonista: la carga */}
+          {bloqueCarga}
+          {/* Secundario: entregas + conversación */}
+          <div className="grid gap-8 lg:grid-cols-2">
+            {bloqueHistorial}
+            {bloqueConversacion}
           </div>
-        </aside>
-      </div>
+        </div>
+      ) : (
+        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+          {/* Protagonista: el resumen de lo entregado */}
+          <div className="space-y-10">
+            {bloqueHistorial}
+            {bloqueConversacion}
+          </div>
+          {/* Secundario: cargar una versión nueva */}
+          <aside className="lg:sticky lg:top-24 lg:self-start">{bloqueCarga}</aside>
+        </div>
+      )}
     </div>
   );
 }

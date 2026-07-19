@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { EstadoBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { ESTADO_META, TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
 import { fmtFecha, deFechaLocal } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
+import { accionCliente, IconoAccion } from "./estado-cliente";
 
 export type SolicitudResumen = {
   id: string;
@@ -161,7 +161,22 @@ export function ListaSolicitudes({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-3">
-                  <EstadoBadge estado={s.estado} />
+                  {(() => {
+                    const accion = accionCliente(s.estado);
+                    const t = TONO_CLASSES[accion.tono];
+                    return (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-medium",
+                          t.bg,
+                          t.text
+                        )}
+                      >
+                        <IconoAccion tipo={accion.icono} className="size-3.5" />
+                        {accion.titulo}
+                      </span>
+                    );
+                  })()}
                   <svg
                     aria-hidden
                     viewBox="0 0 24 24"

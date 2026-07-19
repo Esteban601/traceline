@@ -4,6 +4,8 @@ import { getPerfilActual } from "@/lib/data";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { KPIS, contarPorBucket } from "@/lib/estados";
 import { ListaSolicitudes, type SolicitudResumen } from "./lista-solicitudes";
+import { ProgresoReporte } from "./progreso-reporte";
+import { accionCliente } from "./estado-cliente";
 
 export const metadata: Metadata = { title: "Tablero" };
 
@@ -24,6 +26,7 @@ export default async function TableroPage() {
 
   const solicitudes = (data ?? []) as SolicitudResumen[];
   const conteos = contarPorBucket(solicitudes.map((s) => s.estado));
+  const completadas = solicitudes.filter((s) => accionCliente(s.estado).completada).length;
   // Nombre completo del perfil (sin el prefijo [DEMO]); el CSS se encarga de que
   // un nombre largo envuelva por palabras y, si no cabe, se acorte con elipsis
   // en dos líneas — nunca cortando una palabra a la mitad.
@@ -48,6 +51,8 @@ export default async function TableroPage() {
           evidencia o revisar observaciones.
         </p>
       </header>
+
+      <ProgresoReporte completadas={completadas} total={solicitudes.length} />
 
       <section aria-label="Resumen por estado">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
