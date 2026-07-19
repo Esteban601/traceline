@@ -68,9 +68,16 @@ export async function guardarSeccion(
 
   for (const p of preguntas) {
     const respuesta = texto(fd, `r_${p.orden}`);
-    const tipoDato = texto(fd, `t_${p.orden}`);
     const notas = texto(fd, `n_${p.orden}`);
-    if (respuesta == null && tipoDato == null && notas == null) {
+    // 22(b): el tipo de dato es fijo de la estructura oficial (catálogo). 36(e):
+    // se captura libre. El catálogo manda; el input libre solo aplica sin etiqueta.
+    const tipoLibre = p.tipoDatoLabel ? null : texto(fd, `t_${p.orden}`);
+    const tipoDato = p.tipoDatoLabel ?? tipoLibre;
+    // "Tiene datos" según contenido del usuario (respuesta/notas/tipo libre), NO
+    // según la etiqueta derivada del catálogo: una pregunta 22(b) sin responder no
+    // debe persistir una fila solo por su tipo fijo.
+    const tieneDatos = respuesta != null || notas != null || tipoLibre != null;
+    if (!tieneDatos) {
       aBorrar.push(p.orden); // sin datos: no dejar fila vacía
     } else {
       aGuardar.push({

@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { CUESTIONARIOS, type SeccionCuestionario } from "@/lib/cuestionarios";
+import {
+  CUESTIONARIOS,
+  BOOLEANO_OPCIONES,
+  SEPARADOR_ENUM,
+  type SeccionCuestionario,
+  type PreguntaCuestionario,
+} from "@/lib/cuestionarios";
 import { guardarSeccion, type CuestionarioState } from "./actions";
 
 export type RespuestaFila = {
@@ -194,61 +200,13 @@ function SeccionForm({
       {abierta && (
         <div className="space-y-5 border-t border-line px-5 py-5 sm:px-6">
           {seccion.preguntas.map((p) => (
-            <fieldset key={p.orden} className="space-y-2 border-b border-line/60 pb-5 last:border-0 last:pb-0">
-              <legend className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-ink">
-                  {p.orden}. {p.texto}
-                </span>
-                <span className="rounded-pill bg-ink/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
-                  {p.inciso}
-                </span>
-                {p.pendienteValidacion && (
-                  <span
-                    className="rounded-pill bg-ambar/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ambar"
-                    title="Redacción derivada de la norma; pendiente de validación manual contra el texto oficial."
-                  >
-                    Pendiente-validación
-                  </span>
-                )}
-              </legend>
-              <div>
-                <label className="sr-only" htmlFor={`${seccion.hoja}-r_${p.orden}`}>
-                  Respuesta
-                </label>
-                <textarea
-                  id={`${seccion.hoja}-r_${p.orden}`}
-                  value={c[`r_${p.orden}`] ?? ""}
-                  onChange={(e) => set(`r_${p.orden}`, e.target.value)}
-                  rows={2}
-                  placeholder="Respuesta…"
-                  className={areaCls}
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className={cn(labelCls, "text-xs")}>
-                    Tipo de dato <span className="font-normal text-muted">· opcional</span>
-                  </label>
-                  <input
-                    value={c[`t_${p.orden}`] ?? ""}
-                    onChange={(e) => set(`t_${p.orden}`, e.target.value)}
-                    placeholder="Cualitativo / Cuantitativo…"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className={cn(labelCls, "text-xs")}>
-                    Notas / Brechas <span className="font-normal text-muted">· opcional</span>
-                  </label>
-                  <input
-                    value={c[`n_${p.orden}`] ?? ""}
-                    onChange={(e) => set(`n_${p.orden}`, e.target.value)}
-                    placeholder="Nota o brecha…"
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-            </fieldset>
+            <PreguntaFieldset
+              key={p.orden}
+              seccion={seccion}
+              pregunta={p}
+              campos={c}
+              set={set}
+            />
           ))}
 
           <div className="flex justify-end border-t border-line pt-5">
@@ -259,5 +217,171 @@ function SeccionForm({
         </div>
       )}
     </form>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Una pregunta — control de respuesta según su tipo (texto / booleano / enum).
+// -----------------------------------------------------------------------------
+function PreguntaFieldset({
+  seccion,
+  pregunta: p,
+  campos: c,
+  set,
+}: {
+  seccion: SeccionCuestionario;
+  pregunta: PreguntaCuestionario;
+  campos: Campos;
+  set: (k: string, v: string) => void;
+}) {
+  const rKey = `r_${p.orden}`;
+  const valor = c[rKey] ?? "";
+  return (
+    <fieldset className="space-y-2.5 border-b border-line/60 pb-5 last:border-0 last:pb-0">
+      <legend className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-ink">
+          {p.orden}. {p.texto}
+        </span>
+        <span className="rounded-pill bg-ink/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
+          {p.inciso}
+        </span>
+      </legend>
+
+      {/* Respuesta — control por tipo de dato oficial */}
+      {p.control === "texto" && (
+        <textarea
+          value={valor}
+          onChange={(e) => set(rKey, e.target.value)}
+          rows={2}
+          placeholder="Respuesta…"
+          aria-label="Respuesta"
+          className={areaCls}
+        />
+      )}
+      {p.control === "booleano" && (
+        <ControlBooleano value={valor} onChange={(v) => set(rKey, v)} />
+      )}
+      {p.control === "enum_multi" && (
+        <ControlEnum
+          opciones={p.opciones ?? []}
+          value={valor}
+          onChange={(v) => set(rKey, v)}
+        />
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {p.tipoDatoLabel ? (
+          <div>
+            <span className={cn(labelCls, "text-xs")}>Tipo de dato</span>
+            <p className="mt-1.5 inline-flex h-11 items-center rounded-xl border border-dashed border-line bg-crema/20 px-3.5 text-sm text-muted">
+              {p.tipoDatoLabel}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className={cn(labelCls, "text-xs")}>
+              Tipo de dato <span className="font-normal text-muted">· opcional</span>
+            </label>
+            <input
+              value={c[`t_${p.orden}`] ?? ""}
+              onChange={(e) => set(`t_${p.orden}`, e.target.value)}
+              placeholder="Cualitativo / Cuantitativo…"
+              className={inputCls}
+            />
+          </div>
+        )}
+        <div>
+          <label className={cn(labelCls, "text-xs")}>
+            Notas / Brechas <span className="font-normal text-muted">· opcional</span>
+          </label>
+          <input
+            value={c[`n_${p.orden}`] ?? ""}
+            onChange={(e) => set(`n_${p.orden}`, e.target.value)}
+            placeholder="Nota o brecha…"
+            className={inputCls}
+          />
+        </div>
+      </div>
+    </fieldset>
+  );
+}
+
+// Toggle Verdadero / Falso. Clic en la opción activa la limpia (vuelve a sin responder).
+function ControlBooleano({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Verdadero o Falso"
+      className="inline-flex rounded-xl border border-line bg-crema/40 p-0.5"
+    >
+      {BOOLEANO_OPCIONES.map((op) => {
+        const activo = value === op;
+        return (
+          <button
+            key={op}
+            type="button"
+            role="radio"
+            aria-checked={activo}
+            onClick={() => onChange(activo ? "" : op)}
+            className={cn(
+              "rounded-lg px-5 py-2 text-sm font-medium transition duration-150",
+              activo ? "bg-teal text-crema shadow-soft" : "text-muted hover:text-ink"
+            )}
+          >
+            {op}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Selección múltiple (checkboxes). Serializa en el orden del catálogo.
+function ControlEnum({
+  opciones,
+  value,
+  onChange,
+}: {
+  opciones: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const seleccionadas = value
+    .split(SEPARADOR_ENUM)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const toggle = (op: string) => {
+    const activa = seleccionadas.includes(op);
+    const next = opciones.filter((o) =>
+      o === op ? !activa : seleccionadas.includes(o)
+    );
+    onChange(next.join(SEPARADOR_ENUM));
+  };
+  return (
+    <div className="space-y-2">
+      {opciones.map((op) => {
+        const checked = seleccionadas.includes(op);
+        return (
+          <label
+            key={op}
+            className="flex cursor-pointer items-center gap-2.5 text-sm text-ink"
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() => toggle(op)}
+              className="size-4 rounded border-line text-teal focus:ring-2 focus:ring-teal/40"
+            />
+            {op}
+          </label>
+        );
+      })}
+    </div>
   );
 }

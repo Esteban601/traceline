@@ -481,7 +481,10 @@ function escribirCuestionarios(
         ws.getCell(`B${fila}`).value = respuesta;
         escritas++;
       }
-      if (tipoDato) ws.getCell(`C${fila}`).value = tipoDato;
+      // Tipo de dato: fijo de la estructura oficial en 22(b) (se muestra aunque no
+      // haya respuesta); capturado libre en 36(e). El catálogo tiene prioridad.
+      const tipoC = p.tipoDatoLabel ?? tipoDato;
+      if (tipoC) ws.getCell(`C${fila}`).value = tipoC;
       // Notas/Brechas: la nota libre si la hay; si no hay respuesta, la brecha.
       const notaCelda = notas ?? (respuesta ? null : NOTA_CUEST_PENDIENTE);
       if (notaCelda) ws.getCell(`D${fila}`).value = notaCelda;

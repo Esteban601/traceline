@@ -744,46 +744,52 @@ insert into public.objetivos_detalle (
 -- 16. Fase 3, Sprint 4 — Cuestionarios narrativos (DEMO) ----------------------
 --     Alimentan 3 hojas: S2 22(b)(i)/(ii) y 36(e). Grados de avance distintos
 --     para demostrar cómo el export refleja las brechas:
---       · 'S2 22(b)(i)'  COMPLETO  — 7 de 7 respondidas.
---       · 'S2 22(b)(ii)' A MEDIAS  — 3 de 5 (las 4 y 5 quedan 'Pendiente en plataforma').
+--       · 'S2 22(b)(i)'  COMPLETO  — 8 de 8 respondidas (incluye booleanos y
+--                                    enumeraciones múltiples).
+--       · 'S2 22(b)(ii)' A MEDIAS  — 4 de 6 (orden 5 y 6 quedan 'Pendiente en plataforma').
 --       · 'S2 36(e)'     2 de 5    — solo (i) y (ii); (iii)-(iv) quedan pendientes.
---     Las preguntas NO viven en BD: son fijas de la plantilla (lib/cuestionarios.ts);
---     aquí solo la respuesta, ligada por (hoja, pregunta_orden).
+--     Las preguntas NO viven en BD: son fijas de la estructura oficial
+--     (lib/cuestionarios.ts); aquí solo la respuesta (serializada: "Verdadero"/
+--     "Falso" para booleanos, opciones unidas por "; " para enumeraciones), el
+--     tipo de dato (fijo del catálogo en 22(b), libre en 36(e)) y la nota.
 insert into public.cuestionarios_respuestas
   (reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas) values
-  -- S2 22(b)(i) — insumos del análisis de escenarios (COMPLETO 7/7)
+  -- S2 22(b)(i) — cómo/cuándo + insumos (COMPLETO 8/8)
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 1,
-   'Escenarios AIE NZE 2050, NGFS Transición Ordenada y NGFS Políticas Actuales; fuentes: Agencia Internacional de la Energía y NGFS (fase IV).',
-   'Cualitativo', null),
+   'El análisis se llevó a cabo en el segundo semestre de 2024 mediante modelación cuantitativa de escenarios, con actualización anual.',
+   'Bloque de texto', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 2,
-   'Sí; se incluyeron tres escenarios que abarcan una transición ordenada, una desordenada y una de altas emisiones.',
-   'Cualitativo', null),
+   'Escenarios AIE NZE 2050, NGFS Transición Ordenada y NGFS Políticas Actuales; fuentes: Agencia Internacional de la Energía y NGFS (fase IV).',
+   'Bloque de texto', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 3,
-   'Los escenarios utilizados cubren tanto riesgos climáticos de transición como riesgos climáticos físicos.',
-   'Cualitativo', null),
+   'Verdadero', 'Booleano', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 4,
-   'Sí; el escenario AIE NZE 2050 está alineado con la meta de 1.5 °C del Acuerdo de París.',
-   'Cualitativo', null),
+   'Riesgos físicos relacionados con el clima; Riesgos de transición relacionados con el clima',
+   'Enumeración', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 5,
-   'Representan el rango plausible de trayectorias regulatorias y físicas relevantes para los mercados en los que opera la entidad.',
-   'Cualitativo', null),
+   'Verdadero', 'Booleano', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 6,
-   'Corto plazo (2025-2027), mediano plazo (2028-2035) y largo plazo (2036-2050).',
-   'Cuantitativo', null),
+   'Representan el rango plausible de trayectorias regulatorias y físicas relevantes para los mercados en los que opera la entidad.',
+   'Bloque de texto', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 7,
+   'Corto plazo; Mediano plazo; Largo plazo', 'Enumeración', null),
+  ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(i)', 8,
    'Todas las operaciones propias y los centros de distribución consolidados.',
-   'Cualitativo', null),
-  -- S2 22(b)(ii) — supuestos clave (A MEDIAS 3/5; faltan orden 4 y 5)
+   'Bloque de texto', null),
+  -- S2 22(b)(ii) — supuestos clave (A MEDIAS 4/6; faltan orden 5 y 6)
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(ii)', 1,
    'Implementación gradual de un precio al carbono en las jurisdicciones principales a partir de 2027.',
-   'Cualitativo', null),
+   'Bloque de texto', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(ii)', 2,
    'Crecimiento del PIB de 2% anual y convergencia de la inflación al objetivo del banco central.',
-   'Cuantitativo', null),
+   'Bloque de texto', null),
   ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(ii)', 3,
    'Mayor frecuencia de sequías en la región norte y elevación del nivel del mar en la costa del golfo.',
-   'Cualitativo', 'Falta cerrar el supuesto de disponibilidad de agua con Operaciones.'),
-  -- S2 36(e) — créditos de carbono (2 de 5; solo (i) y (ii))
+   'Bloque de texto', 'Falta cerrar el supuesto de disponibilidad de agua con Operaciones.'),
+  ('20000000-0000-0000-0000-000000000001', 'S2 22(b)(ii)', 4,
+   'Transición gradual hacia fuentes renovables; 40% de energía limpia en la matriz al 2030.',
+   'Bloque de texto', null),
+  -- S2 36(e) — créditos de carbono (2 de 5; solo (i) y (ii); tipo de dato libre)
   ('20000000-0000-0000-0000-000000000001', 'S2 36(e)', 1,
    'El objetivo de emisiones netas prevé el uso de créditos de carbono para no más del 10% de las reducciones al 2030.',
    'Cuantitativo', null),

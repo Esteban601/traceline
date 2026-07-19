@@ -213,21 +213,43 @@ async function main() {
   const c36e = wb.getWorksheet("NIIF S2 36(e)(i)-(iv)");
   const PEND = "Pendiente en plataforma";
 
-  console.log("\nCuestionarios — S2 22(b)(i) (completo 7/7):");
-  ok(cellText(c22bi, "A3").length > 0, "S2 22(b)(i): A3 tiene la pregunta");
+  console.log("\nCuestionarios — S2 22(b)(i) (completo 8/8; booleano + enumeración):");
+  ok(
+    cellText(c22bi, "A3").includes("cómo y cuándo"),
+    "S2 22(b)(i): A3 = pregunta inicial 'cómo y cuándo'"
+  );
   ok(cellText(c22bi, "B3").length > 0, "S2 22(b)(i): B3 tiene respuesta");
-  ok(cellText(c22bi, "B9").length > 0, "S2 22(b)(i): B9 (7.ª pregunta) tiene respuesta");
+  ok(cellText(c22bi, "B5") === "Verdadero", "S2 22(b)(i): B5 (booleano) = 'Verdadero'");
+  ok(cellText(c22bi, "C5") === "Booleano", "S2 22(b)(i): C5 (tipo de dato) = 'Booleano'");
+  ok(
+    cellText(c22bi, "B6").includes("Riesgos físicos") &&
+      cellText(c22bi, "B6").includes("Riesgos de transición"),
+    "S2 22(b)(i): B6 (enumeración) lista ambos tipos de riesgo"
+  );
+  ok(cellText(c22bi, "C6") === "Enumeración", "S2 22(b)(i): C6 (tipo de dato) = 'Enumeración'");
+  ok(
+    cellText(c22bi, "B9") === "Corto plazo; Mediano plazo; Largo plazo",
+    "S2 22(b)(i): B9 (horizontes) = enumeración de los 3 plazos"
+  );
+  ok(
+    cellText(c22bi, "A10").includes("(por ejemplo") && cellText(c22bi, "B10").length > 0,
+    "S2 22(b)(i): A10 (alcance) incluye el ejemplo oficial y B10 tiene respuesta"
+  );
   let pendBi = false;
-  for (let r = 3; r <= 9; r++) if (cellText(c22bi, `D${r}`) === PEND) pendBi = true;
-  ok(!pendBi, "S2 22(b)(i): sin brechas 'Pendiente en plataforma' (completo)");
+  for (let r = 3; r <= 10; r++) if (cellText(c22bi, `D${r}`) === PEND) pendBi = true;
+  ok(!pendBi, "S2 22(b)(i): sin brechas 'Pendiente en plataforma' (completo 8/8)");
 
-  console.log("\nCuestionarios — S2 22(b)(ii) (a medias 3/5, muestra brechas):");
+  console.log("\nCuestionarios — S2 22(b)(ii) (a medias 4/6, muestra brechas):");
   ok(cellText(c22bii, "B3").length > 0, "S2 22(b)(ii): B3 tiene respuesta");
   ok(
-    cellText(c22bii, "D6") === PEND && cellText(c22bii, "D7") === PEND,
-    "S2 22(b)(ii): D6 y D7 (preguntas 4 y 5) = 'Pendiente en plataforma'"
+    cellText(c22bii, "A5").includes("patrones climáticos locales"),
+    "S2 22(b)(ii): A5 (variables) incluye los ejemplos oficiales"
   );
-  ok(cellText(c22bii, "B6") === "", "S2 22(b)(ii): B6 (pregunta 4 sin responder) VACÍA");
+  ok(
+    cellText(c22bii, "D7") === PEND && cellText(c22bii, "D8") === PEND,
+    "S2 22(b)(ii): D7 y D8 (preguntas 5 y 6) = 'Pendiente en plataforma'"
+  );
+  ok(cellText(c22bii, "B7") === "", "S2 22(b)(ii): B7 (pregunta 5 sin responder) VACÍA");
 
   console.log("\nCuestionarios — S2 36(e) (2 de 5; preguntas verbatim de plantilla):");
   ok(cellText(c36e, "A3").length > 0, "S2 36(e): A3 conserva la pregunta impresa");
