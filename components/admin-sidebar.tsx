@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/app";
 import { logout } from "@/app/login/actions";
 import { LogoutButton } from "@/components/logout-button";
@@ -119,7 +119,18 @@ function Icono({ tipo }: { tipo: NavKey }) {
 export function AdminSidebar({ perfil }: { perfil: PerfilActual }) {
   const pathname = usePathname();
   const activa = claveActiva(pathname);
+  // Por defecto EXPANDIDO en desktop; se colapsa solo si el usuario lo elige, y
+  // esa elección persiste (localStorage). Se lee tras montar para no romper SSR.
   const [colapsado, setColapsado] = useState(false);
+  useEffect(() => {
+    if (localStorage.getItem("admin-sidebar-colapsado") === "1") setColapsado(true);
+  }, []);
+  const alternarColapso = () =>
+    setColapsado((v) => {
+      const next = !v;
+      localStorage.setItem("admin-sidebar-colapsado", next ? "1" : "0");
+      return next;
+    });
 
   // Ancho: rail de íconos en móvil siempre; en md+, según el toggle.
   const ancho = colapsado ? "w-16 md:w-16" : "w-16 md:w-60";
@@ -173,7 +184,7 @@ export function AdminSidebar({ perfil }: { perfil: PerfilActual }) {
                       <Link
                         href={it.href}
                         aria-current={activo ? "page" : undefined}
-                        title={colapsado ? it.label : undefined}
+                        title={it.label}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition duration-150",
                           colapsado ? "md:justify-center" : "justify-center md:justify-start",
@@ -197,9 +208,10 @@ export function AdminSidebar({ perfil }: { perfil: PerfilActual }) {
       {/* Colapsar (solo desktop) */}
       <button
         type="button"
-        onClick={() => setColapsado((v) => !v)}
+        onClick={alternarColapso}
         className="mx-2.5 mb-1.5 hidden items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-crema/70 transition duration-150 hover:bg-crema/10 hover:text-crema md:flex"
         aria-label={colapsado ? "Expandir menú" : "Colapsar menú"}
+        title={colapsado ? "Expandir menú" : "Colapsar menú"}
       >
         <svg aria-hidden viewBox="0 0 24 24" className={cn("size-5 shrink-0 transition-transform duration-200", colapsado && "rotate-180")} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 6l-6 6 6 6" />

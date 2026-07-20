@@ -20,6 +20,8 @@ const inputClass =
   "h-11 w-full rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50 focus:bg-surface";
 
 /** Paso numerado dentro de la misma tarjeta (no wizard de páginas). */
+// Ancho del carril de contenido = círculo (size-8 = 2rem) + gap-4 (1rem) = 3rem.
+// El botón Enviar se alinea a este mismo carril con un espaciador equivalente.
 function Paso({
   n,
   titulo,
@@ -32,17 +34,17 @@ function Paso({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-3.5">
+    <div className="flex gap-4">
       <span
         aria-hidden
-        className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-teal text-xs font-semibold text-crema"
+        className="grid size-8 shrink-0 place-items-center rounded-full bg-teal text-sm font-semibold text-crema"
       >
         {n}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-ink">{titulo}</p>
+        <p className="pt-1 text-sm font-semibold text-ink">{titulo}</p>
         {ayuda && <p className="mt-0.5 text-xs leading-relaxed text-muted">{ayuda}</p>}
-        <div className="mt-2.5">{children}</div>
+        <div className="mt-3">{children}</div>
       </div>
     </div>
   );
@@ -162,7 +164,7 @@ export function UploadEvidencia({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-8">
       {validado && (
         <div className="rounded-lg border border-gold/30 bg-gold/10 px-3.5 py-2.5 text-sm text-ink">
           Esta solicitud ya quedó <strong>validada</strong>. Si subes una versión
@@ -398,10 +400,14 @@ export function UploadEvidencia({
         </p>
       )}
 
-      <div className="flex justify-end">
-        <Button type="submit" loading={pending} disabled={!file}>
-          {estado === "observaciones" ? "Reenviar" : "Enviar"}
-        </Button>
+      {/* Enviar, alineado al carril de contenido (mismo indent que los pasos) */}
+      <div className="flex gap-4">
+        <span className="size-8 shrink-0" aria-hidden />
+        <div className="flex flex-1 justify-end">
+          <Button type="submit" loading={pending} disabled={!file}>
+            {estado === "observaciones" ? "Reenviar" : "Enviar"}
+          </Button>
+        </div>
       </div>
     </form>
   );

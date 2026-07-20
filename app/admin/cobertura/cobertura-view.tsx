@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -357,64 +357,59 @@ function KpiCobertura({
   );
 }
 
-/** ¿El usuario pidió reducir movimiento? Gobierna la animación de trazo. */
-function usePrefiereMenosMovimiento(): boolean {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduce(mq.matches);
-    const on = () => setReduce(mq.matches);
-    mq.addEventListener?.("change", on);
-    return () => mq.removeEventListener?.("change", on);
-  }, []);
-  return reduce;
-}
+// Geometría del anillo (r constante → circunferencia constante, reutilizable en
+// el keyframe compartido). viewBox 80×80, trazo de 6.
+const ANILLO_R = 32;
+const ANILLO_C = 2 * Math.PI * ANILLO_R;
 
-/** Anillo de progreso SVG (trazo fino, editorial). Anima el trazo al montar. */
+// Animación de trazo por CSS (no depende de JS: el arco se dibuja en SSR con su
+// strokeDashoffset final y el keyframe solo lo "entra" al cargar). El keyframe
+// parte de vacío (offset = circunferencia) hacia el valor de reposo del elemento.
+const ANILLO_STYLE = `
+  @keyframes dibujar-anillo { from { stroke-dashoffset: ${ANILLO_C.toFixed(3)}px; } }
+  .anillo-arco { animation: dibujar-anillo 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @media (prefers-reduced-motion: reduce) { .anillo-arco { animation: none; } }
+`;
+
+/** Anillo de progreso SVG (trazo fino, editorial). Dibuja sin JS; anima al cargar. */
 function Anillo({ cubierto, total, label }: { cubierto: number; total: number; label: string }) {
   const porcentaje = total === 0 ? 0 : Math.round((cubierto / total) * 100);
-  const r = 26;
-  const C = 2 * Math.PI * r;
-  const objetivo = C * (1 - porcentaje / 100);
-  const reduce = usePrefiereMenosMovimiento();
-  const [offset, setOffset] = useState(C); // arranca vacío
-  useEffect(() => {
-    if (reduce) {
-      setOffset(objetivo);
-      return;
-    }
-    const id = requestAnimationFrame(() => setOffset(objetivo));
-    return () => cancelAnimationFrame(id);
-  }, [objetivo, reduce]);
-
+  const objetivo = ANILLO_C * (1 - porcentaje / 100); // dashoffset final (reposo)
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="relative size-16">
-        <svg viewBox="0 0 64 64" className="size-16" role="img" aria-label={`${label}: ${porcentaje}% cubierto`}>
-          <g transform="rotate(-90 32 32)">
-            <circle cx="32" cy="32" r={r} fill="none" strokeWidth="5" style={{ stroke: "var(--color-line)" }} />
-            <circle
-              cx="32"
-              cy="32"
-              r={r}
-              fill="none"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray={C}
-              strokeDashoffset={offset}
-              style={{
-                stroke: "var(--color-teal)",
-                transition: reduce ? undefined : "stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            />
+      <div className="relative size-20">
+        <svg
+          viewBox="0 0 80 80"
+          width="80"
+          height="80"
+          className="size-20"
+          role="img"
+          aria-label={`${label}: ${porcentaje}% cubierto`}
+        >
+          <g transform="rotate(-90 40 40)">
+            <circle cx="40" cy="40" r={ANILLO_R} fill="none" strokeWidth="6" style={{ stroke: "var(--color-line)" }} />
+            {porcentaje > 0 && (
+              <circle
+                className="anillo-arco"
+                cx="40"
+                cy="40"
+                r={ANILLO_R}
+                fill="none"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={ANILLO_C}
+                strokeDashoffset={objetivo}
+                style={{ stroke: "var(--color-teal)" }}
+              />
+            )}
           </g>
         </svg>
-        <span className="absolute inset-0 grid place-items-center font-display text-sm font-semibold tabular-nums text-ink">
+        <span className="absolute inset-0 grid place-items-center font-display text-base font-semibold tabular-nums text-ink">
           {porcentaje}%
         </span>
       </div>
-      <span className="text-xs font-medium text-muted">{label}</span>
-      <span className="text-[11px] tabular-nums text-muted/70">
+      <span className="text-sm font-medium text-muted">{label}</span>
+      <span className="text-xs tabular-nums text-muted/70">
         {cubierto}/{total}
       </span>
     </div>
@@ -433,9 +428,10 @@ function AnillosCobertura({
   return (
     <section
       aria-label="Avance de cobertura por pilar"
-      className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5 rounded-card border border-line bg-surface px-5 py-5 shadow-soft sm:px-6"
+      className="flex flex-wrap items-center justify-between gap-x-8 gap-y-6 rounded-card border border-line bg-surface px-5 py-6 shadow-soft sm:px-6"
     >
-      <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+      <style>{ANILLO_STYLE}</style>
+      <div className="grid grid-cols-2 gap-6 sm:flex sm:flex-wrap sm:items-start sm:gap-10">
         {anillos.map((a) => (
           <Anillo key={a.key} cubierto={a.cubierto} total={a.total} label={a.label} />
         ))}
