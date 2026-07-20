@@ -28,7 +28,7 @@ export function accionCliente(estado: EstadoSolicitud): AccionCliente {
     case "pendiente":
     case "solicitado":
       return {
-        titulo: "Te toca subir información",
+        titulo: "Pendiente de tu información",
         tono: "ambar",
         esperaCarga: true,
         completada: false,

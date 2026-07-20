@@ -102,11 +102,7 @@ export function UploadEvidencia({
       setCapturaEditable(false);
       setJustificacion("");
       if (inputRef.current) inputRef.current.value = "";
-      toast.success(
-        state.version != null
-          ? `Listo — guardamos tu archivo como versión v${state.version}.`
-          : "Listo — guardamos tu archivo."
-      );
+      toast.success("Listo — recibimos tu archivo. Queda como la versión vigente.");
       if (state.error) toast.error(state.error); // captura parcial
     } else if (state.error) {
       toast.error(state.error);
@@ -147,7 +143,7 @@ export function UploadEvidencia({
     }
     if (justObligatoria && justificacion.trim().length < 20) {
       setLocalError(
-        "Cuéntanos brevemente qué cambió (al menos 20 caracteres): volveremos a revisarlo."
+        "Cuéntanos en una frase qué cambió, para revisarlo de nuevo."
       );
       return;
     }
