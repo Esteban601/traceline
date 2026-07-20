@@ -13,9 +13,9 @@ export const APP_URL = (
 ).replace(/\/+$/, "");
 
 /**
- * ¿Estamos en el ambiente de staging/demostración? Se activa con STAGING=true
- * (config var solo en Heroku). En local queda false → sin banner ni noindex, sin
- * cambio de comportamiento. Es una variable de servidor (no NEXT_PUBLIC): solo se
- * lee en componentes/metadata de servidor.
+ * ¿Estamos en el ambiente de staging/demostración? Se activa con
+ * NEXT_PUBLIC_STAGING=true (config var solo en Heroku). En local queda false → sin
+ * banner ni noindex, sin cambio de comportamiento. Es NEXT_PUBLIC (se inlinea en
+ * build) para poder leerse tanto en servidor como en cliente si hiciera falta.
  */
-export const IS_STAGING = process.env.STAGING === "true";
+export const IS_STAGING = process.env.NEXT_PUBLIC_STAGING === "true";
