@@ -148,28 +148,121 @@ export default async function SolicitudStaffPage({
     email: string;
   } | null;
 
+  const puedeEditar = puedeEditarSolicitud(estado);
+  const puedeEliminar = puedeEliminarSolicitud(estado, evs.length > 0);
+  const ultimaEv = evs[0] ?? null;
+  // Cifra vigente: la confirmada más reciente; si ninguna, la última capturada.
+  const capVigente = caps.find((c) => c.confirmado) ?? caps[0] ?? null;
+  const ultimaObs = [...coms].reverse().find((c) => c.es_observacion) ?? null;
+  const fraseVigente = capVigente
+    ? `${fmtNum.format(capVigente.valor)} ${capVigente.unidad}` +
+      (capVigente.periodo ? ` en ${capVigente.periodo}` : "") +
+      ` — capturado por ${limpiar(capVigente.capturado?.nombre)}` +
+      (capVigente.evidencia ? `, respaldado por la versión ${capVigente.evidencia.version}` : "")
+    : null;
+
+  const linkEditar = (
+    <Link
+      href={`/admin/solicitudes/${sol.id}/editar`}
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
+    >
+      <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+      </svg>
+      Editar solicitud
+    </Link>
+  );
+
+  const descargar = (evId: string) => (
+    <a
+      href={`/portal/descargar/${evId}`}
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
+    >
+      <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 4v12M6 10l6 6 6-6" />
+        <path d="M4 20h16" />
+      </svg>
+      Descargar
+    </a>
+  );
+
+  // Contexto de "acción ahora" según estado (lo que el revisor necesita a la vista).
+  const contexto =
+    estado === "observaciones" && ultimaObs ? (
+      <div className="space-y-3">
+        <div className="rounded-xl border border-rojo/30 bg-rojo/5 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-rojo">
+            Última observación
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+            {ultimaObs.contenido}
+          </p>
+          <p className="mt-1.5 text-xs text-muted">
+            {limpiar(ultimaObs.autor?.nombre)} · {fmtFechaHora(ultimaObs.created_at)}
+          </p>
+        </div>
+        {ultimaEv && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-crema/30 p-4">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                Respuesta del cliente — última evidencia
+              </p>
+              <p className="mt-1 truncate text-sm font-medium text-ink">
+                v{ultimaEv.version} · {ultimaEv.nombre_original}
+              </p>
+            </div>
+            {descargar(ultimaEv.id)}
+          </div>
+        )}
+      </div>
+    ) : ultimaEv ? (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-crema/30 p-4">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              Última evidencia
+            </p>
+            <p className="mt-1 truncate text-sm font-medium text-ink">
+              v{ultimaEv.version} · {ultimaEv.nombre_original}
+            </p>
+            <p className="text-xs text-muted">
+              {limpiar(ultimaEv.subio?.nombre)} · {fmtFechaHora(ultimaEv.created_at)}
+            </p>
+          </div>
+          {descargar(ultimaEv.id)}
+        </div>
+        {fraseVigente && (
+          <p className="text-sm text-ink">
+            <span className="text-muted">Cifra vigente: </span>
+            <span className="font-medium">{fraseVigente}</span>
+          </p>
+        )}
+      </div>
+    ) : (
+      <p className="rounded-xl border border-dashed border-line bg-crema/30 px-4 py-4 text-sm text-muted">
+        Aún sin evidencia del cliente.
+      </p>
+    );
+
   return (
     <div className="space-y-8">
-      <div className="space-y-3">
-        <Breadcrumb
-          items={[
-            { label: "Panel", href: "/admin" },
-            { label: "Matriz", href: "/admin" },
-            { label: sol.titulo },
-          ]}
-        />
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition duration-150 hover:text-teal"
-        >
-          <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Volver a la matriz
-        </Link>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: "Panel", href: "/admin" },
+          { label: "Matriz", href: "/admin" },
+          { label: sol.titulo },
+        ]}
+      />
 
+      {/* ===================== PRINCIPAL ===================== */}
       <header className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+            {sol.titulo}
+          </h1>
+          {puedeEditar && linkEditar}
+        </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <EstadoBadge estado={estado} />
           {sol.area_asignada && <Chip>{sol.area_asignada}</Chip>}
@@ -179,9 +272,6 @@ export default async function SolicitudStaffPage({
             </Chip>
           )}
         </div>
-        <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
-          {sol.titulo}
-        </h1>
         {sol.descripcion && (
           <p className="max-w-2xl text-sm leading-relaxed text-muted">{sol.descripcion}</p>
         )}
@@ -212,9 +302,7 @@ export default async function SolicitudStaffPage({
 
         {datapoints.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-xs uppercase tracking-wide text-muted">
-              Datapoints ligados
-            </span>
+            <span className="text-xs uppercase tracking-wide text-muted">Datapoints ligados</span>
             {datapoints.map((d) => (
               <span
                 key={d.codigo}
@@ -231,10 +319,7 @@ export default async function SolicitudStaffPage({
       {discrepanciasSol.length > 0 && (
         <div className="space-y-3">
           {discrepanciasSol.map((d, i) => (
-            <div
-              key={i}
-              className="rounded-card border border-rojo/30 bg-rojo/5 p-4 sm:p-5"
-            >
+            <div key={i} className="rounded-card border border-rojo/30 bg-rojo/5 p-4 sm:p-5">
               <div className="flex items-start gap-2.5">
                 <span aria-hidden className="mt-0.5 text-rojo">
                   <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -243,14 +328,11 @@ export default async function SolicitudStaffPage({
                   </svg>
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-rojo">
-                    Discrepancia entre áreas
-                  </p>
+                  <p className="text-sm font-semibold text-rojo">Discrepancia entre áreas</p>
                   <p className="mt-0.5 text-sm text-ink/90">
-                    Dos solicitudes reportan valores distintos para el mismo
-                    datapoint, con la misma unidad
-                    {d.periodo ? ` y periodo (${d.periodo})` : ""}. Revisa cuál es
-                    el correcto antes de validar.
+                    Dos solicitudes reportan valores distintos para el mismo datapoint, con
+                    la misma unidad{d.periodo ? ` y periodo (${d.periodo})` : ""}. Revisa cuál
+                    es el correcto antes de validar.
                   </p>
                 </div>
               </div>
@@ -298,239 +380,200 @@ export default async function SolicitudStaffPage({
         </div>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-10">
-          {/* Historial de evidencias */}
-          <section className="space-y-4">
-            <h2 className="font-display text-xl font-semibold text-ink">
-              Historial de evidencias
-            </h2>
-            {evs.length === 0 ? (
-              <EmptyState
-                compacto
-                glifo="↑"
-                titulo="Aún sin evidencia"
-                descripcion="El cliente todavía no ha cargado archivos para esta solicitud."
-              />
-            ) : (
-              <ul className="space-y-3">
-                {evs.map((ev, i) => (
-                  <li
-                    key={ev.id}
-                    className="rounded-card border border-line bg-surface p-4 shadow-soft sm:p-5"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={
-                            "grid size-10 shrink-0 place-items-center rounded-lg font-display text-sm font-semibold " +
-                            (i === 0 ? "bg-teal text-crema" : "bg-teal/10 text-teal")
-                          }
-                        >
-                          v{ev.version}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium text-ink">
-                              {ev.nombre_original}
+      {/* Acción ahora: lo que requiere el revisor, con su contexto */}
+      <section className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
+        <h2 className="font-display text-lg font-semibold text-ink">Acción ahora</h2>
+        <p className="mt-1 text-sm text-muted">
+          Revisión interna de IRStrat. Cada cambio queda en la bitácora.
+        </p>
+        <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0">{contexto}</div>
+          <div className="lg:border-l lg:border-line lg:pl-6">
+            <AccionesStaff
+              solicitudId={sol.id}
+              estadoActual={estado}
+              responsable={responsable ? limpiar(responsable.nombre) : null}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== SECUNDARIO ===================== */}
+      <div className="space-y-8 border-t border-line pt-8">
+        {/* Historial completo de evidencias */}
+        <section className="space-y-4">
+          <h2 className="font-display text-xl font-semibold text-ink">
+            Historial completo de evidencias
+          </h2>
+          {evs.length === 0 ? (
+            <EmptyState
+              compacto
+              glifo="↑"
+              titulo="Aún sin evidencia"
+              descripcion="El cliente todavía no ha cargado archivos para esta solicitud."
+            />
+          ) : (
+            <ul className="space-y-3">
+              {evs.map((ev, i) => (
+                <li key={ev.id} className="rounded-card border border-line bg-surface p-4 shadow-soft sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className={"grid size-10 shrink-0 place-items-center rounded-lg font-display text-sm font-semibold " + (i === 0 ? "bg-teal text-crema" : "bg-teal/10 text-teal")}>
+                        v{ev.version}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium text-ink">{ev.nombre_original}</span>
+                          {i === 0 && (
+                            <span className="rounded-pill bg-verde/10 px-2 py-0.5 text-[11px] font-medium text-verde">
+                              Actual
                             </span>
-                            {i === 0 && (
-                              <span className="rounded-pill bg-verde/10 px-2 py-0.5 text-[11px] font-medium text-verde">
-                                Actual
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-                            {ev.periodo_cubierto && <span>Periodo: {ev.periodo_cubierto}</span>}
-                            {ev.area_origen && <span>Origen: {ev.area_origen}</span>}
-                            <span>Por {limpiar(ev.subio?.nombre)}</span>
-                            <span>{fmtFechaHora(ev.created_at)}</span>
-                          </div>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                          {ev.periodo_cubierto && <span>Periodo: {ev.periodo_cubierto}</span>}
+                          {ev.area_origen && <span>Origen: {ev.area_origen}</span>}
+                          <span>Por {limpiar(ev.subio?.nombre)}</span>
+                          <span>{fmtFechaHora(ev.created_at)}</span>
                         </div>
                       </div>
-                      <a
-                        href={`/portal/descargar/${ev.id}`}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
-                      >
-                        <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 4v12M6 10l6 6 6-6" />
-                          <path d="M4 20h16" />
-                        </svg>
-                        Descargar
-                      </a>
                     </div>
-                    {ev.justificacion && (
-                      <div className="mt-3 border-t border-line pt-3">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gold">
-                          Justificación del ajuste
-                        </p>
-                        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
-                          {ev.justificacion}
-                        </p>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Valores capturados */}
-          {sol.es_cuantitativa && (
-            <section className="space-y-4">
-              <h2 className="font-display text-xl font-semibold text-ink">
-                Valores capturados
-              </h2>
-              {caps.length === 0 ? (
-                <EmptyState compacto glifo="#" titulo="Sin capturas de valor todavía." />
-              ) : (
-                <div className="overflow-hidden rounded-card border border-line bg-surface shadow-soft">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                          <th className="px-4 py-2.5 font-medium">Valor</th>
-                          <th className="px-4 py-2.5 font-medium">Unidad</th>
-                          <th className="px-4 py-2.5 font-medium">Periodo</th>
-                          <th className="px-4 py-2.5 font-medium">Soporte</th>
-                          <th className="px-4 py-2.5 font-medium">Capturado por</th>
-                          <th className="px-4 py-2.5 font-medium">Fecha</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {caps.map((c) => (
-                          <tr
-                            key={c.id}
-                            className="border-b border-line/70 last:border-0"
-                          >
-                            <td className="px-4 py-2.5">
-                              <span
-                                className={
-                                  "font-semibold tabular-nums " +
-                                  (c.confirmado ? "text-ink" : "text-gris line-through")
-                                }
-                              >
-                                {fmtNum.format(c.valor)}
-                              </span>
-                              {!c.confirmado && (
-                                <span className="ml-2 text-xs text-muted">(superada)</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2.5 text-muted">{c.unidad}</td>
-                            <td className="px-4 py-2.5 text-muted">{c.periodo ?? "—"}</td>
-                            <td className="px-4 py-2.5 text-muted">
-                              {c.evidencia ? `v${c.evidencia.version}` : "—"}
-                            </td>
-                            <td className="px-4 py-2.5 text-muted">
-                              {limpiar(c.capturado?.nombre)}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-2.5 text-muted">
-                              {fmtFechaHora(c.created_at)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {descargar(ev.id)}
                   </div>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Conversación / observaciones */}
-          <section className="space-y-4">
-            <h2 className="font-display text-xl font-semibold text-ink">Conversación</h2>
-            {coms.length === 0 ? (
-              <EmptyState compacto glifo="“" titulo="Sin comentarios todavía." />
-
-            ) : (
-              <ul className="space-y-3">
-                {coms.map((c) => (
-                  <li
-                    key={c.id}
-                    className={
-                      "rounded-card border p-4 " +
-                      (c.es_observacion
-                        ? "border-rojo/30 bg-rojo/5"
-                        : "border-line bg-surface shadow-soft")
-                    }
-                  >
-                    <div className="mb-1.5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-ink">
-                          {limpiar(c.autor?.nombre)}
-                        </span>
-                        {c.es_observacion && (
-                          <span className="rounded-pill bg-rojo/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-rojo">
-                            Observación
-                          </span>
-                        )}
-                      </div>
-                      <time className="text-xs text-muted">
-                        {fmtFechaHora(c.created_at)}
-                      </time>
+                  {ev.justificacion && (
+                    <div className="mt-3 border-t border-line pt-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gold">
+                        Justificación del ajuste
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+                        {ev.justificacion}
+                      </p>
                     </div>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
-                      {c.contenido}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-          {/* Bitácora de la solicitud */}
+        {/* Valores capturados — cifra vigente como frase + historial colapsable */}
+        {sol.es_cuantitativa && (
           <section className="space-y-4">
-            <h2 className="font-display text-xl font-semibold text-ink">
-              Bitácora de la solicitud
-            </h2>
-            <div className="rounded-card border border-line bg-surface p-5 shadow-soft sm:p-6">
-              <Timeline eventos={eventos} />
-            </div>
-          </section>
-        </div>
-
-        {/* Aside: acciones de staff */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-card border border-line bg-surface p-5 shadow-card">
-            <h2 className="font-display text-lg font-semibold text-ink">Acciones</h2>
-            <p className="mt-1 text-sm text-muted">
-              Revisión interna de IRStrat. Cada cambio queda en la bitácora.
-            </p>
-            <div className="mt-5">
-              <AccionesStaff
-                solicitudId={sol.id}
-                estadoActual={estado}
-                responsable={responsable ? limpiar(responsable.nombre) : null}
-              />
-            </div>
-          </div>
-
-          {/* Gestión: editar / eliminar */}
-          {(puedeEditarSolicitud(estado) ||
-            puedeEliminarSolicitud(estado, evs.length > 0)) && (
-            <div className="mt-4 rounded-card border border-line bg-surface p-5 shadow-soft">
-              <h2 className="font-display text-base font-semibold text-ink">Gestión</h2>
-              <div className="mt-3 flex flex-col gap-3">
-                {puedeEditarSolicitud(estado) && (
-                  <Link
-                    href={`/admin/solicitudes/${sol.id}/editar`}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-teal transition duration-150 hover:text-teal-dark"
-                  >
-                    <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                    </svg>
-                    Editar solicitud
-                  </Link>
-                )}
-                {puedeEliminarSolicitud(estado, evs.length > 0) && (
-                  <EliminarSolicitud solicitudId={sol.id} titulo={sol.titulo} />
+            <h2 className="font-display text-xl font-semibold text-ink">Valores capturados</h2>
+            {caps.length === 0 ? (
+              <EmptyState compacto glifo="#" titulo="Sin capturas de valor todavía." />
+            ) : (
+              <div className="rounded-card border border-line bg-surface p-5 shadow-soft sm:p-6">
+                <p className="text-lg text-ink">
+                  <span className="font-display text-2xl font-semibold tabular-nums text-teal">
+                    {fmtNum.format(capVigente.valor)} {capVigente.unidad}
+                  </span>
+                  {capVigente.periodo ? (
+                    <span className="text-ink"> en {capVigente.periodo}</span>
+                  ) : null}
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  Capturado por {limpiar(capVigente.capturado?.nombre)}
+                  {capVigente.evidencia
+                    ? `, respaldado por la versión ${capVigente.evidencia.version}`
+                    : ""}
+                  .
+                </p>
+                {caps.length > 1 && (
+                  <details className="group mt-4 border-t border-line pt-3">
+                    <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-teal">
+                      <svg aria-hidden viewBox="0 0 24 24" className="size-4 transition-transform duration-150 group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
+                      Ver historial de capturas ({caps.length})
+                    </summary>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full min-w-[560px] border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                            <th className="px-3 py-2.5 font-medium">Valor</th>
+                            <th className="px-3 py-2.5 font-medium">Unidad</th>
+                            <th className="px-3 py-2.5 font-medium">Periodo</th>
+                            <th className="px-3 py-2.5 font-medium">Soporte</th>
+                            <th className="px-3 py-2.5 font-medium">Capturado por</th>
+                            <th className="px-3 py-2.5 font-medium">Fecha</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {caps.map((c) => (
+                            <tr key={c.id} className="border-b border-line/70 last:border-0">
+                              <td className="px-3 py-2.5">
+                                <span className={"font-semibold tabular-nums " + (c.confirmado ? "text-ink" : "text-gris line-through")}>
+                                  {fmtNum.format(c.valor)}
+                                </span>
+                                {!c.confirmado && <span className="ml-2 text-xs text-muted">(superada)</span>}
+                              </td>
+                              <td className="px-3 py-2.5 text-muted">{c.unidad}</td>
+                              <td className="px-3 py-2.5 text-muted">{c.periodo ?? "—"}</td>
+                              <td className="px-3 py-2.5 text-muted">{c.evidencia ? `v${c.evidencia.version}` : "—"}</td>
+                              <td className="px-3 py-2.5 text-muted">{limpiar(c.capturado?.nombre)}</td>
+                              <td className="whitespace-nowrap px-3 py-2.5 text-muted">{fmtFechaHora(c.created_at)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 )}
               </div>
-            </div>
+            )}
+          </section>
+        )}
+
+        {/* Conversación completa */}
+        <section className="space-y-4">
+          <h2 className="font-display text-xl font-semibold text-ink">Conversación completa</h2>
+          {coms.length === 0 ? (
+            <EmptyState compacto glifo="“" titulo="Sin comentarios todavía." />
+          ) : (
+            <ul className="space-y-3">
+              {coms.map((c) => (
+                <li
+                  key={c.id}
+                  className={"rounded-card border p-4 " + (c.es_observacion ? "border-rojo/30 bg-rojo/5" : "border-line bg-surface shadow-soft")}
+                >
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-ink">{limpiar(c.autor?.nombre)}</span>
+                      {c.es_observacion && (
+                        <span className="rounded-pill bg-rojo/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-rojo">
+                          Observación
+                        </span>
+                      )}
+                    </div>
+                    <time className="text-xs text-muted">{fmtFechaHora(c.created_at)}</time>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/90">{c.contenido}</p>
+                </li>
+              ))}
+            </ul>
           )}
-        </aside>
+        </section>
+
+        {/* Bitácora — colapsable (la sección más densa) */}
+        <details className="group rounded-card border border-line bg-surface shadow-soft">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 sm:px-6">
+            <span className="font-display text-lg font-semibold text-ink">Bitácora de la solicitud</span>
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4 text-muted transition-transform duration-150 group-open:rotate-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </summary>
+          <div className="border-t border-line px-5 py-5 sm:px-6">
+            <Timeline eventos={eventos} />
+          </div>
+        </details>
+
+        {/* Gestión discreta (eliminar) */}
+        {puedeEliminar && (
+          <div className="flex justify-end">
+            <EliminarSolicitud solicitudId={sol.id} titulo={sol.titulo} />
+          </div>
+        )}
       </div>
     </div>
   );

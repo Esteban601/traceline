@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -84,6 +84,22 @@ export function CoberturaView({ datapoints }: { datapoints: DatapointCobertura[]
 
   const universo = datapoints.length;
 
+  // Anillos por pilar sobre el UNIVERSO completo (overview estable, no filtrado).
+  const anillos = useMemo(
+    () =>
+      PILAR_ORDEN.map((p) => {
+        const items = datapoints.filter((d) => d.pilar === p);
+        return {
+          key: p,
+          label: PILAR_CHIP_LABEL[p],
+          cubierto: items.filter((d) => d.cobertura === "cubierto").length,
+          total: items.length,
+        };
+      }),
+    [datapoints]
+  );
+  const totalCubierto = anillos.reduce((s, a) => s + a.cubierto, 0);
+
   // Universo filtrado (chips + toggle). Alimenta KPIs, resúmenes y listados.
   const visibles = useMemo(
     () =>
@@ -150,6 +166,9 @@ export function CoberturaView({ datapoints }: { datapoints: DatapointCobertura[]
           <ExportButton />
         </div>
       </header>
+
+      {/* Anillos de avance por pilar (overview del universo completo) */}
+      <AnillosCobertura anillos={anillos} totalCubierto={totalCubierto} universo={universo} />
 
       {/* KPIs editoriales — reflejan el universo filtrado */}
       <section
@@ -338,6 +357,122 @@ function KpiCobertura({
   );
 }
 
+/** ¿El usuario pidió reducir movimiento? Gobierna la animación de trazo. */
+function usePrefiereMenosMovimiento(): boolean {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduce(mq.matches);
+    const on = () => setReduce(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return reduce;
+}
+
+/** Anillo de progreso SVG (trazo fino, editorial). Anima el trazo al montar. */
+function Anillo({ cubierto, total, label }: { cubierto: number; total: number; label: string }) {
+  const porcentaje = total === 0 ? 0 : Math.round((cubierto / total) * 100);
+  const r = 26;
+  const C = 2 * Math.PI * r;
+  const objetivo = C * (1 - porcentaje / 100);
+  const reduce = usePrefiereMenosMovimiento();
+  const [offset, setOffset] = useState(C); // arranca vacío
+  useEffect(() => {
+    if (reduce) {
+      setOffset(objetivo);
+      return;
+    }
+    const id = requestAnimationFrame(() => setOffset(objetivo));
+    return () => cancelAnimationFrame(id);
+  }, [objetivo, reduce]);
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative size-16">
+        <svg viewBox="0 0 64 64" className="size-16" role="img" aria-label={`${label}: ${porcentaje}% cubierto`}>
+          <g transform="rotate(-90 32 32)">
+            <circle cx="32" cy="32" r={r} fill="none" strokeWidth="5" style={{ stroke: "var(--color-line)" }} />
+            <circle
+              cx="32"
+              cy="32"
+              r={r}
+              fill="none"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={C}
+              strokeDashoffset={offset}
+              style={{
+                stroke: "var(--color-teal)",
+                transition: reduce ? undefined : "stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+            />
+          </g>
+        </svg>
+        <span className="absolute inset-0 grid place-items-center font-display text-sm font-semibold tabular-nums text-ink">
+          {porcentaje}%
+        </span>
+      </div>
+      <span className="text-xs font-medium text-muted">{label}</span>
+      <span className="text-[11px] tabular-nums text-muted/70">
+        {cubierto}/{total}
+      </span>
+    </div>
+  );
+}
+
+function AnillosCobertura({
+  anillos,
+  totalCubierto,
+  universo,
+}: {
+  anillos: { key: string; label: string; cubierto: number; total: number }[];
+  totalCubierto: number;
+  universo: number;
+}) {
+  return (
+    <section
+      aria-label="Avance de cobertura por pilar"
+      className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5 rounded-card border border-line bg-surface px-5 py-5 shadow-soft sm:px-6"
+    >
+      <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+        {anillos.map((a) => (
+          <Anillo key={a.key} cubierto={a.cubierto} total={a.total} label={a.label} />
+        ))}
+      </div>
+      <div className="min-w-[9rem]">
+        <div className="font-display text-3xl font-semibold tabular-nums text-teal">
+          {totalCubierto}
+          <span className="text-lg text-muted"> / {universo}</span>
+        </div>
+        <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted">
+          Datapoints cubiertos
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/** Mini-barra apilada de la proporción de cobertura del grupo (escaneo sin abrir). */
+function MiniBarra({ items }: { items: DatapointCobertura[] }) {
+  const dist = distribucion(items);
+  const total = items.length || 1;
+  return (
+    <span
+      className="flex h-1.5 w-24 overflow-hidden rounded-full bg-line/50 sm:w-36"
+      aria-hidden
+    >
+      {COBERTURA_ORDEN.filter((c) => dist[c] > 0).map((c) => (
+        <span
+          key={c}
+          className={TONO_CLASSES[COBERTURA_META[c].tono].dot}
+          style={{ width: `${(dist[c] / total) * 100}%` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 /** Mini-conteo por color de cobertura (solo los presentes), para el encabezado. */
 function MiniConteo({ items }: { items: DatapointCobertura[] }) {
   const dist = distribucion(items);
@@ -409,7 +544,8 @@ function GrupoCobertura({
               <AlertaDiscrepancia className="ml-0.5" />
             )}
           </div>
-          <div className="mt-1">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <MiniBarra items={items} />
             <MiniConteo items={items} />
           </div>
         </div>
@@ -436,7 +572,7 @@ function DatapointCard({ d }: { d: DatapointCobertura }) {
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <code className="rounded-md bg-teal/5 px-1.5 py-0.5 font-mono text-xs font-medium text-teal">
+            <code className="rounded-md bg-teal/10 px-2 py-0.5 font-mono text-sm font-semibold text-teal">
               {d.codigo}
             </code>
             {d.discrepancia && <AlertaDiscrepancia />}
@@ -458,7 +594,7 @@ function DatapointCard({ d }: { d: DatapointCobertura }) {
           >
             <p
               className={cn(
-                "text-sm leading-relaxed text-ink/90 transition",
+                "text-sm leading-relaxed text-muted transition",
                 !abierto && "line-clamp-2"
               )}
               title={d.descripcion}

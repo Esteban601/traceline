@@ -2,12 +2,13 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { EstadoBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
-import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { ESTADO_META, TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
 import { relativo, fmtFechaHora } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 import { enviarSolicitudesMasivo } from "./actions";
@@ -57,9 +58,18 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
   const [fEstado, setFEstado] = useState<EstadoSolicitud | "todos">("todos");
   const [fArea, setFArea] = useState<string>("todos");
   const [sel, setSel] = useState<Set<string>>(new Set());
+  // Modo selección: los checkboxes se ocultan por defecto (95% del uso es leer y
+  // abrir); aparecen al activar "Seleccionar" en la toolbar.
+  const [modoSeleccion, setModoSeleccion] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const router = useRouter();
+  const abrir = (id: string) => router.push(`/admin/solicitudes/${id}`);
+  const salirSeleccion = () => {
+    setModoSeleccion(false);
+    setSel(new Set());
+  };
 
   const areas = useMemo(
     () =>
@@ -197,6 +207,24 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
               Limpiar
             </button>
           )}
+
+          <div className="h-5 w-px bg-line" aria-hidden />
+          <button
+            onClick={() => (modoSeleccion ? salirSeleccion() : setModoSeleccion(true))}
+            aria-pressed={modoSeleccion}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-sm font-medium transition duration-150",
+              modoSeleccion
+                ? "border-teal/40 bg-teal/10 text-teal"
+                : "border-line text-muted hover:border-teal/30 hover:text-ink"
+            )}
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            {modoSeleccion ? "Cancelar selección" : "Seleccionar"}
+          </button>
         </div>
       </div>
 
@@ -237,16 +265,18 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
             <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="w-10 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      aria-label="Seleccionar todas las pendientes visibles"
-                      checked={todasSel}
-                      onChange={toggleTodas}
-                      disabled={elegiblesVisibles.length === 0}
-                      className="size-4 accent-teal disabled:opacity-40"
-                    />
-                  </th>
+                  {modoSeleccion && (
+                    <th className="w-10 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label="Seleccionar todas las pendientes visibles"
+                        checked={todasSel}
+                        onChange={toggleTodas}
+                        disabled={elegiblesVisibles.length === 0}
+                        className="size-4 accent-teal disabled:opacity-40"
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3 font-medium">Solicitud</th>
                   <th className="px-4 py-3 font-medium">Área</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
@@ -258,36 +288,45 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
               <tbody>
                 {visibles.map((f) => {
                   const puede = elegible(f);
+                  const dot = TONO_CLASSES[ESTADO_META[f.estado].tono].dot;
                   return (
                     <tr
                       key={f.id}
+                      onClick={() => abrir(f.id)}
                       className={cn(
-                        "group border-b border-line/70 transition duration-150 last:border-0 hover:bg-teal/[0.03]",
+                        "group cursor-pointer border-b border-line/70 transition duration-150 last:border-0 hover:bg-teal/[0.04]",
                         sel.has(f.id) && "bg-teal/[0.05]"
                       )}
                     >
+                      {modoSeleccion && (
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Seleccionar ${f.titulo}`}
+                            checked={sel.has(f.id)}
+                            onChange={() => toggle(f.id)}
+                            disabled={!puede}
+                            title={
+                              puede
+                                ? "Seleccionar para enviar solicitud"
+                                : "Solo pendientes con responsable asignado"
+                            }
+                            className="size-4 accent-teal disabled:cursor-not-allowed disabled:opacity-30"
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          aria-label={`Seleccionar ${f.titulo}`}
-                          checked={sel.has(f.id)}
-                          onChange={() => toggle(f.id)}
-                          disabled={!puede}
-                          title={
-                            puede
-                              ? "Seleccionar para enviar solicitud"
-                              : "Solo pendientes con responsable asignado"
-                          }
-                          className="size-4 accent-teal disabled:cursor-not-allowed disabled:opacity-30"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/admin/solicitudes/${f.id}`}
-                          className="font-medium text-ink transition duration-150 group-hover:text-teal"
-                        >
-                          {f.titulo}
-                        </Link>
+                        <span className="flex items-center gap-2.5">
+                          <span className={cn("size-2 shrink-0 rounded-full", dot)} aria-hidden />
+                          <Link
+                            href={`/admin/solicitudes/${f.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title={f.titulo}
+                            className="font-medium text-ink transition duration-150 group-hover:text-teal"
+                          >
+                            {f.titulo}
+                          </Link>
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-muted">{f.area ?? "—"}</td>
                       <td className="px-4 py-3">
@@ -318,19 +357,25 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
           <ul className="divide-y divide-line/70 sm:hidden">
             {visibles.map((f) => {
               const puede = elegible(f);
+              const dot = TONO_CLASSES[ESTADO_META[f.estado].tono].dot;
               return (
                 <li key={f.id} className="flex items-start gap-3 px-4 py-3.5">
-                  <input
-                    type="checkbox"
-                    aria-label={`Seleccionar ${f.titulo}`}
-                    checked={sel.has(f.id)}
-                    onChange={() => toggle(f.id)}
-                    disabled={!puede}
-                    className="mt-0.5 size-4 shrink-0 accent-teal disabled:opacity-30"
-                  />
+                  {modoSeleccion && (
+                    <input
+                      type="checkbox"
+                      aria-label={`Seleccionar ${f.titulo}`}
+                      checked={sel.has(f.id)}
+                      onChange={() => toggle(f.id)}
+                      disabled={!puede}
+                      className="mt-0.5 size-4 shrink-0 accent-teal disabled:opacity-30"
+                    />
+                  )}
                   <Link href={`/admin/solicitudes/${f.id}`} className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <span className="font-medium text-ink">{f.titulo}</span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className={cn("size-2 shrink-0 rounded-full", dot)} aria-hidden />
+                        <span className="font-medium text-ink">{f.titulo}</span>
+                      </span>
                       <EstadoBadge estado={f.estado} className="shrink-0" />
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">

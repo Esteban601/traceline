@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AdminHeader } from "@/components/admin-header";
+import { AdminSidebar } from "@/components/admin-sidebar";
 import { getPerfilActual, esStaff } from "@/lib/data";
 
 export default async function AdminLayout({
@@ -15,10 +15,10 @@ export default async function AdminLayout({
   if (!esStaff(perfil)) redirect("/portal");
 
   return (
-    <div className="min-h-dvh">
-      <AdminHeader perfil={perfil} />
-      <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
-        {children}
+    <div className="flex min-h-dvh">
+      <AdminSidebar perfil={perfil} />
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">{children}</div>
       </main>
     </div>
   );
