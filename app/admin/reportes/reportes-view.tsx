@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
-import { fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { fmtDiaLargo } from "@/lib/fechas";
 import { congelarReporte, type CongelarState } from "./actions";
 
 export type ReporteFila = {
@@ -71,7 +71,7 @@ export function ReportesView({
                 {r.estado === "congelado" && r.fechaCongelamiento && (
                   <span>
                     Cerrado el{" "}
-                    {fmtFechaLarga(deFechaLocal(r.fechaCongelamiento.slice(0, 10)))}
+                    {fmtDiaLargo(r.fechaCongelamiento)}
                   </span>
                 )}
               </div>

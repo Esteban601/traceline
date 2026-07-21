@@ -1,4 +1,5 @@
 import { APP_NAME, APP_URL } from "@/lib/app";
+import { fmtDiaLargo } from "@/lib/fechas";
 
 // =============================================================================
 // Plantillas HTML de correo — alineadas al DESIGN.md (crema/teal/dorado), con
@@ -28,12 +29,6 @@ export type SolicitudEmail = {
   esObservacion?: boolean;
 };
 
-const fmtFecha = new Intl.DateTimeFormat("es-MX", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-
 function limpiarNombre(nombre: string): string {
   return nombre.replace(/\[DEMO\]\s*/i, "").trim();
 }
@@ -48,7 +43,7 @@ function esc(s: string): string {
 
 function fechaTexto(iso: string | null): string {
   if (!iso) return "Sin fecha límite";
-  return `Vence el ${fmtFecha.format(new Date(`${iso}T00:00:00`))}`;
+  return `Vence el ${fmtDiaLargo(iso)}`;
 }
 
 function boton(href: string, label: string): string {

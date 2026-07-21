@@ -7,7 +7,7 @@ import { Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
-import { fmtFecha, fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { fmtFecha, fmtFechaHora, fmtFechaLarga, fmtDiaLargo } from "@/lib/fechas";
 import { accionCliente, IconoAccion } from "@/app/portal/estado-cliente";
 import { UploadEvidencia } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
@@ -331,8 +331,8 @@ export default async function SolicitudPage({
             <p className="font-medium">Informe cerrado</p>
             <p className="mt-0.5 text-muted">
               {reporte?.fecha_congelamiento
-                ? `Este informe fue cerrado el ${fmtFechaLarga(
-                    deFechaLocal(reporte.fecha_congelamiento.slice(0, 10))
+                ? `Este informe fue cerrado el ${fmtDiaLargo(
+                    reporte.fecha_congelamiento
                   )}; la evidencia quedó congelada para aseguramiento.`
                 : "Este informe fue cerrado; la evidencia quedó congelada para aseguramiento."}{" "}
               Todo está en solo-lectura.
@@ -381,7 +381,7 @@ export default async function SolicitudPage({
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Fecha límite</dt>
               <dd className="mt-0.5 font-medium text-ink">
-                {fmtFechaLarga(deFechaLocal(sol.fecha_limite))}
+                {fmtDiaLargo(sol.fecha_limite)}
               </dd>
             </div>
           )}

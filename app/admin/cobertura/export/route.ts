@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { coberturaDe, COBERTURA_META } from "@/lib/cobertura";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { fmtFechaHora } from "@/lib/fechas";
 
 export const runtime = "nodejs";
 
@@ -12,14 +13,6 @@ const CREMA = "FFF7F3EA";
 const GOLD = "FF8A6D1B";
 const MARCA_DEMO =
   "FORMATO PRELIMINAR DEMO — mapeo a la plantilla oficial de taxonomía en Fase 3.";
-
-const fmtFecha = new Intl.DateTimeFormat("es-MX", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 function limpiar(nombre?: string | null): string {
   return (nombre ?? "").replace(/\[DEMO\]\s*/i, "").trim();
@@ -224,7 +217,7 @@ export async function GET() {
         sol.area ?? "",
         ev ? ev.version : "",
         ev ? ev.archivo : "",
-        ev ? fmtFecha.format(new Date(ev.fecha)) : "",
+        ev ? fmtFechaHora(ev.fecha) : "",
         ev ? ev.quien : "",
         coberturaLabel,
       ]);
@@ -268,7 +261,7 @@ export async function GET() {
       c.unidad,
       c.periodo ?? "",
       limpiar(c.capturado?.nombre),
-      fmtFecha.format(new Date(c.created_at)),
+      fmtFechaHora(c.created_at),
       c.evidencia ? `v${c.evidencia.version}` : "",
     ]);
     fila.getCell(3).numFmt = "#,##0.###";

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ESTADO_META, TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
-import { fmtFecha, deFechaLocal } from "@/lib/fechas";
+import { fmtDia } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 import { accionCliente, IconoAccion } from "./estado-cliente";
 
@@ -154,7 +154,7 @@ export function ListaSolicitudes({
                           <rect x="3" y="4" width="18" height="18" rx="2" />
                           <path d="M16 2v4M8 2v4M3 10h18" />
                         </svg>
-                        Límite {fmtFecha(deFechaLocal(s.fecha_limite))}
+                        Límite {fmtDia(s.fecha_limite)}
                       </span>
                     )}
                   </div>

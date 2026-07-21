@@ -132,22 +132,34 @@ async function main() {
   const s30 = wb.getWorksheet("NIIF S2 30");
   const s29d = wb.getWorksheet("NIIF S2 29(d)");
 
-  console.log("\nGEI 29(a)(i) — llenado y regla dura:");
+  console.log("\nGEI 29(a)(i) — nota por celda-año (año validado y lleno + año sin evidencia):");
   ok(cellText(gei1, "A3") === "Alcance 1", "A3 = 'Alcance 1'");
-  ok(Number(cellText(gei1, "C4")) > 0, "C4 (Alcance 2, 2025) tiene número");
-  ok(cellText(gei1, "C3") === "", "C3 (Alcance 1, no validado) VACÍA (regla dura)");
+  // Alcance 1: 2025 VALIDADO y lleno (400,000), 2024 SIN captura → celda vacía.
+  ok(Number(cellText(gei1, "C3")) === 400000, "C3 (Alcance 1, 2025 validado) = 400000");
+  ok(cellText(gei1, "D3") === "", "D3 (Alcance 1, 2024 sin captura) VACÍA");
   ok(
-    cellText(gei1, "E3") === "Pendiente de validación en plataforma",
-    "E3 nota 'Pendiente de validación en plataforma'"
+    cellText(gei1, "E3") === "Sin evidencia (2024)",
+    "E3 nota = 'Sin evidencia (2024)' (NO 'pendiente': nada está por validar)"
+  );
+  // Alcance 2: ambos años validados y llenos → la celda de notas queda VACÍA.
+  ok(
+    Number(cellText(gei1, "C4")) > 0 &&
+      Number(cellText(gei1, "D4")) > 0 &&
+      cellText(gei1, "E4") === "",
+    "Alcance 2 completo (2024+2025) → nota de fila VACÍA"
   );
 
-  console.log("\nGEI 29(a)(vi)(1) — llenado y brechas:");
+  console.log("\nGEI 29(a)(vi)(1) — causas por año (pendiente vs sin evidencia):");
   ok(Number(cellText(geiVi, "B4")) > 0, "B4 (Categoría 1, 2025) tiene número");
-  ok(
-    cellText(geiVi, "D12") === "Sin evidencia" ||
-      cellText(geiVi, "D12") === "Pendiente de validación en plataforma",
-    "D12 (categoría sin validar) tiene nota de brecha"
-  );
+  let hayPend = false;
+  let haySin = false;
+  for (let r = 4; r <= 18; r++) {
+    const d = cellText(geiVi, `D${r}`);
+    if (/^Pendiente de validación en plataforma \(20\d\d\)/.test(d)) hayPend = true;
+    if (/Sin evidencia \(20\d\d\)/.test(d)) haySin = true;
+  }
+  ok(hayPend, "alguna categoría con captura sin validar → 'Pendiente de validación en plataforma (AAAA)'");
+  ok(haySin, "alguna categoría sin captura → 'Sin evidencia (AAAA)'");
 
   console.log("\nRegistros de clima (v2: horizonte multi + capital en tres):");
   ok(cellText(s10, "A4").length > 0, "S2 10: A4 tiene un riesgo");

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
+import { fmtFecha } from "@/lib/fechas";
 
 export const runtime = "nodejs";
 
@@ -17,12 +18,6 @@ const PLANTILLA = path.join(process.cwd(), "assets", "taxonomia-base.xlsx");
 const NOTA_PENDIENTE = "Pendiente de validación en plataforma";
 const NOTA_SIN = "Sin evidencia";
 const GOLD = "FF8A6D1B";
-
-const fmtFecha = new Intl.DateTimeFormat("es-MX", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
 
 type MapeoRow = {
   hoja: string;
@@ -635,6 +630,11 @@ export async function GET() {
     }
     return v;
   };
+  // ¿Existe alguna captura para ese periodo (confirmada o no)? Distingue la causa
+  // real del hueco de una celda-año: hay captura del año pero sin validar (→
+  // pendiente) vs. no hay captura de ese año (→ sin evidencia).
+  const hayCapturaDe = (solId: string, ejercicio: number): boolean =>
+    (capsPorSol.get(solId) ?? []).some((c) => c.periodo === String(ejercicio));
 
   // Valor vigente por (registro, ejercicio): la última fila insertada gana
   // (valores llegan asc por created_at → APPEND ONLY, corrección = fila nueva).
@@ -658,7 +658,13 @@ export async function GET() {
   let huecosSin = 0;
   let etiquetas = 0;
 
-  const notas = new Map<string, { hoja: string; celda: string; texto: string }>();
+  // Causa del hueco POR CELDA-AÑO, acumulada por celda de nota (una fila puede
+  // tener varias celdas-año vacías con causas distintas). `causas` mapea
+  // ejercicio → texto de causa, para concatenar la nota de la fila ordenada por año.
+  const notas = new Map<
+    string,
+    { hoja: string; celda: string; causas: Map<number, string> }
+  >();
   const hojasTocadas = new Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>();
 
   const filaDe = (celda: string): number => parseInt(celda.replace(/[^0-9]/g, ""), 10);
@@ -689,26 +695,31 @@ export async function GET() {
       cell.numFmt = "#,##0.###";
       llenadas++;
     } else if (m.celda_nota) {
-      // Regla dura: valor no validado NO entra. Se anota la brecha en la fila.
-      const tieneCaptura = (capsPorSol.get(m.solicitud_id)?.length ?? 0) > 0;
-      const texto = tieneCaptura ? NOTA_PENDIENTE : NOTA_SIN;
-      // Una nota por celda de nota (dedupe por hoja+celda); 'pendiente' prevalece
-      // sobre 'sin evidencia' si conviven en la misma fila.
+      // Regla dura: valor no validado/ausente NO entra. La causa se decide POR
+      // CELDA-AÑO: hay captura de ese periodo pero sin validar (→ pendiente) vs.
+      // no hay captura de ese periodo (→ sin evidencia). Cada causa lleva su año.
+      const causa = hayCapturaDe(m.solicitud_id, m.ejercicio)
+        ? `${NOTA_PENDIENTE} (${m.ejercicio})`
+        : `${NOTA_SIN} (${m.ejercicio})`;
       const key = `${m.hoja}!${m.celda_nota}`;
-      const prev = notas.get(key);
-      if (!prev || (texto === NOTA_PENDIENTE && prev.texto === NOTA_SIN)) {
-        notas.set(key, { hoja: m.hoja, celda: m.celda_nota, texto });
-      }
+      const entry =
+        notas.get(key) ?? { hoja: m.hoja, celda: m.celda_nota, causas: new Map<number, string>() };
+      entry.causas.set(m.ejercicio, causa);
+      notas.set(key, entry);
     }
   }
 
-  // Escribir las notas/brechas y contarlas.
+  // Escribir las notas/brechas: se concatenan las causas de las celdas vacías de
+  // la fila, ordenadas por año. Si la fila no tiene celdas vacías, no hay nota.
   for (const n of notas.values()) {
     const ws = wb.getWorksheet(n.hoja);
     if (!ws) continue;
-    ws.getCell(n.celda).value = n.texto;
-    if (n.texto === NOTA_PENDIENTE) huecosPendiente++;
-    else huecosSin++;
+    const anios = [...n.causas.keys()].sort((a, b) => a - b);
+    ws.getCell(n.celda).value = anios.map((a) => n.causas.get(a)!).join("; ");
+    for (const a of anios) {
+      if (n.causas.get(a)!.startsWith(NOTA_PENDIENTE)) huecosPendiente++;
+      else huecosSin++;
+    }
   }
 
   // Registros de riesgos/oportunidades (escritura posicional en 4 hojas).
@@ -737,7 +748,7 @@ export async function GET() {
   );
 
   // Pie discreto en cada hoja llenada.
-  const fechaHoy = fmtFecha.format(new Date());
+  const fechaHoy = fmtFecha(new Date());
   const pie = `Generado por ${APP_NAME} — ${fechaHoy} — [DEMO]`;
   for (const { ws, ultimaFila } of hojasTocadas.values()) {
     const cell = ws.getCell(`A${ultimaFila + 2}`);

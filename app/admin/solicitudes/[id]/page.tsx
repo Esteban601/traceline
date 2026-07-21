@@ -7,7 +7,7 @@ import { EstadoBadge, Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { type EstadoSolicitud } from "@/lib/estados";
-import { fmtFechaHora, fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { fmtFechaHora, fmtDiaLargo } from "@/lib/fechas";
 import { puedeEditarSolicitud, puedeEliminarSolicitud } from "@/lib/gestion";
 import { cargarDiscrepancias } from "@/lib/discrepancias";
 import { AccionesStaff } from "./acciones-staff";
@@ -294,7 +294,7 @@ export default async function SolicitudStaffPage({
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Fecha límite</dt>
               <dd className="mt-0.5 font-medium text-ink">
-                {fmtFechaLarga(deFechaLocal(sol.fecha_limite))}
+                {fmtDiaLargo(sol.fecha_limite)}
               </dd>
             </div>
           )}

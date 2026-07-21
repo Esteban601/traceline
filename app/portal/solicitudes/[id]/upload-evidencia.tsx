@@ -5,7 +5,7 @@ import { subirEvidencia, type SubirState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { fmtFechaLarga, deFechaLocal } from "@/lib/fechas";
+import { fmtDiaLargo } from "@/lib/fechas";
 import type { EstadoSolicitud } from "@/lib/estados";
 
 const initial: SubirState = { ok: false, error: null };
@@ -118,8 +118,8 @@ export function UploadEvidencia({
         <p className="font-medium">Ya no se puede cargar</p>
         <p className="mt-1 text-muted">
           {fechaCongelamiento
-            ? `Este informe se cerró el ${fmtFechaLarga(
-                deFechaLocal(fechaCongelamiento.slice(0, 10))
+            ? `Este informe se cerró el ${fmtDiaLargo(
+                fechaCongelamiento
               )} y la información quedó guardada tal cual.`
             : "Este informe se cerró y la información quedó guardada tal cual."}{" "}
           Si necesitas un ajuste, escríbele a tu coordinador de IRStrat.

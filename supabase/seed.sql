@@ -216,7 +216,7 @@ values
   ('c0000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000001', 'Política de derechos humanos y debida diligencia', 'Documento de política vigente y evidencia de su aplicación.', 'RH', false, null, 'solicitado', 'a0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', '2026-03-01', 50),
   -- ---- Operaciones ----
   ('c0000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000001', 'Consumo de energía eléctrica 2025 por instalación (kWh)', 'Desglose de consumo eléctrico por sitio operativo.', 'Operaciones', true, 'kWh', 'recibido', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-02-10', 60),
-  ('c0000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000001', 'Inventario GEI Alcance 1 con memoria de cálculo', 'Emisiones directas y metodología de cálculo conforme al GHG Protocol.', 'Operaciones', true, 'tCO2e', 'en_revision', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-02-28', 70),
+  ('c0000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000001', 'Inventario GEI Alcance 1 con memoria de cálculo', 'Emisiones directas y metodología de cálculo conforme al GHG Protocol.', 'Operaciones', true, 'tCO2e', 'validado', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-02-28', 70),
   ('c0000000-0000-0000-0000-000000000008', '20000000-0000-0000-0000-000000000001', 'Inventario GEI Alcance 2 (ubicación y mercado)', 'Emisiones indirectas por energía adquirida, ambos métodos.', 'Operaciones', true, 'tCO2e', 'solicitado', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-05', 80),
   ('c0000000-0000-0000-0000-000000000009', '20000000-0000-0000-0000-000000000001', 'Consumo de agua 2025 por fuente (m3)', 'Extracción de agua desglosada por fuente.', 'Operaciones', true, 'm3', 'solicitado', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-02-18', 90),
   ('c0000000-0000-0000-0000-000000000010', '20000000-0000-0000-0000-000000000001', 'Generación y disposición de residuos 2025 (ton)', 'Residuos peligrosos y no peligrosos, y su disposición.', 'Operaciones', true, 'ton', 'pendiente', 'a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '2026-03-10', 100),
@@ -346,7 +346,9 @@ insert into public.capturas_valor (solicitud_id, evidencia_id, valor, unidad, pe
   ('c0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000001', 1850000, 'kWh', '2025', 'b0000000-0000-0000-0000-000000000001', false),
   ('c0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000002', 1875430, 'kWh', '2025', 'b0000000-0000-0000-0000-000000000001', true),
   -- #7 Alcance 1
-  ('c0000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000003', 4820.5, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
+  -- Alcance 1: VALIDADO con captura 2025 y SIN captura de 2024 → en el export la
+  -- celda 2025 se llena y la nota de la fila dice 'Sin evidencia (2024)'.
+  ('c0000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000003', 400000, 'tCO2e', '2025', 'b0000000-0000-0000-0000-000000000001', true),
   -- #1 plantilla
   ('c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000004', 412, 'personas', '2025', 'b0000000-0000-0000-0000-000000000001', true),
   -- #9 agua
@@ -624,6 +626,7 @@ on conflict do nothing;
 update public.solicitudes set estado = 'validado'
  where id in (
    'c0000000-0000-0000-0000-000000000001',  -- Plantilla y rotación de personal 2025
+   'c0000000-0000-0000-0000-000000000007',  -- Inventario GEI Alcance 1 (2025 validado 400,000; sin 2024 → 'Sin evidencia (2024)')
    'c0000000-0000-0000-0000-000000000017'   -- Composición del Consejo en sostenibilidad
  );
 
