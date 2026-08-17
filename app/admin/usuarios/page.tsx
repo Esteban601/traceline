@@ -5,19 +5,31 @@ import { UsuariosView, type UsuarioFila, type TenantOpcion } from "./usuarios-vi
 
 export const metadata: Metadata = { title: "Usuarios del cliente" };
 
-export default async function UsuariosPage() {
+export default async function UsuariosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tenant?: string }>;
+}) {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
 
+  // ?tenant=<id> llega del alta de un cliente ("da de alta a sus usuarios").
+  const { tenant: tenantInicial } = await searchParams;
+
   const db = await createClient();
 
-  const [{ data: tenants }, { data: perfiles }] = await Promise.all([
+  const [{ data: tenants }, { data: perfiles }, { data: areasCatalogo }] = await Promise.all([
     db.from("tenants").select("id, nombre, activo").order("nombre", { ascending: true }),
     db
       .from("perfiles_usuario")
       .select("id, nombre, email, rol, area, activo, tenant_id")
       .not("tenant_id", "is", null)
       .order("nombre", { ascending: true }),
+    db
+      .from("areas_tenant")
+      .select("tenant_id, nombre, orden")
+      .eq("activo", true)
+      .order("orden", { ascending: true }),
   ]);
 
   const tenantsList = (tenants ?? []) as { id: string; nombre: string; activo: boolean }[];
@@ -44,15 +56,23 @@ export default async function UsuariosPage() {
     tenantNombre: nombreTenant.get(p.tenant_id) ?? "—",
   }));
 
-  // Áreas sugeridas por tenant (de los usuarios existentes).
+  // Áreas del cliente: su CATÁLOGO (areas_tenant), no las derivadas de los
+  // usuarios ya existentes — un cliente recién dado de alta aún no tiene ninguno
+  // y aun así debe poder asignar áreas. Se complementa con las áreas heredadas
+  // que algún usuario tenga y no estén en el catálogo, para no perderlas de vista.
   const areas: { tenant_id: string; area: string }[] = [];
   const vistos = new Set<string>();
-  for (const u of usuarios) {
-    if (!u.area) continue;
-    const k = `${u.tenantId}::${u.area}`;
-    if (vistos.has(k)) continue;
+  const registrarArea = (tenantId: string, area: string) => {
+    const k = `${tenantId}::${area}`;
+    if (vistos.has(k)) return;
     vistos.add(k);
-    areas.push({ tenant_id: u.tenantId, area: u.area });
+    areas.push({ tenant_id: tenantId, area });
+  };
+  for (const a of (areasCatalogo ?? []) as { tenant_id: string; nombre: string }[]) {
+    registrarArea(a.tenant_id, a.nombre);
+  }
+  for (const u of usuarios) {
+    if (u.area) registrarArea(u.tenantId, u.area);
   }
 
   const tenantsOpc: TenantOpcion[] = tenantsList
@@ -74,7 +94,12 @@ export default async function UsuariosPage() {
         </p>
       </header>
 
-      <UsuariosView usuarios={usuarios} tenants={tenantsOpc} areas={areas} />
+      <UsuariosView
+        usuarios={usuarios}
+        tenants={tenantsOpc}
+        areas={areas}
+        tenantInicial={tenantsOpc.some((t) => t.id === tenantInicial) ? tenantInicial! : null}
+      />
     </div>
   );
 }

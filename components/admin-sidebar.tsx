@@ -18,6 +18,7 @@ type NavKey =
   | "cuestionarios"
   | "reportes"
   | "plantillas"
+  | "clientes"
   | "usuarios";
 
 type NavItem = { href: string; label: string; key: NavKey; icono: NavKey };
@@ -44,6 +45,7 @@ const GRUPOS: NavGrupo[] = [
   {
     titulo: "Administración",
     items: [
+      { href: "/admin/clientes", label: "Clientes", key: "clientes", icono: "clientes" },
       { href: "/admin/reportes", label: "Reportes", key: "reportes", icono: "reportes" },
       { href: "/admin/plantillas", label: "Plantillas", key: "plantillas", icono: "plantillas" },
       { href: "/admin/usuarios", label: "Usuarios", key: "usuarios", icono: "usuarios" },
@@ -58,6 +60,7 @@ function claveActiva(pathname: string): NavKey {
     ["/admin/registros", "registros"],
     ["/admin/objetivos", "objetivos"],
     ["/admin/cuestionarios", "cuestionarios"],
+    ["/admin/clientes", "clientes"],
     ["/admin/reportes", "reportes"],
     ["/admin/plantillas", "plantillas"],
     ["/admin/usuarios", "usuarios"],
@@ -106,6 +109,8 @@ function Icono({ tipo }: { tipo: NavKey }) {
       return (<svg {...p}><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg>);
     case "plantillas":
       return (<svg {...p}><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>);
+    case "clientes":
+      return (<svg {...p}><path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9.5 12h1.5M13 12h1.5M9.5 16h1.5M13 16h1.5" /></svg>);
     case "usuarios":
       return (<svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 6M17 20a5.5 5.5 0 0 0-2.5-4.6" /></svg>);
   }

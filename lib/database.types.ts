@@ -34,6 +34,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      areas_tenant: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+          tenant_id: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+          tenant_id: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "areas_tenant_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bitacora: {
         Row: {
           accion: string
@@ -321,6 +356,61 @@ export type Database = {
             columns: ["subido_por"]
             isOneToOne: false
             referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitaciones: {
+        Row: {
+          creada_por: string | null
+          created_at: string
+          expira_en: string
+          id: string
+          perfil_id: string
+          tenant_id: string
+          token_hash: string
+          usada_en: string | null
+        }
+        Insert: {
+          creada_por?: string | null
+          created_at?: string
+          expira_en: string
+          id?: string
+          perfil_id: string
+          tenant_id: string
+          token_hash: string
+          usada_en?: string | null
+        }
+        Update: {
+          creada_por?: string | null
+          created_at?: string
+          expira_en?: string
+          id?: string
+          perfil_id?: string
+          tenant_id?: string
+          token_hash?: string
+          usada_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitaciones_creada_por_fkey"
+            columns: ["creada_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitaciones_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitaciones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -882,21 +972,27 @@ export type Database = {
           activo: boolean
           created_at: string
           id: string
+          logo_url: string | null
           nombre: string
+          prefijo_folio: string
           slug: string
         }
         Insert: {
           activo?: boolean
           created_at?: string
           id?: string
+          logo_url?: string | null
           nombre: string
+          prefijo_folio: string
           slug: string
         }
         Update: {
           activo?: boolean
           created_at?: string
           id?: string
+          logo_url?: string | null
           nombre?: string
+          prefijo_folio?: string
           slug?: string
         }
         Relationships: []

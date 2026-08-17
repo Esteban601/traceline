@@ -30,3 +30,30 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
 export function esStaff(perfil: Pick<PerfilActual, "tenant_id">): boolean {
   return perfil.tenant_id === null;
 }
+
+export type TenantActual = {
+  id: string;
+  nombre: string;
+  logo_url: string | null;
+  prefijo_folio: string;
+  activo: boolean;
+};
+
+/**
+ * Tenant del perfil dado (null para el staff de IRStrat, que no tiene uno). Es
+ * lo que el portal necesita para mostrar la marca DEL CLIENTE en su header.
+ */
+export async function getTenantDe(
+  perfil: Pick<PerfilActual, "tenant_id">
+): Promise<TenantActual | null> {
+  if (perfil.tenant_id === null) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tenants")
+    .select("id, nombre, logo_url, prefijo_folio, activo")
+    .eq("id", perfil.tenant_id)
+    .single();
+
+  return data;
+}

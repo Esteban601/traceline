@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/data";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { KPIS, contarPorBucket, type EstadoSolicitud } from "@/lib/estados";
+import { TenantSelector, type TenantOpcionSelector } from "@/components/tenant-selector";
+import { limpiarNombreTenant } from "@/lib/tenants";
 import { MatrizSolicitudes, type FilaMatriz } from "./matriz-solicitudes";
 import { BarraRecordatorios } from "./barra-recordatorios";
 
@@ -17,6 +19,7 @@ type SolicitudRow = {
   orden: number;
   created_at: string;
   responsable: { nombre: string } | null;
+  reporte: { tenant_id: string } | null;
 };
 
 function limpiar(nombre?: string | null): string | null {
@@ -24,31 +27,64 @@ function limpiar(nombre?: string | null): string | null {
   return nombre.replace(/\[DEMO\]\s*/i, "").trim();
 }
 
-export default async function AdminMatrizPage() {
+export default async function AdminMatrizPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tenant?: string }>;
+}) {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
 
+  const { tenant: tenantParam } = await searchParams;
+
   const supabase = await createClient();
 
-  const [{ data: sols, error }, { data: evs }, { data: coms }, { data: bit }] =
+  const [{ data: sols, error }, { data: evs }, { data: coms }, { data: bit }, { data: tenants }] =
     await Promise.all([
       supabase
         .from("solicitudes")
         .select(
-          "id, titulo, area_asignada, estado, orden, created_at, responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre)"
+          "id, titulo, area_asignada, estado, orden, created_at, responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre), reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
         ),
       supabase.from("evidencias").select("solicitud_id, created_at"),
       supabase.from("comentarios").select("solicitud_id, created_at"),
       supabase
         .from("bitacora")
         .select("accion, entidad, entidad_id, detalle, created_at"),
+      supabase
+        .from("tenants")
+        .select("id, nombre, logo_url, prefijo_folio, activo")
+        .order("nombre", { ascending: true }),
     ]);
 
   if (error) {
     throw new Error("No se pudieron cargar las solicitudes del reporte.");
   }
 
-  const solicitudes = (sols ?? []) as unknown as SolicitudRow[];
+  const tenantsLista = (tenants ?? []) as {
+    id: string;
+    nombre: string;
+    logo_url: string | null;
+    prefijo_folio: string;
+    activo: boolean;
+  }[];
+  const tenantsOpc: TenantOpcionSelector[] = tenantsLista.map((t) => ({
+    id: t.id,
+    nombre: t.nombre,
+    logoUrl: t.logo_url,
+    prefijoFolio: t.prefijo_folio,
+  }));
+  const tenantPorId = new Map(tenantsLista.map((t) => [t.id, t]));
+
+  // Cliente activo: solo si el ?tenant= existe. Un id inventado no filtra a
+  // ciegas — cae a "todos", que es lo que el staff espera ver.
+  const tenantSel = tenantParam && tenantPorId.has(tenantParam) ? tenantParam : null;
+
+  const todas = (sols ?? []) as unknown as SolicitudRow[];
+  const solicitudes = tenantSel
+    ? todas.filter((s) => s.reporte?.tenant_id === tenantSel)
+    : todas;
+  const tenantActivo = tenantSel ? tenantPorId.get(tenantSel)! : null;
 
   // Conteo de versiones de evidencia por solicitud.
   const numVersiones = new Map<string, number>();
@@ -75,16 +111,21 @@ export default async function AdminMatrizPage() {
     registrar(sid, b.created_at);
   }
 
-  const filas: FilaMatriz[] = solicitudes.map((s) => ({
-    id: s.id,
-    titulo: s.titulo,
-    area: s.area_asignada,
-    estado: s.estado,
-    orden: s.orden,
-    responsable: limpiar(s.responsable?.nombre),
-    numVersiones: numVersiones.get(s.id) ?? 0,
-    ultimaActividad: ultima.get(s.id) ?? s.created_at,
-  }));
+  const filas: FilaMatriz[] = solicitudes.map((s) => {
+    const t = s.reporte?.tenant_id ? tenantPorId.get(s.reporte.tenant_id) : undefined;
+    return {
+      id: s.id,
+      titulo: s.titulo,
+      area: s.area_asignada,
+      estado: s.estado,
+      orden: s.orden,
+      responsable: limpiar(s.responsable?.nombre),
+      numVersiones: numVersiones.get(s.id) ?? 0,
+      ultimaActividad: ultima.get(s.id) ?? s.created_at,
+      tenantNombre: t ? limpiarNombreTenant(t.nombre) : null,
+      tenantLogo: t?.logo_url ?? null,
+    };
+  });
 
   const conteos = contarPorBucket(filas.map((f) => f.estado));
 
@@ -99,12 +140,15 @@ export default async function AdminMatrizPage() {
             Matriz de seguimiento
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Todas las solicitudes del reporte, su estado y su actividad reciente.
-            Abre cualquiera para revisar evidencia, capturar valores o registrar
-            observaciones.
+            {tenantActivo
+              ? `Solicitudes de ${limpiarNombreTenant(
+                  tenantActivo.nombre
+                )}, su estado y su actividad reciente. Abre cualquiera para revisar evidencia, capturar valores o registrar observaciones.`
+              : "Todas las solicitudes del reporte, su estado y su actividad reciente. Abre cualquiera para revisar evidencia, capturar valores o registrar observaciones."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          <TenantSelector tenants={tenantsOpc} seleccionado={tenantSel} />
           <BarraRecordatorios />
           <Link
             href="/admin/solicitudes/nueva"

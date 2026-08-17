@@ -10,9 +10,17 @@ import {
 
 export const metadata: Metadata = { title: "Plantillas de checklist" };
 
-export default async function PlantillasPage() {
+export default async function PlantillasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tenant?: string }>;
+}) {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
+
+  // ?tenant=<id> llega desde el alta de un cliente ("crea su primer reporte"):
+  // preselecciona ese cliente para no hacer buscarlo de nuevo en la lista.
+  const { tenant: tenantInicial } = await searchParams;
 
   const db = await createClient();
 
@@ -72,7 +80,12 @@ export default async function PlantillasPage() {
         </p>
       </header>
 
-      <PlantillasView plantillas={filas} reportes={reportesOpc} tenants={tenantsOpc} />
+      <PlantillasView
+        plantillas={filas}
+        reportes={reportesOpc}
+        tenants={tenantsOpc}
+        tenantInicial={tenantsOpc.some((t) => t.id === tenantInicial) ? tenantInicial! : null}
+      />
     </div>
   );
 }

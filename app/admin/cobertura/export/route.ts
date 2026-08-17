@@ -46,7 +46,7 @@ function encabezar(ws: ExcelJS.Worksheet, cols: Col[]) {
   ws.views = [{ state: "frozen", ySplit: 2 }];
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const perfil = await getPerfilActual();
   if (!perfil || !esStaff(perfil)) {
     return NextResponse.json(
@@ -54,6 +54,11 @@ export async function GET() {
       { status: 403 }
     );
   }
+
+  // El export sigue al selector de cliente de /admin/cobertura: sin ?tenant es
+  // el agregado de la firma; con él, SOLO ese cliente. Un libro que ignorara el
+  // filtro entregaría la evidencia de todas las emisoras bajo el nombre de una.
+  const tenantParam = new URL(request.url).searchParams.get("tenant");
 
   const supabase = await createClient();
 
@@ -73,7 +78,11 @@ export async function GET() {
       .order("pilar")
       .order("codigo"),
     supabase.from("mapeo_solicitud_datapoint").select("solicitud_id, datapoint_id"),
-    supabase.from("solicitudes").select("id, titulo, estado, area_asignada"),
+    supabase
+      .from("solicitudes")
+      .select(
+        "id, titulo, estado, area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
+      ),
     supabase
       .from("evidencias")
       .select(
@@ -87,7 +96,9 @@ export async function GET() {
       )
       .eq("confirmado", true)
       .order("created_at", { ascending: true }),
-    supabase.from("reportes").select("tenant:tenants!reportes_tenant_id_fkey(slug)"),
+    supabase
+      .from("reportes")
+      .select("tenant_id, tenant:tenants!reportes_tenant_id_fkey(slug)"),
   ]);
 
   if (dpErr) {
@@ -107,15 +118,25 @@ export async function GET() {
     ods: string | null;
   }[];
 
-  // Índice de solicitudes.
+  // Índice de solicitudes, acotado al cliente seleccionado si lo hay. Todo lo
+  // que se escribe después pasa por este índice, así que filtrar aquí acota el
+  // libro completo.
   type Sol = { titulo: string; estado: EstadoSolicitud; area: string | null };
   const solById = new Map<string, Sol>();
-  for (const s of sols ?? [])
+  for (const s of (sols ?? []) as unknown as {
+    id: string;
+    titulo: string;
+    estado: string;
+    area_asignada: string | null;
+    reporte: { tenant_id: string } | null;
+  }[]) {
+    if (tenantParam && s.reporte?.tenant_id !== tenantParam) continue;
     solById.set(s.id, {
       titulo: s.titulo,
       estado: s.estado as EstadoSolicitud,
       area: s.area_asignada,
     });
+  }
 
   // Última versión de evidencia por solicitud (las llegan ordenadas asc).
   type Ev = { version: number; archivo: string; fecha: string; quien: string };
@@ -252,7 +273,10 @@ export async function GET() {
     evidencia: { version: number } | null;
     capturado: { nombre: string } | null;
   }[]) {
+    // Una captura cuya solicitud no está en el índice es de otro cliente (o
+    // quedó fuera del filtro): no se escribe, ni siquiera con el título vacío.
     const sol = solById.get(c.solicitud_id);
+    if (!sol) continue;
     const codigos = (codigosPorSol.get(c.solicitud_id) ?? []).join(", ");
     const fila = v.addRow([
       codigos,
@@ -270,10 +294,15 @@ export async function GET() {
   // ---------------------------------------------------------------------------
   // Respuesta
   // ---------------------------------------------------------------------------
+  const reportes = (reps ?? []) as unknown as {
+    tenant_id: string;
+    tenant: { slug: string } | null;
+  }[];
   const slug =
-    ((reps ?? [])
-      .map((r) => (r.tenant as unknown as { slug: string } | null)?.slug)
-      .find((s): s is string => !!s)) ?? "reporte";
+    reportes
+      .filter((r) => !tenantParam || r.tenant_id === tenantParam)
+      .map((r) => r.tenant?.slug)
+      .find((s): s is string => !!s) ?? "reporte";
   const fecha = new Date().toISOString().slice(0, 10);
   const filename = `matriz-trazabilidad-${slug}-${fecha}.xlsx`;
 

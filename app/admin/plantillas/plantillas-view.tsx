@@ -36,10 +36,13 @@ export function PlantillasView({
   plantillas,
   reportes,
   tenants,
+  tenantInicial = null,
 }: {
   plantillas: PlantillaFila[];
   reportes: ReporteOpc[];
   tenants: TenantOpc[];
+  /** Cliente preseleccionado (llega del alta como ?tenant=<id>). */
+  tenantInicial?: string | null;
 }) {
   return (
     <div className="space-y-10">
@@ -60,7 +63,12 @@ export function PlantillasView({
         ) : (
           <ul className="space-y-3">
             {plantillas.map((p) => (
-              <PlantillaCard key={p.id} plantilla={p} tenants={tenants} />
+              <PlantillaCard
+                key={p.id}
+                plantilla={p}
+                tenants={tenants}
+                tenantInicial={tenantInicial}
+              />
             ))}
           </ul>
         )}
@@ -192,15 +200,19 @@ function GuardarPlantilla({ reportes }: { reportes: ReporteOpc[] }) {
 function PlantillaCard({
   plantilla,
   tenants,
+  tenantInicial,
 }: {
   plantilla: PlantillaFila;
   tenants: TenantOpc[];
+  tenantInicial: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [abrir, setAbrir] = useState(false);
   const [state, dispatch, pending] = useActionState(crearReporteDesdePlantilla, initial);
-  const [tenantId, setTenantId] = useState(tenants.length === 1 ? tenants[0].id : "");
+  const [tenantId, setTenantId] = useState(
+    tenantInicial ?? (tenants.length === 1 ? tenants[0].id : "")
+  );
   const [nombre, setNombre] = useState("");
   const [ejercicio, setEjercicio] = useState("");
 

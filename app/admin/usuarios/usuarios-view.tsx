@@ -8,10 +8,13 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { ROLES_CLIENTE } from "@/lib/gestion";
+import { fmtFechaHora } from "@/lib/fechas";
 import {
   crearUsuario,
   cambiarActivoUsuario,
+  regenerarInvitacion,
   type AltaUsuarioState,
+  type Invitacion,
 } from "./actions";
 
 export type UsuarioFila = {
@@ -47,19 +50,26 @@ export function UsuariosView({
   usuarios,
   tenants,
   areas,
+  tenantInicial = null,
 }: {
   usuarios: UsuarioFila[];
   tenants: TenantOpcion[];
   areas: { tenant_id: string; area: string }[];
+  /** Cliente preseleccionado (llega del alta como ?tenant=<id>). */
+  tenantInicial?: string | null;
 }) {
   const toast = useToast();
-  const [abrirAlta, setAbrirAlta] = useState(false);
+  // Si se llega desde el alta de un cliente, el formulario abre solo: la
+  // intención de quien hizo clic ya era dar de alta a alguien.
+  const [abrirAlta, setAbrirAlta] = useState(tenantInicial != null);
   const [state, dispatch, pending] = useActionState(crearUsuario, initialAlta);
 
   // Formulario controlado.
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [tenantId, setTenantId] = useState(tenants.length === 1 ? tenants[0].id : "");
+  const [tenantId, setTenantId] = useState(
+    tenantInicial ?? (tenants.length === 1 ? tenants[0].id : "")
+  );
   const [rol, setRol] = useState<string>("cliente");
   const [area, setArea] = useState("");
 
@@ -183,7 +193,10 @@ export function UsuariosView({
                   <select
                     id="u-tenant"
                     value={tenantId}
-                    onChange={(e) => setTenantId(e.target.value)}
+                    onChange={(e) => {
+                      setTenantId(e.target.value);
+                      setArea(""); // cada cliente tiene sus propias áreas
+                    }}
                     className={inputCls}
                   >
                     <option value="" disabled>
@@ -221,27 +234,44 @@ export function UsuariosView({
                     {rol === "cliente" ? "" : "· no aplica"}
                   </span>
                 </label>
-                <input
-                  id="u-area"
-                  list="areas-usuario"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  disabled={rol !== "cliente"}
-                  placeholder={rol === "cliente" ? "RH, Operaciones…" : "—"}
-                  className={inputCls}
-                />
-                <datalist id="areas-usuario">
-                  {areasTenant.map((a) => (
-                    <option key={a} value={a} />
-                  ))}
-                </datalist>
+                {/* Con catálogo de áreas se elige de la lista: el área debe
+                    coincidir EXACTAMENTE con la de las solicitudes (de eso
+                    depende qué ve el usuario), y un select no admite erratas.
+                    Sin catálogo (clientes heredados) se escribe a mano. */}
+                {areasTenant.length > 0 ? (
+                  <select
+                    id="u-area"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    disabled={rol !== "cliente"}
+                    className={inputCls}
+                  >
+                    <option value="">{rol === "cliente" ? "Selecciona…" : "—"}</option>
+                    {areasTenant.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="u-area"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    disabled={rol !== "cliente"}
+                    placeholder={rol === "cliente" ? "RH, Operaciones…" : "—"}
+                    className={inputCls}
+                  />
+                )}
               </div>
             </div>
 
             <p className="rounded-xl border border-dashed border-line bg-crema/30 px-3.5 py-2.5 text-xs leading-relaxed text-muted">
-              Se generará una contraseña temporal que verás una sola vez para
-              compartir con la persona. La invitación por correo con enlace mágico
-              queda como mejora de producción (en staging no hay envío).
+              Se generará una liga de invitación de un solo uso (72 h) para que la
+              persona establezca su propia contraseña, más una contraseña temporal
+              de respaldo. Ambas se muestran una sola vez. El correo de invitación
+              ya está implementado: mientras no haya cuenta de Resend, sale al log
+              del servidor y la vía de entrega es la liga que verás aquí.
             </p>
 
             <div className="flex justify-end gap-2.5 border-t border-line pt-6">
@@ -291,6 +321,59 @@ export function UsuariosView({
   );
 }
 
+/**
+ * Liga de invitación lista para compartir. En staging el correo va a la consola,
+ * así que ESTA es la vía real de entrega: se muestra completa y se copia de un
+ * clic, con su vencimiento a la vista.
+ */
+export function LigaInvitacion({
+  invitacion,
+  compacta = false,
+}: {
+  invitacion: Invitacion;
+  compacta?: boolean;
+}) {
+  const toast = useToast();
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(invitacion.url);
+      toast.success("Liga de invitación copiada.");
+    } catch {
+      toast.error("No se pudo copiar. Selecciona la liga y cópiala manualmente.");
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-teal/30 bg-teal/[0.05] px-3.5 py-3",
+        compacta && "text-xs"
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal">
+          Liga de invitación · un solo uso
+        </p>
+        <Button size="sm" variant="secondary" onClick={copiar}>
+          <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+          </svg>
+          Copiar liga
+        </Button>
+      </div>
+      <p className="mt-2 break-all rounded-lg border border-line bg-surface px-3 py-2 font-mono text-xs text-ink">
+        {invitacion.url}
+      </p>
+      <p className="mt-1.5 text-xs text-muted">
+        Vence el {fmtFechaHora(invitacion.expiraEn)} ({invitacion.horas} h). Lleva a
+        establecer su propia contraseña; después deja de servir.
+      </p>
+    </div>
+  );
+}
+
 function CredencialesCard({
   creado,
   onCerrar,
@@ -302,7 +385,13 @@ function CredencialesCard({
   const copiar = async () => {
     try {
       await navigator.clipboard.writeText(
-        `Usuario: ${creado.email}\nContraseña temporal: ${creado.passwordTemporal}`
+        [
+          `Usuario: ${creado.email}`,
+          `Contraseña temporal: ${creado.passwordTemporal}`,
+          creado.invitacion ? `Liga de invitación: ${creado.invitacion.url}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n")
       );
       toast.success("Credenciales copiadas al portapapeles.");
     } catch {
@@ -315,11 +404,12 @@ function CredencialesCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-gold">
-            Usuario creado — copia la contraseña ahora
+            Usuario creado — comparte el acceso ahora
           </p>
           <p className="mt-1 text-sm text-muted">
-            Esta contraseña temporal <span className="font-medium">no volverá a mostrarse</span>.
-            Compártela con {limpiar(creado.nombre)}.
+            Comparte la <span className="font-medium">liga de invitación</span> con{" "}
+            {limpiar(creado.nombre)} para que establezca su propia contraseña. La
+            temporal es el respaldo y <span className="font-medium">no volverá a mostrarse</span>.
           </p>
         </div>
         <button
@@ -347,13 +437,24 @@ function CredencialesCard({
         </div>
       </dl>
 
+      {creado.invitacion ? (
+        <div className="mt-4">
+          <LigaInvitacion invitacion={creado.invitacion} />
+        </div>
+      ) : (
+        <p className="mt-4 rounded-xl border border-dashed border-rojo/30 bg-rojo/5 px-3.5 py-2.5 text-xs leading-relaxed text-rojo">
+          No se pudo generar la liga de invitación. Comparte la contraseña temporal y
+          vuelve a generarla desde el botón “Invitar” de la lista.
+        </p>
+      )}
+
       <div className="mt-4 flex justify-end">
         <Button size="sm" variant="secondary" onClick={copiar}>
           <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <rect x="9" y="9" width="11" height="11" rx="2" />
             <path d="M5 15V5a2 2 0 0 1 2-2h10" />
           </svg>
-          Copiar credenciales
+          Copiar todo
         </Button>
       </div>
     </div>
@@ -363,7 +464,9 @@ function CredencialesCard({
 function FilaUsuario({ usuario }: { usuario: UsuarioFila }) {
   const toast = useToast();
   const [pending, startTransition] = useTransition();
+  const [invitando, startInvitar] = useTransition();
   const [confirmar, setConfirmar] = useState(false);
+  const [invitacion, setInvitacion] = useState<Invitacion | null>(null);
 
   const aplicar = (activar: boolean) => {
     startTransition(async () => {
@@ -371,6 +474,18 @@ function FilaUsuario({ usuario }: { usuario: UsuarioFila }) {
       setConfirmar(false);
       if (r.ok) toast.success(r.mensaje ?? "Listo.");
       else toast.error(r.error ?? "No se pudo actualizar.");
+    });
+  };
+
+  const invitar = () => {
+    startInvitar(async () => {
+      const r = await regenerarInvitacion(usuario.id);
+      if (r.ok && r.invitacion) {
+        setInvitacion(r.invitacion);
+        toast.success(r.mensaje ?? "Invitación generada.");
+      } else {
+        toast.error(r.error ?? "No se pudo generar la invitación.");
+      }
     });
   };
 
@@ -400,6 +515,18 @@ function FilaUsuario({ usuario }: { usuario: UsuarioFila }) {
         </div>
       </div>
 
+      {usuario.activo && (
+        <button
+          type="button"
+          onClick={invitar}
+          disabled={invitando || pending}
+          title="Genera una liga nueva para que establezca su contraseña"
+          className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-teal transition duration-150 hover:bg-teal/5 disabled:opacity-50"
+        >
+          {invitando ? "Generando…" : "Invitar"}
+        </button>
+      )}
+
       {usuario.activo ? (
         <button
           type="button"
@@ -418,6 +545,12 @@ function FilaUsuario({ usuario }: { usuario: UsuarioFila }) {
         >
           Reactivar
         </button>
+      )}
+
+      {invitacion && (
+        <div className="w-full basis-full pt-1">
+          <LigaInvitacion invitacion={invitacion} compacta />
+        </div>
       )}
 
       <ConfirmDialog

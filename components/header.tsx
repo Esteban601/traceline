@@ -2,7 +2,9 @@ import Link from "next/link";
 import { APP_NAME } from "@/lib/app";
 import { logout } from "@/app/login/actions";
 import { LogoutButton } from "@/components/logout-button";
-import type { PerfilActual } from "@/lib/data";
+import { TenantLogo } from "@/components/ui/tenant-logo";
+import { limpiarNombreTenant } from "@/lib/tenants";
+import type { PerfilActual, TenantActual } from "@/lib/data";
 
 function iniciales(nombre: string): string {
   const limpio = nombre.replace(/\[DEMO\]\s*/i, "").trim();
@@ -10,7 +12,14 @@ function iniciales(nombre: string): string {
   return partes.map((p) => p.charAt(0).toUpperCase()).join("") || "·";
 }
 
-export function Header({ perfil }: { perfil: PerfilActual }) {
+export function Header({
+  perfil,
+  tenant,
+}: {
+  perfil: PerfilActual;
+  /** Cliente del usuario. Null para el staff de IRStrat, que no tiene uno. */
+  tenant: TenantActual | null;
+}) {
   const rolLabel =
     perfil.tenant_id === null
       ? "IRStrat"
@@ -21,16 +30,30 @@ export function Header({ perfil }: { perfil: PerfilActual }) {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-crema/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-5 sm:px-8">
+        {/* La marca del portal es la DEL CLIENTE, no la de IRStrat: quien entra
+            aquí ve su propia casa. Sin logo cargado, sus iniciales. El staff no
+            tiene cliente, así que conserva la marca de la aplicación. */}
         <Link
           href="/portal"
-          className="flex items-center gap-2.5 transition duration-150 hover:opacity-80"
+          className="flex min-w-0 items-center gap-2.5 transition duration-150 hover:opacity-80"
         >
-          <span className="grid size-8 place-items-center rounded-lg bg-teal font-display text-sm font-bold text-crema">
-            {APP_NAME.charAt(0)}
-          </span>
-          <span className="font-display text-base font-semibold tracking-tight text-ink">
-            {APP_NAME}
-          </span>
+          {tenant ? (
+            <>
+              <TenantLogo nombre={tenant.nombre} logoUrl={tenant.logo_url} tamano="sm" />
+              <span className="truncate font-display text-base font-semibold tracking-tight text-ink">
+                {limpiarNombreTenant(tenant.nombre)}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="grid size-8 place-items-center rounded-lg bg-teal font-display text-sm font-bold text-crema">
+                {APP_NAME.charAt(0)}
+              </span>
+              <span className="font-display text-base font-semibold tracking-tight text-ink">
+                {APP_NAME}
+              </span>
+            </>
+          )}
         </Link>
 
         <div className="flex items-center gap-3">

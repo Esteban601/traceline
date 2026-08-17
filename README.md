@@ -14,6 +14,9 @@ emisoras BMV (IRStrat / Vert).
 - ✅ **Panel interno de IRStrat** (`/admin`): matriz de seguimiento, detalle staff, cobertura de taxonomía y export a Excel.
 - ✅ **Módulo de gestión (Fase 1, cierre)**: alta/edición/borrado de solicitudes con mapeo a datapoints, gestión de usuarios del cliente y plantillas de checklist (`/admin/plantillas`, `/admin/usuarios`).
 - ✅ **Candado de trazabilidad (Fase 2)**: justificación de ajustes, congelamiento de reporte, alerta de discrepancia entre áreas y bitácora visible (ver más abajo).
+- ✅ **Operación multi-cliente (Sprint 7)**: alta de clientes desde la UI
+  (`/admin/clientes`) con sus áreas, prefijo de folios y logo; invitaciones de un
+  solo uso; recuperación de contraseña; selector de cliente en matriz y cobertura.
 - 🌱 **Correo y recordatorios (Fase 1)** — solicitar, recordar y avisar observaciones vía Resend (rama `fase-1-recordatorios`).
 
 Stack: Next.js 15 (App Router, TypeScript, pnpm) + Supabase local (CLI + Docker).
@@ -236,6 +239,125 @@ pnpm verify:export              # en otra (usa admin@irstrat.example por defecto
 #   pnpm verify:export http://localhost:3000
 #   ADMIN_EMAIL=... ADMIN_PASSWORD=... pnpm verify:export
 ```
+
+## Operación multi-cliente (Sprint 7)
+
+La firma deja de operar un solo cliente: se dan de alta emisoras desde la UI, cada
+una con su marca, sus áreas y sus usuarios, y el aislamiento entre ellas lo
+garantiza RLS (verificado con dos sesiones simultáneas, ver la guía de prueba).
+
+### Alta de cliente — `/admin/clientes` (solo staff)
+
+| Campo | Regla |
+|-------|-------|
+| **Nombre** | Como aparece en el informe y en su portal. |
+| **Identificador (slug)** | Se autogenera del nombre y es editable. Único, kebab-case (`^[a-z0-9]+(-[a-z0-9]+)*$`), validado en UI **y** como CHECK en la base. |
+| **Prefijo de folios** | Se autogenera del nombre y es editable. 3-4 letras mayúsculas, único (`^[A-Z]{3,4}$`). Etiqueta breve del cliente en el panel staff. |
+| **Áreas iniciales** | Casillas de las estándar (RH, Operaciones, Finanzas) más las que se agreguen. **Al menos una**: sin áreas el cliente no puede recibir solicitudes. |
+
+Al crear, el tenant queda **operable** (existe, activo, con sus áreas en
+`areas_tenant`) y la UI encadena los dos pasos siguientes con el cliente ya
+preseleccionado: *crea su primer reporte* (`/admin/plantillas?tenant=…`, reusando
+las plantillas de checklist existentes) y *da de alta a sus usuarios*
+(`/admin/usuarios?tenant=…`).
+
+**Desactivar, nunca borrar.** `tenants.activo = false` con `ConfirmDialog`. El
+cliente deja de ofrecerse para trabajo nuevo y **sus usuarios ya no pueden
+ingresar** (se corta en el login y se revalida en el middleware en cada request);
+su reporte, su evidencia y su bitácora se conservan y se puede reactivar. Toda el
+alta y la baja quedan en bitácora (`entidad = 'tenants'`).
+
+### Invitaciones y acceso
+
+- **Liga de invitación de un solo uso** al crear un usuario: vence a las **72 h**,
+  lleva a `/invitacion/[token]` para establecer contraseña propia y se muestra al
+  staff para compartirla por el canal que sea. En la base se guarda el **SHA-256**
+  del token, nunca el token. El canje corre con `service_role` (quien entra aún no
+  tiene sesión) y la autorización la da el token, no una identidad.
+- La **contraseña temporal** sigue existiendo como respaldo, y el botón
+  **"Invitar"** de la lista regenera la liga cuando vence.
+- El **correo de invitación** ya está implementado; sin `RESEND_API_KEY` sale al
+  log del servidor y la vía de entrega operativa es la liga visible en el panel.
+- **"¿Olvidaste tu contraseña?"** en el login → `/recuperar`. Flujo estándar de
+  Supabase auth: con Resend se envía el correo; en **modo consola** se genera la
+  misma liga con la Admin API y se imprime en el log. La liga pasa por
+  `/auth/confirmar` (verifica el token y abre la sesión en cookies) y termina en
+  `/restablecer`. La respuesta al usuario es siempre la misma exista o no la
+  cuenta, para no delatar quién tiene acceso.
+  - La plantilla de correo vive en `supabase/templates/recuperacion.html` y está
+    conectada en `config.toml`. **En producción hay que cargarla también en el
+    dashboard de Supabase** (Auth → Email Templates → Reset Password): la liga por
+    defecto devuelve los tokens en el fragmento `#` de la URL, que el servidor no
+    puede leer.
+
+### Logo por cliente
+
+- Columna `tenants.logo_url` + bucket de storage **`logos`**: lectura pública
+  (el logo se pinta sin firmar URLs), **escritura solo staff**, con políticas
+  explícitas y `allowed_mime_types` / `file_size_limit` en el propio bucket.
+- Se sube, reemplaza y quita desde `/admin/clientes`. Acepta **PNG, JPG, SVG o
+  WebP, máx. 2 MB**; los **rasterizados se reducen a 400 px de ancho** y se
+  reencodan a WebP en el navegador antes de subir (evita añadir una dependencia
+  nativa de imagen al servidor; el servidor revalida tipo y peso igualmente). Un
+  SVG con `<script>`, manejadores de evento o `javascript:` se rechaza.
+- **Dónde se ve:** header del portal del cliente (su logo, no el de IRStrat) y
+  junto al nombre del tenant en la matriz y el selector del panel staff. **Sin
+  logo, iniciales** en el círculo del design system (comportamiento anterior).
+- El logo **no entra al Excel de taxonomía**: ese documento es oficial y su
+  formato no se toca.
+
+### Selector de cliente en el panel staff
+
+`/admin` y `/admin/cobertura` aceptan `?tenant=<id>` desde un selector (aparece
+solo si hay más de un cliente). La matriz suma una columna **Cliente** cuando la
+vista mezcla varios. La cobertura se mide **por cliente**: mezclar emisoras daría
+un porcentaje que no le corresponde a ninguna.
+
+> **Excel de taxonomía y multi-cliente.** El llenado de la plantilla oficial se
+> arma desde `mapeo_export` (mapeo fijo celda↔dato, construido por reporte). Si el
+> cliente seleccionado no tiene celdas mapeadas, el botón **no se ofrece** y se
+> explica por qué: entregaría el libro de otro cliente. Parametrizar el mapeo por
+> cliente es trabajo de un sprint propio.
+
+La **alerta de discrepancia** también se acotó por cliente: dos emisoras usan los
+mismos `rubro_clave` con valores legítimamente distintos y compararlas entre sí
+sería una alerta falsa.
+
+### Guía de prueba del flujo completo de alta
+
+Con `supabase start`, `supabase db reset` y `pnpm dev` corriendo, como
+`admin@irstrat.example` (`Demo2025!`):
+
+1. **Alta.** `/admin/clientes` → **Nuevo cliente**. Escribe el nombre y comprueba
+   que el slug y el prefijo se autogeneran (edítalos si quieres). Marca las áreas
+   estándar y agrega una propia con **Agregar área**. → **Crear cliente**.
+2. **Confirmación.** Aparece la tarjeta *"… está listo para operar"* con el
+   prefijo de folios, las áreas creadas y los dos pasos siguientes.
+3. **Logo.** En la tarjeta del cliente, **Subir logo** con un PNG ancho (> 400 px).
+   Verifica que el archivo servido queda en `.webp` y 400 px de ancho.
+4. **Primer reporte.** Clic en *Crea su primer reporte* → el cliente llega
+   preseleccionado; elige la plantilla, ponle nombre y ejercicio → **Crear
+   reporte**.
+5. **Usuario.** `/admin/usuarios?tenant=…` (o *Da de alta a sus usuarios*): el
+   formulario abre solo con el cliente puesto. Elige rol **Cliente** y su **área**
+   del catálogo. → **Crear usuario**. Copia la **liga de invitación**.
+6. **Acceso del cliente.** En una **ventana privada**, abre la liga, establece la
+   contraseña y confirma que entras a `/portal` con **el logo del cliente** en el
+   header. Vuelve a abrir la misma liga: debe decir *"Esta liga ya se usó"*.
+7. **Carga de evidencia.** Abre una solicitud de su área y sube un archivo;
+   comprueba que queda listada en *Tus entregas*.
+8. **Aislamiento.** Con ese usuario, pega la URL de una solicitud de Empresa Demo
+   (tómala del panel staff): debe responder *"Solicitud no encontrada"*. Repite al
+   revés con `rh@empresademo.example` contra una solicitud del cliente nuevo.
+9. **Vista del staff.** `/admin` sin filtro muestra los dos clientes con su
+   columna **Cliente**; con el selector puesto en el nuevo, las filas de Empresa
+   Demo desaparecen. Lo mismo en `/admin/cobertura`.
+10. **Restablecer contraseña.** `/login` → *¿Olvidaste tu contraseña?* → escribe
+    el correo. Toma la liga del log de `pnpm dev` (`🔑 LIGA DE RECUPERACIÓN`),
+    ábrela, guarda una contraseña nueva y entra con ella.
+11. **Baja.** `/admin/clientes` → **Desactivar** en el cliente de prueba y
+    confirma. Intenta entrar con su usuario: el acceso queda cortado y el cliente
+    sigue en la lista marcado como *Inactivo*.
 
 ## Documentación
 

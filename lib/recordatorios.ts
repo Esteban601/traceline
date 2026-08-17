@@ -34,7 +34,7 @@ type SolRow = {
   estado: string;
   fecha_limite: string | null;
   responsable_cliente_id: string;
-  reporte: { tenant_id: string } | null;
+  reporte: { tenant_id: string; tenant: { activo: boolean } | null } | null;
   responsable: { id: string; nombre: string; email: string } | null;
 };
 
@@ -60,7 +60,7 @@ export async function procesarRecordatorios(
   const { data, error } = await db
     .from("solicitudes")
     .select(
-      "id, titulo, estado, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
+      "id, titulo, estado, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(activo)), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
     )
     .in("estado", ESTADOS_RECORDABLES)
     .not("responsable_cliente_id", "is", null)
@@ -68,7 +68,12 @@ export async function procesarRecordatorios(
 
   if (error) throw new Error(`No se pudieron leer las solicitudes: ${error.message}`);
 
-  const sols = (data ?? []) as unknown as SolRow[];
+  // Un cliente desactivado no recibe recordatorios: sus usuarios no pueden
+  // entrar al portal, así que pedirles evidencia por correo sería mandarlos a
+  // una puerta cerrada.
+  const sols = ((data ?? []) as unknown as SolRow[]).filter(
+    (s) => s.reporte?.tenant?.activo !== false
+  );
 
   // 2. Regla anti-spam: responsables con recordatorio en los últimos N días.
   const cutoff = new Date(Date.now() - DIAS_ANTISPAM * 24 * 60 * 60 * 1000).toISOString();

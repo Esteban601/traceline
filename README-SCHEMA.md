@@ -143,6 +143,31 @@ la puebla el sistema.
 - **Usuario de tenant**: sube y lee solo bajo la ruta de su tenant, y solo a
   solicitudes que puede ver (`fn_puede_ver_solicitud`). Sin `UPDATE`/`DELETE`.
 
+- Bucket **público de lectura** `logos` (branding por cliente, Sprint 7). Ruta:
+  `{tenant_id}/<archivo>`. `allowed_mime_types` = PNG/JPG/SVG/WebP y
+  `file_size_limit` = 2 MB declarados en el propio bucket. **Escritura (insert,
+  update, delete) solo staff**, con políticas explícitas — el patrón de grants
+  aplica también a storage. Nada sensible vive aquí: el logo se sirve por URL
+  pública para pintarlo en el header del portal sin firmar cada request.
+
+---
+
+## Operación multi-cliente (Sprint 7)
+
+Añadidos por `20260817120000_multicliente.sql`:
+
+| Objeto | Qué es |
+|--------|--------|
+| `tenants.prefijo_folio` | Clave corta de la emisora: 3-4 letras mayúsculas, **única**, con CHECK `^[A-Z]{3,4}$`. Los tenants preexistentes se backfillean derivándola del nombre (y desempatando con una letra final, nunca un dígito, para no violar el CHECK). |
+| `tenants.logo_url` | URL pública del logo en el bucket `logos`. NULL = la UI cae a las iniciales del cliente. |
+| `tenants.slug` | Ahora con CHECK de kebab-case (`^[a-z0-9]+(-[a-z0-9]+)*$`); antes solo se validaba en la UI. |
+| `areas_tenant` | Catálogo de áreas **por cliente** (RH, Operaciones, …). Se backfillea con las áreas que ya existían en los datos del tenant (usuarios y solicitudes) para no inventar ninguna. RLS: el usuario del cliente lee las suyas; escribe el staff. |
+| `invitaciones` | Liga de un solo uso con vencimiento para establecer contraseña. Guarda el **SHA-256** del token, nunca el token. `authenticated` solo tiene `SELECT`/`INSERT` (gateado a staff por RLS); el **canje** lo resuelve el servidor con `service_role`, porque quien canjea aún no tiene sesión. |
+
+Desactivar un cliente (`tenants.activo = false`) **no borra nada** y corta el
+acceso de sus usuarios: se valida en el login y se revalida en el middleware en
+cada request. El staff no tiene tenant, así que no le aplica.
+
 ---
 
 ## Datos de demostración (seed)

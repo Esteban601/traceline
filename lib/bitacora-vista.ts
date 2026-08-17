@@ -32,6 +32,14 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   objetivo_editado: { label: "Objetivo editado", tono: "gris" },
   objetivo_desactivado: { label: "Objetivo desactivado", tono: "rojo" },
   objetivo_reactivado: { label: "Objetivo reactivado", tono: "verde" },
+  cuestionario_respondido: { label: "Cuestionario respondido", tono: "azul" },
+  tenant_creado: { label: "Cliente dado de alta", tono: "verde" },
+  tenant_desactivado: { label: "Cliente desactivado", tono: "rojo" },
+  tenant_reactivado: { label: "Cliente reactivado", tono: "verde" },
+  tenant_logo_actualizado: { label: "Logo actualizado", tono: "gris" },
+  tenant_logo_eliminado: { label: "Logo eliminado", tono: "gris" },
+  invitacion_creada: { label: "Invitación generada", tono: "ambar" },
+  invitacion_usada: { label: "Invitación canjeada", tono: "verde" },
 };
 
 export function accionMeta(accion: string): { label: string; tono: Tono } {
@@ -49,6 +57,8 @@ export const ENTIDADES: { value: string; label: string }[] = [
   { value: "reportes", label: "Reportes" },
   { value: "registros_clima", label: "Registros de clima" },
   { value: "objetivos", label: "Objetivos" },
+  { value: "tenants", label: "Clientes" },
+  { value: "invitaciones", label: "Invitaciones" },
 ];
 
 type Detalle = Record<string, unknown> | null;
@@ -124,6 +134,19 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "objetivo_desactivado":
     case "objetivo_reactivado":
       return limpiar(s(detalle, "nombre")) ?? "";
+    case "tenant_creado": {
+      const nombre = limpiar(s(detalle, "nombre"));
+      const prefijo = s(detalle, "prefijo_folio");
+      return [nombre, prefijo].filter(Boolean).join(" · ");
+    }
+    case "tenant_desactivado":
+    case "tenant_reactivado":
+    case "tenant_logo_actualizado":
+    case "tenant_logo_eliminado":
+      return limpiar(s(detalle, "nombre")) ?? "";
+    case "invitacion_creada":
+    case "invitacion_usada":
+      return s(detalle, "email") ?? limpiar(s(detalle, "nombre")) ?? "";
     default:
       return "";
   }

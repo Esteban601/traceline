@@ -13,14 +13,18 @@ function nombreDesde(cd: string | null): string {
   return "matriz-trazabilidad.xlsx";
 }
 
-export function ExportButton() {
+export function ExportButton({ tenantId = null }: { tenantId?: string | null }) {
   const [cargando, setCargando] = useState(false);
   const toast = useToast();
 
   async function exportar() {
     setCargando(true);
     try {
-      const res = await fetch("/admin/cobertura/export");
+      // El libro sigue al selector de cliente: lo que se ve es lo que se exporta.
+      const endpoint = tenantId
+        ? `/admin/cobertura/export?tenant=${encodeURIComponent(tenantId)}`
+        : "/admin/cobertura/export";
+      const res = await fetch(endpoint);
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const blob = await res.blob();
       const nombre = nombreDesde(res.headers.get("Content-Disposition"));

@@ -57,7 +57,14 @@ export type AccionEvento =
   | "objetivo_editado"
   | "objetivo_desactivado"
   | "objetivo_reactivado"
-  | "cuestionario_respondido";
+  | "cuestionario_respondido"
+  | "tenant_creado"
+  | "tenant_desactivado"
+  | "tenant_reactivado"
+  | "tenant_logo_actualizado"
+  | "tenant_logo_eliminado"
+  | "invitacion_creada"
+  | "invitacion_usada";
 
 /**
  * Registra un evento de gestión (crear/editar/eliminar solicitud, alta/baja de
@@ -78,7 +85,9 @@ export async function logEvento(
       | "reportes"
       | "registros_clima"
       | "objetivos"
-      | "cuestionarios_respuestas";
+      | "cuestionarios_respuestas"
+      | "tenants"
+      | "invitaciones";
     entidadId: string | null;
     detalle: Record<string, unknown>;
   }

@@ -6,6 +6,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { esRolClienteValido, generarPasswordTemporal } from "@/lib/gestion";
+import { enviarCorreo, modoConsola, plantillaInvitacion } from "@/lib/email";
+import {
+  INVITACION_HORAS,
+  expiracionInvitacion,
+  generarTokenInvitacion,
+  hashTokenInvitacion,
+  urlInvitacion,
+} from "@/lib/invitaciones";
+
+export type Invitacion = {
+  url: string;
+  /** ISO del vencimiento de la liga. */
+  expiraEn: string;
+  horas: number;
+};
 
 export type AltaUsuarioState = {
   ok: boolean;
@@ -15,7 +30,16 @@ export type AltaUsuarioState = {
     nombre: string;
     email: string;
     passwordTemporal: string;
+    /** Liga de invitación de un solo uso. Null si no se pudo generar. */
+    invitacion: Invitacion | null;
   } | null;
+};
+
+export type InvitacionState = {
+  ok: boolean;
+  error?: string | null;
+  mensaje?: string | null;
+  invitacion?: (Invitacion & { nombre: string; email: string }) | null;
 };
 
 export type ActivoState = { ok: boolean; error?: string | null; mensaje?: string | null };
@@ -109,11 +133,166 @@ export async function crearUsuario(
     detalle: { nombre, email, rol, area, tenant: tenant.nombre },
   });
 
+  // La contraseña temporal sigue existiendo como red de seguridad; la vía
+  // preferente es la liga: la persona establece SU contraseña, no una prestada.
+  const invitacion = await crearInvitacion(db, {
+    perfilId: userId,
+    tenantId,
+    tenantNombre: tenant.nombre,
+    nombre,
+    email,
+    creadaPor: perfil.id,
+  });
+
   revalidatePath("/admin/usuarios");
   return {
     ok: true,
     error: null,
-    creado: { nombre, email, passwordTemporal },
+    creado: { nombre, email, passwordTemporal, invitacion },
+  };
+}
+
+/**
+ * Crea la invitación de un solo uso, la registra en bitácora y dispara el correo
+ * (en modo consola queda en el log). Devuelve la liga para que el panel se la
+ * muestre al staff: en staging, sin Resend, ESA es la vía de entrega.
+ *
+ * No revienta el alta si algo falla: el usuario ya existe y tiene contraseña
+ * temporal; la invitación se puede regenerar después.
+ */
+async function crearInvitacion(
+  db: Awaited<ReturnType<typeof createClient>>,
+  params: {
+    perfilId: string;
+    tenantId: string;
+    tenantNombre: string;
+    nombre: string;
+    email: string;
+    creadaPor: string;
+  }
+): Promise<Invitacion | null> {
+  const token = generarTokenInvitacion();
+  const expira = expiracionInvitacion();
+
+  const { data: fila, error } = await db
+    .from("invitaciones")
+    .insert({
+      perfil_id: params.perfilId,
+      tenant_id: params.tenantId,
+      token_hash: hashTokenInvitacion(token),
+      expira_en: expira.toISOString(),
+      creada_por: params.creadaPor,
+    })
+    .select("id")
+    .single();
+
+  if (error || !fila) {
+    console.error("[invitaciones] no se pudo crear la invitación:", error?.message);
+    return null;
+  }
+
+  const url = urlInvitacion(token);
+
+  const envio = await enviarCorreo(
+    params.email,
+    plantillaInvitacion(params.nombre, {
+      url,
+      expiraEn: expira.toISOString(),
+      cliente: params.tenantNombre,
+      horas: INVITACION_HORAS,
+    })
+  );
+  if (!envio.ok) {
+    console.error("[invitaciones] no se pudo enviar el correo:", envio.error);
+  }
+  if (modoConsola()) {
+    console.log(
+      [
+        "",
+        "──────────────── 🔑 LIGA DE INVITACIÓN (modo consola) ────────────────",
+        `  Para:  ${params.email}`,
+        `  Liga:  ${url}`,
+        `  Vence: ${expira.toISOString()} (${INVITACION_HORAS} h, un solo uso)`,
+        "──────────────────────────────────────────────────────────────────────",
+        "",
+      ].join("\n")
+    );
+  }
+
+  await logEvento(db, {
+    tenantId: params.tenantId,
+    usuarioId: params.creadaPor,
+    accion: "invitacion_creada",
+    entidad: "invitaciones",
+    entidadId: fila.id,
+    detalle: {
+      email: params.email,
+      nombre: params.nombre,
+      expira_en: expira.toISOString(),
+      modo: envio.modo,
+    },
+  });
+
+  return { url, expiraEn: expira.toISOString(), horas: INVITACION_HORAS };
+}
+
+/**
+ * Regenera la invitación de un usuario existente (la anterior venció o se
+ * perdió). Cada liga es independiente: la nueva no invalida a las anteriores,
+ * pero todas caducan solas y son de un solo uso.
+ */
+export async function regenerarInvitacion(usuarioId: string): Promise<InvitacionState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+  if (!usuarioId) return { ok: false, error: "Usuario no válido." };
+
+  const db = await createClient();
+
+  const { data: objetivo } = await db
+    .from("perfiles_usuario")
+    .select("id, nombre, email, activo, tenant_id")
+    .eq("id", usuarioId)
+    .single();
+
+  if (!objetivo) return { ok: false, error: "No se encontró el usuario." };
+  if (!objetivo.tenant_id) {
+    return { ok: false, error: "Solo se invitan usuarios del cliente." };
+  }
+  if (!objetivo.activo) {
+    return { ok: false, error: "El usuario está desactivado: reactívalo antes de invitarlo." };
+  }
+
+  const { data: tenant } = await db
+    .from("tenants")
+    .select("nombre, activo")
+    .eq("id", objetivo.tenant_id)
+    .single();
+
+  if (!tenant?.activo) {
+    return {
+      ok: false,
+      error: "El cliente está desactivado: reactívalo antes de invitar a sus usuarios.",
+    };
+  }
+
+  const invitacion = await crearInvitacion(db, {
+    perfilId: objetivo.id,
+    tenantId: objetivo.tenant_id,
+    tenantNombre: tenant?.nombre ?? "",
+    nombre: objetivo.nombre,
+    email: objetivo.email,
+    creadaPor: perfil.id,
+  });
+
+  if (!invitacion) return { ok: false, error: "No se pudo generar la invitación." };
+
+  return {
+    ok: true,
+    error: null,
+    mensaje: "Invitación generada. Compártela por el canal que uses.",
+    invitacion: { ...invitacion, nombre: objetivo.nombre, email: objetivo.email },
   };
 }
 

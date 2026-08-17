@@ -2,8 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 
-/** Rutas públicas que no requieren sesión. */
-const RUTAS_PUBLICAS = ["/login"];
+/**
+ * Rutas públicas que no requieren sesión: el ingreso y todo el camino de acceso
+ * (canje de invitación, recuperación y restablecimiento de contraseña). La liga
+ * de recuperación DEBE poder abrirse sin sesión: es lo que la genera.
+ */
+const RUTAS_PUBLICAS = ["/login", "/invitacion", "/recuperar", "/restablecer", "/auth"];
 
 /**
  * Refresca la sesión de Supabase y aplica el ruteo por rol:
@@ -58,10 +62,11 @@ export async function updateSession(request: NextRequest) {
 
   if (user) {
     // Rol para el ruteo: staff (IRStrat) = perfil con tenant_id NULL.
-    // La política perfiles_select permite leer el propio perfil (id = auth.uid()).
+    // La política perfiles_select permite leer el propio perfil (id = auth.uid())
+    // y tenants_select el tenant propio, así que este join no necesita privilegios.
     const { data: perfil } = await supabase
       .from("perfiles_usuario")
-      .select("tenant_id")
+      .select("tenant_id, tenants(activo)")
       .eq("id", user.id)
       .single();
     const esStaff = perfil != null && perfil.tenant_id === null;
@@ -72,6 +77,22 @@ export async function updateSession(request: NextRequest) {
       url.search = "";
       return NextResponse.redirect(url);
     };
+
+    // Cliente desactivado: sus usuarios dejan de entrar. Desactivar un tenant
+    // nunca borra nada, pero sí corta el acceso — si no, "desactivar" sería
+    // cosmético. El staff no tiene tenant, así que no le aplica.
+    if (!esPublica && perfil?.tenant_id != null && perfil.tenants?.activo === false) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "?error=cliente_inactivo";
+      const salida = NextResponse.redirect(url);
+      // signOut() escribe el borrado de las cookies de sesión sobre `response`
+      // vía el adaptador setAll; una respuesta de redirección nueva no las
+      // hereda. Sin copiarlas, el navegador se quedaría con la sesión puesta.
+      for (const cookie of response.cookies.getAll()) salida.cookies.set(cookie);
+      return salida;
+    }
 
     // Ya autenticado en /login → a su home según rol.
     if (pathname === "/login") {

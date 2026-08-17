@@ -82,8 +82,18 @@ from (values
 -- =============================================================================
 -- 2. Tenant demo
 -- =============================================================================
-insert into public.tenants (id, nombre, slug, activo)
-values ('10000000-0000-0000-0000-000000000001', '[DEMO] Empresa Demo SAB', 'empresa-demo-sab', true);
+insert into public.tenants (id, nombre, slug, prefijo_folio, activo)
+values ('10000000-0000-0000-0000-000000000001', '[DEMO] Empresa Demo SAB', 'empresa-demo-sab', 'DEMO', true);
+
+-- Catálogo de áreas del tenant demo. Son las MISMAS que usan sus usuarios y sus
+-- solicitudes (no se inventan áreas nuevas): el catálogo solo las hace
+-- seleccionables desde la UI en vez de escribirlas a mano.
+insert into public.areas_tenant (tenant_id, nombre, orden) values
+  ('10000000-0000-0000-0000-000000000001', 'RH',                   0),
+  ('10000000-0000-0000-0000-000000000001', 'Operaciones',          1),
+  ('10000000-0000-0000-0000-000000000001', 'Finanzas',             2),
+  ('10000000-0000-0000-0000-000000000001', 'Gobierno Corporativo', 3),
+  ('10000000-0000-0000-0000-000000000001', 'Dirección',            4);
 
 -- =============================================================================
 -- 3. Perfiles de usuario

@@ -1,5 +1,5 @@
 import { APP_NAME, APP_URL } from "@/lib/app";
-import { fmtDiaLargo } from "@/lib/fechas";
+import { fmtDiaLargo, fmtFechaHora } from "@/lib/fechas";
 
 // =============================================================================
 // Plantillas HTML de correo — alineadas al DESIGN.md (crema/teal/dorado), con
@@ -217,6 +217,42 @@ export function plantillaObservacion(
       preheader: intro,
       etiqueta: "Observación",
       titulo: "Una solicitud requiere corrección",
+      cuerpoHtml,
+    }),
+  };
+}
+
+/**
+ * (d) Invitación de acceso. Lleva a establecer la contraseña propia mediante una
+ * liga de un solo uso con expiración. Queda implementada para cuando exista la
+ * cuenta real de Resend; en modo consola el correo se imprime en el log y la vía
+ * operativa es la liga que el panel le muestra al staff.
+ */
+export function plantillaInvitacion(
+  nombre: string,
+  opts: { url: string; expiraEn: string; cliente: string; horas: number }
+): Plantilla {
+  const subject = `Tu acceso a ${APP_NAME}`;
+  const intro = `Te damos acceso al portal de evidencia de sostenibilidad de ${limpiarNombre(
+    opts.cliente
+  )}. Para entrar, establece tu contraseña:`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(
+      intro
+    )}</p>
+    ${boton(opts.url, "Establecer mi contraseña")}
+    <p style="font-family:${FONT};font-size:13px;color:${COLOR.muted};margin:14px 0 0 0;line-height:1.6;">
+      La liga sirve <strong style="color:${COLOR.ink};">una sola vez</strong> y vence
+      el ${esc(fmtFechaHora(opts.expiraEn))} (${opts.horas} horas).
+      Si vence, pídele al equipo de IRStrat que te genere una nueva.
+    </p>`;
+  return {
+    subject,
+    html: layout({
+      preheader: intro,
+      etiqueta: "Invitación de acceso",
+      titulo: "Establece tu contraseña",
       cuerpoHtml,
     }),
   };

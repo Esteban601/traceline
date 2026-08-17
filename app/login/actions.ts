@@ -31,9 +31,18 @@ export async function login(
   // solo rutas internas para evitar open redirect).
   const { data: perfil } = await supabase
     .from("perfiles_usuario")
-    .select("tenant_id")
+    .select("tenant_id, tenants(activo)")
     .eq("id", data.user.id)
     .single();
+
+  // Cliente desactivado: se corta aquí, no después de dejarlo entrar. El
+  // middleware repite la comprobación en cada request (defensa en profundidad).
+  if (perfil?.tenant_id != null && perfil.tenants?.activo === false) {
+    await supabase.auth.signOut();
+    return {
+      error: "El acceso de tu organización está desactivado. Contacta al equipo de IRStrat.",
+    };
+  }
 
   if (perfil != null && perfil.tenant_id === null) {
     redirect("/admin");

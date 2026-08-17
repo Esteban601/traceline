@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EstadoBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TenantLogo } from "@/components/ui/tenant-logo";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -22,6 +23,9 @@ export type FilaMatriz = {
   responsable: string | null;
   numVersiones: number;
   ultimaActividad: string;
+  /** Cliente dueño de la solicitud (null si el reporte perdió su tenant). */
+  tenantNombre: string | null;
+  tenantLogo: string | null;
 };
 
 /** Elegible para "Enviar solicitud": pendiente con responsable asignado. */
@@ -81,6 +85,13 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
 
   const estadosPresentes = useMemo(
     () => ESTADOS_ORDEN.filter((e) => filas.some((f) => f.estado === e)),
+    [filas]
+  );
+
+  // La columna de cliente solo aparece cuando la vista mezcla varios: con el
+  // selector puesto en uno, repetir su nombre en cada fila es ruido.
+  const mostrarCliente = useMemo(
+    () => new Set(filas.map((f) => f.tenantNombre ?? "—")).size > 1,
     [filas]
   );
 
@@ -278,6 +289,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                     </th>
                   )}
                   <th className="px-4 py-3 font-medium">Solicitud</th>
+                  {mostrarCliente && <th className="px-4 py-3 font-medium">Cliente</th>}
                   <th className="px-4 py-3 font-medium">Área</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
                   <th className="px-4 py-3 font-medium">Responsable</th>
@@ -328,6 +340,18 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                           </Link>
                         </span>
                       </td>
+                      {mostrarCliente && (
+                        <td className="px-4 py-3">
+                          <span className="flex items-center gap-2 text-muted">
+                            <TenantLogo
+                              nombre={f.tenantNombre ?? "—"}
+                              logoUrl={f.tenantLogo}
+                              tamano="xs"
+                            />
+                            <span className="truncate">{f.tenantNombre ?? "—"}</span>
+                          </span>
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-muted">{f.area ?? "—"}</td>
                       <td className="px-4 py-3">
                         <EstadoBadge estado={f.estado} />
@@ -379,6 +403,9 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                       <EstadoBadge estado={f.estado} className="shrink-0" />
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                      {mostrarCliente && f.tenantNombre && (
+                        <span className="font-medium text-ink">{f.tenantNombre}</span>
+                      )}
                       {f.area && <span>{f.area}</span>}
                       <span>{f.responsable ?? "Sin responsable"}</span>
                       <span className={cn(f.numVersiones === 0 && "text-muted/60")}>
