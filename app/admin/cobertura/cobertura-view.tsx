@@ -81,16 +81,16 @@ export function CoberturaView({
   selector,
   tenantId = null,
   tenantNombre = null,
-  exportTaxonomiaDisponible = true,
+  reporteId = null,
 }: {
   datapoints: DatapointCobertura[];
-  /** Selector de cliente, inyectado desde el servidor. */
+  /** Selectores de cliente y reporte, inyectados desde el servidor. */
   selector?: React.ReactNode;
   /** Cliente activo, o null si se ve el agregado de la firma. */
   tenantId?: string | null;
   tenantNombre?: string | null;
-  /** ¿El cliente activo tiene celdas mapeadas para el Excel de taxonomía? */
-  exportTaxonomiaDisponible?: boolean;
+  /** Reporte del que se genera el Excel de taxonomía. */
+  reporteId?: string | null;
 }) {
   const [norma, setNorma] = useState<Norma | "todos">("todos");
   const [pilares, setPilares] = useState<Set<string>>(new Set());
@@ -179,21 +179,10 @@ export function CoberturaView({
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           {selector}
-          {exportTaxonomiaDisponible && <TaxonomiaExportButton />}
+          <TaxonomiaExportButton reporteId={reporteId} />
           <ExportButton tenantId={tenantId} />
         </div>
       </header>
-
-      {!exportTaxonomiaDisponible && (
-        <p className="rounded-card border border-dashed border-line bg-surface/60 px-4 py-3 text-sm leading-relaxed text-muted">
-          <span className="font-medium text-ink">
-            {tenantNombre} aún no tiene celdas mapeadas a la plantilla oficial
-          </span>{" "}
-          (<span className="font-mono text-xs">mapeo_export</span>), así que el Excel
-          de taxonomía no se ofrece para este cliente: entregaría el libro de otro.
-          El export de cobertura en CSV sí funciona.
-        </p>
-      )}
 
       {/* Anillos de avance por pilar (overview del universo completo) */}
       <AnillosCobertura anillos={anillos} totalCubierto={totalCubierto} universo={universo} />

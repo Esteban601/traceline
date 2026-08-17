@@ -8,6 +8,7 @@ import {
   puedeEditarSolicitud,
   puedeEditarEnunciado,
   puedeEliminarSolicitud,
+  puedeAsignarRubroTaxonomia,
 } from "@/lib/gestion";
 import type { EstadoSolicitud } from "@/lib/estados";
 import type { TablesUpdate } from "@/lib/database.types";
@@ -33,6 +34,7 @@ type CamposSolicitud = {
   responsable_irstrat_id: string | null;
   orden: number | null;
   rubro_clave: string | null;
+  rubro_taxonomia: string | null;
   datapointIds: string[];
 };
 
@@ -57,6 +59,7 @@ function leerCampos(fd: FormData): CamposSolicitud {
     responsable_irstrat_id: texto(fd, "responsable_irstrat_id"),
     orden,
     rubro_clave: texto(fd, "rubro_clave"),
+    rubro_taxonomia: texto(fd, "rubro_taxonomia"),
     datapointIds: Array.from(new Set(fd.getAll("datapoint_ids").map((v) => String(v)))).filter(
       Boolean
     ),
@@ -173,12 +176,20 @@ export async function crearSolicitud(
       responsable_irstrat_id: campos.responsable_irstrat_id,
       orden,
       rubro_clave: campos.rubro_clave,
+      rubro_taxonomia: campos.rubro_taxonomia,
       // estado se queda en el default 'pendiente'.
     })
     .select("id")
     .single();
 
   if (insErr || !creada) {
+    if (insErr?.code === "23505" && insErr.message.includes("rubro_taxonomia")) {
+      return {
+        ok: false,
+        error:
+          "Otra solicitud de este reporte ya alimenta ese rubro de taxonomía. Cada rubro lo llena una sola solicitud.",
+      };
+    }
     return { ok: false, error: "No se pudo crear la solicitud." };
   }
 
@@ -264,6 +275,7 @@ export async function editarSolicitud(
     responsable_cliente_id: campos.responsable_cliente_id,
     responsable_irstrat_id: campos.responsable_irstrat_id,
     rubro_clave: campos.rubro_clave,
+    rubro_taxonomia: campos.rubro_taxonomia,
   };
   if (campos.orden != null) update.orden = campos.orden;
 
@@ -278,7 +290,16 @@ export async function editarSolicitud(
     .from("solicitudes")
     .update(update)
     .eq("id", solicitudId);
-  if (upErr) return { ok: false, error: "No se pudo guardar la solicitud." };
+  if (upErr) {
+    if (upErr.code === "23505" && upErr.message.includes("rubro_taxonomia")) {
+      return {
+        ok: false,
+        error:
+          "Otra solicitud de este reporte ya alimenta ese rubro de taxonomía. Cada rubro lo llena una sola solicitud.",
+      };
+    }
+    return { ok: false, error: "No se pudo guardar la solicitud." };
+  }
 
   const errMap = await reemplazarMapeo(db, solicitudId, campos.datapointIds);
   if (errMap) return { ok: false, error: errMap };
@@ -363,4 +384,74 @@ export async function eliminarSolicitud(
 
   revalidatePath("/admin");
   return { ok: true, error: null, mensaje: "Solicitud eliminada." };
+}
+
+/**
+ * Asigna (o quita) el RUBRO DE TAXONOMÍA de una solicitud. Va aparte de
+ * `editarSolicitud` porque se admite incluso sobre una solicitud validada: el
+ * rubro no es contenido de la solicitud, es el mapeo a la celda de la plantilla
+ * oficial. Sin esta vía, un reporte cuyas solicitudes se validaron antes de que
+ * existieran los rubros no podría llenar su Excel jamás.
+ */
+export async function asignarRubroTaxonomia(
+  solicitudId: string,
+  rubro: string | null
+): Promise<GestionState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+  if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
+
+  const db = await createClient();
+
+  const { data: sol } = await db
+    .from("solicitudes")
+    .select("id, titulo, estado, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)")
+    .eq("id", solicitudId)
+    .single();
+  if (!sol) return { ok: false, error: "No se encontró la solicitud." };
+
+  const estado = sol.estado as EstadoSolicitud;
+  if (!puedeAsignarRubroTaxonomia(estado)) {
+    return {
+      ok: false,
+      error: "El reporte está congelado: sus solicitudes quedaron en solo-lectura.",
+    };
+  }
+
+  const { error } = await db
+    .from("solicitudes")
+    .update({ rubro_taxonomia: rubro })
+    .eq("id", solicitudId);
+
+  if (error) {
+    if (error.code === "23505" && error.message.includes("rubro_taxonomia")) {
+      return {
+        ok: false,
+        error:
+          "Otra solicitud de este reporte ya alimenta ese rubro de taxonomía. Cada rubro lo llena una sola solicitud.",
+      };
+    }
+    return { ok: false, error: "No se pudo asignar el rubro de taxonomía." };
+  }
+
+  const tenantId =
+    (sol.reporte as unknown as { tenant_id: string } | null)?.tenant_id ?? null;
+  await logEvento(db, {
+    tenantId,
+    usuarioId: perfil.id,
+    accion: "solicitud_editada",
+    entidad: "solicitudes",
+    entidadId: solicitudId,
+    detalle: { titulo: sol.titulo, rubro_taxonomia: rubro },
+  });
+
+  revalidatePath(`/admin/solicitudes/${solicitudId}`);
+  revalidatePath("/admin/cobertura");
+  return {
+    ok: true,
+    error: null,
+    mensaje: rubro ? "Rubro de taxonomía asignado." : "Rubro de taxonomía retirado.",
+  };
 }

@@ -4,6 +4,14 @@
 //
 // Forja una sesión de admin con @supabase/ssr (las mismas cookies que pondría el
 // navegador), invoca /admin/cobertura/export-taxonomia y valida:
+// Corre DOS exports:
+//   A) Empresa Demo — la referencia: 14/14 hojas llenas y sus reglas duras.
+//   B) Un segundo tenant de prueba creado al vuelo con datos mínimos (1 solicitud
+//      GEI validada) y ejercicio DISTINTO (2026), que comprueba lo que el
+//      rediseño del mapeo prometía: que la definición celda↔dato es reutilizable
+//      y que el libro de un cliente no arrastra NADA del otro.
+//
+// Valida en el export del demo:
 //   · HTTP 200 + content-type xlsx
 //   · las 14 hojas llenadas (2 GEI + 4 de registros de clima + 5 de objetivos +
 //     3 de cuestionarios narrativos)
@@ -59,6 +67,15 @@ const cellText = (ws, addr) => {
   return v == null ? "" : String(v);
 };
 
+/** Pide el export de un reporte concreto y devuelve la respuesta + su cuerpo. */
+async function pedirExport(cookie, reporteId) {
+  const url = `${BASE_URL}/admin/cobertura/export-taxonomia?reporte=${reporteId}`;
+  console.log(`\nGET ${url}`);
+  const res = await fetch(url, { headers: { cookie }, redirect: "manual" });
+  const buf = Buffer.from(await res.arrayBuffer());
+  return { res, buf };
+}
+
 async function main() {
   if (!SUPABASE_URL || !SUPABASE_ANON) {
     console.error("Falta NEXT_PUBLIC_SUPABASE_URL / ANON_KEY (.env.local).");
@@ -85,21 +102,30 @@ async function main() {
     .map(([n, v]) => `${n}=${encodeURIComponent(v)}`)
     .join("; ");
 
-  // 2. Invocar la ruta del export.
-  console.log(`\nGET ${BASE_URL}/admin/cobertura/export-taxonomia`);
-  const res = await fetch(`${BASE_URL}/admin/cobertura/export-taxonomia`, {
-    headers: { cookie },
-    redirect: "manual",
-  });
+  // 2. El export es POR REPORTE: se resuelve el del demo.
+  const { data: repDemo } = await client
+    .from("reportes")
+    // !inner: sin él, el embed es un LEFT JOIN y `.eq("tenant.slug")` solo
+    // anula el embebido — devolvería el reporte más reciente de CUALQUIER tenant.
+    .select("id, ejercicio, tenant:tenants!reportes_tenant_id_fkey!inner(slug)")
+    .eq("tenant.slug", "empresa-demo-sab")
+    .order("ejercicio", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!repDemo) {
+    console.error("No se encontró el reporte de Empresa Demo (¿corriste supabase db reset?).");
+    process.exit(2);
+  }
+
+  console.log("\n════════ A) EMPRESA DEMO — la referencia ════════");
+  const { res, buf } = await pedirExport(cookie, repDemo.id);
   ok(res.status === 200, `HTTP 200 (recibido ${res.status})`);
   const ct = res.headers.get("content-type") || "";
   ok(ct.includes("spreadsheetml"), `content-type xlsx (${ct.slice(0, 40)})`);
   if (res.status !== 200) {
-    console.error("Cuerpo:", (await res.text()).slice(0, 300));
+    console.error("Cuerpo:", buf.toString("utf8").slice(0, 300));
     process.exit(1);
   }
-
-  const buf = Buffer.from(await res.arrayBuffer());
   ok(buf.slice(0, 2).toString("latin1") === "PK", "cuerpo es un .xlsx (magic PK)");
 
   // 3. Reabrir y validar contenido.
@@ -328,12 +354,217 @@ async function main() {
   });
   ok(conPie.length === 14, `pie [DEMO] en las 14 hojas (encontrado en ${conPie.length})`);
 
+  // ===========================================================================
+  // B) SEGUNDO TENANT — un cliente real con datos mínimos.
+  //
+  // Se crea al vuelo (no vive en el seed: el ambiente de demo no debe cambiar) y
+  // se borra al final. Su ejercicio es 2026 a propósito: el mapeo guarda años
+  // RELATIVOS, así que si estuviera atado a 2025 este export saldría vacío.
+  // ===========================================================================
+  console.log("\n════════ B) SEGUNDO TENANT — cliente nuevo, datos mínimos ════════");
+  let fixture = null;
+  try {
+    fixture = await crearFixture(client);
+    console.log(`  (tenant ${fixture.slug}, reporte ${fixture.ejercicio})`);
+
+    const { res: res2, buf: buf2 } = await pedirExport(cookie, fixture.reporteId);
+    ok(res2.status === 200, `HTTP 200 para el segundo tenant (recibido ${res2.status})`);
+    if (res2.status !== 200) {
+      console.error("Cuerpo:", buf2.toString("utf8").slice(0, 300));
+    } else {
+      const cd = res2.headers.get("content-disposition") || "";
+      ok(
+        cd.includes(fixture.slug) && cd.includes(String(fixture.ejercicio)),
+        `el archivo se nombra con el slug del tenant real y su ejercicio (${cd.slice(0, 80)})`
+      );
+
+      const wb2 = new ExcelJS.Workbook();
+      await wb2.xlsx.load(buf2);
+
+      const g1 = wb2.getWorksheet("NIIF S2 29(a)(i)");
+      const gVi = wb2.getWorksheet("NIIF S2 29(a)(vi)(1)");
+      ok(!!g1 && !!gVi, "las dos hojas GEI existen en el libro del segundo tenant");
+
+      // Las etiquetas son de la PLANTILLA: no dependen del cliente.
+      ok(cellText(g1, "A3") === "Alcance 1", "etiqueta A3 = 'Alcance 1' (viene del mapeo)");
+      ok(
+        cellText(gVi, "A8") === "Categoría 5-Residuos generados en las operaciones",
+        "etiqueta de la categoría 5 escrita desde el catálogo de rubros"
+      );
+
+      // Su ÚNICA solicitud validada llena su celda del ejercicio del reporte.
+      ok(
+        Number(cellText(g1, "C3")) === 1234.5,
+        `C3 (Alcance 1, ${fixture.ejercicio} validado) = 1234.5 — año RELATIVO resuelto`
+      );
+      // El año anterior no tiene captura: hueco por 'Sin evidencia', no por otra causa.
+      ok(cellText(g1, "D3") === "", `D3 (Alcance 1, ${fixture.ejercicio - 1}) VACÍA`);
+      ok(
+        cellText(g1, "E3") === `Sin evidencia (${fixture.ejercicio - 1})`,
+        `E3 = 'Sin evidencia (${fixture.ejercicio - 1})'`
+      );
+
+      // Rubros mapeados que este reporte NO pide: causa NUEVA y distinta.
+      ok(
+        cellText(g1, "C4") === "" && cellText(g1, "E4") === "Sin solicitud en el reporte",
+        "Alcance 2 sin solicitud → celda vacía y nota 'Sin solicitud en el reporte'"
+      );
+      ok(
+        cellText(gVi, "D4") === "Sin solicitud en el reporte" &&
+          cellText(gVi, "D18") === "Sin solicitud en el reporte",
+        "las 15 categorías de Alcance 3 marcan 'Sin solicitud en el reporte'"
+      );
+
+      // AISLAMIENTO: ni un dato del demo se cuela en el libro del otro cliente.
+      const textoLibro = [];
+      wb2.eachSheet((ws) => {
+        ws.eachRow((row) => {
+          row.eachCell((cell) => {
+            const v = cell.value;
+            if (typeof v === "string") textoLibro.push(v);
+            else if (v && typeof v === "object" && v.richText)
+              textoLibro.push(v.richText.map((t) => t.text).join(""));
+          });
+        });
+      });
+      const todo = textoLibro.join(" | ");
+      ok(!/\[DEMO\]/.test(todo), "el libro NO lleva la marca [DEMO] (no es el tenant demo)");
+      ok(
+        !/Estrés hídrico en planta norte/.test(todo),
+        "no aparecen los registros de clima de Empresa Demo"
+      );
+      ok(
+        !/Reducción absoluta de emisiones GEI/.test(todo),
+        "no aparecen los objetivos de Empresa Demo"
+      );
+      ok(
+        !/15750|9820|3120\.4/.test(todo),
+        "no aparece ninguna cifra GEI de Empresa Demo (fuga del Sprint 1 cerrada)"
+      );
+    }
+  } catch (e) {
+    ok(false, `el segundo tenant falló: ${e.message}`);
+  } finally {
+    if (fixture) {
+      await limpiarFixture(client, fixture);
+      console.log("  (fixture del segundo tenant eliminado)");
+    }
+  }
+
   console.log(
     problemas.length === 0
-      ? "\n✅ VERIFICACIÓN OK — export íntegro por la ruta HTTP autenticada."
+      ? "\n✅ VERIFICACIÓN OK — export íntegro para Empresa Demo y para un cliente nuevo."
       : `\n❌ ${problemas.length} problema(s):\n - ${problemas.join("\n - ")}`
   );
   process.exit(problemas.length === 0 ? 0 : 1);
+}
+
+// -----------------------------------------------------------------------------
+// Fixture del segundo tenant. Se construye con la MISMA sesión de staff que usa
+// la app (RLS incluido), no con service_role: si un staff no pudiera crearlo por
+// la UI, la prueba no debería poder crearlo por atajo.
+// -----------------------------------------------------------------------------
+const FIXTURE = {
+  slug: "verify-export-emisora",
+  nombre: "Emisora de verificación (verify-export)",
+  prefijo: "VXP",
+  ejercicio: 2026,
+  valor: 1234.5,
+};
+
+async function crearFixture(client) {
+  // Idempotencia: si quedó de una corrida interrumpida, se retira primero.
+  const { data: previo } = await client
+    .from("tenants")
+    .select("id")
+    .eq("slug", FIXTURE.slug)
+    .maybeSingle();
+  if (previo) await limpiarFixture(client, { tenantId: previo.id });
+
+  const { data: tenant, error: tErr } = await client
+    .from("tenants")
+    .insert({
+      nombre: FIXTURE.nombre,
+      slug: FIXTURE.slug,
+      prefijo_folio: FIXTURE.prefijo,
+      activo: true,
+    })
+    .select("id")
+    .single();
+  if (tErr) throw new Error(`no se pudo crear el tenant: ${tErr.message}`);
+
+  const { data: reporte, error: rErr } = await client
+    .from("reportes")
+    .insert({
+      tenant_id: tenant.id,
+      nombre: "Informe Anual Sustentable (verificación)",
+      ejercicio: FIXTURE.ejercicio,
+      estado: "activo",
+    })
+    .select("id")
+    .single();
+  if (rErr) throw new Error(`no se pudo crear el reporte: ${rErr.message}`);
+
+  // UNA solicitud GEI, con su rubro canónico: es lo único que este cliente pidió.
+  const { data: solicitud, error: sErr } = await client
+    .from("solicitudes")
+    .insert({
+      reporte_id: reporte.id,
+      titulo: "Inventario GEI Alcance 1",
+      area_asignada: "Operaciones",
+      es_cuantitativa: true,
+      unidad_esperada: "tCO2e",
+      rubro_taxonomia: "gei_alcance_1",
+      orden: 10,
+    })
+    .select("id")
+    .single();
+  if (sErr) throw new Error(`no se pudo crear la solicitud: ${sErr.message}`);
+
+  const { data: perfil } = await client.auth.getUser();
+  const staffId = perfil?.user?.id;
+
+  const { data: evidencia, error: eErr } = await client
+    .from("evidencias")
+    .insert({
+      solicitud_id: solicitud.id,
+      archivo_path: `${tenant.id}/${solicitud.id}/inventario-gei.xlsx`,
+      nombre_original: "inventario-gei.xlsx",
+      periodo_cubierto: String(FIXTURE.ejercicio),
+      area_origen: "Operaciones",
+      subido_por: staffId,
+    })
+    .select("id")
+    .single();
+  if (eErr) throw new Error(`no se pudo crear la evidencia: ${eErr.message}`);
+
+  const { error: cErr } = await client.from("capturas_valor").insert({
+    solicitud_id: solicitud.id,
+    evidencia_id: evidencia.id,
+    valor: FIXTURE.valor,
+    unidad: "tCO2e",
+    periodo: String(FIXTURE.ejercicio),
+    capturado_por: staffId,
+    confirmado: true,
+  });
+  if (cErr) throw new Error(`no se pudo crear la captura: ${cErr.message}`);
+
+  // 'validado' AL FINAL: los triggers de Fase 2 reabren la solicitud en cada
+  // inserción de evidencia/captura (mismo orden que usa el seed).
+  const { error: vErr } = await client
+    .from("solicitudes")
+    .update({ estado: "validado" })
+    .eq("id", solicitud.id);
+  if (vErr) throw new Error(`no se pudo validar la solicitud: ${vErr.message}`);
+
+  return { ...FIXTURE, tenantId: tenant.id, reporteId: reporte.id };
+}
+
+/** Borra el fixture. El reporte cascadea solicitudes, evidencias y capturas. */
+async function limpiarFixture(client, fixture) {
+  await client.from("reportes").delete().eq("tenant_id", fixture.tenantId);
+  await client.from("areas_tenant").delete().eq("tenant_id", fixture.tenantId);
+  await client.from("tenants").delete().eq("id", fixture.tenantId);
 }
 
 main().catch((e) => {

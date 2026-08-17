@@ -5,6 +5,7 @@ import { coberturaDe, type Cobertura } from "@/lib/cobertura";
 import { cargarDiscrepancias } from "@/lib/discrepancias";
 import type { EstadoSolicitud } from "@/lib/estados";
 import { TenantSelector, type TenantOpcionSelector } from "@/components/tenant-selector";
+import { ParamSelect } from "@/components/ui/param-select";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { CoberturaView, type DatapointCobertura } from "./cobertura-view";
 
@@ -23,17 +24,23 @@ type DatapointRow = {
 export default async function CoberturaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tenant?: string }>;
+  searchParams: Promise<{ tenant?: string; reporte?: string }>;
 }) {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
 
-  const { tenant: tenantParam } = await searchParams;
+  const { tenant: tenantParam, reporte: reporteParam } = await searchParams;
 
   const supabase = await createClient();
 
-  const [{ data: dps, error }, { data: mapeo }, { data: sols }, discrepancias, { data: tenants }] =
-    await Promise.all([
+  const [
+    { data: dps, error },
+    { data: mapeo },
+    { data: sols },
+    discrepancias,
+    { data: tenants },
+    { data: reportes },
+  ] = await Promise.all([
       supabase
         .from("datapoints_taxonomia")
         .select("id, codigo, norma, pilar, seccion_indice, descripcion, ods")
@@ -49,6 +56,11 @@ export default async function CoberturaPage({
       supabase
         .from("tenants")
         .select("id, nombre, logo_url, prefijo_folio")
+        .order("nombre", { ascending: true }),
+      supabase
+        .from("reportes")
+        .select("id, nombre, ejercicio, tenant_id")
+        .order("ejercicio", { ascending: false })
         .order("nombre", { ascending: true }),
     ]);
 
@@ -70,6 +82,13 @@ export default async function CoberturaPage({
     logoUrl: t.logo_url,
     prefijoFolio: t.prefijo_folio,
   }));
+  const reportesLista = (reportes ?? []) as {
+    id: string;
+    nombre: string;
+    ejercicio: number;
+    tenant_id: string;
+  }[];
+
   const tenantSel =
     tenantParam && tenantsLista.some((t) => t.id === tenantParam) ? tenantParam : null;
   const tenantActivo = tenantSel ? tenantsLista.find((t) => t.id === tenantSel)! : null;
@@ -118,33 +137,51 @@ export default async function CoberturaPage({
     };
   });
 
-  // El Excel de taxonomía se arma desde `mapeo_export` (mapeo fijo celda↔dato,
-  // construido por reporte) y esa tabla NO está parametrizada por cliente: la
-  // ruta escribe todas las celdas activas que encuentra. Por eso el botón solo
-  // se ofrece cuando TODAS esas celdas son del cliente seleccionado; si hubiera
-  // una sola de otro, el libro mezclaría emisoras. El `activo` replica el filtro
-  // de la ruta para no ofrecer un botón que respondería 422.
-  let exportTaxonomiaDisponible = true;
-  if (tenantSel) {
-    const { data: celdas } = await supabase
-      .from("mapeo_export")
-      .select("solicitud_id")
-      .eq("activo", true)
-      .not("solicitud_id", "is", null);
-    const delTenant = new Set(solById.keys());
-    const mapeadas = (celdas ?? []).filter((c) => c.solicitud_id != null);
-    exportTaxonomiaDisponible =
-      mapeadas.length > 0 &&
-      mapeadas.every((c) => delTenant.has(c.solicitud_id as string));
-  }
+  // El Excel de taxonomía se genera POR REPORTE (el mapeo ya no está atado a un
+  // cliente). Los reportes ofrecidos siguen al selector de cliente; si con el
+  // filtro puesto solo queda uno, se elige solo — que es el caso normal.
+  const reportesVisibles = reportesLista.filter(
+    (r) => !tenantSel || r.tenant_id === tenantSel
+  );
+  const reporteParamValido =
+    reporteParam && reportesVisibles.some((r) => r.id === reporteParam)
+      ? reporteParam
+      : null;
+  const reporteSel =
+    reporteParamValido ?? (reportesVisibles.length === 1 ? reportesVisibles[0].id : null);
+
+  const nombreTenant = new Map(tenantsLista.map((t) => [t.id, limpiarNombreTenant(t.nombre)]));
 
   return (
     <CoberturaView
       datapoints={filas}
       tenantId={tenantSel}
       tenantNombre={tenantActivo ? limpiarNombreTenant(tenantActivo.nombre) : null}
-      exportTaxonomiaDisponible={exportTaxonomiaDisponible}
-      selector={<TenantSelector tenants={tenantsOpc} seleccionado={tenantSel} />}
+      reporteId={reporteSel}
+      selector={
+        <>
+          <TenantSelector
+            tenants={tenantsOpc}
+            seleccionado={tenantSel}
+            limpiar={["reporte"]}
+          />
+          <ParamSelect
+            param="reporte"
+            etiqueta="Reporte"
+            valor={reporteSel}
+            placeholder="Elige un reporte"
+            opciones={reportesVisibles.map((r) => ({
+              value: r.id,
+              // Siempre con el nombre del reporte: este selector decide de QUÉ
+              // cliente sale el Excel, así que dos opciones indistinguibles
+              // producirían un entregable equivocado sin aviso.
+              label: tenantSel
+                ? `${r.nombre} · ${r.ejercicio}`
+                : `${nombreTenant.get(r.tenant_id) ?? "—"} · ${r.nombre} · ${r.ejercicio}`,
+            }))}
+          />
+        </>
+      }
     />
   );
 }

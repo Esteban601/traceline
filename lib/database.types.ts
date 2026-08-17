@@ -418,39 +418,39 @@ export type Database = {
       mapeo_export: {
         Row: {
           activo: boolean
+          anio_offset: number | null
           celda: string
           celda_nota: string | null
           created_at: string
           datapoint_id: string | null
-          ejercicio: number | null
           etiqueta: string | null
           hoja: string
           id: string
-          solicitud_id: string | null
+          rubro_clave: string | null
         }
         Insert: {
           activo?: boolean
+          anio_offset?: number | null
           celda: string
           celda_nota?: string | null
           created_at?: string
           datapoint_id?: string | null
-          ejercicio?: number | null
           etiqueta?: string | null
           hoja: string
           id?: string
-          solicitud_id?: string | null
+          rubro_clave?: string | null
         }
         Update: {
           activo?: boolean
+          anio_offset?: number | null
           celda?: string
           celda_nota?: string | null
           created_at?: string
           datapoint_id?: string | null
-          ejercicio?: number | null
           etiqueta?: string | null
           hoja?: string
           id?: string
-          solicitud_id?: string | null
+          rubro_clave?: string | null
         }
         Relationships: [
           {
@@ -461,11 +461,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "mapeo_export_solicitud_id_fkey"
-            columns: ["solicitud_id"]
+            foreignKeyName: "mapeo_export_rubro_clave_fkey"
+            columns: ["rubro_clave"]
             isOneToOne: false
-            referencedRelation: "solicitudes"
-            referencedColumns: ["id"]
+            referencedRelation: "rubros_taxonomia"
+            referencedColumns: ["clave"]
           },
         ]
       }
@@ -686,6 +686,7 @@ export type Database = {
           id: string
           orden: number
           plantilla_id: string
+          rubro_taxonomia: string | null
           titulo: string
           unidad_esperada: string | null
         }
@@ -698,6 +699,7 @@ export type Database = {
           id?: string
           orden?: number
           plantilla_id: string
+          rubro_taxonomia?: string | null
           titulo: string
           unidad_esperada?: string | null
         }
@@ -710,6 +712,7 @@ export type Database = {
           id?: string
           orden?: number
           plantilla_id?: string
+          rubro_taxonomia?: string | null
           titulo?: string
           unidad_esperada?: string | null
         }
@@ -720,6 +723,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plantillas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plantilla_solicitudes_rubro_taxonomia_fkey"
+            columns: ["rubro_taxonomia"]
+            isOneToOne: false
+            referencedRelation: "rubros_taxonomia"
+            referencedColumns: ["clave"]
           },
         ]
       }
@@ -894,6 +904,33 @@ export type Database = {
           },
         ]
       }
+      rubros_taxonomia: {
+        Row: {
+          activo: boolean
+          clave: string
+          created_at: string
+          etiqueta: string
+          grupo: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          clave: string
+          created_at?: string
+          etiqueta: string
+          grupo: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          clave?: string
+          created_at?: string
+          etiqueta?: string
+          grupo?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       solicitudes: {
         Row: {
           area_asignada: string | null
@@ -908,6 +945,7 @@ export type Database = {
           responsable_cliente_id: string | null
           responsable_irstrat_id: string | null
           rubro_clave: string | null
+          rubro_taxonomia: string | null
           titulo: string
           unidad_esperada: string | null
         }
@@ -924,6 +962,7 @@ export type Database = {
           responsable_cliente_id?: string | null
           responsable_irstrat_id?: string | null
           rubro_clave?: string | null
+          rubro_taxonomia?: string | null
           titulo: string
           unidad_esperada?: string | null
         }
@@ -940,6 +979,7 @@ export type Database = {
           responsable_cliente_id?: string | null
           responsable_irstrat_id?: string | null
           rubro_clave?: string | null
+          rubro_taxonomia?: string | null
           titulo?: string
           unidad_esperada?: string | null
         }
@@ -964,6 +1004,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "perfiles_usuario"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_rubro_taxonomia_fkey"
+            columns: ["rubro_taxonomia"]
+            isOneToOne: false
+            referencedRelation: "rubros_taxonomia"
+            referencedColumns: ["clave"]
           },
         ]
       }

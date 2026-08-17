@@ -170,6 +170,25 @@ cada request. El staff no tiene tenant, así que no le aplica.
 
 ---
 
+## Export de taxonomía por cliente/reporte
+
+Añadidos por `20260818120000_export_por_reporte.sql`:
+
+| Objeto | Qué es |
+|--------|--------|
+| `rubros_taxonomia` | Catálogo **global** de rubros canónicos de la norma (GEI Alcance 1/2/3 + las 15 categorías de Alcance 3). Se siembra en la **migración**, no en el seed: son categorías de la taxonomía, no datos de demostración. Solo staff (RLS), como `datapoints_taxonomia`. |
+| `mapeo_export.rubro_clave` + `.anio_offset` | Sustituyen a `solicitud_id` + `ejercicio`. La tabla pasa de "estas celdas se llenan con estas solicitudes del demo" a "esta plantilla tiene estas celdas". El offset es **relativo** al ejercicio del reporte (`0` = el del reporte, `1` = el anterior). |
+| `solicitudes.rubro_taxonomia` | FK al catálogo, con índice **único parcial** `(reporte_id, rubro_taxonomia)`: un rubro lo alimenta una sola solicitud por reporte, así que el export no tiene empates que desempatar. |
+| `plantilla_solicitudes.rubro_taxonomia` | Propaga el rubro al clonar; es lo que hace que el primer export de un cliente nuevo salga lleno. |
+
+La migración **traduce las filas existentes** (staging) por posición de celda —así
+se construyeron, leyendo la plantilla real— y aborta con `raise exception` si
+alguna fila de valor quedara sin traducir, en vez de dejar huecos silenciosos.
+Al soltar `solicitud_id` desaparece también su `on delete cascade`: borrar una
+solicitud ya no puede llevarse el mapeo por delante.
+
+---
+
 ## Datos de demostración (seed)
 
 **Regla de oro respetada:** todo el seed es DEMO y está etiquetado como tal

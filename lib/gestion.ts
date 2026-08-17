@@ -17,6 +17,20 @@ export function puedeEditarSolicitud(estado: EstadoSolicitud): boolean {
 }
 
 /**
+ * ¿Se puede asignar el rubro de taxonomía? Sí incluso si la solicitud está
+ * VALIDADA, y a propósito: el rubro no es contenido de la solicitud (no cambia
+ * su enunciado, su valor ni su estado), es la decisión de qué celda de la
+ * plantilla oficial alimenta. Sin esta excepción, un reporte cuyas solicitudes
+ * se validaron antes de tener rubro no podría llenar su Excel nunca.
+ *
+ * Congelado sí queda fuera: ahí el candado es del reporte entero y lo aplica
+ * también un trigger en la base.
+ */
+export function puedeAsignarRubroTaxonomia(estado: EstadoSolicitud): boolean {
+  return estado !== "congelado";
+}
+
+/**
  * ¿Se pueden editar el título y la descripción? No, si la solicitud ya tiene
  * evidencia: el cliente respondió a un enunciado y ese enunciado no puede cambiar
  * de significado bajo sus pies. Los demás campos sí se pueden editar.

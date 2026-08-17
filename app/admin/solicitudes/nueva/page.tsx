@@ -63,6 +63,7 @@ export default async function NuevaSolicitudPage() {
             staff={opciones.staff}
             areas={opciones.areas}
             datapoints={opciones.datapoints}
+            rubros={opciones.rubros}
           />
         </div>
       )}

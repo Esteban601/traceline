@@ -46,7 +46,7 @@ export async function guardarComoPlantilla(
 
   const { data: sols, error: solErr } = await db
     .from("solicitudes")
-    .select("id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, orden")
+    .select("id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, orden, rubro_taxonomia")
     .eq("reporte_id", reporteId)
     .order("orden", { ascending: true });
   if (solErr) return { ok: false, error: "No se pudieron leer las solicitudes." };
@@ -86,6 +86,9 @@ export async function guardarComoPlantilla(
       unidad_esperada: s.unidad_esperada,
       orden: s.orden,
       datapoint_ids: dpPorSol.get(s.id) ?? [],
+      // Sin el rubro, el reporte clonado no resolvería ninguna celda de la
+      // plantilla oficial y su export saldría vacío.
+      rubro_taxonomia: s.rubro_taxonomia,
     }))
   );
   if (itemsErr) {
@@ -147,7 +150,7 @@ export async function crearReporteDesdePlantilla(
       db.from("plantillas").select("id, nombre").eq("id", plantillaId).single(),
       db
         .from("plantilla_solicitudes")
-        .select("titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, orden, datapoint_ids")
+        .select("titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, orden, datapoint_ids, rubro_taxonomia")
         .eq("plantilla_id", plantillaId)
         .order("orden", { ascending: true }),
     ]);
@@ -168,6 +171,7 @@ export async function crearReporteDesdePlantilla(
 
   // Clonar cada solicitud (pendiente, sin responsables) y su mapeo.
   let clonadas = 0;
+  const fallidas: { titulo: string; motivo: string }[] = [];
   for (const it of items) {
     const { data: nueva, error: sErr } = await db
       .from("solicitudes")
@@ -179,11 +183,19 @@ export async function crearReporteDesdePlantilla(
         es_cuantitativa: it.es_cuantitativa,
         unidad_esperada: it.unidad_esperada,
         orden: it.orden,
+        rubro_taxonomia: it.rubro_taxonomia,
         // estado 'pendiente' por default; responsables sin asignar.
       })
       .select("id")
       .single();
-    if (sErr || !nueva) continue;
+    if (sErr || !nueva) {
+      // Un fallo aquí deja el reporte incompleto: se cuenta y se avisa al final
+      // en vez de devolver "ok" con solicitudes faltantes. El caso típico sería
+      // una plantilla con dos ítems del mismo rubro (la base no admite dos
+      // solicitudes con el mismo rubro en un reporte).
+      fallidas.push({ titulo: it.titulo, motivo: sErr?.message ?? "error desconocido" });
+      continue;
+    }
     clonadas += 1;
 
     const dps = (it.datapoint_ids ?? []).filter(Boolean);
@@ -206,6 +218,7 @@ export async function crearReporteDesdePlantilla(
       plantilla: plantilla.nombre,
       plantilla_id: plantillaId,
       solicitudes: clonadas,
+      fallidas: fallidas.length,
     },
   });
 
@@ -215,6 +228,9 @@ export async function crearReporteDesdePlantilla(
     ok: true,
     error: null,
     reporteId: reporte.id,
-    mensaje: `Reporte creado con ${clonadas} solicitudes en estado pendiente.`,
+    mensaje:
+      fallidas.length > 0
+        ? `Reporte creado con ${clonadas} solicitudes; ${fallidas.length} no se pudieron clonar (revisa la plantilla).`
+        : `Reporte creado con ${clonadas} solicitudes en estado pendiente.`,
   };
 }

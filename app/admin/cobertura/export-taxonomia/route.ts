@@ -17,13 +17,19 @@ const PLANTILLA = path.join(process.cwd(), "assets", "taxonomia-base.xlsx");
 
 const NOTA_PENDIENTE = "Pendiente de validación en plataforma";
 const NOTA_SIN = "Sin evidencia";
+// Causa de hueco distinta de las anteriores: el rubro está mapeado en la
+// plantilla pero el reporte de ESTE cliente no tiene una solicitud que lo
+// alimente. No es que falte evidencia: es que falta pedirla.
+const NOTA_SIN_SOLICITUD = "Sin solicitud en el reporte";
 const GOLD = "FF8A6D1B";
 
 type MapeoRow = {
   hoja: string;
   celda: string;
-  ejercicio: number | null;
-  solicitud_id: string | null;
+  /** Años hacia atrás desde el ejercicio del reporte (0 = el del reporte). */
+  anio_offset: number | null;
+  /** Rubro canónico; se resuelve contra las solicitudes del reporte elegido. */
+  rubro_clave: string | null;
   etiqueta: string | null;
   celda_nota: string | null;
 };
@@ -527,7 +533,7 @@ function slugify(s: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const perfil = await getPerfilActual();
   if (!perfil || !esStaff(perfil)) {
     return NextResponse.json(
@@ -536,7 +542,37 @@ export async function GET() {
     );
   }
 
+  // El reporte es OBLIGATORIO y explícito. Antes se deducía de la primera fila
+  // del mapeo, que era del demo: cualquier otro cliente recibía el libro ajeno.
+  // Un default silencioso aquí es exactamente el bug que este endpoint cierra.
+  const reporteId = new URL(request.url).searchParams.get("reporte");
+  if (!reporteId) {
+    return NextResponse.json(
+      { error: "Falta el reporte: /admin/cobertura/export-taxonomia?reporte=<id>." },
+      { status: 400 }
+    );
+  }
+
   const supabase = await createClient();
+
+  // El reporte manda: de él salen el ejercicio (para resolver los años
+  // relativos del mapeo), el tenant (nombre de archivo) y el acotamiento de
+  // TODO lo demás. RLS ya limita al staff, pero el filtro es explícito.
+  const { data: reporte, error: repErr } = await supabase
+    .from("reportes")
+    .select("id, nombre, ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug)")
+    .eq("id", reporteId)
+    .maybeSingle();
+
+  if (repErr) {
+    return NextResponse.json({ error: "No se pudo leer el reporte." }, { status: 500 });
+  }
+  if (!reporte) {
+    return NextResponse.json(
+      { error: "El reporte no existe o no tienes acceso a él." },
+      { status: 404 }
+    );
+  }
 
   const [
     { data: mapeo, error: mapErr },
@@ -548,41 +584,56 @@ export async function GET() {
     { data: objDetalle },
     { data: cuestionarios },
   ] = await Promise.all([
+    // El mapeo NO se filtra por reporte: es la definición reutilizable de la
+    // plantilla. Lo que se acota es todo lo que se resuelve contra él.
     supabase
       .from("mapeo_export")
-      .select("hoja, celda, ejercicio, solicitud_id, etiqueta, celda_nota")
+      .select("hoja, celda, anio_offset, rubro_clave, etiqueta, celda_nota")
       .eq("activo", true),
-    supabase.from("solicitudes").select("id, estado, reporte_id"),
+    supabase
+      .from("solicitudes")
+      .select("id, estado, rubro_taxonomia")
+      .eq("reporte_id", reporteId),
+    // Capturas del reporte: se filtran por la solicitud embebida (!inner) en vez
+    // de traer las de todas las emisoras y descartarlas en memoria.
     supabase
       .from("capturas_valor")
-      .select("solicitud_id, valor, periodo, confirmado, created_at")
+      .select(
+        "solicitud_id, valor, periodo, confirmado, created_at, solicitud:solicitudes!inner(reporte_id)"
+      )
+      .eq("solicitud.reporte_id", reporteId)
       .order("created_at", { ascending: true }),
     supabase
       .from("registros_clima")
       .select("id, reporte_id, tipo, nombre, descripcion, horizontes, orden")
+      .eq("reporte_id", reporteId)
       .eq("activo", true)
       .order("orden", { ascending: true }),
     supabase
       .from("registros_clima_valores")
       .select(
-        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, created_at"
+        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, created_at, registro:registros_clima!inner(reporte_id)"
       )
+      .eq("registro.reporte_id", reporteId)
       .order("created_at", { ascending: true }),
     supabase
       .from("objetivos")
       .select(
         "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, alineacion_acuerdo_internacional, orden"
       )
+      .eq("reporte_id", reporteId)
       .eq("activo", true)
       .order("orden", { ascending: true }),
     supabase
       .from("objetivos_detalle")
       .select(
-        "objetivo_id, validacion_tercero, procesos_revision, metricas_supervision, revisiones, resultados, analisis_tendencias, gases_cubiertos, alcances_cubiertos, bruto_neto, enfoque_descarbonizacion, notas"
-      ),
+        "objetivo_id, validacion_tercero, procesos_revision, metricas_supervision, revisiones, resultados, analisis_tendencias, gases_cubiertos, alcances_cubiertos, bruto_neto, enfoque_descarbonizacion, notas, objetivo:objetivos!inner(reporte_id)"
+      )
+      .eq("objetivo.reporte_id", reporteId),
     supabase
       .from("cuestionarios_respuestas")
-      .select("reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas"),
+      .select("reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas")
+      .eq("reporte_id", reporteId),
   ]);
 
   if (mapErr || !mapeo) {
@@ -598,21 +649,17 @@ export async function GET() {
     );
   }
 
-  // Índices auxiliares.
+  // Índices auxiliares. `sols` ya viene acotado al reporte, así que estos
+  // índices no pueden alcanzar datos de otro cliente.
   const estadoSol = new Map<string, string>();
-  const reporteSol = new Map<string, string>();
-  for (const s of sols ?? []) {
+  // Rubro canónico → solicitud DE ESTE REPORTE que lo alimenta. Es la
+  // resolución del mapeo: la unicidad (reporte_id, rubro_taxonomia) en la base
+  // garantiza que haya a lo sumo una, así que no hay ambigüedad que desempatar.
+  const solPorRubro = new Map<string, string>();
+  for (const s of (sols ?? []) as { id: string; estado: string; rubro_taxonomia: string | null }[]) {
     estadoSol.set(s.id, s.estado);
-    if (s.reporte_id) reporteSol.set(s.id, s.reporte_id);
+    if (s.rubro_taxonomia) solPorRubro.set(s.rubro_taxonomia, s.id);
   }
-
-  // Reporte objetivo del export: el de la primera solicitud mapeada. Acota los
-  // registros de clima y objetivos a ESE reporte (evita mezclar reportes/tenants
-  // en un mismo entregable). Si no se puede determinar, no se filtra (compat).
-  const primerSolId = (mapeo as MapeoRow[]).find((m) => m.solicitud_id)?.solicitud_id;
-  const targetReporteId = primerSolId ? reporteSol.get(primerSolId) ?? null : null;
-  const enReporte = <T extends { reporte_id: string }>(filas: T[]): T[] =>
-    targetReporteId ? filas.filter((f) => f.reporte_id === targetReporteId) : filas;
 
   // Capturas por solicitud (llegan asc → la última confirmada por periodo gana).
   const capsPorSol = new Map<string, CapRow[]>();
@@ -656,6 +703,7 @@ export async function GET() {
   let llenadas = 0;
   let huecosPendiente = 0;
   let huecosSin = 0;
+  let huecosSinSolicitud = 0;
   let etiquetas = 0;
 
   // Causa del hueco POR CELDA-AÑO, acumulada por celda de nota (una fila puede
@@ -663,7 +711,13 @@ export async function GET() {
   // ejercicio → texto de causa, para concatenar la nota de la fila ordenada por año.
   const notas = new Map<
     string,
-    { hoja: string; celda: string; causas: Map<number, string> }
+    {
+      hoja: string;
+      celda: string;
+      causas: Map<number, string>;
+      /** La fila entera no tiene solicitud en el reporte: una nota, sin años. */
+      sinSolicitud: boolean;
+    }
   >();
   const hojasTocadas = new Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>();
 
@@ -683,29 +737,47 @@ export async function GET() {
       continue;
     }
 
-    // Celda de valor.
-    if (!m.solicitud_id || m.ejercicio == null) continue;
-    const estado = estadoSol.get(m.solicitud_id);
-    const valor =
-      estado === "validado" ? ultimaConfirmada(m.solicitud_id, m.ejercicio) : null;
+    // Celda de valor: el rubro se resuelve contra las solicitudes del reporte y
+    // el año relativo contra su ejercicio.
+    if (!m.rubro_clave || m.anio_offset == null) continue;
+    const ejercicioCelda = reporte.ejercicio - m.anio_offset;
+    const solicitudId = solPorRubro.get(m.rubro_clave);
+
+    const clave = m.celda_nota ? `${m.hoja}!${m.celda_nota}` : null;
+    const entradaNota = () => {
+      const entry = notas.get(clave!) ?? {
+        hoja: m.hoja,
+        celda: m.celda_nota!,
+        causas: new Map<number, string>(),
+        sinSolicitud: false,
+      };
+      notas.set(clave!, entry);
+      return entry;
+    };
+
+    // El reporte de este cliente no pide este rubro: la celda queda vacía con su
+    // propia causa, distinta de "falta evidencia" (aquí falta la solicitud).
+    if (!solicitudId) {
+      if (clave) entradaNota().sinSolicitud = true;
+      continue;
+    }
+
+    const estado = estadoSol.get(solicitudId);
+    const valor = estado === "validado" ? ultimaConfirmada(solicitudId, ejercicioCelda) : null;
 
     if (valor != null) {
       const cell = ws.getCell(m.celda);
       cell.value = valor;
       cell.numFmt = "#,##0.###";
       llenadas++;
-    } else if (m.celda_nota) {
+    } else if (clave) {
       // Regla dura: valor no validado/ausente NO entra. La causa se decide POR
       // CELDA-AÑO: hay captura de ese periodo pero sin validar (→ pendiente) vs.
       // no hay captura de ese periodo (→ sin evidencia). Cada causa lleva su año.
-      const causa = hayCapturaDe(m.solicitud_id, m.ejercicio)
-        ? `${NOTA_PENDIENTE} (${m.ejercicio})`
-        : `${NOTA_SIN} (${m.ejercicio})`;
-      const key = `${m.hoja}!${m.celda_nota}`;
-      const entry =
-        notas.get(key) ?? { hoja: m.hoja, celda: m.celda_nota, causas: new Map<number, string>() };
-      entry.causas.set(m.ejercicio, causa);
-      notas.set(key, entry);
+      const causa = hayCapturaDe(solicitudId, ejercicioCelda)
+        ? `${NOTA_PENDIENTE} (${ejercicioCelda})`
+        : `${NOTA_SIN} (${ejercicioCelda})`;
+      entradaNota().causas.set(ejercicioCelda, causa);
     }
   }
 
@@ -714,18 +786,31 @@ export async function GET() {
   for (const n of notas.values()) {
     const ws = wb.getWorksheet(n.hoja);
     if (!ws) continue;
+
+    // Sin solicitud en el reporte: la fila entera está vacía por la misma razón,
+    // así que va UNA nota sin desglose por año (repetirla por columna sería ruido).
+    // Se ANTEPONE en vez de sustituir: hoy una celda de nota corresponde a un
+    // solo rubro, pero si mañana el mapeo apuntara dos rubros a la misma nota, no
+    // se pueden perder las causas por año del rubro que sí está.
+    const partes: string[] = [];
+    if (n.sinSolicitud) {
+      partes.push(NOTA_SIN_SOLICITUD);
+      huecosSinSolicitud++;
+    }
+
     const anios = [...n.causas.keys()].sort((a, b) => a - b);
-    ws.getCell(n.celda).value = anios.map((a) => n.causas.get(a)!).join("; ");
     for (const a of anios) {
+      partes.push(n.causas.get(a)!);
       if (n.causas.get(a)!.startsWith(NOTA_PENDIENTE)) huecosPendiente++;
       else huecosSin++;
     }
+    ws.getCell(n.celda).value = partes.join("; ");
   }
 
   // Registros de riesgos/oportunidades (escritura posicional en 4 hojas).
   const registrosEscritos = escribirRegistros(
     wb,
-    enReporte((registros ?? []) as RegRow[]),
+    (registros ?? []) as RegRow[],
     vigentePorReg,
     hojasTocadas
   );
@@ -735,7 +820,7 @@ export async function GET() {
   for (const d of (objDetalle ?? []) as ObjDetRow[]) detallePorObj.set(d.objetivo_id, d);
   const objetivosEscritos = escribirObjetivos(
     wb,
-    enReporte((objetivos ?? []) as ObjRow[]),
+    (objetivos ?? []) as ObjRow[],
     detallePorObj,
     hojasTocadas
   );
@@ -743,13 +828,17 @@ export async function GET() {
   // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
   const cuestionariosEscritos = escribirCuestionarios(
     wb,
-    enReporte((cuestionarios ?? []) as CuestRow[]),
+    (cuestionarios ?? []) as CuestRow[],
     hojasTocadas
   );
 
-  // Pie discreto en cada hoja llenada.
+  // Pie discreto en cada hoja llenada. La marca [DEMO] SOLO para el tenant de
+  // demostración: estampar "[DEMO]" en el entregable oficial de una emisora real
+  // sería falsear su documento.
+  const tenantRep = reporte.tenant as unknown as { nombre: string; slug: string | null } | null;
+  const esDemo = /\[DEMO\]/i.test(tenantRep?.nombre ?? "");
   const fechaHoy = fmtFecha(new Date());
-  const pie = `Generado por ${APP_NAME} — ${fechaHoy} — [DEMO]`;
+  const pie = `Generado por ${APP_NAME} — ${fechaHoy}${esDemo ? " — [DEMO]" : ""}`;
   for (const { ws, ultimaFila } of hojasTocadas.values()) {
     const cell = ws.getCell(`A${ultimaFila + 2}`);
     cell.value = pie;
@@ -759,28 +848,17 @@ export async function GET() {
   // ---------------------------------------------------------------------------
   // Nombre de archivo: taxonomia-{slug-tenant}-{ejercicio}-{fecha}.
   // ---------------------------------------------------------------------------
-  let slug = "reporte";
-  let ejercicio = new Date().getFullYear();
-  if (targetReporteId) {
-    const { data: rep } = await supabase
-      .from("reportes")
-      .select("ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug)")
-      .eq("id", targetReporteId)
-      .single();
-    if (rep) {
-      ejercicio = rep.ejercicio;
-      const tenant = rep.tenant as unknown as { nombre: string; slug: string | null } | null;
-      slug = tenant?.slug ?? (tenant?.nombre ? slugify(tenant.nombre) : "reporte");
-    }
-  }
+  const slug =
+    tenantRep?.slug ?? (tenantRep?.nombre ? slugify(tenantRep.nombre) : "reporte");
   const fechaArchivo = new Date().toISOString().slice(0, 10);
-  const filename = `taxonomia-${slug}-${ejercicio}-${fechaArchivo}.xlsx`;
+  const filename = `taxonomia-${slug}-${reporte.ejercicio}-${fechaArchivo}.xlsx`;
 
   const salida = await wb.xlsx.writeBuffer();
 
   console.log(
-    `[export-taxonomia] etiquetas=${etiquetas} llenadas=${llenadas} ` +
+    `[export-taxonomia] reporte=${reporteId} etiquetas=${etiquetas} llenadas=${llenadas} ` +
       `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} ` +
+      `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
       `cuestionarios=${cuestionariosEscritos} archivo=${filename}`
   );

@@ -175,8 +175,10 @@ function GuardarPlantilla({ reportes }: { reportes: ReporteOpc[] }) {
               />
             </div>
             <p className="rounded-xl border border-dashed border-line bg-crema/30 px-3.5 py-2.5 text-xs leading-relaxed text-muted">
-              Se copian título, descripción, área, tipo, unidad y el mapeo a
-              datapoints. No se copian estados, responsables ni evidencia.
+              Se copian título, descripción, área, tipo, unidad, el mapeo a
+              datapoints y el rubro de taxonomía (lo que hace que el Excel oficial
+              del cliente nuevo salga lleno). No se copian estados, responsables
+              ni evidencia.
             </p>
             <div className="flex justify-end gap-2.5 border-t border-line pt-6">
               <button

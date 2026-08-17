@@ -23,6 +23,12 @@ export type UsuarioOpcion = {
   area: string | null;
 };
 export type StaffOpcion = { id: string; nombre: string };
+/** Rubro canónico de la plantilla oficial, ya con su grupo legible. */
+export type RubroOpcion = {
+  clave: string;
+  etiqueta: string;
+  grupoLabel: string;
+};
 
 export type ValoresIniciales = {
   solicitudId: string;
@@ -37,6 +43,7 @@ export type ValoresIniciales = {
   responsable_irstrat_id: string;
   orden: string;
   rubro_clave: string;
+  rubro_taxonomia: string;
   datapointIds: string[];
 };
 
@@ -58,6 +65,7 @@ export function SolicitudForm({
   staff,
   areas,
   datapoints,
+  rubros,
   inicial,
   enunciadoBloqueado = false,
 }: {
@@ -68,6 +76,7 @@ export function SolicitudForm({
   staff: StaffOpcion[];
   areas: { tenant_id: string; area: string }[];
   datapoints: DatapointOpcion[];
+  rubros: RubroOpcion[];
   inicial?: ValoresIniciales;
   enunciadoBloqueado?: boolean;
 }) {
@@ -88,6 +97,7 @@ export function SolicitudForm({
   const [respIrstrat, setRespIrstrat] = useState(inicial?.responsable_irstrat_id ?? "");
   const [orden, setOrden] = useState(inicial?.orden ?? "");
   const [rubroClave, setRubroClave] = useState(inicial?.rubro_clave ?? "");
+  const [rubroTaxonomia, setRubroTaxonomia] = useState(inicial?.rubro_taxonomia ?? "");
   const [datapointIds, setDatapointIds] = useState<string[]>(inicial?.datapointIds ?? []);
 
   const reporte = useMemo(
@@ -151,6 +161,7 @@ export function SolicitudForm({
     fd.set("responsable_irstrat_id", respIrstrat);
     fd.set("orden", orden);
     fd.set("rubro_clave", rubroClave);
+    fd.set("rubro_taxonomia", rubroTaxonomia);
     for (const id of datapointIds) fd.append("datapoint_ids", id);
     startTransition(() => dispatch(fd));
   };
@@ -334,6 +345,33 @@ export function SolicitudForm({
           misma etiqueta en ambas solicitudes. Con la misma unidad y periodo,
           valores distintos disparan la alerta de discrepancia. Déjalo vacío si es
           un dato independiente (no participa en discrepancias).
+        </p>
+      </div>
+
+      {/* Rubro de taxonomía (celda de la plantilla oficial) */}
+      <div>
+        <label htmlFor="rubro_taxonomia" className={labelCls}>
+          Rubro de taxonomía <span className="font-normal text-muted">· opcional</span>
+        </label>
+        <select
+          id="rubro_taxonomia"
+          value={rubroTaxonomia}
+          onChange={(e) => setRubroTaxonomia(e.target.value)}
+          className={inputCls}
+        >
+          <option value="">Ninguno — no alimenta una celda de la plantilla</option>
+          {rubros.map((r) => (
+            <option key={r.clave} value={r.clave}>
+              {r.grupoLabel} · {r.etiqueta}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          Qué celda de la plantilla oficial llena el valor de esta solicitud. Es lo
+          que hace que el Excel de taxonomía salga lleno. Un rubro lo alimenta{" "}
+          <span className="font-medium text-ink">una sola solicitud por reporte</span>.
+          No lo confundas con el <span className="font-medium text-ink">rubro clave</span>{" "}
+          de arriba, que solo sirve para cuadrar dos áreas entre sí.
         </p>
       </div>
 

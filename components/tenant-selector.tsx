@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
 import { TenantLogo } from "@/components/ui/tenant-logo";
+import { ParamSelect } from "@/components/ui/param-select";
 import { cn } from "@/lib/cn";
 import { limpiarNombreTenant } from "@/lib/tenants";
 
@@ -23,29 +22,19 @@ export function TenantSelector({
   tenants,
   seleccionado,
   etiqueta = "Cliente",
+  /** Parámetros que dejan de tener sentido al cambiar de cliente. */
+  limpiar = [],
   className,
 }: {
   tenants: TenantOpcionSelector[];
   /** Id del cliente activo, o null para "todos". */
   seleccionado: string | null;
   etiqueta?: string;
+  limpiar?: string[];
   className?: string;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
-
   // Con un solo cliente el control no aporta: no se muestra.
   if (tenants.length <= 1) return null;
-
-  const ir = (valor: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (valor) params.set("tenant", valor);
-    else params.delete("tenant");
-    const query = params.toString();
-    startTransition(() => router.push(query ? `${pathname}?${query}` : pathname));
-  };
 
   const activo = tenants.find((t) => t.id === seleccionado) ?? null;
 
@@ -62,23 +51,17 @@ export function TenantSelector({
         </span>
       )}
 
-      <label htmlFor="selector-cliente" className="sr-only">
-        {etiqueta}
-      </label>
-      <select
-        id="selector-cliente"
-        value={seleccionado ?? ""}
-        onChange={(e) => ir(e.target.value)}
-        disabled={pending}
-        className="h-9 max-w-56 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-ink outline-none transition duration-150 focus:border-teal/50 disabled:opacity-60"
-      >
-        <option value="">Todos los clientes</option>
-        {tenants.map((t) => (
-          <option key={t.id} value={t.id}>
-            {limpiarNombreTenant(t.nombre)} · {t.prefijoFolio}
-          </option>
-        ))}
-      </select>
+      <ParamSelect
+        param="tenant"
+        etiqueta={etiqueta}
+        valor={seleccionado}
+        placeholder="Todos los clientes"
+        limpiar={limpiar}
+        opciones={tenants.map((t) => ({
+          value: t.id,
+          label: `${limpiarNombreTenant(t.nombre)} · ${t.prefijoFolio}`,
+        }))}
+      />
     </div>
   );
 }

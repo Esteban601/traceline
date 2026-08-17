@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { DatapointOpcion } from "./datapoint-selector";
 import type {
   ReporteOpcion,
+  RubroOpcion,
   StaffOpcion,
   UsuarioOpcion,
 } from "./solicitud-form";
@@ -13,6 +14,7 @@ export type OpcionesFormulario = {
   staff: StaffOpcion[];
   areas: { tenant_id: string; area: string }[];
   datapoints: DatapointOpcion[];
+  rubros: RubroOpcion[];
 };
 
 /**
@@ -29,6 +31,7 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
     { data: perfiles },
     { data: datapoints },
     { data: sols },
+    { data: rubrosRaw },
   ] = await Promise.all([
     db.from("reportes").select("id, nombre, ejercicio, tenant_id").order("ejercicio", {
       ascending: false,
@@ -43,6 +46,14 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
       .eq("activo", true)
       .order("codigo", { ascending: true }),
     db.from("solicitudes").select("area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"),
+    db
+      .from("rubros_taxonomia")
+      .select("clave, etiqueta, grupo, orden")
+      .eq("activo", true)
+      // El orden final lo pone RANGO_GRUPO abajo: ordenar por la clave dejaría
+      // 'gei_alcance3' antes que 'gei_alcances' (alfabético), al revés de la
+      // plantilla impresa.
+      .order("orden", { ascending: true }),
   ]);
 
   const perfilesAll = (perfiles ?? []) as {
@@ -77,11 +88,33 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
   const areas: { tenant_id: string; area: string }[] = [];
   for (const [tenant, set] of areasSet) for (const area of set) areas.push({ tenant_id: tenant, area });
 
+  // Etiqueta del grupo para que el <select> se lea sin conocer las claves.
+  const GRUPO_LABEL: Record<string, string> = {
+    gei_alcances: "GEI · Alcances",
+    gei_alcance3: "GEI · Alcance 3",
+  };
+  // Los alcances van primero, como en la plantilla oficial.
+  const RANGO_GRUPO: Record<string, number> = { gei_alcances: 0, gei_alcance3: 1 };
+  const rubros: RubroOpcion[] = (
+    (rubrosRaw ?? []) as { clave: string; etiqueta: string; grupo: string; orden: number }[]
+  )
+    .slice()
+    .sort(
+      (a, b) =>
+        (RANGO_GRUPO[a.grupo] ?? 99) - (RANGO_GRUPO[b.grupo] ?? 99) || a.orden - b.orden
+    )
+    .map((r) => ({
+      clave: r.clave,
+      etiqueta: r.etiqueta,
+      grupoLabel: GRUPO_LABEL[r.grupo] ?? r.grupo,
+    }));
+
   return {
     reportes: (reportes ?? []) as ReporteOpcion[],
     usuariosCliente,
     staff,
     areas,
     datapoints: (datapoints ?? []) as DatapointOpcion[],
+    rubros,
   };
 }

@@ -13,14 +13,19 @@ function nombreDesde(cd: string | null): string {
   return "taxonomia.xlsx";
 }
 
-export function TaxonomiaExportButton() {
+export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null }) {
   const [cargando, setCargando] = useState(false);
   const toast = useToast();
 
   async function exportar() {
+    if (!reporteId) return;
     setCargando(true);
     try {
-      const res = await fetch("/admin/cobertura/export-taxonomia");
+      // El libro es SIEMPRE de un reporte concreto: sin él, el endpoint responde
+      // 400 en vez de adivinar (adivinar fue el bug que entregaba libros ajenos).
+      const res = await fetch(
+        `/admin/cobertura/export-taxonomia?reporte=${encodeURIComponent(reporteId)}`
+      );
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const blob = await res.blob();
       const nombre = nombreDesde(res.headers.get("Content-Disposition"));
@@ -41,7 +46,18 @@ export function TaxonomiaExportButton() {
   }
 
   return (
-    <Button onClick={exportar} loading={cargando} variant="secondary" size="md">
+    <Button
+      onClick={exportar}
+      loading={cargando}
+      disabled={!reporteId}
+      title={
+        reporteId
+          ? "Genera la plantilla oficial llena con los datos validados del reporte"
+          : "Elige un reporte para generar su Excel de taxonomía"
+      }
+      variant="secondary"
+      size="md"
+    >
       {!cargando && (
         <svg
           aria-hidden

@@ -396,19 +396,10 @@ values (
   'b0000000-0000-0000-0000-000000000001'
 );
 
-insert into public.plantilla_solicitudes
-  (plantilla_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, orden, datapoint_ids)
-select
-  'e0000000-0000-0000-0000-000000000001',
-  s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa, s.unidad_esperada, s.orden,
-  coalesce(
-    array_agg(m.datapoint_id order by m.datapoint_id) filter (where m.datapoint_id is not null),
-    '{}'::uuid[]
-  )
-from public.solicitudes s
-left join public.mapeo_solicitud_datapoint m on m.solicitud_id = s.id
-where s.reporte_id = '20000000-0000-0000-0000-000000000001'
-group by s.id, s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa, s.unidad_esperada, s.orden;
+-- Sus solicitudes se copian AL FINAL del seed (§17): la plantilla debe incluir
+-- también las solicitudes GEI que se crean en §13 y sus rubros de taxonomía; si
+-- se copiara aquí, un cliente clonado nacería sin la parte GEI y su primer
+-- export saldría vacío en las dos hojas de emisiones.
 
 
 -- =============================================================================
@@ -534,43 +525,39 @@ insert into public.mapeo_export (hoja, celda, etiqueta) values
   ('NIIF S2 29(a)(vi)(1)', 'A17', 'Categoría 14-Franquicias'),
   ('NIIF S2 29(a)(vi)(1)', 'A18', 'Categoría 15-Inversiones');
 
-insert into public.mapeo_export (hoja, celda, solicitud_id, datapoint_id, ejercicio, celda_nota) values
-  ('NIIF S2 29(a)(i)', 'C3', 'c0000000-0000-0000-0000-000000000007', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2025, 'E3'),
-  ('NIIF S2 29(a)(i)', 'D3', 'c0000000-0000-0000-0000-000000000007', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2024, 'E3'),
-  ('NIIF S2 29(a)(i)', 'C4', 'c0000000-0000-0000-0000-000000000008', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2025, 'E4'),
-  ('NIIF S2 29(a)(i)', 'D4', 'c0000000-0000-0000-0000-000000000008', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2024, 'E4'),
-  ('NIIF S2 29(a)(i)', 'C5', 'c3000000-0000-0000-0000-000000000001', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2025, 'E5'),
-  ('NIIF S2 29(a)(i)', 'D5', 'c3000000-0000-0000-0000-000000000001', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 2024, 'E5'),
-  ('NIIF S2 29(a)(vi)(1)', 'B4', 'c3000000-0000-0000-0000-000000000101', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D4'),
-  ('NIIF S2 29(a)(vi)(1)', 'C4', 'c3000000-0000-0000-0000-000000000101', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D4'),
-  ('NIIF S2 29(a)(vi)(1)', 'B5', 'c3000000-0000-0000-0000-000000000102', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D5'),
-  ('NIIF S2 29(a)(vi)(1)', 'C5', 'c3000000-0000-0000-0000-000000000102', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D5'),
-  ('NIIF S2 29(a)(vi)(1)', 'B6', 'c3000000-0000-0000-0000-000000000103', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D6'),
-  ('NIIF S2 29(a)(vi)(1)', 'C6', 'c3000000-0000-0000-0000-000000000103', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D6'),
-  ('NIIF S2 29(a)(vi)(1)', 'B7', 'c3000000-0000-0000-0000-000000000104', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D7'),
-  ('NIIF S2 29(a)(vi)(1)', 'C7', 'c3000000-0000-0000-0000-000000000104', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D7'),
-  ('NIIF S2 29(a)(vi)(1)', 'B8', 'c3000000-0000-0000-0000-000000000105', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D8'),
-  ('NIIF S2 29(a)(vi)(1)', 'C8', 'c3000000-0000-0000-0000-000000000105', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D8'),
-  ('NIIF S2 29(a)(vi)(1)', 'B9', 'c3000000-0000-0000-0000-000000000106', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D9'),
-  ('NIIF S2 29(a)(vi)(1)', 'C9', 'c3000000-0000-0000-0000-000000000106', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D9'),
-  ('NIIF S2 29(a)(vi)(1)', 'B10', 'c3000000-0000-0000-0000-000000000107', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D10'),
-  ('NIIF S2 29(a)(vi)(1)', 'C10', 'c3000000-0000-0000-0000-000000000107', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D10'),
-  ('NIIF S2 29(a)(vi)(1)', 'B11', 'c3000000-0000-0000-0000-000000000108', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D11'),
-  ('NIIF S2 29(a)(vi)(1)', 'C11', 'c3000000-0000-0000-0000-000000000108', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D11'),
-  ('NIIF S2 29(a)(vi)(1)', 'B12', 'c3000000-0000-0000-0000-000000000109', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D12'),
-  ('NIIF S2 29(a)(vi)(1)', 'C12', 'c3000000-0000-0000-0000-000000000109', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D12'),
-  ('NIIF S2 29(a)(vi)(1)', 'B13', 'c3000000-0000-0000-0000-000000000110', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D13'),
-  ('NIIF S2 29(a)(vi)(1)', 'C13', 'c3000000-0000-0000-0000-000000000110', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D13'),
-  ('NIIF S2 29(a)(vi)(1)', 'B14', 'c3000000-0000-0000-0000-000000000111', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D14'),
-  ('NIIF S2 29(a)(vi)(1)', 'C14', 'c3000000-0000-0000-0000-000000000111', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D14'),
-  ('NIIF S2 29(a)(vi)(1)', 'B15', 'c3000000-0000-0000-0000-000000000112', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D15'),
-  ('NIIF S2 29(a)(vi)(1)', 'C15', 'c3000000-0000-0000-0000-000000000112', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D15'),
-  ('NIIF S2 29(a)(vi)(1)', 'B16', 'c3000000-0000-0000-0000-000000000113', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D16'),
-  ('NIIF S2 29(a)(vi)(1)', 'C16', 'c3000000-0000-0000-0000-000000000113', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D16'),
-  ('NIIF S2 29(a)(vi)(1)', 'B17', 'c3000000-0000-0000-0000-000000000114', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D17'),
-  ('NIIF S2 29(a)(vi)(1)', 'C17', 'c3000000-0000-0000-0000-000000000114', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D17'),
-  ('NIIF S2 29(a)(vi)(1)', 'B18', 'c3000000-0000-0000-0000-000000000115', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2025, 'D18'),
-  ('NIIF S2 29(a)(vi)(1)', 'C18', 'c3000000-0000-0000-0000-000000000115', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'), 2024, 'D18');
+-- 13.4.a Rubro canónico de cada solicitud GEI: es la llave con la que el export
+--        resuelve su celda en el reporte que se esté generando. El mapeo ya no
+--        apunta a estos UUID (ver migración 20260818120000).
+update public.solicitudes set rubro_taxonomia = 'gei_alcance_1'       where id = 'c0000000-0000-0000-0000-000000000007';
+update public.solicitudes set rubro_taxonomia = 'gei_alcance_2'       where id = 'c0000000-0000-0000-0000-000000000008';
+update public.solicitudes set rubro_taxonomia = 'gei_alcance_3_total' where id = 'c3000000-0000-0000-0000-000000000001';
+update public.solicitudes s
+set rubro_taxonomia = 'gei_a3_cat_' || lpad(n::text, 2, '0')
+from generate_series(1, 15) as n
+where s.id = ('c3000000-0000-0000-0000-0000000001' || lpad(n::text, 2, '0'))::uuid;
+
+-- 13.4.b Celdas de VALOR: (hoja, celda) → (rubro canónico, año relativo).
+--        anio_offset 0 = ejercicio del reporte (2025 en el demo), 1 = anterior.
+insert into public.mapeo_export (hoja, celda, rubro_clave, datapoint_id, anio_offset, celda_nota) values
+  ('NIIF S2 29(a)(i)', 'C3', 'gei_alcance_1',       (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 0, 'E3'),
+  ('NIIF S2 29(a)(i)', 'D3', 'gei_alcance_1',       (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 1, 'E3'),
+  ('NIIF S2 29(a)(i)', 'C4', 'gei_alcance_2',       (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 0, 'E4'),
+  ('NIIF S2 29(a)(i)', 'D4', 'gei_alcance_2',       (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 1, 'E4'),
+  ('NIIF S2 29(a)(i)', 'C5', 'gei_alcance_3_total', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 0, 'E5'),
+  ('NIIF S2 29(a)(i)', 'D5', 'gei_alcance_3_total', (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(i)' and version_taxonomia = '2025'), 1, 'E5');
+
+-- Las 15 categorías ocupan las filas 4-18 en el orden impreso de la plantilla:
+-- columna B el ejercicio del reporte, C el anterior, D la nota de la fila.
+insert into public.mapeo_export (hoja, celda, rubro_clave, datapoint_id, anio_offset, celda_nota)
+select
+  'NIIF S2 29(a)(vi)(1)',
+  col.letra || (3 + n)::text,
+  'gei_a3_cat_' || lpad(n::text, 2, '0'),
+  (select id from public.datapoints_taxonomia where codigo = 'NIIF S2 29 (a)(vi)(1) EI12' and version_taxonomia = '2025'),
+  col.offset_anio,
+  'D' || (3 + n)::text
+from generate_series(1, 15) as n
+cross join (values ('B', 0), ('C', 1)) as col(letra, offset_anio);
 
 -- 13.5 Fijar 'validado' DESPUÉS de toda inserción (los triggers ya no reabren).
 --      Solo estas entran a la plantilla oficial; el resto queda como brecha.
@@ -814,3 +801,30 @@ insert into public.cuestionarios_respuestas
   ('20000000-0000-0000-0000-000000000001', 'S2 36(e)', 2,
    'Créditos verificados bajo los regímenes Verra (VCS) y Gold Standard.',
    'Cualitativo', null);
+
+
+-- =============================================================================
+-- 17. Plantilla base — se llena AL FINAL, cuando el reporte demo ya está completo.
+--
+--     La plantilla es el vehículo con el que arranca un cliente nuevo: al
+--     clonarla se copian título, descripción, área, tipo, unidad, orden, el
+--     snapshot de datapoints y —clave para el export— el RUBRO DE TAXONOMÍA de
+--     cada solicitud. Sin el rubro, el reporte del cliente nuevo no resolvería
+--     ninguna celda GEI de la plantilla oficial.
+-- =============================================================================
+insert into public.plantilla_solicitudes
+  (plantilla_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada,
+   orden, datapoint_ids, rubro_taxonomia)
+select
+  'e0000000-0000-0000-0000-000000000001',
+  s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa, s.unidad_esperada, s.orden,
+  coalesce(
+    array_agg(m.datapoint_id order by m.datapoint_id) filter (where m.datapoint_id is not null),
+    '{}'::uuid[]
+  ),
+  s.rubro_taxonomia
+from public.solicitudes s
+left join public.mapeo_solicitud_datapoint m on m.solicitud_id = s.id
+where s.reporte_id = '20000000-0000-0000-0000-000000000001'
+group by s.id, s.titulo, s.descripcion, s.area_asignada, s.es_cuantitativa,
+         s.unidad_esperada, s.orden, s.rubro_taxonomia;

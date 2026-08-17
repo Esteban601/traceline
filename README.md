@@ -184,13 +184,23 @@ Motor que genera una **copia de la plantilla oficial** de la firma
 plataforma, vía `exceljs`. Botón **"Generar Excel de taxonomía"** en
 `/admin/cobertura` (solo staff).
 
+**El export es POR REPORTE.** La ruta exige `?reporte=<id>` y todo —GEI,
+registros, objetivos y cuestionarios— se acota a ese reporte; no hay valor por
+omisión, porque adivinar el reporte fue justo lo que hacía que un cliente
+recibiera el libro de otro. El archivo se nombra con el slug del tenant real
+(`taxonomia-{slug}-{ejercicio}-{fecha}.xlsx`).
+
 - **Regla dura:** a las hojas de datos solo entra el valor de la última captura
   **confirmada** cuya solicitud esté **`validado`** (o el valor vigente de un
   registro **activo**). Lo no validado no entra: en su lugar va una nota de
   brecha (`Pendiente de validación en plataforma` / `Sin evidencia` /
-  `Sin datos del ejercicio`). Pie discreto `[DEMO]` en cada hoja llenada.
-- **Hojas GEI** (`29(a)(i)`, `29(a)(vi)(1)`): mapeo fijo **celda↔dato** en la
-  tabla `mapeo_export` (categoría×año → celda), construido leyendo la plantilla.
+  `Sin solicitud en el reporte` / `Sin datos del ejercicio`). El pie discreto
+  `[DEMO]` se estampa **solo para el tenant de demostración**: marcar así el
+  entregable oficial de una emisora real sería falsear su documento.
+- **Hojas GEI** (`29(a)(i)`, `29(a)(vi)(1)`): mapeo **celda↔dato** en la tabla
+  `mapeo_export`, construido leyendo la plantilla. Es una **definición
+  reutilizable**: describe la plantilla (hoja, celda, **rubro canónico**, **año
+  relativo**), no los datos de un cliente. Ver la sección siguiente.
 - **Hojas de registros** (`S2 10`, `29(b)`, `30`, `29(d)`): **escritura
   posicional** — el nº de registros es dinámico y se llenan slots secuenciales
   por sección; por eso *no* usan `mapeo_export`. Si hay más registros que slots,
@@ -226,11 +236,77 @@ supuestos) queda documentada aquí para el sprint futuro que la habilite.
 ella. Es una **decisión de negocio pendiente**: no se construye hasta definir su
 estructura de captura; se deja registrada aquí para no perder la traza.
 
+### El mapeo es reutilizable, no del demo
+
+Hasta el sprint anterior, `mapeo_export` ataba cada celda de valor a una
+**solicitud concreta** — las del seed de Empresa Demo. El mapeo era, de hecho,
+propiedad del demo: un cliente nuevo no tenía celdas y no podía generar su Excel.
+Ahora el mapeo describe **la plantilla**, y los datos se resuelven en el momento
+del export:
+
+| Pieza | Qué es |
+|-------|--------|
+| `rubros_taxonomia` | Catálogo **global** de rubros canónicos (GEI Alcance 1/2/3 y las 15 categorías de Alcance 3 del GHG Protocol). Son categorías de la norma: viven con el mapeo, iguales para toda emisora. |
+| `mapeo_export` | Una fila por celda: `(hoja, celda, datapoint_id, rubro_clave, anio_offset, celda_nota)`. El año es **relativo** (`0` = ejercicio del reporte, `1` = el anterior); con un año absoluto el mapeo solo habría servido para reportes 2025. |
+| `solicitudes.rubro_taxonomia` | La contraparte del lado del cliente. **Única por reporte**, así que la resolución es determinista: el export busca, entre las solicitudes de ESE reporte, la que lleva el rubro de la celda. |
+| `plantilla_solicitudes.rubro_taxonomia` | Propaga el rubro al clonar una plantilla. Es lo que hace que el **primer** export de un cliente nuevo salga lleno. |
+
+**Por qué el join es por rubro y no por la liga a datapoints:** el datapoint es
+1→N — las 15 categorías de Alcance 3 comparten `NIIF S2 29 (a)(vi)(1) EI12` y los
+tres alcances comparten `29 (a)(i)`—, así que no identifica la celda. El
+datapoint se conserva en la fila como ancla de taxonomía y trazabilidad.
+
+> **No confundir con `solicitudes.rubro_clave`.** Aquel es texto libre y dice
+> "estas dos áreas capturan el mismo concepto y deben cuadrar" (detector de
+> discrepancias). `rubro_taxonomia` está acotado al catálogo y dice "esta
+> solicitud llena esta celda de la plantilla oficial".
+
+### Cómo dar de alta un cliente y que su primer export salga bien
+
+1. **Crea el cliente** en `/admin/clientes` (nombre, slug, prefijo de folios y
+   sus áreas).
+2. **Crea su primer reporte desde una plantilla** — el enlace *"Crea su primer
+   reporte"* del alta ya lleva el cliente preseleccionado. Usa una plantilla que
+   traiga **rubros de taxonomía**; la del seed (`Checklist base NIIF S1/S2`) los
+   trae. Aquí se decide todo: al clonar, cada solicitud hereda su rubro y el
+   reporte queda listo para resolver las celdas de la plantilla oficial.
+3. **Comprueba la cobertura**: en `/admin/cobertura`, elige el cliente y su
+   reporte. El botón **"Generar Excel de taxonomía"** ya está disponible.
+4. **Genera el Excel**: saldrá con las etiquetas de la plantilla y las notas de
+   brecha correspondientes (`Sin evidencia` mientras no haya cargas). A medida
+   que el cliente sube evidencia y el equipo valida, las celdas se llenan solas.
+5. Si una celda dice **`Sin solicitud en el reporte`**, es que ese rubro no se le
+   pidió a este cliente: crea la solicitud y asígnale el rubro en el campo
+   **"Rubro de taxonomía"** del formulario, o clónalo desde una plantilla que lo
+   incluya.
+
+> Un rubro lo alimenta **una sola solicitud por reporte** (índice único en la
+> base). Si intentas asignar el mismo dos veces, la app lo dice en vez de dejar
+> el export en un empate silencioso.
+
+> **Paso post-despliegue (una vez).** La migración traduce el mapeo y asigna los
+> rubros a las **solicitudes** existentes, pero no puede inventar ítems en una
+> **plantilla** que se guardó antes de que los rubros existieran. En un ambiente
+> ya desplegado, entra a `/admin/plantillas` → **"Guardar desde un reporte"**,
+> elige el reporte demo y guarda una plantilla nueva: esa sí llevará los 18
+> rubros y las solicitudes GEI. Es la plantilla con la que arrancarán los
+> clientes nuevos. (En local no hace falta: el seed ya la genera completa.)
+
 ### Verificación end-to-end (`verify:export`)
 
 Prueba la **ruta HTTP autenticada** (no solo el motor): forja sesión de admin con
-`@supabase/ssr`, invoca el export y valida HTTP 200 + las 14 hojas llenadas + las
-reglas duras. Requiere el server corriendo y el seed aplicado:
+`@supabase/ssr` e invoca **dos** exports:
+
+- **Empresa Demo** — la referencia: HTTP 200 + las 14 hojas llenadas + las reglas
+  duras, exactamente como antes del rediseño del mapeo.
+- **Un segundo tenant** creado al vuelo con datos mínimos (1 solicitud GEI
+  validada) y ejercicio **2026**, distinto del demo. Comprueba que su celda se
+  llena (el año relativo resuelve), que los rubros que su reporte no pide marcan
+  `Sin solicitud en el reporte`, que el archivo lleva **su** slug, que **no**
+  lleva la marca `[DEMO]` y que en el libro no aparece **ningún** dato de Empresa
+  Demo. Al terminar se elimina.
+
+Requiere el server corriendo y el seed aplicado:
 
 ```bash
 supabase start && pnpm dev      # en una terminal
@@ -313,11 +389,9 @@ solo si hay más de un cliente). La matriz suma una columna **Cliente** cuando l
 vista mezcla varios. La cobertura se mide **por cliente**: mezclar emisoras daría
 un porcentaje que no le corresponde a ninguna.
 
-> **Excel de taxonomía y multi-cliente.** El llenado de la plantilla oficial se
-> arma desde `mapeo_export` (mapeo fijo celda↔dato, construido por reporte). Si el
-> cliente seleccionado no tiene celdas mapeadas, el botón **no se ofrece** y se
-> explica por qué: entregaría el libro de otro cliente. Parametrizar el mapeo por
-> cliente es trabajo de un sprint propio.
+El **Excel de taxonomía** se genera por **reporte** (ver la sección siguiente):
+junto al selector de cliente hay uno de reporte, y el botón está siempre
+disponible — solo pide que elijas reporte si no hay uno resoluble.
 
 La **alerta de discrepancia** también se acotó por cliente: dos emisoras usan los
 mismos `rubro_clave` con valores legítimamente distintos y compararlas entre sí

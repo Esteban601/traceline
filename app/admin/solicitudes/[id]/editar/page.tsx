@@ -6,9 +6,14 @@ import { getPerfilActual } from "@/lib/data";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { EstadoBadge } from "@/components/ui/badge";
 import { type EstadoSolicitud } from "@/lib/estados";
-import { puedeEditarSolicitud, puedeEditarEnunciado } from "@/lib/gestion";
+import {
+  puedeEditarSolicitud,
+  puedeEditarEnunciado,
+  puedeAsignarRubroTaxonomia,
+} from "@/lib/gestion";
 import { SolicitudForm, type ValoresIniciales } from "../../solicitud-form";
 import { cargarOpcionesFormulario } from "../../opciones";
+import { AsignarRubro } from "../../asignar-rubro";
 import { editarSolicitud } from "../../gestion-actions";
 
 export const metadata: Metadata = { title: "Editar solicitud" };
@@ -27,7 +32,7 @@ export default async function EditarSolicitudPage({
   const { data: sol } = await db
     .from("solicitudes")
     .select(
-      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave"
+      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave, rubro_taxonomia"
     )
     .eq("id", id)
     .single();
@@ -92,6 +97,18 @@ export default async function EditarSolicitudPage({
           >
             Volver al detalle
           </Link>
+
+          {/* Excepción deliberada al candado: el rubro de taxonomía no es
+              contenido de la solicitud, es el mapeo a la celda de la plantilla
+              oficial. Sin esta vía, un reporte validado antes de que existieran
+              los rubros nunca podría llenar su Excel. Congelado sí queda fuera. */}
+          {puedeAsignarRubroTaxonomia(estado) && (
+            <AsignarRubro
+              solicitudId={sol.id}
+              rubros={opciones.rubros}
+              inicial={sol.rubro_taxonomia ?? ""}
+            />
+          )}
         </div>
       </div>
     );
@@ -110,6 +127,7 @@ export default async function EditarSolicitudPage({
     responsable_irstrat_id: sol.responsable_irstrat_id ?? "",
     orden: String(sol.orden ?? ""),
     rubro_clave: sol.rubro_clave ?? "",
+    rubro_taxonomia: sol.rubro_taxonomia ?? "",
     datapointIds: (mapeo ?? []).map((m) => m.datapoint_id),
   };
 
@@ -125,6 +143,7 @@ export default async function EditarSolicitudPage({
           staff={opciones.staff}
           areas={opciones.areas}
           datapoints={opciones.datapoints}
+          rubros={opciones.rubros}
           inicial={inicial}
           enunciadoBloqueado={enunciadoBloqueado}
         />
