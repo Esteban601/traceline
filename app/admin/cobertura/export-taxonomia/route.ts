@@ -604,8 +604,9 @@ export async function GET(request: Request) {
     supabase
       .from("solicitudes")
       // `origen` decide QUIÉN validó (regla dura de lib/origen.ts) y por tanto si
-      // la celda lleva la nota de validación interna del cliente.
-      .select("id, estado, origen, rubro_taxonomia")
+      // la celda lleva la nota de validación interna del cliente. `nota_alcance`
+      // es la salvedad de perímetro de la cifra, redactada para el entregable.
+      .select("id, estado, origen, rubro_taxonomia, nota_alcance")
       .eq("reporte_id", reporteId),
     // Capturas del reporte: se filtran por la solicitud embebida (!inner) en vez
     // de traer las de todas las emisoras y descartarlas en memoria.
@@ -666,6 +667,7 @@ export async function GET(request: Request) {
   // índices no pueden alcanzar datos de otro cliente.
   const estadoSol = new Map<string, string>();
   const origenSol = new Map<string, OrigenSolicitud>();
+  const alcanceSol = new Map<string, string>();
   // Rubro canónico → solicitud DE ESTE REPORTE que lo alimenta. Es la
   // resolución del mapeo: la unicidad (reporte_id, rubro_taxonomia) en la base
   // garantiza que haya a lo sumo una, así que no hay ambigüedad que desempatar.
@@ -675,9 +677,11 @@ export async function GET(request: Request) {
     estado: string;
     origen: OrigenSolicitud;
     rubro_taxonomia: string | null;
+    nota_alcance: string | null;
   }[]) {
     estadoSol.set(s.id, s.estado);
     origenSol.set(s.id, s.origen);
+    if (s.nota_alcance) alcanceSol.set(s.id, s.nota_alcance.trim());
     if (s.rubro_taxonomia) solPorRubro.set(s.rubro_taxonomia, s.id);
   }
 
@@ -726,6 +730,7 @@ export async function GET(request: Request) {
   let huecosSinSolicitud = 0;
   let etiquetas = 0;
   let validacionesInternas = 0;
+  let alcancesDeclarados = 0;
 
   // Causa del hueco POR CELDA-AÑO, acumulada por celda de nota (una fila puede
   // tener varias celdas-año vacías con causas distintas). `causas` mapea
@@ -745,6 +750,12 @@ export async function GET(request: Request) {
        * que decir. Cuando toda la fila la validó IRStrat, no se anota nada.
        */
       validacionInterna: boolean;
+      /**
+       * Salvedades de PERÍMETRO de las solicitudes que alimentan la fila
+       * (`solicitudes.nota_alcance`). Es un Set porque una fila puede resolverse
+       * con más de una solicitud y no tiene sentido repetir la misma aclaración.
+       */
+      alcances: Set<string>;
     }
   >();
   const hojasTocadas = new Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>();
@@ -779,6 +790,7 @@ export async function GET(request: Request) {
         causas: new Map<number, string>(),
         sinSolicitud: false,
         validacionInterna: false,
+        alcances: new Set<string>(),
       };
       notas.set(clave!, entry);
       return entry;
@@ -790,6 +802,12 @@ export async function GET(request: Request) {
       if (clave) entradaNota().sinSolicitud = true;
       continue;
     }
+
+    // La salvedad de perímetro acompaña a la FILA en cuanto la resuelve esta
+    // solicitud, tenga o no valor ese año: describe qué comprende la cifra de la
+    // fila, no el resultado de una celda concreta.
+    const alcance = alcanceSol.get(solicitudId);
+    if (clave && alcance) entradaNota().alcances.add(alcance);
 
     const estado = estadoSol.get(solicitudId);
     const valor = estado === "validado" ? ultimaConfirmada(solicitudId, ejercicioCelda) : null;
@@ -843,8 +861,12 @@ export async function GET(request: Request) {
       else huecosSin++;
     }
 
-    // La nota de validación interna va AL FINAL: primero las brechas (lo que
-    // falta), luego la salvedad de trazabilidad de lo que sí entró.
+    // Orden de lectura para un revisor: primero lo que FALTA (las brechas), luego
+    // qué COMPRENDE lo que sí está (el perímetro) y al final quién lo validó.
+    for (const a of n.alcances) {
+      partes.push(a);
+      alcancesDeclarados++;
+    }
     if (n.validacionInterna) partes.push(NOTA_VALIDACION_INTERNA);
 
     // Sin partes no se escribe: sobreescribir con "" borraría lo que la
@@ -904,7 +926,7 @@ export async function GET(request: Request) {
   console.log(
     `[export-taxonomia] reporte=${reporteId} etiquetas=${etiquetas} llenadas=${llenadas} ` +
       `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} ` +
-      `validacion_interna=${validacionesInternas} ` +
+      `validacion_interna=${validacionesInternas} alcance=${alcancesDeclarados} ` +
       `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
       `cuestionarios=${cuestionariosEscritos} archivo=${filename}`

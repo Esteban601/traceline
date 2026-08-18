@@ -907,25 +907,58 @@ aseguramiento limitado busca. Así que la celda **sigue diciendo
 en las tablas de desempeño corporativas, con su cita y su perímetro declarado en la
 nota.
 
-**Para cerrarlo hay dos caminos, y ninguno es técnico — los decide dirección:**
+**Había dos caminos, y dirección eligió el segundo.**
 
-1. **Pedir el dato que falta.** Las **emisiones de Alcance 1 de 2024 de Elementia y
-   Fortaleza Materiales**, el mismo perímetro que Carso entregó para 2025. Con eso
-   el comparativo se llena solo, sin tocar nada más. Es el camino limpio.
-2. **Mover el rubro a la tabla corporativa de GEI.** Es más ambicioso y hay un
-   hallazgo que lo hace tentador: el checklist de 2025 **sí trae el GEI consolidado
-   de todo Grupo Carso** en su hoja `Ambiental` (fila *Total GCarso*: Alcance 1
-   2,858,744.568 t y Alcance 2 599,841.699 t), pero el import de 2025 **no lo
-   capturó** — la solicitud «Tabla Desempeño Ambiental. Gases Efecto Invernadero»
-   quedó sin cifras de 2025, y por eso su valor vigente hoy es el total 2024 del
-   histórico. Capturar ese 2025 y mover ahí el rubro daría un Alcance 1 de grupo con
-   comparativo real… **pero cambiaría la cifra de 2025 que ya está validada** en la
-   plantilla oficial (de 2,643,446.803 a 2,858,744.568). Eso no se hace sin
-   autorización explícita: es reemplazar un dato de un entregable ya revisado.
+1. **Pedir el dato que falta:** las emisiones de Alcance 1 de 2024 de Elementia y
+   Fortaleza Materiales, el mismo perímetro que Carso entregó para 2025. Sigue
+   siendo el camino que llena la columna, y el mecanismo está listo: en cuanto haya
+   una captura validada del año anterior en la solicitud del rubro, la columna se
+   llena y la nota de brecha desaparece sola (probado en `verify:export`).
+2. **Declarar el perímetro en el entregable** ← *aplicado*. En vez de mover el rubro
+   a la tabla corporativa de GEI —que habría **cambiado la cifra de 2025 ya
+   validada**, de 2,643,446.803 a 2,858,744.568— la celda de Notas/Brechas ahora
+   **dice qué comprende** la cifra. Ver *Declarar el alcance de una cifra*, abajo.
 
-Ninguna de las dos se aplicó. Lo que sí está listo es el mecanismo: el momento en
-que exista una captura validada del año anterior en la solicitud del rubro, la
-columna se llena y la nota de brecha desaparece (probado en `verify:export`).
+> Para el camino 1, un hallazgo que conviene tener a mano: el checklist de 2025 **sí
+> trae el GEI consolidado de todo Grupo Carso** en su hoja `Ambiental` (fila *Total
+> GCarso*: Alcance 1 2,858,744.568 t y Alcance 2 599,841.699 t), pero el import de
+> 2025 **no lo capturó**: la solicitud «Tabla Desempeño Ambiental. Gases Efecto
+> Invernadero» quedó sin cifras de 2025, y por eso su valor vigente hoy es el total
+> 2024 del histórico.
+
+### Declarar el alcance de una cifra
+
+`solicitudes.nota_alcance` es la salvedad de **perímetro** con la que hay que leer
+una cifra en el entregable: qué comprende y qué no. El export la **agrega** a la
+celda de *Notas/Brechas* de la fila que esa solicitud alimenta, junto a lo que ya
+haya — no la reemplaza, porque la brecha y el perímetro son dos cosas distintas y
+las dos importan:
+
+```
+Sin evidencia (2024); La cifra corresponde al perímetro de la división Materiales
+(Elementia Materiales y Fortaleza Materiales); no comprende las demás divisiones
+de Grupo Carso.
+```
+
+El orden dentro de la celda es el de lectura de un revisor: primero **lo que falta**
+(las brechas por año), luego **qué comprende lo que sí está** (el perímetro) y al
+final **quién lo validó** (la salvedad de validación interna).
+
+- Es una **columna, no una rama en el export**: el perímetro es una propiedad del
+  dato de un cliente concreto, así que vive con el dato. El motor del export sigue
+  siendo la definición reutilizable de la plantilla, sin una sola condición por
+  emisora.
+- Se puede declarar **incluso sobre una solicitud validada**, por la misma razón que
+  el rubro de taxonomía: no cambia lo que se pidió, ni el valor, ni el estado —
+  explica la cifra. De hecho el caso que la motiva es justo una validada. Congelado
+  sí queda fuera.
+- Se edita desde el **detalle de la solicitud** (campo *Nota de alcance* del
+  formulario, y el widget junto a *Rubro de taxonomía* cuando la solicitud ya está
+  validada), y se ve en el detalle además del Excel: si solo viviera en el
+  entregable, quien revisa en la plataforma leería la cifra con el perímetro
+  equivocado, que es justo lo que la nota vino a evitar.
+- El histórico de GCARSO la declara al correr, de forma idempotente, y **no
+  sobrescribe** una nota que alguien haya editado desde el panel: lo reporta.
 
 `verify:export` cubre las dos caras del asunto: en el cliente de verificación
 comprueba que **la columna comparativa SÍ se llena** cuando existe captura validada

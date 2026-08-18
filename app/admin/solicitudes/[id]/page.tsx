@@ -76,7 +76,7 @@ export default async function SolicitudStaffPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, nota_alcance, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
     )
     .eq("id", id)
     .single();
@@ -323,6 +323,20 @@ export default async function SolicitudStaffPage({
         </div>
         {sol.descripcion && (
           <p className="max-w-2xl text-sm leading-relaxed text-muted">{sol.descripcion}</p>
+        )}
+
+        {/* Nota de alcance: si solo viviera en el Excel, quien revisa aquí leería la
+            cifra con el perímetro equivocado — que es justo lo que vino a evitar. */}
+        {sol.nota_alcance && (
+          <div className="max-w-2xl rounded-xl border border-gold/30 bg-gold/[0.06] px-3.5 py-2.5">
+            <p className="text-xs font-medium uppercase tracking-wide text-gold-dark">
+              Alcance de la cifra
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-ink/90">{sol.nota_alcance}</p>
+            <p className="mt-1 text-xs text-muted">
+              Se agrega a la celda de Notas/Brechas del Excel de taxonomía.
+            </p>
+          </div>
         )}
         <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
           {reporte && (

@@ -10,11 +10,13 @@ import {
   puedeEditarSolicitud,
   puedeEditarEnunciado,
   puedeAsignarRubroTaxonomia,
+  puedeDeclararAlcance,
 } from "@/lib/gestion";
 import { SolicitudForm, type ValoresIniciales } from "../../solicitud-form";
 import { cargarOpcionesFormulario } from "../../opciones";
 import { puedeEditarOrigen, type OrigenSolicitud } from "@/lib/origen";
 import { AsignarRubro } from "../../asignar-rubro";
+import { DeclararAlcance } from "../../declarar-alcance";
 import { editarSolicitud } from "../../gestion-actions";
 
 export const metadata: Metadata = { title: "Editar solicitud" };
@@ -33,7 +35,7 @@ export default async function EditarSolicitudPage({
   const { data: sol } = await db
     .from("solicitudes")
     .select(
-      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, origen, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave, rubro_taxonomia"
+      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, origen, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave, rubro_taxonomia, nota_alcance"
     )
     .eq("id", id)
     .single();
@@ -116,6 +118,12 @@ export default async function EditarSolicitudPage({
               inicial={sol.rubro_taxonomia ?? ""}
             />
           )}
+
+          {/* Y la salvedad de perímetro, por el mismo motivo: explica la cifra sin
+              cambiarla, y el caso que la necesita es justo una validada. */}
+          {puedeDeclararAlcance(estado) && (
+            <DeclararAlcance solicitudId={sol.id} inicial={sol.nota_alcance ?? ""} />
+          )}
         </div>
       </div>
     );
@@ -135,6 +143,7 @@ export default async function EditarSolicitudPage({
     orden: String(sol.orden ?? ""),
     rubro_clave: sol.rubro_clave ?? "",
     rubro_taxonomia: sol.rubro_taxonomia ?? "",
+    nota_alcance: sol.nota_alcance ?? "",
     datapointIds: (mapeo ?? []).map((m) => m.datapoint_id),
   };
 

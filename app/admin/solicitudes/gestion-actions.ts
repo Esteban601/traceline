@@ -10,6 +10,8 @@ import {
   puedeEditarEnunciado,
   puedeEliminarSolicitud,
   puedeAsignarRubroTaxonomia,
+  puedeDeclararAlcance,
+  NOTA_ALCANCE_MAX,
 } from "@/lib/gestion";
 import type { EstadoSolicitud } from "@/lib/estados";
 import type { TablesUpdate } from "@/lib/database.types";
@@ -36,6 +38,7 @@ type CamposSolicitud = {
   orden: number | null;
   rubro_clave: string | null;
   rubro_taxonomia: string | null;
+  nota_alcance: string | null;
   datapointIds: string[];
 };
 
@@ -61,6 +64,7 @@ function leerCampos(fd: FormData): CamposSolicitud {
     orden,
     rubro_clave: texto(fd, "rubro_clave"),
     rubro_taxonomia: texto(fd, "rubro_taxonomia"),
+    nota_alcance: texto(fd, "nota_alcance")?.slice(0, NOTA_ALCANCE_MAX) ?? null,
     datapointIds: Array.from(new Set(fd.getAll("datapoint_ids").map((v) => String(v)))).filter(
       Boolean
     ),
@@ -202,6 +206,7 @@ export async function crearSolicitud(
       orden,
       rubro_clave: campos.rubro_clave,
       rubro_taxonomia: campos.rubro_taxonomia,
+      nota_alcance: campos.nota_alcance,
       origen,
       // estado se queda en el default 'pendiente'.
     })
@@ -325,6 +330,7 @@ export async function editarSolicitud(
     responsable_cliente_id: campos.responsable_cliente_id,
     rubro_clave: campos.rubro_clave,
     rubro_taxonomia: campos.rubro_taxonomia,
+    nota_alcance: campos.nota_alcance,
   };
   // Solo el staff escribe el responsable de IRStrat. Incluirlo en el UPDATE para
   // el administrador del cliente le BORRARÍA la asignación con solo guardar una
@@ -517,5 +523,81 @@ export async function asignarRubroTaxonomia(
     ok: true,
     error: null,
     mensaje: rubro ? "Rubro de taxonomía asignado." : "Rubro de taxonomía retirado.",
+  };
+}
+
+/**
+ * Declara (o retira) la NOTA DE ALCANCE de una solicitud: la salvedad de perímetro
+ * con la que se debe leer su cifra en el entregable.
+ *
+ * Va aparte de `editarSolicitud` por la misma razón que `asignarRubroTaxonomia`:
+ * se admite sobre una solicitud ya VALIDADA. No cambia lo que se pidió, ni el
+ * valor, ni el estado — explica qué comprende la cifra. El caso que la motiva es
+ * precisamente una validada: el Alcance 1 de GCARSO, que corresponde a la división
+ * Materiales y no a todo el grupo. La alternativa era mover el rubro a otra
+ * solicitud y con ello CAMBIAR una cifra ya revisada; declarar el alcance no toca
+ * ningún dato.
+ */
+export async function declararAlcance(
+  solicitudId: string,
+  nota: string | null
+): Promise<GestionState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
+  }
+  if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
+
+  const limpia = nota?.trim().slice(0, NOTA_ALCANCE_MAX) || null;
+
+  const db = await createClient();
+
+  const { data: sol } = await db
+    .from("solicitudes")
+    .select("id, titulo, estado, origen, nota_alcance, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)")
+    .eq("id", solicitudId)
+    .single();
+  if (!sol) return { ok: false, error: "No se encontró la solicitud." };
+
+  if (!puedeEditarOrigen(sol.origen as OrigenSolicitud, perfil)) {
+    return {
+      ok: false,
+      error: "Esta solicitud la redactó IRStrat: su nota de alcance la declara IRStrat.",
+    };
+  }
+  if (!puedeDeclararAlcance(sol.estado as EstadoSolicitud)) {
+    return {
+      ok: false,
+      error: "El reporte está congelado: sus solicitudes quedaron en solo-lectura.",
+    };
+  }
+
+  const { error } = await db
+    .from("solicitudes")
+    .update({ nota_alcance: limpia })
+    .eq("id", solicitudId);
+  if (error) return { ok: false, error: "No se pudo guardar la nota de alcance." };
+
+  await logEvento(db, {
+    tenantId: (sol.reporte as unknown as { tenant_id: string } | null)?.tenant_id ?? null,
+    usuarioId: perfil.id,
+    accion: "solicitud_editada",
+    entidad: "solicitudes",
+    entidadId: solicitudId,
+    detalle: {
+      titulo: sol.titulo,
+      nota_alcance: limpia,
+      nota_alcance_anterior: sol.nota_alcance,
+    },
+  });
+
+  revalidatePath(`/admin/solicitudes/${solicitudId}`);
+  revalidatePath("/admin/cobertura");
+  return {
+    ok: true,
+    error: null,
+    mensaje: limpia
+      ? "Nota de alcance declarada; entra en la celda de Notas/Brechas del Excel."
+      : "Nota de alcance retirada.",
   };
 }

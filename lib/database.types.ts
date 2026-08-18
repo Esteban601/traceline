@@ -946,6 +946,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_solicitud"]
           fecha_limite: string | null
           id: string
+          nota_alcance: string | null
           orden: number
           origen: Database["public"]["Enums"]["origen_solicitud"]
           reporte_id: string
@@ -965,6 +966,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_solicitud"]
           fecha_limite?: string | null
           id?: string
+          nota_alcance?: string | null
           orden?: number
           origen?: Database["public"]["Enums"]["origen_solicitud"]
           reporte_id: string
@@ -984,6 +986,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_solicitud"]
           fecha_limite?: string | null
           id?: string
+          nota_alcance?: string | null
           orden?: number
           origen?: Database["public"]["Enums"]["origen_solicitud"]
           reporte_id?: string

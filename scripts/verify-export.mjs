@@ -191,6 +191,14 @@ async function main() {
       !notasDemo.some((t) => t.includes("validación interna del cliente")),
       "ninguna celda del demo lleva '(validación interna del cliente)': sus validaciones son todas de IRStrat"
     );
+    ok(
+      !notasDemo.some((t) => /perímetro de la división/i.test(t)),
+      "ni nota de alcance: el demo no tiene salvedad de perímetro que declarar"
+    );
+    ok(
+      cellText(gei1, "E3") === "Sin evidencia (2024)",
+      "y su celda de notas sigue diciendo exactamente 'Sin evidencia (2024)'"
+    );
   }
 
   console.log("\nGEI 29(a)(vi)(1) — causas por año (pendiente vs sin evidencia):");
@@ -529,9 +537,19 @@ async function main() {
     // históricos entregados cubre a Materiales — el Reporte Anual Ambiental 2024
     // cubre CICSA, Condumex, CIDEC y corporativo. Llenarla con las cifras de esos
     // sectores empalmaría dos perímetros distintos en la misma fila comparativa.
+    const notaAlcance = cellText(c1, "E3");
     ok(
-      cellText(c1, "D3") === "" && cellText(c1, "E3") === "Sin evidencia (2024)",
+      cellText(c1, "D3") === "" && notaAlcance.startsWith("Sin evidencia (2024)"),
       "2024 vacío con su causa: el histórico entregado no cubre a Materiales, que es quien alimenta la celda"
+    );
+    // DECISIÓN DE PERÍMETRO: en vez de mover el rubro (lo que cambiaría una cifra ya
+    // validada), la celda de Notas/Brechas DECLARA qué comprende el Alcance 1. La
+    // nota se AGREGA a la brecha; si la reemplazara, se perdería el hueco de 2024.
+    ok(
+      /perímetro de la división Materiales/i.test(notaAlcance) &&
+        /Elementia/i.test(notaAlcance) &&
+        /Fortaleza/i.test(notaAlcance),
+      `la nota declara el perímetro de la cifra ("${notaAlcance.slice(0, 96)}…")`
     );
 
     // Y se comprueba que la causa es esa y no que el histórico no corrió: el

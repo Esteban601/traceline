@@ -139,6 +139,28 @@ let LIMITE_BUCKET = null;
 // que cambió de nombre no debe tirar la corrida entera ni, peor, colgar la
 // captura de otra solicitud parecida.
 // -----------------------------------------------------------------------------
+/**
+ * NOTA DE ALCANCE de la fila que llega a la plantilla oficial.
+ *
+ * Decisión de perímetro tomada por dirección: la cifra de Alcance 1 que alimenta
+ * el Excel es de la división Materiales, no de todo Grupo Carso — es el único
+ * desglose que el cliente entregó—, y en vez de mover el rubro a otra solicitud
+ * (lo que CAMBIARÍA una cifra ya validada) se DECLARA el perímetro en el propio
+ * entregable, junto a las brechas que ya haya en esa celda.
+ *
+ * Vive aquí porque es un hecho del expediente de este cliente, y no en el motor
+ * del export, que sigue sin una sola rama por emisora. Se puede reescribir después
+ * desde el panel (campo «Nota de alcance» del detalle de la solicitud).
+ */
+const ALCANCE_GEI = {
+  area: "Materiales",
+  re: /^Emisiones Brutas GEI Alcance 1/i,
+  nota:
+    "La cifra corresponde al perímetro de la división Materiales " +
+    "(Elementia Materiales y Fortaleza Materiales); no comprende las demás " +
+    "divisiones de Grupo Carso.",
+};
+
 const D = {
   CAPACITACION: { area: "Corporativo", re: /^Tabla Capacitación Especializada/i },
   COLABORADORES: { area: "Corporativo", re: /^Total colaboradores/i },
@@ -634,6 +656,7 @@ async function correr() {
     capturasPorPeriodo: {},
     evidenciasPorArchivo: {},
     notas: 0,
+    alcance: 0,
     omitidasPorDuplicado: 0,
   };
   const hallazgos = [];
@@ -1032,7 +1055,47 @@ async function correr() {
       }
     }
 
-    // --- 5. Notas ------------------------------------------------------------
+    // --- 4.5 Nota de alcance de la fila que llega a la plantilla oficial ------
+  log("\nNota de alcance…");
+  {
+    const candidatas = solicitudes.filter(
+      (x) => x.area_asignada === ALCANCE_GEI.area && ALCANCE_GEI.re.test(x.titulo)
+    );
+    if (candidatas.length !== 1) {
+      hallazgos.push(
+        `Nota de alcance NO declarada: ${candidatas.length} solicitudes coinciden con ` +
+          `${ALCANCE_GEI.area} · ${ALCANCE_GEI.re}. Declárala a mano desde el detalle.`
+      );
+    } else {
+      const objetivo = candidatas[0];
+      const { data: actual } = await db
+        .from("solicitudes")
+        .select("nota_alcance")
+        .eq("id", objetivo.id)
+        .single();
+      if (actual?.nota_alcance === ALCANCE_GEI.nota) {
+        stats.omitidasPorDuplicado++;
+        log("  ya estaba declarada");
+      } else if (actual?.nota_alcance) {
+        // Alguien la editó desde el panel: esa versión gana. Sobrescribirla sería
+        // deshacer una decisión editorial con un script.
+        hallazgos.push(
+          `La solicitud «${objetivo.titulo}» ya tiene otra nota de alcance y NO se ` +
+            `sobrescribió: "${actual.nota_alcance}".`
+        );
+      } else {
+        const { error } = await db
+          .from("solicitudes")
+          .update({ nota_alcance: ALCANCE_GEI.nota })
+          .eq("id", objetivo.id);
+        if (error) throw new Error(`nota de alcance: ${error.message}`);
+        stats.alcance = 1;
+        log(`  declarada en «${objetivo.titulo}»`);
+      }
+    }
+  }
+
+  // --- 5. Notas ------------------------------------------------------------
     log("\nNotas de trazabilidad…");
     for (const n of NOTAS) {
       const sol = destino[n.destino];
@@ -1062,7 +1125,10 @@ async function correr() {
     log(`  ${String(stats.evidenciasPorArchivo[a]).padStart(2)}  ${a}`);
   }
 
-  log(`\nNotas: ${stats.notas} · omitidos por ya existir: ${stats.omitidasPorDuplicado}`);
+  log(
+    `\nNotas: ${stats.notas} · notas de alcance declaradas: ${stats.alcance} · ` +
+      `omitidos por ya existir: ${stats.omitidasPorDuplicado}`
+  );
   if (faltantes.length) {
     log("\n⚠️  DESTINOS NO RESUELTOS (no se escribió nada en ellos)");
     for (const f of faltantes) log(`  - ${f}`);

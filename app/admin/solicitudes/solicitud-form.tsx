@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { NOTA_ALCANCE_MAX } from "@/lib/gestion";
 import { DatapointSelector, type DatapointOpcion } from "./datapoint-selector";
 import type { GestionState } from "./gestion-actions";
 
@@ -46,6 +47,7 @@ export type ValoresIniciales = {
   orden: string;
   rubro_clave: string;
   rubro_taxonomia: string;
+  nota_alcance: string;
   datapointIds: string[];
 };
 
@@ -108,6 +110,7 @@ export function SolicitudForm({
   const [orden, setOrden] = useState(inicial?.orden ?? "");
   const [rubroClave, setRubroClave] = useState(inicial?.rubro_clave ?? "");
   const [rubroTaxonomia, setRubroTaxonomia] = useState(inicial?.rubro_taxonomia ?? "");
+  const [notaAlcance, setNotaAlcance] = useState(inicial?.nota_alcance ?? "");
   const [datapointIds, setDatapointIds] = useState<string[]>(inicial?.datapointIds ?? []);
 
   const reporte = useMemo(
@@ -175,6 +178,7 @@ export function SolicitudForm({
     fd.set("orden", orden);
     fd.set("rubro_clave", rubroClave);
     fd.set("rubro_taxonomia", rubroTaxonomia);
+    if (!soloCliente) fd.set("nota_alcance", notaAlcance);
     for (const id of datapointIds) fd.append("datapoint_ids", id);
     startTransition(() => dispatch(fd));
   };
@@ -387,6 +391,32 @@ export function SolicitudForm({
           de arriba, que solo sirve para cuadrar dos áreas entre sí.
         </p>
       </div>
+
+      {/* Nota de alcance — acompaña al rubro: si esta solicitud llena una celda de
+          la plantilla, es aquí donde se declara con qué perímetro debe leerse. */}
+      {!soloCliente && (
+        <div>
+          <label htmlFor="nota_alcance" className={labelCls}>
+            Nota de alcance <span className="font-normal text-muted">· opcional</span>
+          </label>
+          <textarea
+            id="nota_alcance"
+            value={notaAlcance}
+            onChange={(e) => setNotaAlcance(e.target.value)}
+            rows={2}
+            maxLength={NOTA_ALCANCE_MAX}
+            placeholder="Solo si el perímetro del dato no es el que un lector supondría…"
+            className={areaCls}
+          />
+          <p className="mt-1.5 text-xs leading-relaxed text-muted">
+            Qué comprende la cifra y qué no, redactado para el entregable. Se agrega a
+            la celda de <span className="font-medium text-ink">Notas/Brechas</span> del
+            Excel de taxonomía, junto a las brechas que ya haya. Úsala cuando el dato
+            cubra menos de lo que su etiqueta sugiere —una división en vez del grupo,
+            un semestre en vez del año—; si el perímetro es el obvio, déjala vacía.
+          </p>
+        </div>
+      )}
 
       {/* Responsables */}
       <div className={soloCliente ? "" : "grid gap-6 sm:grid-cols-2"}>

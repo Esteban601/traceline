@@ -31,6 +31,20 @@ export function puedeAsignarRubroTaxonomia(estado: EstadoSolicitud): boolean {
 }
 
 /**
+ * ¿Se puede declarar la NOTA DE ALCANCE? Misma excepción que el rubro de
+ * taxonomía, y por la misma razón: no es contenido de la solicitud ni cambia su
+ * valor ni su estado, es la salvedad de perímetro con la que se debe leer la
+ * cifra en el entregable. El caso que la motiva es justo una solicitud ya
+ * VALIDADA, así que negarla ahí la volvería inútil. Congelado sí queda fuera.
+ */
+export function puedeDeclararAlcance(estado: EstadoSolicitud): boolean {
+  return estado !== "congelado";
+}
+
+/** Largo máximo de la nota de alcance: entra en una celda de Excel, no es un ensayo. */
+export const NOTA_ALCANCE_MAX = 300;
+
+/**
  * ¿Se pueden editar el título y la descripción? No, si la solicitud ya tiene
  * evidencia: el cliente respondió a un enunciado y ese enunciado no puede cambiar
  * de significado bajo sus pies. Los demás campos sí se pueden editar.
