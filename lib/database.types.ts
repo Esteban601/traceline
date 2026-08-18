@@ -271,6 +271,7 @@ export type Database = {
           created_at: string
           descripcion: string
           id: string
+          marco: string
           norma: Database["public"]["Enums"]["norma_niif"]
           ods: string | null
           pilar: Database["public"]["Enums"]["pilar_niif"]
@@ -283,6 +284,7 @@ export type Database = {
           created_at?: string
           descripcion: string
           id?: string
+          marco?: string
           norma: Database["public"]["Enums"]["norma_niif"]
           ods?: string | null
           pilar: Database["public"]["Enums"]["pilar_niif"]
@@ -295,6 +297,7 @@ export type Database = {
           created_at?: string
           descripcion?: string
           id?: string
+          marco?: string
           norma?: Database["public"]["Enums"]["norma_niif"]
           ods?: string | null
           pilar?: Database["public"]["Enums"]["pilar_niif"]
@@ -943,6 +946,7 @@ export type Database = {
           orden: number
           reporte_id: string
           responsable_cliente_id: string | null
+          responsable_cliente_texto: string | null
           responsable_irstrat_id: string | null
           rubro_clave: string | null
           rubro_taxonomia: string | null
@@ -960,6 +964,7 @@ export type Database = {
           orden?: number
           reporte_id: string
           responsable_cliente_id?: string | null
+          responsable_cliente_texto?: string | null
           responsable_irstrat_id?: string | null
           rubro_clave?: string | null
           rubro_taxonomia?: string | null
@@ -977,6 +982,7 @@ export type Database = {
           orden?: number
           reporte_id?: string
           responsable_cliente_id?: string | null
+          responsable_cliente_texto?: string | null
           responsable_irstrat_id?: string | null
           rubro_clave?: string | null
           rubro_taxonomia?: string | null

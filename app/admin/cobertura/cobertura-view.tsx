@@ -13,6 +13,8 @@ export type DatapointCobertura = {
   id: string;
   codigo: string;
   norma: "S1" | "S2";
+  /** NIIF = taxonomía oficial · VERT = extensión propia de la firma. */
+  marco: "NIIF" | "VERT";
   pilar: string;
   seccionIndice: string | null;
   descripcion: string;
@@ -49,6 +51,7 @@ const NORMAS: { key: Norma; label: string }[] = [
 
 const PILAR_ORDEN = ["gobernanza", "estrategia", "riesgos", "metricas"];
 const PILAR_LABEL: Record<string, string> = {
+  extension: "Extensión de la firma",
   gobernanza: "Gobernanza",
   estrategia: "Estrategia",
   riesgos: "Gestión de riesgos",
@@ -77,7 +80,7 @@ function distribucion(items: DatapointCobertura[]): Record<Cobertura, number> {
 }
 
 export function CoberturaView({
-  datapoints,
+  datapoints: todosLosDatapoints,
   selector,
   tenantId = null,
   tenantNombre = null,
@@ -92,6 +95,19 @@ export function CoberturaView({
   /** Reporte del que se genera el Excel de taxonomía. */
   reporteId?: string | null;
 }) {
+  // La extensión VERT se aparta ANTES de cualquier cálculo: los KPIs, los
+  // anillos y el universo son de la norma. Si los 4 datapoints propios entraran
+  // al conteo, el "X de 91" dejaría de hablar de NIIF S1/S2 y le atribuiría a la
+  // norma requerimientos que son de la firma.
+  const datapoints = useMemo(
+    () => todosLosDatapoints.filter((d) => d.marco !== "VERT"),
+    [todosLosDatapoints]
+  );
+  const datapointsVert = useMemo(
+    () => todosLosDatapoints.filter((d) => d.marco === "VERT"),
+    [todosLosDatapoints]
+  );
+
   const [norma, setNorma] = useState<Norma | "todos">("todos");
   const [pilares, setPilares] = useState<Set<string>>(new Set());
   const [soloConSolicitudes, setSoloConSolicitudes] = useState(false);
@@ -159,7 +175,14 @@ export function CoberturaView({
       return next;
     });
 
-  const todosAbiertos = grupos.length > 0 && grupos.every((g) => abiertos.has(g.key));
+  // 'vert' es una sección más para efectos de expandir/colapsar: sin incluirla,
+  // 'Expandir todo' la cerraba y el rótulo mentía sobre su estado.
+  const clavesExpandibles = [
+    ...grupos.map((g) => g.key),
+    ...(datapointsVert.length > 0 ? ["vert"] : []),
+  ];
+  const todosAbiertos =
+    clavesExpandibles.length > 0 && clavesExpandibles.every((k) => abiertos.has(k));
 
   return (
     <div className="space-y-8">
@@ -296,7 +319,7 @@ export function CoberturaView({
             {grupos.length > 0 && (
               <button
                 onClick={() =>
-                  setAbiertos(todosAbiertos ? new Set() : new Set(grupos.map((g) => g.key)))
+                  setAbiertos(todosAbiertos ? new Set() : new Set(clavesExpandibles))
                 }
                 className="whitespace-nowrap text-sm font-medium text-teal transition duration-150 hover:text-teal-dark"
               >
@@ -331,7 +354,64 @@ export function CoberturaView({
           ))}
         </div>
       )}
+
+      {datapointsVert.length > 0 && (
+        <ExtensionVert
+          items={datapointsVert}
+          abierto={abiertos.has("vert")}
+          onToggle={() => toggleGrupo("vert")}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Extensión VERT — los datapoints propios de la firma, SEPARADOS de la norma.
+ *
+ * Van en su propia sección, con su propio conteo y un rótulo que dice qué son.
+ * Nunca se mezclan con los 91 de NIIF S1/S2 ni se presentan como parte de la
+ * norma: son requerimientos que la firma decidió recabar además de ella, y
+ * confundirlos sería atribuirle a NIIF algo que no dice.
+ */
+function ExtensionVert({
+  items,
+  abierto,
+  onToggle,
+}: {
+  items: DatapointCobertura[];
+  abierto: boolean;
+  onToggle: () => void;
+}) {
+  const conteo = distribucion(items);
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-6">
+        <h2 className="font-display text-lg font-semibold text-ink">
+          Extensión VERT
+          <span className="ml-2 text-sm font-normal text-muted">
+            {items.length} {items.length === 1 ? "datapoint" : "datapoints"} propios de la firma
+          </span>
+        </h2>
+        <p className="max-w-2xl text-xs leading-relaxed text-muted">
+          Fuera de la taxonomía NIIF S1/S2: conceptos que la firma recaba además
+          de la norma. No cuentan en el avance de arriba ni entran a la plantilla
+          oficial.
+        </p>
+      </div>
+      <div className="rounded-card border border-gold/30 bg-gold/[0.04]">
+        <GrupoCobertura
+          norma={"VERT" as Norma}
+          pilar="extension"
+          items={items}
+          abierto={abierto}
+          onToggle={onToggle}
+        />
+      </div>
+      <p className="sr-only">
+        {COBERTURA_ORDEN.map((c) => `${COBERTURA_META[c].label}: ${conteo[c]}`).join(", ")}
+      </p>
+    </section>
   );
 }
 

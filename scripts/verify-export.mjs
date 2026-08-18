@@ -362,9 +362,13 @@ async function main() {
   // RELATIVOS, así que si estuviera atado a 2025 este export saldría vacío.
   // ===========================================================================
   console.log("\n════════ B) SEGUNDO TENANT — cliente nuevo, datos mínimos ════════");
+  // `tenantIdFixture` se captura por separado: si crearFixture falla DESPUÉS de
+  // insertar el tenant, `fixture` nunca se asigna y el finally no limpiaría —
+  // dejando una emisora fantasma en el selector de clientes.
   let fixture = null;
+  const rastro = {};
   try {
-    fixture = await crearFixture(client);
+    fixture = await crearFixture(client, rastro);
     console.log(`  (tenant ${fixture.slug}, reporte ${fixture.ejercicio})`);
 
     const { res: res2, buf: buf2 } = await pedirExport(cookie, fixture.reporteId);
@@ -445,15 +449,95 @@ async function main() {
   } catch (e) {
     ok(false, `el segundo tenant falló: ${e.message}`);
   } finally {
-    if (fixture) {
-      await limpiarFixture(client, fixture);
+    const idFixture = fixture?.tenantId ?? rastro.tenantId;
+    if (idFixture) {
+      await limpiarFixture(client, { tenantId: idFixture });
       console.log("  (fixture del segundo tenant eliminado)");
+    }
+  }
+
+  // ===========================================================================
+  // C) GCARSO — cliente real importado con scripts/import-gcarso.mjs.
+  //
+  // No forma parte del seed: el bloque solo corre si el import ya se ejecutó.
+  // Comprueba que su Excel sale con SUS cifras, sin nada del demo y sin la marca
+  // [DEMO] que solo corresponde al tenant de demostración.
+  // ===========================================================================
+  const { data: repCarso } = await client
+    .from("reportes")
+    .select("id, ejercicio, tenant:tenants!reportes_tenant_id_fkey!inner(slug)")
+    .eq("tenant.slug", "gcarso")
+    .order("ejercicio", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!repCarso) {
+    console.log("\n════════ C) GCARSO — omitido (no está importado) ════════");
+    console.log("  (corre `node scripts/import-gcarso.mjs` para incluirlo)");
+  } else {
+    console.log("\n════════ C) GCARSO — cliente real ════════");
+    const { res: res3, buf: buf3 } = await pedirExport(cookie, repCarso.id);
+    ok(res3.status === 200, `HTTP 200 para GCARSO (recibido ${res3.status})`);
+    const cd3 = res3.headers.get("content-disposition") || "";
+    ok(cd3.includes("taxonomia-gcarso-2025"), `archivo con el slug real (${cd3.slice(0, 70)})`);
+
+    if (res3.status !== 200) {
+      // Sin esta guarda, cargar un cuerpo de error como .xlsx lanzaría y el
+      // catch de main() escondería la lista de problemas acumulados.
+      console.error("Cuerpo:", buf3.toString("utf8").slice(0, 300));
+    } else {
+    const wb3 = new ExcelJS.Workbook();
+    await wb3.xlsx.load(buf3);
+    const c1 = wb3.getWorksheet("NIIF S2 29(a)(i)");
+    const c10 = wb3.getWorksheet("NIIF S2 10");
+    const c51 = wb3.getWorksheet("NIIF S1 51");
+
+    // GEI Alcance 1 de Materiales: Elementia 83,189.803 + Fortaleza 2,560,257.
+    ok(
+      Math.abs(Number(cellText(c1, "C3")) - 2643446.803) < 0.01,
+      `Alcance 1 2025 = suma real de Materiales (${cellText(c1, "C3")})`
+    );
+    ok(
+      cellText(c1, "D3") === "" && cellText(c1, "E3") === "Sin evidencia (2024)",
+      "2024 vacío con su causa: el proceso real no entregó comparativo"
+    );
+    // Rubros que el reporte de Carso no pide: causa propia, distinta.
+    ok(
+      cellText(c1, "E4") === "Sin solicitud en el reporte" &&
+        cellText(c1, "E5") === "Sin solicitud en el reporte",
+      "Alcances 2 y 3 marcan 'Sin solicitud en el reporte'"
+    );
+
+    // Contenido del informe: riesgos y objetivos reales de Carso.
+    ok(
+      /Eventos climáticos físicos/.test(cellText(c10, "A4")),
+      `registro de clima real en S2 10 ("${cellText(c10, "A4").slice(0, 40)}…")`
+    );
+    ok(
+      /Fortalecimiento de la gestión ambiental/.test(cellText(c51, "A4")),
+      `objetivo real en S1 51 ("${cellText(c51, "A4").slice(0, 40)}…")`
+    );
+
+    const todoCarso = [];
+    wb3.eachSheet((ws) =>
+      ws.eachRow((row) =>
+        row.eachCell((c) => {
+          if (typeof c.value === "string") todoCarso.push(c.value);
+        })
+      )
+    );
+    const libroCarso = todoCarso.join(" | ");
+    ok(!/\[DEMO\]/.test(libroCarso), "el libro de GCARSO NO lleva la marca [DEMO]");
+    ok(
+      !/Estrés hídrico en planta norte|Reducción absoluta de emisiones|15750/.test(libroCarso),
+      "no se cuela ningún dato de Empresa Demo"
+    );
     }
   }
 
   console.log(
     problemas.length === 0
-      ? "\n✅ VERIFICACIÓN OK — export íntegro para Empresa Demo y para un cliente nuevo."
+      ? "\n✅ VERIFICACIÓN OK — export íntegro para Empresa Demo, un cliente nuevo y GCARSO."
       : `\n❌ ${problemas.length} problema(s):\n - ${problemas.join("\n - ")}`
   );
   process.exit(problemas.length === 0 ? 0 : 1);
@@ -472,7 +556,7 @@ const FIXTURE = {
   valor: 1234.5,
 };
 
-async function crearFixture(client) {
+async function crearFixture(client, rastro = {}) {
   // Idempotencia: si quedó de una corrida interrumpida, se retira primero.
   const { data: previo } = await client
     .from("tenants")
@@ -492,6 +576,7 @@ async function crearFixture(client) {
     .select("id")
     .single();
   if (tErr) throw new Error(`no se pudo crear el tenant: ${tErr.message}`);
+  rastro.tenantId = tenant.id;   // desde aquí, el finally ya puede limpiarlo
 
   const { data: reporte, error: rErr } = await client
     .from("reportes")

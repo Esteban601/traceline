@@ -56,3 +56,7 @@ supabase/snippets/
 # Plantillas .xlsx colocadas en la raíz para importar: la copia canónica que
 # lee el motor de export vive versionada en assets/ (no duplicar el binario).
 /*.xlsx
+import-gcarso/
+
+# Respaldos de base de datos tomados a mano antes de una migración.
+respaldo-*.sql

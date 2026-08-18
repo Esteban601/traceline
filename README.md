@@ -17,6 +17,11 @@ emisoras BMV (IRStrat / Vert).
 - ✅ **Operación multi-cliente (Sprint 7)**: alta de clientes desde la UI
   (`/admin/clientes`) con sus áreas, prefijo de folios y logo; invitaciones de un
   solo uso; recuperación de contraseña; selector de cliente en matriz y cobertura.
+- ✅ **Export de taxonomía por cliente/reporte**: el mapeo celda↔dato es una
+  definición reutilizable (rubros canónicos + año relativo); cualquier cliente
+  genera su Excel.
+- ✅ **Import de un cliente real (GCARSO)**: `scripts/import-gcarso.mjs` recrea el
+  proceso IAS 2025 de Grupo Carso, con extensión VERT del catálogo.
 - 🌱 **Correo y recordatorios (Fase 1)** — solicitar, recordar y avisar observaciones vía Resend (rama `fase-1-recordatorios`).
 
 Stack: Next.js 15 (App Router, TypeScript, pnpm) + Supabase local (CLI + Docker).
@@ -432,6 +437,69 @@ Con `supabase start`, `supabase db reset` y `pnpm dev` corriendo, como
 11. **Baja.** `/admin/clientes` → **Desactivar** en el cliente de prueba y
     confirma. Intenta entrar con su usuario: el acceso queda cortado y el cliente
     sigue en la lista marcado como *Inactivo*.
+
+## Import de un cliente real: GCARSO (proceso IAS 2025)
+
+`scripts/import-gcarso.mjs` recrea dentro de la plataforma el proceso de recabado
+que IRStrat corrió con Grupo Carso: sus solicitudes, responsables, fechas,
+capturas y contenido **reales**. Las fuentes viven en `import-gcarso/` (carpeta
+**no versionada**, `.gitignore`): el mapeo de importación —que es la
+especificación—, el checklist del proceso, el informe S1/S2 y el IAS 2025.
+
+```bash
+node scripts/import-gcarso.mjs            # contra la BD local
+node scripts/import-gcarso.mjs --limpiar  # retira el import
+IMPORT_TARGET_OK=1 node scripts/import-gcarso.mjs   # obligatorio si el destino NO es local
+```
+
+Es **idempotente**: retira por completo el import anterior antes de rehacerlo, así
+que correrlo dos veces no duplica nada. Escribe con una **sesión de staff** (RLS
+activo, como lo haría un analista por la UI); solo el alta de cuentas usa
+`service_role`.
+
+**Requisito previo:** debe existir una plantilla de checklist **con rubros de
+taxonomía** (ver la sección anterior). Sin ella el script se detiene con un
+mensaje explícito, porque el reporte nacería sin poder resolver ninguna celda GEI.
+
+### Qué importa, y qué NO
+
+| Fuente | Destino | Regla |
+|--------|---------|-------|
+| Checklist (5 hojas) | 134 solicitudes | Una por requerimiento real. Las subsidiarias van en la descripción, no como solicitudes aparte. Responsable real **como texto** (`responsable_cliente_texto`): son personas sin cuenta. |
+| Tablas del checklist | 42 capturas | Valores reales del ejercicio 2025, una por división o subsidiaria más un **consolidado** al final (la plataforma toma la última captura como valor vigente). |
+| Informe `.docx` | 3 registros de clima + 2 objetivos | Solo los ítems numerados de las tablas `[100002]` y `[100003]`. Las secciones `[805600]+` (SASB de industria) **no se importan**. |
+| IAS 2025 `.pdf` | Evidencia cualitativa + contexto | Cada capítulo se recorta con `pdf-lib` y se adjunta a las solicitudes de política que la especificación lista, con la cita de páginas. **Nunca** a una solicitud cuyo entregable es la cifra. |
+
+**Nada se inventa.** Lo que el proceso real no entregó (filas con `ND`, `N/A` o
+`XXXX`) no se captura: el hueco es información y la plataforma lo muestra como
+tal. Los atributos que el informe no cubre quedan vacíos y salen como pendientes
+en el Excel.
+
+### Usuarios
+
+Seis usuarios **genéricos** por área (`comercial@gcarso.example`, …), con
+contraseñas fuertes generadas en cada corrida y mostradas una sola vez al final.
+No se crean cuentas a nombre de personas reales: los nombres del proceso viven
+como texto en cada solicitud.
+
+### Extensión VERT del catálogo
+
+El proceso de Carso pide cuatro conceptos que la norma no cubre como datapoint
+propio: plantilla y rotación, capacitación, agua y residuos. Se incorporaron al
+catálogo con `datapoints_taxonomia.marco = 'VERT'` (los 91 de la norma quedan en
+`'NIIF'`) y en `/admin/cobertura` aparecen en una **sección propia, "Extensión
+VERT"**, con su propio conteo y fuera del avance de la norma. Nunca se presentan
+como parte de NIIF S1/S2.
+
+> **Licenciamiento IFRS Foundation — pendiente de escalar.** La portada del mapeo
+> de importación deja constancia: el checklist de Carso usa métricas y códigos
+> SASB verbatim (CG-MR, RT-EE, IF-EN, EM-CM) y el informe incluye las secciones
+> de industria `[805600]+`. Integrar ese contenido en una plataforma **comercial**
+> requiere licencia de la IFRS Foundation (el uso no comercial es libre). El
+> import respeta la instrucción de no traer esas secciones y las solicitudes SASB
+> quedan ligadas a la hoja bloqueada `NIIF S1 46 a 50`, que se recaba pero no se
+> exporta. La recomendación registrada es escalarlo a dirección y contactar a
+> `licensing@sasb.org` **antes** de dar acceso a Grupo Carso.
 
 ## Documentación
 

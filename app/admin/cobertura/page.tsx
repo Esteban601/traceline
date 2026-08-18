@@ -15,6 +15,7 @@ type DatapointRow = {
   id: string;
   codigo: string;
   norma: "S1" | "S2";
+  marco: "NIIF" | "VERT";
   pilar: string;
   seccion_indice: string | null;
   descripcion: string;
@@ -43,7 +44,7 @@ export default async function CoberturaPage({
   ] = await Promise.all([
       supabase
         .from("datapoints_taxonomia")
-        .select("id, codigo, norma, pilar, seccion_indice, descripcion, ods")
+        .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods")
         .eq("version_taxonomia", "2025")
         .order("norma")
         .order("pilar")
@@ -127,6 +128,7 @@ export default async function CoberturaPage({
       id: d.id,
       codigo: d.codigo,
       norma: d.norma,
+      marco: d.marco,
       pilar: d.pilar,
       seccionIndice: d.seccion_indice,
       descripcion: d.descripcion,

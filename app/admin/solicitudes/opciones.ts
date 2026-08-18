@@ -42,7 +42,7 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
       .order("nombre", { ascending: true }),
     db
       .from("datapoints_taxonomia")
-      .select("id, codigo, descripcion, norma")
+      .select("id, codigo, descripcion, norma, marco")
       .eq("activo", true)
       .order("codigo", { ascending: true }),
     db.from("solicitudes").select("area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"),
@@ -114,7 +114,12 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
     usuariosCliente,
     staff,
     areas,
-    datapoints: (datapoints ?? []) as DatapointOpcion[],
+    // `norma` se sustituye por 'VERT' en los de la extensión: en el selector,
+    // un VERT rotulado 'S1' se leería como parte de la norma.
+    datapoints: ((datapoints ?? []) as (DatapointOpcion & { marco?: string })[]).map((d) => ({
+      ...d,
+      norma: d.marco === "VERT" ? "VERT" : d.norma,
+    })) as DatapointOpcion[],
     rubros,
   };
 }

@@ -72,7 +72,7 @@ export async function GET(request: Request) {
   ] = await Promise.all([
     supabase
       .from("datapoints_taxonomia")
-      .select("id, codigo, norma, pilar, seccion_indice, descripcion, ods")
+      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods")
       .eq("version_taxonomia", "2025")
       .order("norma")
       .order("pilar")
@@ -112,6 +112,7 @@ export async function GET(request: Request) {
     id: string;
     codigo: string;
     norma: string;
+    marco: string;
     pilar: string;
     seccion_indice: string | null;
     descripcion: string;
@@ -184,6 +185,10 @@ export async function GET(request: Request) {
   const t = wb.addWorksheet("Trazabilidad");
   const colsT: Col[] = [
     { header: "Código", width: 22 },
+    // La columna Marco evita que los datapoints propios de la firma se lean
+    // como requerimientos de NIIF: en un entregable de auditoría, atribuirle a
+    // la norma algo que no dice es un error de fondo, no de forma.
+    { header: "Marco", width: 10 },
     { header: "Norma", width: 8 },
     { header: "Pilar", width: 14 },
     { header: "Sección del índice", width: 30 },
@@ -209,6 +214,7 @@ export async function GET(request: Request) {
     if (ligadas.length === 0) {
       t.addRow([
         d.codigo,
+        d.marco === "VERT" ? "Extensión VERT" : "NIIF",
         d.norma,
         d.pilar,
         d.seccion_indice ?? "",
@@ -229,6 +235,7 @@ export async function GET(request: Request) {
       const ev = ultimaEv.get(sid);
       t.addRow([
         d.codigo,
+        d.marco === "VERT" ? "Extensión VERT" : "NIIF",
         d.norma,
         d.pilar,
         d.seccion_indice ?? "",
@@ -246,7 +253,7 @@ export async function GET(request: Request) {
   }
 
   // Ajuste de texto para columnas largas.
-  [5, 6].forEach((ci) => {
+  [6, 7].forEach((ci) => {
     t.getColumn(ci).alignment = { wrapText: true, vertical: "top" };
   });
 

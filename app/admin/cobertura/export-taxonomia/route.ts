@@ -162,7 +162,9 @@ function escribirRegistros(
   wb: ExcelJS.Workbook,
   registros: RegRow[],
   vigentePorReg: Map<string, Map<number, RegValRow>>,
-  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
+  /** Ejercicio del reporte: los años se resuelven relativos a él, no fijos. */
+  ejercicio: number
 ): number {
   let escritas = 0;
   const num = (ws: ExcelJS.Worksheet, addr: string, val: number, fmt: string) => {
@@ -197,9 +199,14 @@ function escribirRegistros(
           ws.getCell(`${sec.cols.tipo}${fila}`).value = TIPO_LABEL[r.tipo] ?? r.tipo;
       } else {
         const vig = vigentePorReg.get(r.id);
+        // v2025/v2024 son POSICIONES de columna en la plantilla (así vienen
+        // rotuladas), pero el dato que va en ellas es el del ejercicio del
+        // reporte y el anterior — misma regla de año relativo que el mapeo GEI.
+        // Fijarlos a 2025 dejaba en blanco cualquier reporte de otro ejercicio
+        // aunque sus valores estuvieran capturados y validados.
         for (const [anio, grupo] of [
-          [2025, sec.cols.v2025] as const,
-          [2024, sec.cols.v2024] as const,
+          [ejercicio, sec.cols.v2025] as const,
+          [ejercicio - 1, sec.cols.v2024] as const,
         ]) {
           if (!grupo) continue;
           const v = vig?.get(anio);
@@ -812,7 +819,8 @@ export async function GET(request: Request) {
     wb,
     (registros ?? []) as RegRow[],
     vigentePorReg,
-    hojasTocadas
+    hojasTocadas,
+    reporte.ejercicio
   );
 
   // Objetivos climáticos y de sostenibilidad (5 hojas: S1 51 + S2 33/34/35/36).
