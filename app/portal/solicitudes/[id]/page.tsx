@@ -3,10 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/data";
-import { Chip } from "@/components/ui/badge";
+import { Chip, OrigenBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
+import type { OrigenSolicitud } from "@/lib/origen";
 import { fmtFecha, fmtFechaHora, fmtFechaLarga, fmtDiaLargo } from "@/lib/fechas";
 import { accionCliente, IconoAccion } from "@/app/portal/estado-cliente";
 import { UploadEvidencia } from "./upload-evidencia";
@@ -27,6 +28,8 @@ type EvidenciaRow = {
   periodo_cubierto: string | null;
   area_origen: string | null;
   justificacion: string | null;
+  /** Marca inborrable: la cargó IRStrat en nombre del área. */
+  cargado_por_staff: boolean;
   created_at: string;
   subio: { nombre: string } | null;
 };
@@ -60,7 +63,7 @@ export default async function SolicitudPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
     )
     .eq("id", id)
     .single();
@@ -72,7 +75,7 @@ export default async function SolicitudPage({
       supabase
         .from("evidencias")
         .select(
-          "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
+          "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, cargado_por_staff, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
         )
         .eq("solicitud_id", id)
         .order("version", { ascending: false }),
@@ -210,7 +213,17 @@ export default async function SolicitudPage({
                           ? `, reemplazó a la del ${fmtFecha(previa.created_at)}`
                           : ""}
                       </span>
-                      <span>· {limpiar(ev.subio?.nombre)}</span>
+                      {/* Cuando la carga la hizo IRStrat en nombre del área, se
+                          dice aquí también: el cliente tiene que poder ver quién
+                          subió lo que aparece como suyo. */}
+                      {ev.cargado_por_staff ? (
+                        <span className="font-medium text-gold-dark">
+                          · Cargado por {limpiar(ev.subio?.nombre)} (IRStrat)
+                          {ev.area_origen ? ` en nombre de ${ev.area_origen}` : ""}
+                        </span>
+                      ) : (
+                        <span>· {limpiar(ev.subio?.nombre)}</span>
+                      )}
                     </p>
                   </div>
 
@@ -353,6 +366,10 @@ export default async function SolicitudPage({
             <IconoAccion tipo={accion.icono} className="size-4" />
             {accion.titulo}
           </span>
+          {/* Badge de ORIGEN: quién pidió el dato. Visible también para el área,
+              que tiene derecho a saber si la petición viene de IRStrat o de la
+              propia organización. */}
+          <OrigenBadge origen={sol.origen as OrigenSolicitud} />
           {sol.area_asignada && <Chip>{sol.area_asignada}</Chip>}
           {sol.es_cuantitativa && (
             <Chip tono="verde">

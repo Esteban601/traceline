@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
 import { TRANSICIONES } from "@/lib/transiciones";
 import { cn } from "@/lib/cn";
 
@@ -32,10 +33,19 @@ export function AccionesStaff({
   solicitudId,
   estadoActual,
   responsable,
+  origen,
+  puedeRevisar,
 }: {
   solicitudId: string;
   estadoActual: EstadoSolicitud;
   responsable: string | null;
+  origen: OrigenSolicitud;
+  /**
+   * REGLA DURA de origen: solo el lado que pidió la información la revisa,
+   * observa y valida. Cuando es `false` NO se pinta ningún botón de transición —
+   * y la server action y el trigger de la base lo rechazan igual si llega un POST.
+   */
+  puedeRevisar: boolean;
 }) {
   const destinos = TRANSICIONES[estadoActual] ?? [];
   const esPendiente = estadoActual === "pendiente";
@@ -90,6 +100,17 @@ export function AccionesStaff({
   };
 
   const sinAcciones = !puedeSolicitar && directos.length === 0 && !puedeObservar && !esPendiente;
+
+  // El otro lado VE la solicitud completa (trazabilidad compartida) pero no la
+  // mueve: en vez de botones deshabilitados, se dice de quién es la revisión.
+  if (!puedeRevisar) {
+    return (
+      <div className="rounded-xl border border-dashed border-line bg-crema/30 px-3.5 py-3">
+        <p className="text-sm font-medium text-ink">{ORIGEN_META[origen].label}</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted">{ORIGEN_META[origen].ayuda}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

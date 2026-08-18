@@ -3,9 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import {
+  getPerfilActual,
+  esStaff,
+  esAdminCliente,
+  puedeEntrarPanel,
+  type PerfilActual,
+} from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
-import { esRolClienteValido, generarPasswordTemporal } from "@/lib/gestion";
+import { generarPasswordTemporal } from "@/lib/gestion";
+import { AREA_MAX } from "@/lib/tenants";
+import { puedeAsignarRol, rolRequiereArea, ROL_LABEL } from "@/lib/roles";
 import { enviarCorreo, modoConsola, plantillaInvitacion } from "@/lib/email";
 import {
   INVITACION_HORAS,
@@ -49,32 +57,49 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Alta de un usuario del cliente. Crea el usuario en auth (service_role, admin
  * API) con una contraseña temporal, y su perfil de negocio. Devuelve la
- * contraseña UNA vez para que el staff la comparta (en staging sin Resend no hay
- * invitación por correo — documentado como mejora de producción).
+ * contraseña UNA vez para que quien da el alta la comparta (en staging sin Resend
+ * no hay invitación por correo — documentado como mejora de producción).
+ *
+ * Dan de alta el STAFF (cualquier cliente, cualquier rol de cliente) y el
+ * ADMINISTRADOR DEL CLIENTE (solo SU cliente, y solo con rol de área u otro
+ * administrador como él). El `tenant_id` del formulario se IGNORA para el
+ * administrador del cliente: se toma del perfil, así que un id manipulado no
+ * puede sembrar un usuario en otra emisora. La misma regla está en RLS
+ * (`perfiles_admin_cliente_insert`), que es la barrera real.
  */
 export async function crearUsuario(
   _prev: AltaUsuarioState,
   fd: FormData
 ): Promise<AltaUsuarioState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
-    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
 
   const nombre = String(fd.get("nombre") ?? "").trim();
   const email = String(fd.get("email") ?? "").trim().toLowerCase();
   const rol = String(fd.get("rol") ?? "").trim();
   const areaRaw = String(fd.get("area") ?? "").trim();
-  const tenantId = String(fd.get("tenant_id") ?? "").trim();
+  // El tenant del formulario solo cuenta si quien da de alta es staff.
+  const tenantId = esStaff(perfil)
+    ? String(fd.get("tenant_id") ?? "").trim()
+    : (perfil.tenant_id ?? "");
 
   if (!nombre) return { ok: false, error: "El nombre es obligatorio." };
   if (!EMAIL_RE.test(email)) return { ok: false, error: "El correo no es válido." };
-  if (!esRolClienteValido(rol)) return { ok: false, error: "Rol no válido." };
+  if (!puedeAsignarRol(perfil, rol)) {
+    return {
+      ok: false,
+      error: esStaff(perfil)
+        ? "Rol no válido."
+        : "Solo puedes dar de alta responsables de área u otro administrador de tu organización.",
+    };
+  }
   if (!tenantId) return { ok: false, error: "Selecciona el cliente (tenant)." };
 
-  // El área solo aplica al rol 'cliente' (acota su visibilidad); el coordinador
-  // ve todo su tenant.
-  const area = rol === "cliente" ? (areaRaw || null) : null;
+  // El área solo aplica al rol de área (acota su visibilidad); el coordinador y
+  // el administrador del cliente ven todo su tenant.
+  const area = rolRequiereArea(rol) ? (areaRaw || null) : null;
 
   const db = await createClient();
 
@@ -130,7 +155,7 @@ export async function crearUsuario(
     accion: "usuario_creado",
     entidad: "perfiles_usuario",
     entidadId: userId,
-    detalle: { nombre, email, rol, area, tenant: tenant.nombre },
+    detalle: { nombre, email, rol, area, tenant: tenant.nombre, rol_label: ROL_LABEL[rol] },
   });
 
   // La contraseña temporal sigue existiendo como red de seguridad; la vía
@@ -237,14 +262,30 @@ async function crearInvitacion(
 }
 
 /**
+ * ¿Este perfil puede administrar a ESE usuario del cliente? El staff, a
+ * cualquiera; el administrador del cliente, solo a los de su tenant y solo con
+ * rol de área o administrador (el `coordinador` sigue siendo designación de
+ * IRStrat). Espejo de `perfiles_admin_cliente_update` en RLS.
+ */
+function puedeAdministrarUsuario(
+  perfil: PerfilActual,
+  objetivo: { tenant_id: string | null; rol: string }
+): boolean {
+  if (esStaff(perfil)) return true;
+  if (!esAdminCliente(perfil)) return false;
+  if (objetivo.tenant_id === null || objetivo.tenant_id !== perfil.tenant_id) return false;
+  return objetivo.rol === "cliente" || objetivo.rol === "admin_cliente";
+}
+
+/**
  * Regenera la invitación de un usuario existente (la anterior venció o se
  * perdió). Cada liga es independiente: la nueva no invalida a las anteriores,
  * pero todas caducan solas y son de un solo uso.
  */
 export async function regenerarInvitacion(usuarioId: string): Promise<InvitacionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
-    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!usuarioId) return { ok: false, error: "Usuario no válido." };
 
@@ -252,13 +293,16 @@ export async function regenerarInvitacion(usuarioId: string): Promise<Invitacion
 
   const { data: objetivo } = await db
     .from("perfiles_usuario")
-    .select("id, nombre, email, activo, tenant_id")
+    .select("id, nombre, email, activo, tenant_id, rol")
     .eq("id", usuarioId)
     .single();
 
   if (!objetivo) return { ok: false, error: "No se encontró el usuario." };
   if (!objetivo.tenant_id) {
     return { ok: false, error: "Solo se invitan usuarios del cliente." };
+  }
+  if (!puedeAdministrarUsuario(perfil, objetivo)) {
+    return { ok: false, error: "No puedes administrar a este usuario." };
   }
   if (!objetivo.activo) {
     return { ok: false, error: "El usuario está desactivado: reactívalo antes de invitarlo." };
@@ -305,22 +349,29 @@ export async function cambiarActivoUsuario(
   activar: boolean
 ): Promise<ActivoState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
-    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!usuarioId) return { ok: false, error: "Usuario no válido." };
+  // Quedarse fuera de su propio panel no es una acción útil, es un pie en falso.
+  if (usuarioId === perfil.id && !activar) {
+    return { ok: false, error: "No puedes desactivar tu propio acceso." };
+  }
 
   const db = await createClient();
 
   const { data: objetivo } = await db
     .from("perfiles_usuario")
-    .select("id, nombre, tenant_id")
+    .select("id, nombre, tenant_id, rol")
     .eq("id", usuarioId)
     .single();
 
   if (!objetivo) return { ok: false, error: "No se encontró el usuario." };
   if (objetivo.tenant_id === null) {
     return { ok: false, error: "Solo se gestionan usuarios del cliente aquí." };
+  }
+  if (!puedeAdministrarUsuario(perfil, objetivo)) {
+    return { ok: false, error: "No puedes administrar a este usuario." };
   }
 
   const { error: upErr } = await db
@@ -354,5 +405,182 @@ export async function cambiarActivoUsuario(
     ok: true,
     error: null,
     mensaje: activar ? "Usuario reactivado." : "Usuario desactivado.",
+  };
+}
+
+// =============================================================================
+// Áreas del cliente (catálogo `areas_tenant`)
+//
+// Las gestionan el staff y el ADMINISTRADOR DEL CLIENTE de ese tenant (RLS:
+// `areas_tenant_admin_cliente_insert/update`). No se borran: se desactivan — el
+// nombre del área vive como texto en las solicitudes y en la evidencia ya
+// entregada, y borrar el catálogo no borraría esa historia, solo la dejaría sin
+// referencia.
+// =============================================================================
+
+export type AreaState = { ok: boolean; error?: string | null; mensaje?: string | null };
+
+/** Tenant sobre el que este perfil puede gestionar áreas, o null si no puede. */
+async function tenantParaAreas(
+  perfil: PerfilActual,
+  tenantIdSolicitado: string
+): Promise<string | null> {
+  if (esStaff(perfil)) return tenantIdSolicitado || null;
+  if (!esAdminCliente(perfil)) return null;
+  // Se ignora el id del formulario: el administrador del cliente solo opera el suyo.
+  return perfil.tenant_id;
+}
+
+function normalizarNombreArea(bruto: string): string {
+  return bruto.trim().replace(/\s+/g, " ").slice(0, AREA_MAX);
+}
+
+export async function crearArea(tenantId: string, nombre: string): Promise<AreaState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
+  }
+  const tenant = await tenantParaAreas(perfil, tenantId);
+  if (!tenant) return { ok: false, error: "Cliente no válido." };
+
+  const limpio = normalizarNombreArea(nombre);
+  if (!limpio) return { ok: false, error: "Escribe el nombre del área." };
+
+  const db = await createClient();
+
+  const { data: existentes } = await db
+    .from("areas_tenant")
+    .select("id, nombre, orden, activo")
+    .eq("tenant_id", tenant);
+
+  const yaEsta = (existentes ?? []).find(
+    (a) => a.nombre.toLocaleLowerCase("es") === limpio.toLocaleLowerCase("es")
+  );
+  if (yaEsta) {
+    return {
+      ok: false,
+      error: yaEsta.activo
+        ? `El área “${yaEsta.nombre}” ya existe en este cliente.`
+        : `El área “${yaEsta.nombre}” existe pero está desactivada: reactívala en vez de crearla otra vez.`,
+    };
+  }
+
+  const orden = Math.max(0, ...(existentes ?? []).map((a) => a.orden)) + 1;
+
+  const { data: creada, error } = await db
+    .from("areas_tenant")
+    .insert({ tenant_id: tenant, nombre: limpio, orden })
+    .select("id")
+    .single();
+  if (error || !creada) {
+    return { ok: false, error: "No se pudo crear el área." };
+  }
+
+  await logEvento(db, {
+    tenantId: tenant,
+    usuarioId: perfil.id,
+    accion: "area_creada",
+    entidad: "areas_tenant",
+    entidadId: creada.id,
+    detalle: { nombre: limpio },
+  });
+
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/admin");
+  return { ok: true, error: null, mensaje: `Área “${limpio}” creada.` };
+}
+
+/**
+ * Renombra un área. Lo resuelve `fn_renombrar_area` en la base, que cambia a la
+ * vez el catálogo, las solicitudes y los perfiles: de esa coincidencia exacta
+ * depende qué ve cada usuario de área, así que un rename parcial rompería la
+ * visibilidad en silencio. La función también comprueba su propia autorización.
+ */
+export async function renombrarArea(areaId: string, nombre: string): Promise<AreaState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
+  }
+  if (!areaId) return { ok: false, error: "Área no válida." };
+
+  const limpio = normalizarNombreArea(nombre);
+  if (!limpio) return { ok: false, error: "Escribe el nombre del área." };
+
+  const db = await createClient();
+  const { data, error } = await db.rpc("fn_renombrar_area", {
+    p_area_id: areaId,
+    p_nombre: limpio,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  const r = (data ?? {}) as { cambiado?: boolean; solicitudes?: number; usuarios?: number };
+  if (!r.cambiado) {
+    return { ok: true, error: null, mensaje: "El nombre no cambió." };
+  }
+
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/admin");
+  revalidatePath("/portal");
+  const partes = [`Área renombrada a “${limpio}”`];
+  if (r.solicitudes) partes.push(`${r.solicitudes} solicitud(es) actualizadas`);
+  if (r.usuarios) partes.push(`${r.usuarios} usuario(s) actualizados`);
+  return { ok: true, error: null, mensaje: `${partes.join(" · ")}.` };
+}
+
+/** Desactiva o reactiva un área. No borra: solo deja de ofrecerse en los selectores. */
+export async function cambiarActivoArea(
+  areaId: string,
+  activar: boolean
+): Promise<AreaState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
+  }
+  if (!areaId) return { ok: false, error: "Área no válida." };
+
+  const db = await createClient();
+
+  const { data: area } = await db
+    .from("areas_tenant")
+    .select("id, tenant_id, nombre, activo")
+    .eq("id", areaId)
+    .single();
+  if (!area) return { ok: false, error: "No se encontró el área." };
+
+  const tenant = await tenantParaAreas(perfil, area.tenant_id);
+  if (!tenant || tenant !== area.tenant_id) {
+    return { ok: false, error: "No puedes gestionar las áreas de este cliente." };
+  }
+  if (area.activo === activar) {
+    return {
+      ok: false,
+      error: activar ? "El área ya está activa." : "El área ya está desactivada.",
+    };
+  }
+
+  const { error } = await db
+    .from("areas_tenant")
+    .update({ activo: activar })
+    .eq("id", areaId);
+  if (error) return { ok: false, error: "No se pudo actualizar el área." };
+
+  await logEvento(db, {
+    tenantId: area.tenant_id,
+    usuarioId: perfil.id,
+    accion: activar ? "area_reactivada" : "area_desactivada",
+    entidad: "areas_tenant",
+    entidadId: areaId,
+    detalle: { nombre: area.nombre },
+  });
+
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    error: null,
+    mensaje: activar
+      ? `Área “${area.nombre}” reactivada.`
+      : `Área “${area.nombre}” desactivada. Deja de ofrecerse para trabajo nuevo; lo ya registrado con ella no cambia.`,
   };
 }

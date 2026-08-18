@@ -3,13 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { EstadoBadge } from "@/components/ui/badge";
+import { EstadoBadge, OrigenBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TenantLogo } from "@/components/ui/tenant-logo";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { ESTADO_META, TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
+import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
 import { relativo, fmtFechaHora } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 import { enviarSolicitudesMasivo } from "./actions";
@@ -23,14 +24,20 @@ export type FilaMatriz = {
   responsable: string | null;
   numVersiones: number;
   ultimaActividad: string;
+  /** Quién pidió la información: IRStrat o el propio cliente. */
+  origen: OrigenSolicitud;
   /** Cliente dueño de la solicitud (null si el reporte perdió su tenant). */
   tenantNombre: string | null;
   tenantLogo: string | null;
 };
 
-/** Elegible para "Enviar solicitud": pendiente con responsable asignado. */
-function elegible(f: FilaMatriz): boolean {
-  return f.estado === "pendiente" && f.responsable != null;
+/**
+ * Elegible para "Enviar solicitud": pendiente, con responsable asignado y **del
+ * propio origen** — cada lado mueve las suyas (lib/origen.ts). Sin el filtro de
+ * origen, el lote incluiría solicitudes que la base rechazaría.
+ */
+function elegible(f: FilaMatriz, origenPropio: OrigenSolicitud): boolean {
+  return f.estado === "pendiente" && f.responsable != null && f.origen === origenPropio;
 }
 
 function grupoPrioridad(estado: EstadoSolicitud): number {
@@ -58,7 +65,15 @@ const ESTADOS_ORDEN: EstadoSolicitud[] = [
   "congelado",
 ];
 
-export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
+export function MatrizSolicitudes({
+  filas,
+  origenPropio,
+}: {
+  filas: FilaMatriz[];
+  /** Origen de las solicitudes que ESTE usuario puede mover: 'irstrat' para el
+   *  staff, 'cliente' para el administrador del cliente. */
+  origenPropio: OrigenSolicitud;
+}) {
   const [fEstado, setFEstado] = useState<EstadoSolicitud | "todos">("todos");
   const [fArea, setFArea] = useState<string>("todos");
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -95,6 +110,14 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
     [filas]
   );
 
+  // La columna de origen solo aparece cuando la vista mezcla los dos: en un
+  // cliente que nunca creó solicitudes internas, repetir "Solicitud IRStrat" en
+  // cada fila es ruido.
+  const mostrarOrigen = useMemo(
+    () => new Set(filas.map((f) => f.origen)).size > 1,
+    [filas]
+  );
+
   const visibles = useMemo(() => {
     const base = filas.filter(
       (f) =>
@@ -111,10 +134,13 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
     });
   }, [filas, fEstado, fArea]);
 
-  const elegiblesVisibles = useMemo(() => visibles.filter(elegible), [visibles]);
+  const elegiblesVisibles = useMemo(
+    () => visibles.filter((f) => elegible(f, origenPropio)),
+    [visibles, origenPropio]
+  );
   const seleccionadas = useMemo(
-    () => [...sel].filter((id) => filas.some((f) => f.id === id && elegible(f))),
-    [sel, filas]
+    () => [...sel].filter((id) => filas.some((f) => f.id === id && elegible(f, origenPropio))),
+    [sel, filas, origenPropio]
   );
   const todasSel =
     elegiblesVisibles.length > 0 && elegiblesVisibles.every((f) => sel.has(f.id));
@@ -289,6 +315,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                     </th>
                   )}
                   <th className="px-4 py-3 font-medium">Solicitud</th>
+                  {mostrarOrigen && <th className="px-4 py-3 font-medium">Origen</th>}
                   {mostrarCliente && <th className="px-4 py-3 font-medium">Cliente</th>}
                   <th className="px-4 py-3 font-medium">Área</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
@@ -299,7 +326,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
               </thead>
               <tbody>
                 {visibles.map((f) => {
-                  const puede = elegible(f);
+                  const puede = elegible(f, origenPropio);
                   const dot = TONO_CLASSES[ESTADO_META[f.estado].tono].dot;
                   return (
                     <tr
@@ -321,7 +348,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                             title={
                               puede
                                 ? "Seleccionar para enviar solicitud"
-                                : "Solo pendientes con responsable asignado"
+                                : "Solo tus pendientes con responsable asignado"
                             }
                             className="size-4 accent-teal disabled:cursor-not-allowed disabled:opacity-30"
                           />
@@ -340,6 +367,11 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                           </Link>
                         </span>
                       </td>
+                      {mostrarOrigen && (
+                        <td className="px-4 py-3">
+                          <OrigenBadge origen={f.origen} />
+                        </td>
+                      )}
                       {mostrarCliente && (
                         <td className="px-4 py-3">
                           <span className="flex items-center gap-2 text-muted">
@@ -380,7 +412,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
           {/* Tarjetas apiladas en móvil */}
           <ul className="divide-y divide-line/70 sm:hidden">
             {visibles.map((f) => {
-              const puede = elegible(f);
+              const puede = elegible(f, origenPropio);
               const dot = TONO_CLASSES[ESTADO_META[f.estado].tono].dot;
               return (
                 <li key={f.id} className="flex items-start gap-3 px-4 py-3.5">
@@ -403,6 +435,7 @@ export function MatrizSolicitudes({ filas }: { filas: FilaMatriz[] }) {
                       <EstadoBadge estado={f.estado} className="shrink-0" />
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                      {mostrarOrigen && <span>{ORIGEN_META[f.origen].label}</span>}
                       {mostrarCliente && f.tenantNombre && (
                         <span className="font-medium text-ink">{f.tenantNombre}</span>
                       )}

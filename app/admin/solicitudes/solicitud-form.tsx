@@ -15,6 +15,8 @@ export type ReporteOpcion = {
   nombre: string;
   ejercicio: number;
   tenant_id: string;
+  /** 'congelado' = cerrado para aseguramiento; no admite solicitudes nuevas. */
+  estado: "activo" | "congelado";
 };
 export type UsuarioOpcion = {
   id: string;
@@ -68,6 +70,7 @@ export function SolicitudForm({
   rubros,
   inicial,
   enunciadoBloqueado = false,
+  soloCliente = false,
 }: {
   modo: "crear" | "editar";
   action: (prev: GestionState, fd: FormData) => Promise<GestionState>;
@@ -79,6 +82,13 @@ export function SolicitudForm({
   rubros: RubroOpcion[];
   inicial?: ValoresIniciales;
   enunciadoBloqueado?: boolean;
+  /**
+   * Modo ADMINISTRADOR DEL CLIENTE: sin responsable de IRStrat y sin mapeo a
+   * datapoints (esos dos son trabajo de la firma; la server action los ignora y
+   * RLS los niega). El rubro de taxonomía SÍ se ofrece: es lo que hace que el
+   * valor de una solicitud interna llene su celda del Excel.
+   */
+  soloCliente?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -376,10 +386,10 @@ export function SolicitudForm({
       </div>
 
       {/* Responsables */}
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
+      <div className={soloCliente ? "" : "grid gap-6 sm:grid-cols-2"}>
+        <div className={soloCliente ? "sm:w-[calc(50%-0.75rem)]" : ""}>
           <label htmlFor="responsable_cliente_id" className={labelCls}>
-            Responsable cliente
+            {soloCliente ? "Responsable" : "Responsable cliente"}
           </label>
           <select
             id="responsable_cliente_id"
@@ -396,39 +406,43 @@ export function SolicitudForm({
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="responsable_irstrat_id" className={labelCls}>
-            Responsable IRStrat
-          </label>
-          <select
-            id="responsable_irstrat_id"
-            value={respIrstrat}
-            onChange={(e) => setRespIrstrat(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Sin asignar</option>
-            {staff.map((s) => (
-              <option key={s.id} value={s.id}>
-                {limpiar(s.nombre)}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!soloCliente && (
+          <div>
+            <label htmlFor="responsable_irstrat_id" className={labelCls}>
+              Responsable IRStrat
+            </label>
+            <select
+              id="responsable_irstrat_id"
+              value={respIrstrat}
+              onChange={(e) => setRespIrstrat(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Sin asignar</option>
+              {staff.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {limpiar(s.nombre)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Datapoints */}
-      <div>
-        <span className={labelCls}>Mapeo a datapoints (NIIF S1/S2)</span>
-        <p className="mb-2 mt-0.5 text-xs text-muted">
-          Interno de IRStrat. Busca por código o descripción y liga los datapoints
-          que alimenta esta solicitud.
-        </p>
-        <DatapointSelector
-          todos={datapoints}
-          seleccionados={datapointIds}
-          onChange={setDatapointIds}
-        />
-      </div>
+      {/* Datapoints — mapeo interno a la norma: solo IRStrat. */}
+      {!soloCliente && (
+        <div>
+          <span className={labelCls}>Mapeo a datapoints (NIIF S1/S2)</span>
+          <p className="mb-2 mt-0.5 text-xs text-muted">
+            Interno de IRStrat. Busca por código o descripción y liga los datapoints
+            que alimenta esta solicitud.
+          </p>
+          <DatapointSelector
+            todos={datapoints}
+            seleccionados={datapointIds}
+            onChange={setDatapointIds}
+          />
+        </div>
+      )}
 
       {/* Acciones */}
       <div className="flex items-center justify-end gap-2.5 border-t border-line pt-6">

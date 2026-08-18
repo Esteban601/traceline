@@ -3,10 +3,11 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, puedeEntrarPanel } from "@/lib/data";
 import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
 import { fmtFecha } from "@/lib/fechas";
+import { NOTA_VALIDACION_INTERNA, type OrigenSolicitud } from "@/lib/origen";
 
 export const runtime = "nodejs";
 
@@ -541,10 +542,13 @@ function slugify(s: string): string {
 }
 
 export async function GET(request: Request) {
+  // El administrador del cliente también genera SU Excel. Lo que le entrega es
+  // suyo y solo suyo: RLS acota cada consulta de abajo a su tenant, así que un
+  // ?tenant= o ?reporte= ajeno devuelve vacío o 404, no los datos de otro.
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
+  if (!perfil || !puedeEntrarPanel(perfil)) {
     return NextResponse.json(
-      { error: "Acceso reservado al equipo de IRStrat." },
+      { error: "Acceso reservado al panel de seguimiento." },
       { status: 403 }
     );
   }
@@ -599,7 +603,9 @@ export async function GET(request: Request) {
       .eq("activo", true),
     supabase
       .from("solicitudes")
-      .select("id, estado, rubro_taxonomia")
+      // `origen` decide QUIÉN validó (regla dura de lib/origen.ts) y por tanto si
+      // la celda lleva la nota de validación interna del cliente.
+      .select("id, estado, origen, rubro_taxonomia")
       .eq("reporte_id", reporteId),
     // Capturas del reporte: se filtran por la solicitud embebida (!inner) en vez
     // de traer las de todas las emisoras y descartarlas en memoria.
@@ -659,12 +665,19 @@ export async function GET(request: Request) {
   // Índices auxiliares. `sols` ya viene acotado al reporte, así que estos
   // índices no pueden alcanzar datos de otro cliente.
   const estadoSol = new Map<string, string>();
+  const origenSol = new Map<string, OrigenSolicitud>();
   // Rubro canónico → solicitud DE ESTE REPORTE que lo alimenta. Es la
   // resolución del mapeo: la unicidad (reporte_id, rubro_taxonomia) en la base
   // garantiza que haya a lo sumo una, así que no hay ambigüedad que desempatar.
   const solPorRubro = new Map<string, string>();
-  for (const s of (sols ?? []) as { id: string; estado: string; rubro_taxonomia: string | null }[]) {
+  for (const s of (sols ?? []) as {
+    id: string;
+    estado: string;
+    origen: OrigenSolicitud;
+    rubro_taxonomia: string | null;
+  }[]) {
     estadoSol.set(s.id, s.estado);
+    origenSol.set(s.id, s.origen);
     if (s.rubro_taxonomia) solPorRubro.set(s.rubro_taxonomia, s.id);
   }
 
@@ -712,6 +725,7 @@ export async function GET(request: Request) {
   let huecosSin = 0;
   let huecosSinSolicitud = 0;
   let etiquetas = 0;
+  let validacionesInternas = 0;
 
   // Causa del hueco POR CELDA-AÑO, acumulada por celda de nota (una fila puede
   // tener varias celdas-año vacías con causas distintas). `causas` mapea
@@ -724,6 +738,13 @@ export async function GET(request: Request) {
       causas: Map<number, string>;
       /** La fila entera no tiene solicitud en el reporte: una nota, sin años. */
       sinSolicitud: boolean;
+      /**
+       * Al menos un valor de la fila lo validó el propio cliente (solicitud de
+       * origen 'cliente'). Se DECLARA en la nota: el documento oficial se lee
+       * asumiendo la validación de la firma, así que la excepción es la que hay
+       * que decir. Cuando toda la fila la validó IRStrat, no se anota nada.
+       */
+      validacionInterna: boolean;
     }
   >();
   const hojasTocadas = new Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>();
@@ -757,6 +778,7 @@ export async function GET(request: Request) {
         celda: m.celda_nota!,
         causas: new Map<number, string>(),
         sinSolicitud: false,
+        validacionInterna: false,
       };
       notas.set(clave!, entry);
       return entry;
@@ -777,6 +799,15 @@ export async function GET(request: Request) {
       cell.value = valor;
       cell.numFmt = "#,##0.###";
       llenadas++;
+      // Trazabilidad de la FUENTE de la validación. Se marca la NOTA una vez,
+      // aunque la fila tenga varias celdas-año validadas por el mismo lado.
+      if (clave && origenSol.get(solicitudId) === "cliente") {
+        const nota = entradaNota();
+        if (!nota.validacionInterna) {
+          nota.validacionInterna = true;
+          validacionesInternas++;
+        }
+      }
     } else if (clave) {
       // Regla dura: valor no validado/ausente NO entra. La causa se decide POR
       // CELDA-AÑO: hay captura de ese periodo pero sin validar (→ pendiente) vs.
@@ -811,7 +842,14 @@ export async function GET(request: Request) {
       if (n.causas.get(a)!.startsWith(NOTA_PENDIENTE)) huecosPendiente++;
       else huecosSin++;
     }
-    ws.getCell(n.celda).value = partes.join("; ");
+
+    // La nota de validación interna va AL FINAL: primero las brechas (lo que
+    // falta), luego la salvedad de trazabilidad de lo que sí entró.
+    if (n.validacionInterna) partes.push(NOTA_VALIDACION_INTERNA);
+
+    // Sin partes no se escribe: sobreescribir con "" borraría lo que la
+    // plantilla oficial ya trae en esa celda.
+    if (partes.length > 0) ws.getCell(n.celda).value = partes.join("; ");
   }
 
   // Registros de riesgos/oportunidades (escritura posicional en 4 hojas).
@@ -866,6 +904,7 @@ export async function GET(request: Request) {
   console.log(
     `[export-taxonomia] reporte=${reporteId} etiquetas=${etiquetas} llenadas=${llenadas} ` +
       `pendiente=${huecosPendiente} sin_evidencia=${huecosSin} ` +
+      `validacion_interna=${validacionesInternas} ` +
       `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
       `cuestionarios=${cuestionariosEscritos} archivo=${filename}`

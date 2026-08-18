@@ -9,7 +9,12 @@ export type Tono =
   | "azul-fuerte"
   | "rojo"
   | "verde"
-  | "gris";
+  | "gris"
+  /* Tonos de MARCA, no de semáforo: distinguen el ORIGEN de una solicitud
+     (IRStrat en teal, interna del cliente en dorado). Fuera del semáforo a
+     propósito: el origen no dice quién tiene la pelota. */
+  | "teal"
+  | "gold";
 export type BucketKpi = "pendientes" | "recibidas" | "observaciones" | "validadas";
 
 /** Ícono asociado al estado (mapeado a un SVG en components/ui/badge.tsx). */
@@ -50,6 +55,9 @@ export const TONO_CLASSES: Record<Tono, { text: string; bg: string; border: stri
   rojo: { text: "text-rojo", bg: "bg-rojo/10", border: "border-rojo/25", dot: "bg-rojo" },
   verde: { text: "text-verde", bg: "bg-verde/10", border: "border-verde/25", dot: "bg-verde" },
   gris: { text: "text-gris", bg: "bg-gris/10", border: "border-gris/25", dot: "bg-gris" },
+  teal: { text: "text-teal", bg: "bg-teal/10", border: "border-teal/25", dot: "bg-teal" },
+  // El texto usa el dorado oscurecido (AA); el punto y el borde, el acento.
+  gold: { text: "text-gold-dark", bg: "bg-gold/10", border: "border-gold/35", dot: "bg-gold" },
 };
 
 export const KPIS: { bucket: BucketKpi; label: string; tono: Tono }[] = [

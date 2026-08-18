@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, puedeEntrarPanel } from "@/lib/data";
 import { coberturaDe, COBERTURA_META } from "@/lib/cobertura";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
 import { fmtFechaHora } from "@/lib/fechas";
 
 export const runtime = "nodejs";
@@ -47,10 +48,13 @@ function encabezar(ws: ExcelJS.Worksheet, cols: Col[]) {
 }
 
 export async function GET(request: Request) {
+  // El administrador del cliente también genera SU Excel. Lo que le entrega es
+  // suyo y solo suyo: RLS acota cada consulta de abajo a su tenant, así que un
+  // ?tenant= o ?reporte= ajeno devuelve vacío o 404, no los datos de otro.
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
+  if (!perfil || !puedeEntrarPanel(perfil)) {
     return NextResponse.json(
-      { error: "Acceso reservado al equipo de IRStrat." },
+      { error: "Acceso reservado al panel de seguimiento." },
       { status: 403 }
     );
   }
@@ -81,7 +85,7 @@ export async function GET(request: Request) {
     supabase
       .from("solicitudes")
       .select(
-        "id, titulo, estado, area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
+        "id, titulo, estado, origen, area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
       ),
     supabase
       .from("evidencias")
@@ -122,12 +126,18 @@ export async function GET(request: Request) {
   // Índice de solicitudes, acotado al cliente seleccionado si lo hay. Todo lo
   // que se escribe después pasa por este índice, así que filtrar aquí acota el
   // libro completo.
-  type Sol = { titulo: string; estado: EstadoSolicitud; area: string | null };
+  type Sol = {
+    titulo: string;
+    estado: EstadoSolicitud;
+    origen: OrigenSolicitud;
+    area: string | null;
+  };
   const solById = new Map<string, Sol>();
   for (const s of (sols ?? []) as unknown as {
     id: string;
     titulo: string;
     estado: string;
+    origen: string;
     area_asignada: string | null;
     reporte: { tenant_id: string } | null;
   }[]) {
@@ -135,6 +145,7 @@ export async function GET(request: Request) {
     solById.set(s.id, {
       titulo: s.titulo,
       estado: s.estado as EstadoSolicitud,
+      origen: s.origen as OrigenSolicitud,
       area: s.area_asignada,
     });
   }
@@ -195,6 +206,9 @@ export async function GET(request: Request) {
     { header: "Descripción del datapoint", width: 60 },
     { header: "Solicitud", width: 40 },
     { header: "Estado", width: 16 },
+    // Fuente de la validación: quién pidió el dato y, si ya está validado, quién
+    // lo validó. En un entregable de trazabilidad eso no puede quedar implícito.
+    { header: "Origen / validación", width: 30 },
     { header: "Área", width: 18 },
     { header: "Últ. versión", width: 12 },
     { header: "Archivo evidencia", width: 34 },
@@ -221,6 +235,7 @@ export async function GET(request: Request) {
         d.descripcion,
         "", // solicitud
         "",
+        "", // origen / validación
         "",
         "",
         "",
@@ -242,6 +257,9 @@ export async function GET(request: Request) {
         d.descripcion,
         sol.titulo,
         ESTADO_META[sol.estado].label,
+        sol.estado === "validado" || sol.estado === "congelado"
+          ? ORIGEN_META[sol.origen].validacion
+          : ORIGEN_META[sol.origen].label,
         sol.area ?? "",
         ev ? ev.version : "",
         ev ? ev.archivo : "",

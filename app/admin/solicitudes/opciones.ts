@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { esStaff, type PerfilActual } from "@/lib/data";
 import type { DatapointOpcion } from "./datapoint-selector";
 import type {
   ReporteOpcion,
@@ -21,30 +22,48 @@ export type OpcionesFormulario = {
  * Carga todas las opciones para el formulario de solicitud (crear/editar):
  * reportes, usuarios cliente activos, staff, áreas por tenant y el catálogo de
  * datapoints. El formulario filtra responsables y áreas por el tenant del
- * reporte seleccionado. Se ejecuta como el staff (RLS lo permite ver todo).
+ * reporte seleccionado. RLS acota lo visible: el staff ve todos los clientes; el
+ * administrador del cliente, solo el suyo.
+ *
+ * Para el administrador del cliente NO se carga el catálogo de datapoints ni la
+ * lista de staff: no ata solicitudes a la taxonomía interna ni asigna
+ * responsables de IRStrat (la server action también lo ignora si llegaran).
  */
-export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
+export async function cargarOpcionesFormulario(
+  perfil: Pick<PerfilActual, "tenant_id">
+): Promise<OpcionesFormulario> {
   const db = await createClient();
+  const soyStaff = esStaff(perfil);
+
+  // El catálogo de datapoints solo se pide para el staff: es el mapeo interno a
+  // la norma y el administrador del cliente no lo edita. Va fuera del Promise.all
+  // para no tener que fabricar un resultado vacío con la forma del query builder.
+  const datapointsPromise = soyStaff
+    ? db
+        .from("datapoints_taxonomia")
+        .select("id, codigo, descripcion, norma, marco")
+        .eq("activo", true)
+        .order("codigo", { ascending: true })
+        .then(({ data }) => data ?? [])
+    : Promise.resolve([]);
 
   const [
     { data: reportes },
     { data: perfiles },
-    { data: datapoints },
+    datapoints,
     { data: sols },
     { data: rubrosRaw },
   ] = await Promise.all([
-    db.from("reportes").select("id, nombre, ejercicio, tenant_id").order("ejercicio", {
+    // `estado` viaja con el reporte: el formulario de alta no debe ofrecer uno
+    // CONGELADO (RLS lo rechaza y el mensaje sería un "no se pudo" a secas).
+    db.from("reportes").select("id, nombre, ejercicio, tenant_id, estado").order("ejercicio", {
       ascending: false,
     }),
     db
       .from("perfiles_usuario")
       .select("id, nombre, tenant_id, area, rol, activo")
       .order("nombre", { ascending: true }),
-    db
-      .from("datapoints_taxonomia")
-      .select("id, codigo, descripcion, norma, marco")
-      .eq("activo", true)
-      .order("codigo", { ascending: true }),
+    datapointsPromise,
     db.from("solicitudes").select("area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"),
     db
       .from("rubros_taxonomia")
@@ -70,9 +89,9 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
     .filter((p) => p.tenant_id !== null && p.activo)
     .map((p) => ({ id: p.id, nombre: p.nombre, tenant_id: p.tenant_id, area: p.area }));
 
-  const staff: StaffOpcion[] = perfilesAll
-    .filter((p) => p.tenant_id === null)
-    .map((p) => ({ id: p.id, nombre: p.nombre }));
+  const staff: StaffOpcion[] = soyStaff
+    ? perfilesAll.filter((p) => p.tenant_id === null).map((p) => ({ id: p.id, nombre: p.nombre }))
+    : [];
 
   // Áreas por tenant: unión de áreas de usuarios y de solicitudes existentes.
   const areasSet = new Map<string, Set<string>>();
@@ -116,7 +135,7 @@ export async function cargarOpcionesFormulario(): Promise<OpcionesFormulario> {
     areas,
     // `norma` se sustituye por 'VERT' en los de la extensión: en el selector,
     // un VERT rotulado 'S1' se leería como parte de la norma.
-    datapoints: ((datapoints ?? []) as (DatapointOpcion & { marco?: string })[]).map((d) => ({
+    datapoints: (datapoints as unknown as (DatapointOpcion & { marco?: string })[]).map((d) => ({
       ...d,
       norma: d.marco === "VERT" ? "VERT" : d.norma,
     })) as DatapointOpcion[],

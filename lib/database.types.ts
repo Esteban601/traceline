@@ -310,6 +310,7 @@ export type Database = {
         Row: {
           archivo_path: string
           area_origen: string | null
+          cargado_por_staff: boolean
           created_at: string
           id: string
           justificacion: string | null
@@ -323,6 +324,7 @@ export type Database = {
         Insert: {
           archivo_path: string
           area_origen?: string | null
+          cargado_por_staff?: boolean
           created_at?: string
           id?: string
           justificacion?: string | null
@@ -336,6 +338,7 @@ export type Database = {
         Update: {
           archivo_path?: string
           area_origen?: string | null
+          cargado_por_staff?: boolean
           created_at?: string
           id?: string
           justificacion?: string | null
@@ -944,6 +947,7 @@ export type Database = {
           fecha_limite: string | null
           id: string
           orden: number
+          origen: Database["public"]["Enums"]["origen_solicitud"]
           reporte_id: string
           responsable_cliente_id: string | null
           responsable_cliente_texto: string | null
@@ -962,6 +966,7 @@ export type Database = {
           fecha_limite?: string | null
           id?: string
           orden?: number
+          origen?: Database["public"]["Enums"]["origen_solicitud"]
           reporte_id: string
           responsable_cliente_id?: string | null
           responsable_cliente_texto?: string | null
@@ -980,6 +985,7 @@ export type Database = {
           fecha_limite?: string | null
           id?: string
           orden?: number
+          origen?: Database["public"]["Enums"]["origen_solicitud"]
           reporte_id?: string
           responsable_cliente_id?: string | null
           responsable_cliente_texto?: string | null
@@ -1029,6 +1035,7 @@ export type Database = {
           nombre: string
           prefijo_folio: string
           slug: string
+          staff_puede_cargar: boolean
         }
         Insert: {
           activo?: boolean
@@ -1038,6 +1045,7 @@ export type Database = {
           nombre: string
           prefijo_folio: string
           slug: string
+          staff_puede_cargar?: boolean
         }
         Update: {
           activo?: boolean
@@ -1047,6 +1055,7 @@ export type Database = {
           nombre?: string
           prefijo_folio?: string
           slug?: string
+          staff_puede_cargar?: boolean
         }
         Relationships: []
       }
@@ -1061,6 +1070,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_is_admin_cliente: { Args: never; Returns: boolean }
       fn_is_staff: { Args: never; Returns: boolean }
       fn_log_correo: {
         Args: {
@@ -1083,9 +1093,17 @@ export type Database = {
         }
         Returns: string
       }
+      fn_perfil_es_del_tenant: {
+        Args: { p_perfil: string; p_tenant: string }
+        Returns: boolean
+      }
       fn_puede_ver_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: boolean
+      }
+      fn_renombrar_area: {
+        Args: { p_area_id: string; p_nombre: string }
+        Returns: Json
       }
       fn_reporte_estado_de_solicitud: {
         Args: { p_solicitud_id: string }
@@ -1107,8 +1125,14 @@ export type Database = {
         | "validado"
         | "congelado"
       norma_niif: "S1" | "S2"
+      origen_solicitud: "irstrat" | "cliente"
       pilar_niif: "gobernanza" | "estrategia" | "riesgos" | "metricas"
-      rol_usuario: "cliente" | "coordinador" | "analista" | "admin"
+      rol_usuario:
+        | "cliente"
+        | "coordinador"
+        | "analista"
+        | "admin"
+        | "admin_cliente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1250,8 +1274,15 @@ export const Constants = {
         "congelado",
       ],
       norma_niif: ["S1", "S2"],
+      origen_solicitud: ["irstrat", "cliente"],
       pilar_niif: ["gobernanza", "estrategia", "riesgos", "metricas"],
-      rol_usuario: ["cliente", "coordinador", "analista", "admin"],
+      rol_usuario: [
+        "cliente",
+        "coordinador",
+        "analista",
+        "admin",
+        "admin_cliente",
+      ],
     },
   },
 } as const

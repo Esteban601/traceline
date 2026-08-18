@@ -50,17 +50,10 @@ export function puedeEliminarSolicitud(
   return estado === "pendiente" && !tieneEvidencia;
 }
 
-/** Roles asignables a un usuario del cliente desde el alta (no staff). */
-export const ROLES_CLIENTE = [
-  { value: "cliente", label: "Cliente (responsable de área)" },
-  { value: "coordinador", label: "Coordinador (ve todo su tenant)" },
-] as const;
-
-export type RolCliente = (typeof ROLES_CLIENTE)[number]["value"];
-
-export function esRolClienteValido(rol: string): rol is RolCliente {
-  return ROLES_CLIENTE.some((r) => r.value === rol);
-}
+// Los roles asignables (y quién puede asignar cada uno) viven en lib/roles.ts:
+// desde el tier de autoservicio no solo dependen del destino, también de QUIÉN
+// da de alta (el staff puede nombrar coordinador; el administrador del cliente,
+// no). Ver `rolesAsignablesPor` y `puedeAsignarRol`.
 
 /**
  * Genera una contraseña temporal legible y robusta para el alta de usuarios.

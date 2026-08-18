@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { puedeEntrarPanel } from "@/lib/roles";
 
 export type LoginState = { error: string | null };
 
@@ -26,12 +27,13 @@ export async function login(
     };
   }
 
-  // Ruteo por rol: el staff de IRStrat (tenant_id NULL) entra al panel interno;
-  // el cliente/coordinador va a su portal (respetando `next` si es del portal,
+  // Ruteo por rol: al PANEL entran el staff de IRStrat (tenant_id NULL) y el
+  // administrador del cliente (admin_cliente, acotado a su tenant); el usuario de
+  // área y el coordinador van a su portal (respetando `next` si es del portal,
   // solo rutas internas para evitar open redirect).
   const { data: perfil } = await supabase
     .from("perfiles_usuario")
-    .select("tenant_id, tenants(activo)")
+    .select("tenant_id, rol, tenants(activo)")
     .eq("id", data.user.id)
     .single();
 
@@ -44,7 +46,7 @@ export async function login(
     };
   }
 
-  if (perfil != null && perfil.tenant_id === null) {
+  if (perfil != null && puedeEntrarPanel(perfil)) {
     redirect("/admin");
   }
   redirect(next.startsWith("/portal") ? next : "/portal");

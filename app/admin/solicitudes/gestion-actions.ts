@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, puedeEntrarPanel } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
+import { origenDe, puedeEditarOrigen, type OrigenSolicitud } from "@/lib/origen";
 import {
   puedeEditarSolicitud,
   puedeEditarEnunciado,
@@ -127,9 +128,13 @@ export async function crearSolicitud(
   fd: FormData
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
-    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
+  // ORIGEN: lo decide QUIÉN crea, nunca el formulario. Del origen depende después
+  // quién puede revisar y validar (lib/origen.ts + trigger de la base).
+  const origen: OrigenSolicitud = origenDe(perfil);
+  const soyStaff = esStaff(perfil);
 
   const reporteId = texto(fd, "reporte_id");
   if (!reporteId) return { ok: false, error: "Selecciona el reporte." };
@@ -141,10 +146,30 @@ export async function crearSolicitud(
 
   const { data: reporte, error: repErr } = await db
     .from("reportes")
-    .select("id, tenant_id")
+    .select("id, tenant_id, estado")
     .eq("id", reporteId)
     .single();
   if (repErr || !reporte) return { ok: false, error: "El reporte no existe." };
+
+  // Un reporte congelado no admite solicitudes nuevas — tampoco del staff. El
+  // candado de Fase 2 cubría el UPDATE de solicitudes, no el INSERT de una nueva:
+  // agregarle una solicitud a un reporte ya cerrado para aseguramiento lo dejaría
+  // con una fila que su Excel congelado no explica. Para el administrador del
+  // cliente además lo niega RLS, pero el mensaje tiene que decir por qué.
+  if (reporte.estado === "congelado") {
+    return {
+      ok: false,
+      error:
+        "El reporte está congelado: quedó cerrado para aseguramiento y no admite solicitudes nuevas.",
+    };
+  }
+
+  // El administrador del cliente no asigna responsables de IRStrat ni ata
+  // datapoints: el mapeo a la norma es trabajo de la firma (RLS también lo niega).
+  if (!soyStaff) {
+    campos.responsable_irstrat_id = null;
+    campos.datapointIds = [];
+  }
 
   const errResp = await validarResponsables(db, campos, reporte.tenant_id);
   if (errResp) return { ok: false, error: errResp };
@@ -177,6 +202,7 @@ export async function crearSolicitud(
       orden,
       rubro_clave: campos.rubro_clave,
       rubro_taxonomia: campos.rubro_taxonomia,
+      origen,
       // estado se queda en el default 'pendiente'.
     })
     .select("id")
@@ -193,8 +219,10 @@ export async function crearSolicitud(
     return { ok: false, error: "No se pudo crear la solicitud." };
   }
 
-  const errMap = await reemplazarMapeo(db, creada.id, campos.datapointIds);
-  if (errMap) return { ok: false, error: errMap };
+  if (soyStaff) {
+    const errMap = await reemplazarMapeo(db, creada.id, campos.datapointIds);
+    if (errMap) return { ok: false, error: errMap };
+  }
 
   await logEvento(db, {
     tenantId: reporte.tenant_id,
@@ -207,6 +235,8 @@ export async function crearSolicitud(
       area: campos.area_asignada,
       reporte_id: reporteId,
       datapoints: campos.datapointIds.length,
+      origen,
+      rol: perfil.rol,
     },
   });
 
@@ -222,9 +252,10 @@ export async function editarSolicitud(
   fd: FormData
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
-    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
+  const soyStaff = esStaff(perfil);
 
   const solicitudId = texto(fd, "solicitud_id");
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
@@ -236,14 +267,24 @@ export async function editarSolicitud(
 
   const { data: sol, error: solErr } = await db
     .from("solicitudes")
-    .select("id, estado, reporte:reportes!solicitudes_reporte_id_fkey(id, tenant_id)")
+    .select("id, estado, origen, reporte:reportes!solicitudes_reporte_id_fkey(id, tenant_id)")
     .eq("id", solicitudId)
     .single();
   if (solErr || !sol) return { ok: false, error: "No se encontró la solicitud." };
 
   const estado = sol.estado as EstadoSolicitud;
+  const origen = sol.origen as OrigenSolicitud;
   const reporte = sol.reporte as unknown as { id: string; tenant_id: string } | null;
   if (!reporte) return { ok: false, error: "El reporte de la solicitud no existe." };
+
+  // El administrador del cliente edita SOLO las solicitudes internas suyas; las
+  // de IRStrat las ve, pero no las modifica (RLS también lo niega).
+  if (!puedeEditarOrigen(origen, perfil)) {
+    return {
+      ok: false,
+      error: "Esta solicitud la redactó IRStrat: su contenido lo edita IRStrat.",
+    };
+  }
 
   // REGLA DURA: una solicitud validada (o congelada) no se edita.
   if (!puedeEditarSolicitud(estado)) {
@@ -262,6 +303,11 @@ export async function editarSolicitud(
     .select("id", { count: "exact", head: true })
     .eq("solicitud_id", solicitudId);
   const tieneEvidencia = (count ?? 0) > 0;
+
+  if (!soyStaff) {
+    campos.responsable_irstrat_id = null;
+    campos.datapointIds = [];
+  }
 
   const errResp = await validarResponsables(db, campos, reporte.tenant_id);
   if (errResp) return { ok: false, error: errResp };
@@ -301,8 +347,10 @@ export async function editarSolicitud(
     return { ok: false, error: "No se pudo guardar la solicitud." };
   }
 
-  const errMap = await reemplazarMapeo(db, solicitudId, campos.datapointIds);
-  if (errMap) return { ok: false, error: errMap };
+  if (soyStaff) {
+    const errMap = await reemplazarMapeo(db, solicitudId, campos.datapointIds);
+    if (errMap) return { ok: false, error: errMap };
+  }
 
   await logEvento(db, {
     tenantId: reporte.tenant_id,
@@ -314,6 +362,8 @@ export async function editarSolicitud(
       titulo: campos.titulo,
       enunciado_bloqueado: tieneEvidencia,
       datapoints: campos.datapointIds.length,
+      origen,
+      rol: perfil.rol,
     },
   });
 
@@ -398,8 +448,8 @@ export async function asignarRubroTaxonomia(
   rubro: string | null
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
-    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  if (!perfil || !puedeEntrarPanel(perfil)) {
+    return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
 
@@ -407,10 +457,17 @@ export async function asignarRubroTaxonomia(
 
   const { data: sol } = await db
     .from("solicitudes")
-    .select("id, titulo, estado, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)")
+    .select("id, titulo, estado, origen, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)")
     .eq("id", solicitudId)
     .single();
   if (!sol) return { ok: false, error: "No se encontró la solicitud." };
+
+  if (!puedeEditarOrigen(sol.origen as OrigenSolicitud, perfil)) {
+    return {
+      ok: false,
+      error: "Esta solicitud la redactó IRStrat: su rubro de taxonomía lo asigna IRStrat.",
+    };
+  }
 
   const estado = sol.estado as EstadoSolicitud;
   if (!puedeAsignarRubroTaxonomia(estado)) {

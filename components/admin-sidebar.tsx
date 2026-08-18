@@ -6,25 +6,22 @@ import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/app";
 import { logout } from "@/app/login/actions";
 import { LogoutButton } from "@/components/logout-button";
+import { TenantLogo } from "@/components/ui/tenant-logo";
 import { cn } from "@/lib/cn";
-import type { PerfilActual } from "@/lib/data";
+import type { PerfilActual, TenantActual } from "@/lib/data";
+import { ROL_LABEL, esStaffRol, puedeVerSeccion, type SeccionPanel } from "@/lib/roles";
+import { limpiarNombreTenant } from "@/lib/tenants";
 
-type NavKey =
-  | "matriz"
-  | "bitacora"
-  | "cobertura"
-  | "registros"
-  | "objetivos"
-  | "cuestionarios"
-  | "reportes"
-  | "plantillas"
-  | "clientes"
-  | "usuarios";
+// Las claves de la nav SON las secciones del panel (lib/roles.ts): así el filtro
+// por rol no puede desalinearse de la matriz de permisos.
+type NavKey = SeccionPanel;
 
 type NavItem = { href: string; label: string; key: NavKey; icono: NavKey };
 type NavGrupo = { titulo: string; items: NavItem[] };
 
-// Agrupado por flujo de trabajo (hallazgo "me pierdo entre secciones").
+// Agrupado por flujo de trabajo (hallazgo "me pierdo entre secciones"). El
+// `label` del ítem de usuarios cambia según el rol: para el administrador del
+// cliente esa sección también gestiona sus áreas.
 const GRUPOS: NavGrupo[] = [
   {
     titulo: "Seguimiento",
@@ -52,6 +49,25 @@ const GRUPOS: NavGrupo[] = [
     ],
   },
 ];
+
+/**
+ * Nav visible para este perfil. La matriz de secciones por rol vive en
+ * lib/roles.ts (misma fuente que el middleware y los guardas de cada página):
+ * aquí solo se filtra y se renombra lo que cambia de nombre para el cliente.
+ * Un grupo que queda sin ítems desaparece.
+ */
+function gruposDe(perfil: PerfilActual, soloCliente: boolean): NavGrupo[] {
+  return GRUPOS.map((g) => ({
+    titulo: g.titulo,
+    items: g.items
+      .filter((it) => puedeVerSeccion(it.key, perfil))
+      .map((it) =>
+        soloCliente && it.key === "usuarios"
+          ? { ...it, label: "Usuarios y áreas" }
+          : it
+      ),
+  })).filter((g) => g.items.length > 0);
+}
 
 /** Sección activa a partir de la ruta. '/admin' y '/admin/solicitudes/*' → matriz. */
 function claveActiva(pathname: string): NavKey {
@@ -121,9 +137,19 @@ function Icono({ tipo }: { tipo: NavKey }) {
  * flujo, marca el ítem activo y colapsa a íconos (desktop, con el botón; móvil,
  * automáticamente por ancho). Las RUTAS no cambian, solo su presentación.
  */
-export function AdminSidebar({ perfil }: { perfil: PerfilActual }) {
+export function AdminSidebar({
+  perfil,
+  tenant,
+}: {
+  perfil: PerfilActual;
+  /** Cliente del administrador del cliente. null para el staff de IRStrat. */
+  tenant: TenantActual | null;
+}) {
   const pathname = usePathname();
   const activa = claveActiva(pathname);
+  const esStaff = esStaffRol(perfil);
+  const grupos = gruposDe(perfil, !esStaff);
+  const nombreCliente = tenant ? limpiarNombreTenant(tenant.nombre) : null;
   // Por defecto EXPANDIDO en desktop; se colapsa solo si el usuario lo elige, y
   // esa elección persiste (localStorage). Se lee tras montar para no romper SSR.
   const [colapsado, setColapsado] = useState(false);
@@ -151,24 +177,40 @@ export function AdminSidebar({ perfil }: { perfil: PerfilActual }) {
         ancho
       )}
     >
-      {/* Marca */}
+      {/* Marca. El staff ve la de la plataforma; el administrador del cliente ve
+          la de SU emisora: el panel es suyo, no una ventana al interior de la
+          firma. Sin logo, TenantLogo cae a las iniciales del design system. */}
       <div className="flex h-16 shrink-0 items-center gap-2.5 px-3.5">
         <Link href="/admin" className="flex items-center gap-2.5 transition duration-150 hover:opacity-85">
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gold/90 font-display text-sm font-bold text-teal-dark">
-            {APP_NAME.charAt(0)}
-          </span>
-          <span className={cn("flex items-baseline gap-2", etiquetaCls)}>
-            <span className="font-display text-base font-semibold tracking-tight">{APP_NAME}</span>
-            <span className="rounded-pill bg-crema/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-crema/90">
-              Interno
+          {nombreCliente ? (
+            <TenantLogo
+              nombre={tenant!.nombre}
+              logoUrl={tenant!.logo_url}
+              tamano="sm"
+              tono="invertido"
+              className="rounded-lg"
+            />
+          ) : (
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gold/90 font-display text-sm font-bold text-teal-dark">
+              {APP_NAME.charAt(0)}
             </span>
+          )}
+          <span className={cn("flex items-baseline gap-2", etiquetaCls)}>
+            <span className="truncate font-display text-base font-semibold tracking-tight">
+              {nombreCliente ?? APP_NAME}
+            </span>
+            {!nombreCliente && (
+              <span className="rounded-pill bg-crema/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-crema/90">
+                Interno
+              </span>
+            )}
           </span>
         </Link>
       </div>
 
       {/* Navegación agrupada */}
       <nav className="flex-1 overflow-y-auto px-2.5 py-2">
-        {GRUPOS.map((g) => {
+        {grupos.map((g) => {
           const grupoActivo = g.items.some((i) => i.key === activa);
           return (
             <div key={g.titulo} className="mb-4 last:mb-0">
@@ -241,7 +283,9 @@ export function AdminSidebar({ perfil }: { perfil: PerfilActual }) {
           </span>
           <div className={cn("min-w-0 flex-1", etiquetaCls)}>
             <div className="truncate text-sm font-medium leading-tight text-crema">{nombre}</div>
-            <div className="text-xs leading-tight text-crema/70">IRStrat · Analista</div>
+            <div className="text-xs leading-tight text-crema/70">
+              {esStaff ? `IRStrat · ${ROL_LABEL[perfil.rol]}` : ROL_LABEL[perfil.rol]}
+            </div>
           </div>
           {/* Salir con texto (expandido) */}
           <form action={logout} className={etiquetaCls}>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
+import { requiereStaff } from "@/lib/data";
 import {
   CuestionariosView,
   type RespuestaFila,
@@ -24,8 +24,9 @@ type RespRow = {
 };
 
 export default async function CuestionariosPage() {
-  const perfil = await getPerfilActual();
-  if (!perfil) return null; // el layout ya protege
+  // Sección de la firma: el administrador del cliente no entra (el middleware ya
+  // lo rebota; esta es la barrera de página).
+  await requiereStaff();
 
   const db = await createClient();
 

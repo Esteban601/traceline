@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, esAdminIrstrat } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import {
   LOGO_MAX_BYTES,
@@ -196,6 +196,83 @@ export async function cambiarActivoTenant(
     mensaje: activar
       ? `${limpiarNombreTenant(tenant.nombre)} quedó activo.`
       : `${limpiarNombreTenant(tenant.nombre)} quedó inactivo. Sus usuarios ya no pueden ingresar.`,
+  };
+}
+
+/**
+ * Enciende o apaga el toggle "carga por IRStrat" de un cliente.
+ *
+ * Solo el rol `admin` de IRStrat (ni analista, ni el administrador del cliente).
+ * Se valida aquí Y en la base (trigger `trg_tenant_toggle_carga_staff`): el
+ * switch escondido no es una barrera.
+ *
+ * APAGADO (default) = el comportamiento de siempre: la carga de evidencia es del
+ * cliente. ENCENDIDO = el staff puede cargar en nombre de un área, y cada carga
+ * queda marcada de forma inborrable (`evidencias.cargado_por_staff`). Apagarlo
+ * después NO retira esas marcas: el toggle habilita la capacidad, nunca oculta
+ * la autoría.
+ */
+export async function cambiarCargaStaff(
+  tenantId: string,
+  habilitar: boolean
+): Promise<AccionTenantState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+  if (!esAdminIrstrat(perfil)) {
+    return {
+      ok: false,
+      error:
+        "Habilitar o deshabilitar la carga por IRStrat es una acción de administrador de IRStrat.",
+    };
+  }
+  if (!tenantId) return { ok: false, error: "Cliente no válido." };
+
+  const db = await createClient();
+
+  const { data: tenant } = await db
+    .from("tenants")
+    .select("id, nombre, staff_puede_cargar")
+    .eq("id", tenantId)
+    .single();
+  if (!tenant) return { ok: false, error: "No se encontró el cliente." };
+  if (tenant.staff_puede_cargar === habilitar) {
+    return {
+      ok: false,
+      error: habilitar
+        ? "La carga por IRStrat ya estaba habilitada."
+        : "La carga por IRStrat ya estaba deshabilitada.",
+    };
+  }
+
+  const { error } = await db
+    .from("tenants")
+    .update({ staff_puede_cargar: habilitar })
+    .eq("id", tenantId);
+  if (error) {
+    return { ok: false, error: "No se pudo actualizar la carga por IRStrat." };
+  }
+
+  await logEvento(db, {
+    tenantId,
+    usuarioId: perfil.id,
+    accion: habilitar
+      ? "tenant_carga_staff_habilitada"
+      : "tenant_carga_staff_deshabilitada",
+    entidad: "tenants",
+    entidadId: tenantId,
+    detalle: { nombre: tenant.nombre },
+  });
+
+  revalidatePath("/admin/clientes");
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    error: null,
+    mensaje: habilitar
+      ? `IRStrat ya puede cargar evidencia para ${limpiarNombreTenant(tenant.nombre)}, siempre en nombre de un área y con su autoría registrada.`
+      : `La carga de evidencia de ${limpiarNombreTenant(tenant.nombre)} vuelve a ser solo del cliente. Lo ya cargado conserva su marca.`,
   };
 }
 

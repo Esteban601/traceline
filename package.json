@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
-    "verify:export": "node scripts/verify-export.mjs"
+    "verify:export": "node scripts/verify-export.mjs",
+    "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs"
   },
   "engines": {
     "node": "22.x"

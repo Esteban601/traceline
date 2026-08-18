@@ -2,15 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
-import { EstadoBadge, Chip } from "@/components/ui/badge";
+import { getPerfilActual, esStaff } from "@/lib/data";
+import { EstadoBadge, Chip, OrigenBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { type EstadoSolicitud } from "@/lib/estados";
 import { fmtFechaHora, fmtDiaLargo } from "@/lib/fechas";
 import { puedeEditarSolicitud, puedeEliminarSolicitud } from "@/lib/gestion";
 import { cargarDiscrepancias } from "@/lib/discrepancias";
+import {
+  puedeEditarOrigen,
+  puedeRevisarOrigen,
+  type OrigenSolicitud,
+} from "@/lib/origen";
+import type { Rol } from "@/lib/roles";
 import { AccionesStaff } from "./acciones-staff";
+import { CargaPanel } from "./carga-panel";
 import { EliminarSolicitud } from "./eliminar-solicitud";
 import { Timeline, type EventoBitacora } from "./timeline";
 
@@ -29,6 +36,8 @@ type EvidenciaRow = {
   periodo_cubierto: string | null;
   area_origen: string | null;
   justificacion: string | null;
+  /** Marca INBORRABLE: la cargó IRStrat en nombre del área (area_origen). */
+  cargado_por_staff: boolean;
   created_at: string;
   subio: { nombre: string } | null;
 };
@@ -67,12 +76,26 @@ export default async function SolicitudStaffPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
     )
     .eq("id", id)
     .single();
 
   if (!sol) notFound();
+
+  const soyStaff = esStaff(perfil);
+  const origen = sol.origen as OrigenSolicitud;
+  const reporteSol = sol.reporte as unknown as {
+    id: string;
+    nombre: string;
+    ejercicio: number;
+    estado: string;
+    tenant_id: string;
+  } | null;
+  // Una solicitud sin reporte no es renderizable (y no puede existir:
+  // `reporte_id` es NOT NULL con FK). Cortar aquí evita consultar más abajo con
+  // un tenant vacío.
+  if (!reporteSol) notFound();
 
   const [
     { data: evidencias },
@@ -81,11 +104,13 @@ export default async function SolicitudStaffPage({
     { data: mapeo },
     { data: bitacora },
     discrepancias,
+    { data: areasCatalogo },
+    { data: tenantSol },
   ] = await Promise.all([
     supabase
       .from("evidencias")
       .select(
-        "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
+        "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, cargado_por_staff, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
       )
       .eq("solicitud_id", id)
       .order("version", { ascending: false }),
@@ -112,11 +137,25 @@ export default async function SolicitudStaffPage({
     supabase
       .from("bitacora")
       .select(
-        "id, created_at, accion, detalle, usuario:perfiles_usuario!bitacora_usuario_id_fkey(nombre)"
+        "id, created_at, accion, detalle, usuario:perfiles_usuario!bitacora_usuario_id_fkey(nombre, rol, tenant_id)"
       )
       .or(`entidad_id.eq.${id},detalle->>solicitud_id.eq.${id}`)
       .order("created_at", { ascending: false }),
     cargarDiscrepancias(supabase),
+    // Catálogo de áreas del cliente: alimenta el selector de "en nombre de qué
+    // área" al cargar evidencia desde el panel.
+    supabase
+      .from("areas_tenant")
+      .select("nombre, orden")
+      .eq("tenant_id", reporteSol.tenant_id)
+      .eq("activo", true)
+      .order("orden", { ascending: true }),
+    // Toggle de carga por IRStrat, por cliente (solo lo mueve el rol admin).
+    supabase
+      .from("tenants")
+      .select("staff_puede_cargar")
+      .eq("id", reporteSol.tenant_id)
+      .maybeSingle(),
   ]);
 
   const evs = (evidencias ?? []) as unknown as EvidenciaRow[];
@@ -130,7 +169,7 @@ export default async function SolicitudStaffPage({
     created_at: string;
     accion: string;
     detalle: Record<string, unknown> | null;
-    usuario: { nombre: string } | null;
+    usuario: { nombre: string; rol: Rol; tenant_id: string | null } | null;
   }[]).map(
     (b): EventoBitacora => ({
       id: b.id,
@@ -138,18 +177,26 @@ export default async function SolicitudStaffPage({
       accion: b.accion,
       detalle: b.detalle,
       usuario: b.usuario?.nombre ?? null,
+      usuarioRol: b.usuario?.rol ?? null,
+      usuarioTenantId: b.usuario?.tenant_id ?? null,
     })
   );
   const discrepanciasSol = discrepancias.porSolicitud.get(id) ?? [];
   const estado = sol.estado as EstadoSolicitud;
-  const reporte = sol.reporte as unknown as { nombre: string; ejercicio: number } | null;
+  const reporte = reporteSol;
   const responsable = sol.responsable as unknown as {
     nombre: string;
     email: string;
   } | null;
+  const areasTenant = ((areasCatalogo ?? []) as { nombre: string }[]).map((a) => a.nombre);
 
-  const puedeEditar = puedeEditarSolicitud(estado);
-  const puedeEliminar = puedeEliminarSolicitud(estado, evs.length > 0);
+  // REGLA DURA de origen: cada lado revisa, observa y valida lo suyo.
+  const puedeRevisar = puedeRevisarOrigen(origen, perfil);
+
+  const puedeEditar = puedeEditarSolicitud(estado) && puedeEditarOrigen(origen, perfil);
+  // Eliminar sigue siendo un acto de IRStrat: la trazabilidad no admite que el
+  // cliente retire solicitudes (ni las suyas).
+  const puedeEliminar = soyStaff && puedeEliminarSolicitud(estado, evs.length > 0);
   const ultimaEv = evs[0] ?? null;
   // Cifra vigente: la confirmada más reciente; si ninguna, la última capturada.
   const capVigente = caps.find((c) => c.confirmado) ?? caps[0] ?? null;
@@ -265,6 +312,8 @@ export default async function SolicitudStaffPage({
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <EstadoBadge estado={estado} />
+          {/* Badge de ORIGEN: visible para todos los roles. */}
+          <OrigenBadge origen={origen} />
           {sol.area_asignada && <Chip>{sol.area_asignada}</Chip>}
           {sol.es_cuantitativa && (
             <Chip tono="verde">
@@ -300,7 +349,7 @@ export default async function SolicitudStaffPage({
           )}
         </dl>
 
-        {datapoints.length > 0 && (
+        {soyStaff && datapoints.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="text-xs uppercase tracking-wide text-muted">Datapoints ligados</span>
             {datapoints.map((d) => (
@@ -384,15 +433,35 @@ export default async function SolicitudStaffPage({
       <section className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
         <h2 className="font-display text-lg font-semibold text-ink">Acción ahora</h2>
         <p className="mt-1 text-sm text-muted">
-          Revisión interna de IRStrat. Cada cambio queda en la bitácora.
+          {soyStaff
+            ? "Revisión interna de IRStrat. Cada cambio queda en la bitácora."
+            : "Revisión de tu organización. Cada cambio queda en la bitácora."}
         </p>
         <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_300px]">
-          <div className="min-w-0">{contexto}</div>
+          <div className="min-w-0 space-y-4">
+            {contexto}
+            {/* Carga de evidencia desde el panel. Para el administrador del
+                cliente siempre está; para el staff, solo si el cliente tiene el
+                toggle encendido — apagado se muestra en gris y bloqueada. */}
+            <CargaPanel
+              solicitudId={sol.id}
+              esCuantitativa={sol.es_cuantitativa}
+              unidadEsperada={sol.unidad_esperada}
+              areas={areasTenant}
+              areaSugerida={sol.area_asignada}
+              reporteEjercicio={reporte?.ejercicio ?? null}
+              estado={estado}
+              comoStaff={soyStaff}
+              habilitada={tenantSol?.staff_puede_cargar ?? false}
+            />
+          </div>
           <div className="lg:border-l lg:border-line lg:pl-6">
             <AccionesStaff
               solicitudId={sol.id}
               estadoActual={estado}
               responsable={responsable ? limpiar(responsable.nombre) : null}
+              origen={origen}
+              puedeRevisar={puedeRevisar}
             />
           </div>
         </div>
@@ -432,8 +501,19 @@ export default async function SolicitudStaffPage({
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
                           {ev.periodo_cubierto && <span>Periodo: {ev.periodo_cubierto}</span>}
-                          {ev.area_origen && <span>Origen: {ev.area_origen}</span>}
-                          <span>Por {limpiar(ev.subio?.nombre)}</span>
+                          {!ev.cargado_por_staff && ev.area_origen && (
+                            <span>Origen: {ev.area_origen}</span>
+                          )}
+                          {/* Trazabilidad de la carga por IRStrat: quién la hizo y
+                              en nombre de qué área. No es configurable. */}
+                          {ev.cargado_por_staff ? (
+                            <span className="font-medium text-gold-dark">
+                              Cargado por {limpiar(ev.subio?.nombre)} (IRStrat)
+                              {ev.area_origen ? ` en nombre de ${ev.area_origen}` : ""}
+                            </span>
+                          ) : (
+                            <span>Por {limpiar(ev.subio?.nombre)}</span>
+                          )}
                           <span>{fmtFechaHora(ev.created_at)}</span>
                         </div>
                       </div>

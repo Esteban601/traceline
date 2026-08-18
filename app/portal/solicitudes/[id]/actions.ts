@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual } from "@/lib/data";
 
 const BUCKET = "evidencias";
@@ -111,6 +112,12 @@ export async function subirEvidencia(
     .single();
 
   if (evErr || !ev) {
+    // El objeto quedó en el bucket sin fila que lo referencie. Se retira con
+    // service_role porque los usuarios de tenant NO tienen DELETE en storage (la
+    // evidencia es inmutable): por su sesión el archivo quedaría huérfano para
+    // siempre. Es limpieza del servidor sobre algo que acaba de crear, no una
+    // puerta de borrado.
+    await createAdminClient().storage.from(BUCKET).remove([path]).catch(() => {});
     return {
       ok: false,
       error: `El archivo se subió pero no se registró la evidencia: ${evErr?.message ?? ""}`,

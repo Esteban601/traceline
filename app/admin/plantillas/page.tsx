@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
+import { requiereStaff } from "@/lib/data";
 import {
   PlantillasView,
   type PlantillaFila,
@@ -15,8 +15,9 @@ export default async function PlantillasPage({
 }: {
   searchParams: Promise<{ tenant?: string }>;
 }) {
-  const perfil = await getPerfilActual();
-  if (!perfil) return null; // el layout ya protege
+  // Sección de la firma: el administrador del cliente no entra (el middleware ya
+  // lo rebota; esta es la barrera de página).
+  await requiereStaff();
 
   // ?tenant=<id> llega desde el alta de un cliente ("crea su primer reporte"):
   // preselecciona ese cliente para no hacer buscarlo de nuevo en la lista.

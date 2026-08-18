@@ -38,6 +38,18 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   tenant_reactivado: { label: "Cliente reactivado", tono: "verde" },
   tenant_logo_actualizado: { label: "Logo actualizado", tono: "gris" },
   tenant_logo_eliminado: { label: "Logo eliminado", tono: "gris" },
+  tenant_carga_staff_habilitada: {
+    label: "IRStrat habilitó la carga de evidencia para este cliente",
+    tono: "ambar-fuerte",
+  },
+  tenant_carga_staff_deshabilitada: {
+    label: "IRStrat deshabilitó la carga de evidencia para este cliente",
+    tono: "gris",
+  },
+  area_creada: { label: "Área creada", tono: "verde" },
+  area_editada: { label: "Área editada", tono: "gris" },
+  area_desactivada: { label: "Área desactivada", tono: "rojo" },
+  area_reactivada: { label: "Área reactivada", tono: "verde" },
   invitacion_creada: { label: "Invitación generada", tono: "ambar" },
   invitacion_usada: { label: "Invitación canjeada", tono: "verde" },
 };
@@ -58,6 +70,7 @@ export const ENTIDADES: { value: string; label: string }[] = [
   { value: "registros_clima", label: "Registros de clima" },
   { value: "objetivos", label: "Objetivos" },
   { value: "tenants", label: "Clientes" },
+  { value: "areas_tenant", label: "Áreas" },
   { value: "invitaciones", label: "Invitaciones" },
 ];
 
@@ -143,7 +156,17 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "tenant_reactivado":
     case "tenant_logo_actualizado":
     case "tenant_logo_eliminado":
+    case "tenant_carga_staff_habilitada":
+    case "tenant_carga_staff_deshabilitada":
       return limpiar(s(detalle, "nombre")) ?? "";
+    case "area_creada":
+    case "area_editada":
+    case "area_desactivada":
+    case "area_reactivada": {
+      const nombre = s(detalle, "nombre");
+      const anterior = s(detalle, "nombre_anterior");
+      return anterior && anterior !== nombre ? `${anterior} → ${nombre}` : (nombre ?? "");
+    }
     case "invitacion_creada":
     case "invitacion_usada":
       return s(detalle, "email") ?? limpiar(s(detalle, "nombre")) ?? "";

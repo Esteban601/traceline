@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
+import { getPerfilActual, esStaff } from "@/lib/data";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { EstadoBadge } from "@/components/ui/badge";
 import { type EstadoSolicitud } from "@/lib/estados";
@@ -13,6 +13,7 @@ import {
 } from "@/lib/gestion";
 import { SolicitudForm, type ValoresIniciales } from "../../solicitud-form";
 import { cargarOpcionesFormulario } from "../../opciones";
+import { puedeEditarOrigen, type OrigenSolicitud } from "@/lib/origen";
 import { AsignarRubro } from "../../asignar-rubro";
 import { editarSolicitud } from "../../gestion-actions";
 
@@ -32,7 +33,7 @@ export default async function EditarSolicitudPage({
   const { data: sol } = await db
     .from("solicitudes")
     .select(
-      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave, rubro_taxonomia"
+      "id, reporte_id, titulo, descripcion, area_asignada, es_cuantitativa, unidad_esperada, fecha_limite, estado, origen, responsable_cliente_id, responsable_irstrat_id, orden, rubro_clave, rubro_taxonomia"
     )
     .eq("id", id)
     .single();
@@ -40,6 +41,12 @@ export default async function EditarSolicitudPage({
   if (!sol) notFound();
 
   const estado = sol.estado as EstadoSolicitud;
+  const origen = sol.origen as OrigenSolicitud;
+  const soyStaff = esStaff(perfil);
+
+  // REGLA DE ORIGEN: el administrador del cliente edita solo sus solicitudes
+  // internas. Las de IRStrat las ve en el detalle, pero no las modifica.
+  if (!puedeEditarOrigen(origen, perfil)) notFound();
 
   const [{ data: mapeo }, { count }, opciones] = await Promise.all([
     db.from("mapeo_solicitud_datapoint").select("datapoint_id").eq("solicitud_id", id),
@@ -47,7 +54,7 @@ export default async function EditarSolicitudPage({
       .from("evidencias")
       .select("id", { count: "exact", head: true })
       .eq("solicitud_id", id),
-    cargarOpcionesFormulario(),
+    cargarOpcionesFormulario(perfil),
   ]);
 
   const tieneEvidencia = (count ?? 0) > 0;
@@ -146,6 +153,7 @@ export default async function EditarSolicitudPage({
           rubros={opciones.rubros}
           inicial={inicial}
           enunciadoBloqueado={enunciadoBloqueado}
+          soloCliente={!soyStaff}
         />
       </div>
     </div>

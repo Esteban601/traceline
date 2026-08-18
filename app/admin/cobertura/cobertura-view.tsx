@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TONO_CLASSES, ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
+import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
 import { COBERTURA_META, COBERTURA_ORDEN, type Cobertura } from "@/lib/cobertura";
 import { ExportButton } from "./export-button";
 import { TaxonomiaExportButton } from "./taxonomia-export-button";
@@ -21,8 +22,20 @@ export type DatapointCobertura = {
   ods: string | null;
   cobertura: Cobertura;
   discrepancia: boolean;
-  solicitudes: { id: string; titulo: string; estado: EstadoSolicitud }[];
+  solicitudes: {
+    id: string;
+    titulo: string;
+    estado: EstadoSolicitud;
+    /** De él sale la FUENTE de la validación (IRStrat o interna del cliente). */
+    origen: OrigenSolicitud;
+  }[];
 };
+
+/** Estados en los que el valor de la solicitud ya entró como validado. */
+const VALIDADA: ReadonlySet<EstadoSolicitud> = new Set<EstadoSolicitud>([
+  "validado",
+  "congelado",
+]);
 
 function AlertaDiscrepancia({ className }: { className?: string }) {
   return (
@@ -85,6 +98,7 @@ export function CoberturaView({
   tenantId = null,
   tenantNombre = null,
   reporteId = null,
+  soyStaff = true,
 }: {
   datapoints: DatapointCobertura[];
   /** Selectores de cliente y reporte, inyectados desde el servidor. */
@@ -94,6 +108,8 @@ export function CoberturaView({
   tenantNombre?: string | null;
   /** Reporte del que se genera el Excel de taxonomía. */
   reporteId?: string | null;
+  /** false = administrador del cliente: es SU cobertura, no la de la firma. */
+  soyStaff?: boolean;
 }) {
   // La extensión VERT se aparta ANTES de cualquier cálculo: los KPIs, los
   // anillos y el universo son de la norma. Si los 4 datapoints propios entraran
@@ -189,7 +205,7 @@ export function CoberturaView({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-gold">
-            Panel interno IRStrat · Trazabilidad
+            {soyStaff ? "Panel interno IRStrat · Trazabilidad" : "Tu panel · Trazabilidad"}
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink sm:text-4xl">
             Cobertura de la taxonomía
@@ -721,15 +737,27 @@ function DatapointCard({ d }: { d: DatapointCobertura }) {
           </span>
           {d.solicitudes.map((s) => {
             const sc = TONO_CLASSES[ESTADO_META[s.estado].tono];
+            // FUENTE de la validación: donde un valor validado alimenta una celda,
+            // la trazabilidad dice si lo validó IRStrat o el propio cliente. Solo
+            // se rotula cuando ya está validado: antes de eso no hay validación
+            // que atribuir.
+            const om = ORIGEN_META[s.origen];
+            const validada = VALIDADA.has(s.estado);
+            const oc = TONO_CLASSES[om.tono];
             return (
               <Link
                 key={s.id}
                 href={`/admin/solicitudes/${s.id}`}
-                className="inline-flex max-w-[240px] items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-0.5 text-xs text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
-                title={s.titulo}
+                className="inline-flex max-w-[280px] items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-0.5 text-xs text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
+                title={validada ? `${s.titulo} — ${om.validacion}` : `${s.titulo} — ${om.label}`}
               >
                 <span className={cn("size-1.5 shrink-0 rounded-full", sc.dot)} aria-hidden />
                 <span className="truncate">{s.titulo}</span>
+                {validada && (
+                  <span className={cn("shrink-0 rounded-pill px-1.5 text-[10px] font-medium", oc.text, oc.bg)}>
+                    {s.origen === "irstrat" ? "IRStrat" : "Interna"}
+                  </span>
+                )}
               </Link>
             );
           })}

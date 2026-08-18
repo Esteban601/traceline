@@ -38,6 +38,8 @@ versionan**. Los `.env*` no (usa `.env.example` como plantilla).
 | 2 | `20260704172202_rls_politicas.sql` | RLS en todas las tablas + prohibición append-only. |
 | 3 | `20260704172203_triggers.sql` | Versionado de evidencia, transición de estado, bitácora. |
 | 4 | `20260704172204_storage_evidencias.sql` | Bucket privado `evidencias` y políticas de acceso. |
+| … | `20260820120000_rol_admin_cliente_enum.sql` | Valor `admin_cliente` en el enum `rol_usuario`. **Va solo**: Postgres prohíbe usar un valor de enum nuevo en la misma transacción que lo crea. |
+| … | `20260820130000_admin_cliente.sql` | Rol admin-cliente: `solicitudes.origen`, `tenants.staff_puede_cargar`, `evidencias.cargado_por_staff`, sus políticas RLS, los triggers de la regla de origen y del toggle, y `fn_renombrar_area`. |
 
 ---
 
@@ -96,9 +98,16 @@ recursar sobre su propio RLS: `fn_is_staff()`, `fn_current_tenant()`,
 |-------|---------|
 | `anon` | Sin acceso a ninguna tabla de negocio. |
 | **Staff IRStrat** (`tenant_id NULL`) | Ve y gestiona **todo**, incluida la taxonomía y el mapeo. |
+| **Administrador del cliente** (`admin_cliente`, rol de tenant) | Todas las solicitudes de **su** tenant; crea y edita las de **origen `cliente`** y las revisa/valida; crea y edita sus áreas; da de alta usuarios de su tenant con rol `cliente` o `admin_cliente`. **Lectura** de la taxonomía y del mapeo de sus propias solicitudes (lo necesita su cobertura y su export). Nada cross-tenant. |
 | **Coordinador** (rol de tenant) | Todas las solicitudes/evidencias de **su** tenant. |
 | **Cliente** (rol de tenant) | Solo solicitudes de **su área** (`area_asignada`) o donde es `responsable_cliente_id`; y la evidencia/capturas/comentarios de esas solicitudes. |
 | `service_role` | **BYPASSRLS** — uso server-side/administrativo. Ver nota abajo. |
+
+> **Ojo con `service_role`:** solo tiene los GRANT que cada migración le dio
+> (`select` en casi todas las tablas de negocio). No es un comodín para escribir:
+> un `DELETE` suyo sobre `tenants`/`reportes` devuelve `42501`. Los scripts que
+> limpian datos lo hacen con una **sesión de staff** (RLS activo) y reservan
+> `service_role` para lo que solo él puede hacer: administrar cuentas en GoTrue.
 
 - **Taxonomía y mapeo** (`datapoints_taxonomia`, `mapeo_solicitud_datapoint`)
   son **solo staff**: el cliente nunca ve el mapeo NIIF.
@@ -129,6 +138,10 @@ corrección se marca con `confirmado` (la fila anterior queda `confirmado=false`
 | `trg_evidencia_after_insert` | AFTER INSERT `evidencias` | Avanza estado `pendiente`/`solicitado` → `recibido`; registra `evidencia_creada` en bitácora. |
 | `trg_captura_after_insert` | AFTER INSERT `capturas_valor` | Registra `captura_creada` en bitácora. |
 | `trg_solicitud_estado_bitacora` | AFTER UPDATE `solicitudes` | Si cambió `estado`, registra `cambio_estado` (estado anterior/nuevo). |
+| `trg_solicitud_origen_transicion` | BEFORE UPDATE `solicitudes` | **Regla dura de origen**: las de `origen='irstrat'` solo las transiciona el staff; las de `origen='cliente'`, solo el `admin_cliente` de ese tenant. Excepciones deliberadas: el **congelamiento** (acto de IRStrat sobre el reporte) y las **transiciones automáticas** por llegada de evidencia/captura, que los triggers marcan con el ajuste local `app.transicion_automatica`. |
+| `trg_comentario_observacion_origen` | BEFORE INSERT `comentarios` | Una **observación formal** (`es_observacion`) solo la registra el lado dueño del origen. Cierra además un hueco previo: la política de `comentarios` dejaba marcar el flag a cualquiera con acceso. |
+| `trg_evidencia_marca_carga` | BEFORE INSERT `evidencias` | Si quien inserta es staff, exige `tenants.staff_puede_cargar` y `area_origen`, y **calcula** `cargado_por_staff = true`. Si no es staff, la fija en `false`. La aplicación nunca escribe esa marca: por eso es inborrable. |
+| `trg_tenant_toggle_carga_staff` | BEFORE UPDATE `tenants` | `staff_puede_cargar` solo lo cambia el rol `admin` de IRStrat. |
 
 Las funciones de trigger son `SECURITY DEFINER` para poder escribir en
 `bitacora` a pesar de que el `INSERT` directo esté revocado: la bitácora solo
@@ -189,6 +202,52 @@ solicitud ya no puede llevarse el mapeo por delante.
 
 ---
 
+## Rol admin-cliente (tier de autoservicio)
+
+Añadidos por `20260820120000_rol_admin_cliente_enum.sql` (el valor del enum, en su
+propia transacción) y `20260820130000_admin_cliente.sql`:
+
+| Objeto | Qué es |
+|--------|--------|
+| `rol_usuario.admin_cliente` | Usuario **del cliente** que administra su propio tenant sin acompañamiento de IRStrat. Tiene `tenant_id`, así que `fn_is_staff()` sigue siendo `false` para él; entra al **panel** (`/admin`), no al portal simple. |
+| `fn_is_admin_cliente()` | Espejo de `fn_is_staff()` para el rol nuevo: `SECURITY DEFINER`, exige `activo` (un administrador desactivado no conserva poderes ni un request). |
+| `origen_solicitud` + `solicitudes.origen` | `'irstrat'` (la pidió la firma) o `'cliente'` (la creó el administrador del cliente). NOT NULL con default `'irstrat'`: el backfill es un hecho histórico, no una suposición — hasta esta migración no había otra vía de crear solicitudes que el panel interno. De este campo depende **quién** revisa, observa y valida. |
+| `tenants.staff_puede_cargar` | Toggle **por cliente** que habilita a IRStrat a cargar evidencia en nombre de un área. `NOT NULL default false`: el comportamiento de siempre se conserva como default. |
+| `evidencias.cargado_por_staff` | Marca de autoría **calculada por trigger**, no por la aplicación. Apagar el toggle después no la retira de nada ya cargado. |
+| `fn_perfil_es_del_tenant(perfil, tenant)` | Sostiene la política **restrictiva** `invitaciones_perfil_del_tenant`: una liga de acceso nunca puede apuntar a un perfil de otro cliente ni a uno de IRStrat. Una invitación es un **cambio de contraseña diferido** (el canje corre con `service_role` y hace `updateUserById`), así que acotar solo `tenant_id` habría dejado emitirse una liga contra una cuenta ajena. Se comprueba también en la acción de canje, que por definición no pasa por RLS. |
+| `fn_renombrar_area(area_id, nombre)` | Renombra un área del cliente y **propaga** el nombre a `solicitudes.area_asignada` y `perfiles_usuario.area` del mismo tenant, en una transacción. Se niega si un reporte **congelado** usa el nombre (sus solicitudes son solo-lectura por candado de BD y la propagación quedaría a medias). `SECURITY DEFINER` con autorización propia: staff o `admin_cliente` de ese tenant. |
+
+**Por qué el renombrado de un área es una función y no un `UPDATE`.** El nombre
+del área vive en tres lugares —el catálogo, las solicitudes y los perfiles— y de
+que los tres coincidan **exactamente** depende `fn_puede_ver_solicitud`. Cambiar
+solo el catálogo dejaría a la gente sin ver su propio trabajo, en silencio.
+
+**El cliente puede leer el nombre de quien actuó desde IRStrat.** Política
+`perfiles_staff_visible_al_cliente`. Sin ella, el historial y las observaciones
+mostraban "—" donde debía ir un nombre —el embed devolvía `null` porque
+`perfiles_select` no alcanzaba al staff—, y un rastro que no dice **quién** no
+sirve para aseguramiento. (El hueco existía desde antes para las observaciones; se
+cierra aquí porque la carga por IRStrat lo volvió evidente.)
+
+Lo que se abre NO es "el staff", son **los perfiles que aparecen en lo que ese
+usuario ya puede ver**: quien subió una evidencia suya, quien capturó un valor
+suyo o quien comentó en una de sus solicitudes (tres `EXISTS` acotados por
+`fn_puede_ver_solicitud`, con índices en `evidencias.subido_por`,
+`capturas_valor.capturado_por` y `comentarios.autor_id`). La diferencia importa
+porque **RLS es a nivel de fila, no de columna**: una política de "todo el staff"
+habría dejado enumerar por REST el equipo completo de la firma con sus correos y
+sus roles, que es mucho más de lo que hace falta para poner un nombre en un
+historial.
+
+**Por qué el administrador del cliente lee la taxonomía.** Su tier incluye "su
+cobertura, con el export de su Excel", y esa vista **es** el catálogo de la norma.
+Se abre en **solo lectura** (`datapoints_taxonomia`, `rubros_taxonomia`,
+`mapeo_export`, y `mapeo_solicitud_datapoint` acotado a las solicitudes que ya
+puede ver). La **escritura** del catálogo y del mapeo NIIF sigue siendo exclusiva
+del staff, y los usuarios de área (`cliente`) no ven nada de esto.
+
+---
+
 ## Datos de demostración (seed)
 
 **Regla de oro respetada:** todo el seed es DEMO y está etiquetado como tal
@@ -205,6 +264,7 @@ Contraseña única para todos: **`Demo2025!`**
 | Cliente | `rh@empresademo.example` | RH | Solo solicitudes de RH |
 | Cliente | `operaciones@empresademo.example` | Operaciones | Solo solicitudes de Operaciones |
 | Cliente | `finanzas@empresademo.example` | Finanzas | Solo solicitudes de Finanzas |
+| **Administrador del cliente** | `admin.cliente@empresademo.example` | — | Panel acotado al tenant demo (autoservicio) |
 | Analista IRStrat (staff) | `analista@irstrat.example` | — (staff) | Todo |
 
 ### Contenido sembrado

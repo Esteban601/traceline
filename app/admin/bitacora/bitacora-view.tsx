@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TONO_CLASSES } from "@/lib/estados";
 import { fmtFechaHora } from "@/lib/fechas";
 import { accionMeta, resumenBitacora, ENTIDADES } from "@/lib/bitacora-vista";
+import { actorBitacora, type Rol } from "@/lib/roles";
 
 export type BitacoraFila = {
   id: string;
@@ -17,6 +18,9 @@ export type BitacoraFila = {
   tenantId: string | null;
   tenantNombre: string | null;
   usuario: string | null;
+  /** Rol del actor: hace visible si el acto fue de IRStrat o del cliente. */
+  usuarioRol: Rol | null;
+  usuarioTenantId: string | null;
 };
 export type TenantOpc = { id: string; nombre: string };
 
@@ -32,9 +36,12 @@ const selectCls =
 export function BitacoraView({
   filas,
   tenants,
+  soyStaff = true,
 }: {
   filas: BitacoraFila[];
   tenants: TenantOpc[];
+  /** false = administrador del cliente: sin filtro de cliente ni columna suya. */
+  soyStaff?: boolean;
 }) {
   const [tenant, setTenant] = useState<string>("todos");
   const [entidad, setEntidad] = useState<string>("todos");
@@ -74,18 +81,21 @@ export function BitacoraView({
     <div className="space-y-5">
       {/* Filtros */}
       <div className="flex flex-wrap items-end gap-x-4 gap-y-3 rounded-card border border-line bg-surface p-4 shadow-soft">
-        <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-          Cliente
-          <select value={tenant} onChange={(e) => setTenant(e.target.value)} className={selectCls}>
-            <option value="todos">Todos</option>
-            <option value="firma">IRStrat (firma)</option>
-            {tenants.map((t) => (
-              <option key={t.id} value={t.id}>
-                {limpiar(t.nombre)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* Filtro de cliente: solo tiene sentido para el staff, que ve varios. */}
+        {soyStaff && (
+          <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
+            Cliente
+            <select value={tenant} onChange={(e) => setTenant(e.target.value)} className={selectCls}>
+              <option value="todos">Todos</option>
+              <option value="firma">IRStrat (firma)</option>
+              {tenants.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {limpiar(t.nombre)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
           Entidad
           <select value={entidad} onChange={(e) => setEntidad(e.target.value)} className={selectCls}>
@@ -143,8 +153,10 @@ export function BitacoraView({
                       <span className="rounded bg-ink/5 px-1.5 py-0.5">
                         {ENTIDAD_LABEL.get(f.entidad) ?? f.entidad}
                       </span>
-                      <span>{f.usuario ? limpiar(f.usuario) : "Sistema"}</span>
-                      <span>{f.tenantNombre ? limpiar(f.tenantNombre) : "IRStrat"}</span>
+                      <span>{actorBitacora(f.usuario, f.usuarioRol, f.usuarioTenantId)}</span>
+                      {soyStaff && (
+                        <span>{f.tenantNombre ? limpiar(f.tenantNombre) : "IRStrat"}</span>
+                      )}
                     </div>
                   </div>
                   <time

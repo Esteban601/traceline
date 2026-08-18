@@ -40,11 +40,14 @@ export async function establecerContrasena(
     .maybeSingle();
 
   if (!invitacion) return { error: "Esta liga de invitación no existe." };
+  // "Quien te dio el acceso" y no "IRStrat": desde el tier de autoservicio, la
+  // liga la pudo emitir el administrador del propio cliente, y mandar a la gente
+  // con la firma sería mandarla a quien no puede ayudarla.
   if (invitacion.usada_en) {
-    return { error: "Esta liga ya se usó. Pide una nueva al equipo de IRStrat." };
+    return { error: "Esta liga ya se usó. Pide una nueva a quien te dio el acceso." };
   }
   if (new Date(invitacion.expira_en) < new Date()) {
-    return { error: "Esta liga venció. Pide una nueva al equipo de IRStrat." };
+    return { error: "Esta liga venció. Pide una nueva a quien te dio el acceso." };
   }
 
   const { data: perfilInvitado } = await admin
@@ -55,7 +58,20 @@ export async function establecerContrasena(
 
   if (!perfilInvitado) return { error: "El usuario de esta invitación ya no existe." };
   if (!perfilInvitado.activo) {
-    return { error: "Este usuario está desactivado. Contacta al equipo de IRStrat." };
+    return { error: "Este usuario está desactivado. Contacta a quien te dio el acceso." };
+  }
+  // Una invitación es un cambio de contraseña diferido, así que el perfil al que
+  // apunta TIENE que ser del tenant que la emitió. Si no coinciden, la liga no se
+  // canjea: aceptarla sería entregar una cuenta ajena a quien pudiera insertar la
+  // fila. RLS ya lo impide (política restrictiva `invitaciones_perfil_del_tenant`);
+  // esto es la segunda cerradura, porque esta acción corre con service_role y por
+  // definición no pasa por RLS.
+  if (perfilInvitado.tenant_id !== invitacion.tenant_id) {
+    console.error(
+      `[invitaciones] liga inconsistente ${invitacion.id}: perfil ${perfilInvitado.id} ` +
+        `(tenant ${perfilInvitado.tenant_id}) vs invitación (tenant ${invitacion.tenant_id})`
+    );
+    return { error: "Esta liga de invitación no es válida." };
   }
 
   const { data: tenant } = await admin
@@ -83,7 +99,7 @@ export async function establecerContrasena(
 
   if (usoErr) return { error: "No se pudo cerrar la invitación. Inténtalo de nuevo." };
   if (!quemada || quemada.length === 0) {
-    return { error: "Esta liga ya se usó. Pide una nueva al equipo de IRStrat." };
+    return { error: "Esta liga ya se usó. Pide una nueva a quien te dio el acceso." };
   }
 
   const { error: authErr } = await admin.auth.admin.updateUserById(invitacion.perfil_id, {
@@ -93,7 +109,7 @@ export async function establecerContrasena(
     // La liga ya quedó quemada: es lo correcto (no puede reintentarse a ciegas),
     // y el staff puede generar otra desde el panel.
     return {
-      error: `No se pudo establecer la contraseña: ${authErr.message}. Pide una liga nueva al equipo de IRStrat.`,
+      error: `No se pudo establecer la contraseña: ${authErr.message}. Pide una liga nueva a quien te dio el acceso.`,
     };
   }
 

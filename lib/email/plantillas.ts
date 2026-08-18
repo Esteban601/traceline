@@ -195,14 +195,25 @@ export function plantillaRecordatorio(nombre: string, sols: SolicitudEmail[]): P
   };
 }
 
-/** (c) Aviso de observación sobre una solicitud específica. */
+/**
+ * (c) Aviso de observación sobre una solicitud específica.
+ *
+ * `autor` dice QUIÉN la registró, y no es un adorno: desde el tier de autoservicio
+ * una observación puede venir del administrador del propio cliente, y este correo
+ * es el único canal que sale de la plataforma. Atribuírsela a IRStrat sería la
+ * única pieza del sprint que miente sobre el origen.
+ */
 export function plantillaObservacion(
   nombre: string,
   sol: SolicitudEmail,
-  observacion: string
+  observacion: string,
+  autor: { esIrstrat: boolean; organizacion?: string | null } = { esIrstrat: true }
 ): Plantilla {
   const subject = `Observación sobre: ${sol.titulo}`;
-  const intro = `El equipo de IRStrat registró una observación sobre una de tus solicitudes. Requiere tu atención:`;
+  const quien = autor.esIrstrat
+    ? "El equipo de IRStrat"
+    : `El equipo de ${limpiarNombre(autor.organizacion ?? "tu organización")}`;
+  const intro = `${quien} registró una observación sobre una de tus solicitudes. Requiere tu atención:`;
   const cuerpoHtml = `
     ${saludo(nombre)}
     <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${intro}</p>
@@ -245,7 +256,7 @@ export function plantillaInvitacion(
     <p style="font-family:${FONT};font-size:13px;color:${COLOR.muted};margin:14px 0 0 0;line-height:1.6;">
       La liga sirve <strong style="color:${COLOR.ink};">una sola vez</strong> y vence
       el ${esc(fmtFechaHora(opts.expiraEn))} (${opts.horas} horas).
-      Si vence, pídele al equipo de IRStrat que te genere una nueva.
+      Si vence, pídele una nueva a quien te dio el acceso.
     </p>`;
   return {
     subject,

@@ -22,7 +22,12 @@ import {
   validarSlug,
 } from "@/lib/tenants";
 import { LogoUploader } from "./logo-uploader";
-import { cambiarActivoTenant, crearCliente, type AltaClienteState } from "./actions";
+import {
+  cambiarActivoTenant,
+  cambiarCargaStaff,
+  crearCliente,
+  type AltaClienteState,
+} from "./actions";
 
 export type ClienteFila = {
   id: string;
@@ -31,6 +36,8 @@ export type ClienteFila = {
   prefijoFolio: string;
   logoUrl: string | null;
   activo: boolean;
+  /** ¿IRStrat tiene habilitada la carga de evidencia para este cliente? */
+  staffPuedeCargar: boolean;
   createdAt: string;
   areas: string[];
   usuarios: number;
@@ -44,7 +51,14 @@ const inputCls =
   "mt-1.5 h-11 w-full rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50 focus:bg-surface disabled:cursor-not-allowed disabled:opacity-60";
 const ayudaCls = "mt-1.5 text-xs leading-relaxed text-muted";
 
-export function ClientesView({ clientes }: { clientes: ClienteFila[] }) {
+export function ClientesView({
+  clientes,
+  esAdmin,
+}: {
+  clientes: ClienteFila[];
+  /** rol `admin` de IRStrat: único que ve y mueve el toggle de carga staff. */
+  esAdmin: boolean;
+}) {
   const toast = useToast();
   const [abrirAlta, setAbrirAlta] = useState(false);
   const [state, dispatch, pending] = useActionState(crearCliente, initialAlta);
@@ -335,7 +349,7 @@ export function ClientesView({ clientes }: { clientes: ClienteFila[] }) {
       ) : (
         <ul className="space-y-4">
           {clientes.map((c) => (
-            <ClienteCard key={c.id} cliente={c} />
+            <ClienteCard key={c.id} cliente={c} esAdmin={esAdmin} />
           ))}
         </ul>
       )}
@@ -422,7 +436,13 @@ function SiguientePaso({
   );
 }
 
-function ClienteCard({ cliente }: { cliente: ClienteFila }) {
+function ClienteCard({
+  cliente,
+  esAdmin,
+}: {
+  cliente: ClienteFila;
+  esAdmin: boolean;
+}) {
   const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [confirmar, setConfirmar] = useState(false);
@@ -502,6 +522,10 @@ function ClienteCard({ cliente }: { cliente: ClienteFila }) {
         </div>
       </div>
 
+      {/* Toggle "carga por IRStrat". Solo el rol admin lo ve y lo mueve; para el
+          analista la fila no existe. La base lo revalida (trigger). */}
+      {esAdmin && <CargaStaffSwitch cliente={cliente} />}
+
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5">
         <LogoUploader
           tenantId={cliente.id}
@@ -536,5 +560,76 @@ function ClienteCard({ cliente }: { cliente: ClienteFila }) {
         onCancel={() => setConfirmar(false)}
       />
     </li>
+  );
+}
+
+/**
+ * Switch de "carga por IRStrat" para un cliente.
+ *
+ * APAGADO (default) es el comportamiento de siempre: la carga de evidencia
+ * corresponde al cliente y en el detalle staff la zona aparece en gris. ENCENDIDO
+ * habilita al staff a cargar en nombre de un área, y esa autoría queda registrada
+ * de forma inborrable en el historial y en la bitácora — apagarlo después no
+ * retira ninguna marca ya puesta, y eso es lo que dice la confirmación.
+ */
+function CargaStaffSwitch({ cliente }: { cliente: ClienteFila }) {
+  const toast = useToast();
+  const [pending, startTransicion] = useTransition();
+  const [confirmar, setConfirmar] = useState(false);
+  const activo = cliente.staffPuedeCargar;
+  const nombre = limpiarNombreTenant(cliente.nombre);
+
+  const aplicar = (habilitar: boolean) => {
+    startTransicion(async () => {
+      const r = await cambiarCargaStaff(cliente.id, habilitar);
+      setConfirmar(false);
+      if (r.ok) toast.success(r.mensaje ?? "Listo.");
+      else toast.error(r.error ?? "No se pudo actualizar la carga por IRStrat.");
+    });
+  };
+
+  return (
+    <div className="mt-5 flex flex-wrap items-start justify-between gap-4 border-t border-line pt-5">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-ink">Carga de evidencia por IRStrat</p>
+        <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted">
+          {activo
+            ? "IRStrat puede cargar evidencia de este cliente, siempre en nombre de un área y con su autoría registrada en el historial y en la bitácora."
+            : "La carga de evidencia corresponde al cliente. En el detalle interno la zona de carga aparece bloqueada."}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={activo}
+        aria-label={`Carga de evidencia por IRStrat para ${nombre}`}
+        disabled={pending}
+        onClick={() => (activo ? aplicar(false) : setConfirmar(true))}
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-pill border transition duration-150 disabled:opacity-50",
+          activo ? "border-teal bg-teal" : "border-line bg-crema"
+        )}
+      >
+        <span
+          aria-hidden
+          className={cn(
+            "inline-block size-4 rounded-full bg-surface shadow-soft transition-transform duration-150",
+            activo ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </button>
+
+      <ConfirmDialog
+        open={confirmar}
+        titulo="¿Habilitar la carga de evidencia por IRStrat?"
+        descripcion={`El equipo de IRStrat podrá cargar evidencia en las solicitudes de ${nombre}, eligiendo siempre el área en cuyo nombre carga. Cada carga queda marcada como hecha por IRStrat en el historial y en la bitácora, y esa marca no se puede retirar ni apagando de nuevo este interruptor.`}
+        confirmar="Sí, habilitar"
+        cancelar="Cancelar"
+        cargando={pending}
+        onConfirm={() => aplicar(true)}
+        onCancel={() => setConfirmar(false)}
+      />
+    </div>
   );
 }

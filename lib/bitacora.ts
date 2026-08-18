@@ -63,6 +63,14 @@ export type AccionEvento =
   | "tenant_reactivado"
   | "tenant_logo_actualizado"
   | "tenant_logo_eliminado"
+  // Toggle "carga por IRStrat", por cliente (solo el rol admin de la firma).
+  | "tenant_carga_staff_habilitada"
+  | "tenant_carga_staff_deshabilitada"
+  // Áreas del cliente (catálogo por tenant).
+  | "area_creada"
+  | "area_editada"
+  | "area_desactivada"
+  | "area_reactivada"
   | "invitacion_creada"
   | "invitacion_usada";
 
@@ -87,6 +95,7 @@ export async function logEvento(
       | "objetivos"
       | "cuestionarios_respuestas"
       | "tenants"
+      | "areas_tenant"
       | "invitaciones";
     entidadId: string | null;
     detalle: Record<string, unknown>;

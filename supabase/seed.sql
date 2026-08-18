@@ -22,6 +22,7 @@ delete from auth.users where id in (
   'a0000000-0000-0000-0000-000000000002',
   'a0000000-0000-0000-0000-000000000003',
   'a0000000-0000-0000-0000-000000000004',
+  'a0000000-0000-0000-0000-000000000005',
   'b0000000-0000-0000-0000-000000000001',
   'b0000000-0000-0000-0000-000000000002'
 );  -- cascada elimina perfiles; el resto cae por FK on delete cascade desde reportes/tenant
@@ -58,6 +59,7 @@ from (values
   ('a0000000-0000-0000-0000-000000000002', 'rh@empresademo.example',          '[DEMO] Responsable RH'),
   ('a0000000-0000-0000-0000-000000000003', 'operaciones@empresademo.example', '[DEMO] Responsable Operaciones'),
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example',    '[DEMO] Responsable Finanzas'),
+  ('a0000000-0000-0000-0000-000000000005', 'admin.cliente@empresademo.example','[DEMO] Administradora del cliente'),
   ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example',        '[DEMO] Analista IRStrat'),
   ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example',           '[DEMO] Admin IRStrat')
 ) as u(id, email, nombre);
@@ -75,6 +77,7 @@ from (values
   ('a0000000-0000-0000-0000-000000000002', 'rh@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000003', 'operaciones@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example'),
+  ('a0000000-0000-0000-0000-000000000005', 'admin.cliente@empresademo.example'),
   ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example'),
   ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example')
 ) as u(id, email);
@@ -104,6 +107,9 @@ insert into public.perfiles_usuario (id, tenant_id, rol, area, nombre, email) va
   ('a0000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'cliente',     'RH',          '[DEMO] Responsable RH',                'rh@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'cliente',     'Operaciones', '[DEMO] Responsable Operaciones',       'operaciones@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'cliente',     'Finanzas',    '[DEMO] Responsable Finanzas',          'finanzas@empresademo.example'),
+  -- Administradora DEL CLIENTE (tier de autoservicio): entra al PANEL sobre su
+  -- propio tenant. Sin área: ve las solicitudes de todas las de su cliente.
+  ('a0000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 'admin_cliente', null,        '[DEMO] Administradora del cliente',    'admin.cliente@empresademo.example'),
   ('b0000000-0000-0000-0000-000000000001', null,                                   'analista',    null,          '[DEMO] Analista IRStrat',              'analista@irstrat.example'),
   ('b0000000-0000-0000-0000-000000000002', null,                                   'admin',       null,          '[DEMO] Admin IRStrat',                 'admin@irstrat.example');
 

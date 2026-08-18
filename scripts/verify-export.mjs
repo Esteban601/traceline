@@ -175,6 +175,24 @@ async function main() {
     "Alcance 2 completo (2024+2025) → nota de fila VACÍA"
   );
 
+  // El origen de TODAS las solicitudes del demo es 'irstrat' (backfill de la
+  // migración), así que ninguna nota lleva la salvedad de validación interna. Si
+  // apareciera, el rol admin-cliente habría cambiado el entregable de referencia.
+  {
+    const notasDemo = [];
+    wb.eachSheet((ws) =>
+      ws.eachRow((row) =>
+        row.eachCell((c) => {
+          if (typeof c.value === "string") notasDemo.push(c.value);
+        })
+      )
+    );
+    ok(
+      !notasDemo.some((t) => t.includes("validación interna del cliente")),
+      "ninguna celda del demo lleva '(validación interna del cliente)': sus validaciones son todas de IRStrat"
+    );
+  }
+
   console.log("\nGEI 29(a)(vi)(1) — causas por año (pendiente vs sin evidencia):");
   ok(Number(cellText(geiVi, "B4")) > 0, "B4 (Categoría 1, 2025) tiene número");
   let hayPend = false;
@@ -572,6 +590,11 @@ async function crearFixture(client, rastro = {}) {
       slug: FIXTURE.slug,
       prefijo_folio: FIXTURE.prefijo,
       activo: true,
+      // El fixture lo construye una sesión de STAFF, y la evidencia que inserta
+      // más abajo pasa por el gate de `staff_puede_cargar` (trigger
+      // fn_evidencia_marca_carga). Encenderlo aquí es honesto: en este fixture la
+      // carga la hace efectivamente IRStrat, y queda marcada como tal.
+      staff_puede_cargar: true,
     })
     .select("id")
     .single();

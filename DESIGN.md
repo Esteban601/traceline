@@ -45,6 +45,7 @@ opacidad `bg-teal/10`).
 | `teal` | `#0E4F47` | **Primario** (marca, botones, enlaces) |
 | `teal-dark` | `#0A3A34` | Hover / activo del primario |
 | `gold` | `#BE9130` | **Acento** (detalles, líneas, foco de atención) |
+| `gold-dark` | `#8A6A17` | **Dorado como texto** (4.56:1 sobre crema). El acento no llega a AA; este sí, sin salirse de la identidad. Se usa en el badge *Solicitud interna* y en la marca "Cargado por … (IRStrat)". |
 
 ### Semáforo de estados
 
@@ -120,8 +121,12 @@ Uso en badges/tints: texto `text-<tono>`, fondo `bg-<tono>/10`, borde
   `azul` (4.98), `azul-fuerte`, `verde` (4.7), `rojo` (5.2), `ambar` (4.66),
   `ambar-fuerte` (5.8), `gris` (4.69). `ambar` y `gris` se **oscurecieron
   levemente** respecto de su valor original (que quedaba en ~3.3 y ~4.1) para
-  cumplir AA sin cambiar la identidad de la paleta. El **dorado** es acento
-  decorativo (eyebrows, líneas), no texto de cuerpo.
+  cumplir AA sin cambiar la identidad de la paleta. El **dorado** (`gold`) es
+  acento decorativo (eyebrows, líneas), **no texto**: cuando el dorado tiene que
+  leerse como texto se usa `gold-dark` (`#8A6A17`, 4.56:1 sobre crema), que
+  cumple AA y conserva el matiz. Los badges de **origen** usan `teal` (IRStrat) y
+  `gold-dark` sobre tinte dorado (interna del cliente); están fuera del semáforo
+  a propósito, porque el origen no dice quién tiene la pelota.
 - Botones de ícono llevan `aria-label`; los íconos decorativos, `aria-hidden`.
 - `prefers-reduced-motion`: se neutralizan transiciones/animaciones (globals).
 - Objetivos táctiles ≥ 40px en móvil.

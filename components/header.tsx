@@ -25,7 +25,9 @@ export function Header({
       ? "IRStrat"
       : perfil.rol === "coordinador"
         ? "Coordinación"
-        : perfil.area ?? "Cliente";
+        : perfil.rol === "admin_cliente"
+          ? "Administración"
+          : perfil.area ?? "Cliente";
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-crema/85 backdrop-blur-md">

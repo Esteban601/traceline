@@ -3,19 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, puedeEntrarPanel } from "@/lib/data";
+import { origenDe } from "@/lib/origen";
 import { enviarSolicitudesCore, type ResumenSolicitud } from "@/lib/solicitar";
 import { procesarRecordatorios, type ResumenRecordatorios } from "@/lib/recordatorios";
 
 /**
  * Envía solicitudes (individual o masivo). Agrupa por responsable → un correo
- * por persona. Se ejecuta como el staff (sesión); RLS permite leer/actualizar.
+ * por persona. Se ejecuta con la sesión de quien envía; RLS acota lo que puede
+ * leer y actualizar, y `origenDe(perfil)` aplica la regla de origen: el staff
+ * mueve las de IRStrat y el administrador del cliente, las internas suyas.
  */
 export async function enviarSolicitudesMasivo(
   ids: string[]
 ): Promise<ResumenSolicitud & { error?: string }> {
   const perfil = await getPerfilActual();
-  if (!perfil || !esStaff(perfil)) {
+  if (!perfil || !puedeEntrarPanel(perfil)) {
     return {
       modo: "consola",
       correos: 0,
@@ -23,12 +26,12 @@ export async function enviarSolicitudesMasivo(
       omitidas: 0,
       fallidos: 0,
       detalles: [],
-      error: "Acción reservada al equipo de IRStrat.",
+      error: "Acción reservada al panel.",
     };
   }
 
   const db = await createClient();
-  const resumen = await enviarSolicitudesCore(db, perfil.id, ids);
+  const resumen = await enviarSolicitudesCore(db, perfil.id, ids, origenDe(perfil));
   revalidatePath("/admin");
   return resumen;
 }

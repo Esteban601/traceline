@@ -232,7 +232,17 @@ async function limpiar({ db, admin }) {
 async function crearTenant({ db, admin }) {
   const { data: tenant, error } = await db
     .from("tenants")
-    .insert({ nombre: TENANT.nombre, slug: TENANT.slug, prefijo_folio: TENANT.prefijo, activo: true })
+    .insert({
+      nombre: TENANT.nombre, slug: TENANT.slug, prefijo_folio: TENANT.prefijo, activo: true,
+      // "Carga por IRStrat" ENCENDIDO, y es un hecho del proceso real, no una
+      // conveniencia del script: la evidencia de Carso la subió IRStrat a partir
+      // del checklist y del IAS que el cliente entregó por correo. Con el toggle
+      // apagado la base rechazaría esas cargas (fn_evidencia_marca_carga), y
+      // encenderlo hace que cada una quede marcada `cargado_por_staff = true`:
+      // el historial dirá "Cargado por [analista] (IRStrat) en nombre de [área]",
+      // que es exactamente lo que ocurrió.
+      staff_puede_cargar: true,
+    })
     .select("id").single();
   if (error) throw new Error(`tenant: ${error.message}`);
 
@@ -623,7 +633,7 @@ const PLAN_ELEMENTIA = [
 // un UPDATE. Los triggers de Fase 2 reabren una solicitud validada en cuanto
 // entra evidencia o captura; fijar el estado antes lo perdería.
 // -----------------------------------------------------------------------------
-async function subirEvidencia({ db, admin }, { tenantId, solicitudId, staffId, archivo, nombre, notas }) {
+async function subirEvidencia({ db, admin }, { tenantId, solicitudId, staffId, area, archivo, nombre, notas }) {
   const ruta = `${tenantId}/${solicitudId}/${nombre}`;
   const cuerpo = Buffer.isBuffer(archivo) ? archivo : fs.readFileSync(archivo);
   const tipo = nombre.endsWith(".pdf") ? "application/pdf"
@@ -633,9 +643,13 @@ async function subirEvidencia({ db, admin }, { tenantId, solicitudId, staffId, a
     .upload(ruta, cuerpo, { contentType: tipo, upsert: true });
   if (upErr) throw new Error(`storage ${nombre}: ${upErr.message}`);
 
+  // `area_origen` es el ÁREA EN CUYO NOMBRE carga IRStrat, y con el toggle
+  // `staff_puede_cargar` encendido la base la exige (fn_evidencia_marca_carga):
+  // una carga del staff sin área dejaría el historial sin poder decir de parte de
+  // quién es la evidencia. Se toma el área de la propia solicitud.
   const { error } = await db.from("evidencias").insert({
     solicitud_id: solicitudId, archivo_path: ruta, nombre_original: nombre,
-    periodo_cubierto: String(REPORTE.ejercicio), area_origen: null,
+    periodo_cubierto: String(REPORTE.ejercicio), area_origen: area ?? null,
     subido_por: staffId, notas: notas ?? null,
   });
   if (error) throw new Error(`evidencia ${nombre}: ${error.message}`);
@@ -686,7 +700,7 @@ async function aplicarCapturas(ctx, { tenantId, staffId }, creadas, wbChecklist)
   const adjuntar = async (sol, cuales, notas) => {
     for (const c of cuales) {
       await subirEvidencia(ctx, {
-        tenantId, solicitudId: sol.id, staffId,
+        tenantId, solicitudId: sol.id, staffId, area: sol.area,
         archivo: archivo[c].ruta, nombre: archivo[c].nombre, notas,
       });
       stats.evidencias++;
@@ -1114,7 +1128,7 @@ async function aplicarNarrativaIAS(ctx, { tenantId, staffId }, creadas, registro
       );
       for (const sol of objetivo) {
         await subirEvidencia(ctx, {
-          tenantId, solicitudId: sol.id, staffId, archivo: recorte, nombre,
+          tenantId, solicitudId: sol.id, staffId, area: sol.area, archivo: recorte, nombre,
           notas: `Capítulo del Informe Anual Sustentable 2025 de Grupo Carso, págs. ${desde}-${hasta}. ` +
                  `Evidencia del enfoque declarado; las cifras provienen del checklist.`,
         });

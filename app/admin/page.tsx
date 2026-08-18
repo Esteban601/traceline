@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
+import { getPerfilActual, esStaff } from "@/lib/data";
+import { origenDe, type OrigenSolicitud } from "@/lib/origen";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { KPIS, contarPorBucket, type EstadoSolicitud } from "@/lib/estados";
 import { TenantSelector, type TenantOpcionSelector } from "@/components/tenant-selector";
@@ -16,6 +17,7 @@ type SolicitudRow = {
   titulo: string;
   area_asignada: string | null;
   estado: EstadoSolicitud;
+  origen: OrigenSolicitud;
   orden: number;
   created_at: string;
   responsable: { nombre: string } | null;
@@ -35,6 +37,11 @@ export default async function AdminMatrizPage({
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
 
+  // El administrador del cliente ve SU matriz completa (todas sus áreas): RLS ya
+  // la acota a su tenant, así que aquí solo cambia lo que se le ofrece hacer.
+  const soyStaff = esStaff(perfil);
+  const origenPropio = origenDe(perfil);
+
   const { tenant: tenantParam } = await searchParams;
 
   const supabase = await createClient();
@@ -44,7 +51,7 @@ export default async function AdminMatrizPage({
       supabase
         .from("solicitudes")
         .select(
-          "id, titulo, area_asignada, estado, orden, created_at, responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre), reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
+          "id, titulo, area_asignada, estado, origen, orden, created_at, responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre), reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
         ),
       supabase.from("evidencias").select("solicitud_id, created_at"),
       supabase.from("comentarios").select("solicitud_id, created_at"),
@@ -118,6 +125,7 @@ export default async function AdminMatrizPage({
       titulo: s.titulo,
       area: s.area_asignada,
       estado: s.estado,
+      origen: s.origen,
       orden: s.orden,
       responsable: limpiar(s.responsable?.nombre),
       numVersiones: numVersiones.get(s.id) ?? 0,
@@ -134,22 +142,26 @@ export default async function AdminMatrizPage({
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-gold">
-            Panel interno IRStrat · Seguimiento
+            {soyStaff ? "Panel interno IRStrat · Seguimiento" : "Tu panel · Seguimiento"}
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink sm:text-4xl">
             Matriz de seguimiento
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            {tenantActivo
-              ? `Solicitudes de ${limpiarNombreTenant(
-                  tenantActivo.nombre
-                )}, su estado y su actividad reciente. Abre cualquiera para revisar evidencia, capturar valores o registrar observaciones.`
-              : "Todas las solicitudes del reporte, su estado y su actividad reciente. Abre cualquiera para revisar evidencia, capturar valores o registrar observaciones."}
+            {!soyStaff
+              ? "Todas las solicitudes de tu organización, su estado y su actividad reciente. Las de IRStrat las revisa IRStrat; las internas las revisas y validas tú."
+              : tenantActivo
+                ? `Solicitudes de ${limpiarNombreTenant(
+                    tenantActivo.nombre
+                  )}, su estado y su actividad reciente. Abre cualquiera para revisar evidencia, capturar valores o registrar observaciones.`
+                : "Todas las solicitudes del reporte, su estado y su actividad reciente. Abre cualquiera para revisar evidencia, capturar valores o registrar observaciones."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <TenantSelector tenants={tenantsOpc} seleccionado={tenantSel} />
-          <BarraRecordatorios />
+          {/* Los recordatorios se disparan con service_role sobre TODOS los
+              clientes: es una rutina de la firma, no una acción del cliente. */}
+          {soyStaff && <BarraRecordatorios />}
           <Link
             href="/admin/solicitudes/nueva"
             className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-teal px-3.5 text-sm font-medium text-crema shadow-soft transition duration-150 hover:bg-teal-dark"
@@ -157,7 +169,7 @@ export default async function AdminMatrizPage({
             <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            Nueva solicitud
+            {soyStaff ? "Nueva solicitud" : "Nueva solicitud interna"}
           </Link>
         </div>
       </header>
@@ -170,7 +182,7 @@ export default async function AdminMatrizPage({
         </div>
       </section>
 
-      <MatrizSolicitudes filas={filas} />
+      <MatrizSolicitudes filas={filas} origenPropio={origenPropio} />
     </div>
   );
 }

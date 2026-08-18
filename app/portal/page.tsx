@@ -31,7 +31,13 @@ export default async function TableroPage() {
   // un nombre largo envuelva por palabras y, si no cabe, se acorte con elipsis
   // en dos líneas — nunca cortando una palabra a la mitad.
   const nombre = perfil.nombre.replace(/\[DEMO\]\s*/i, "").trim();
-  const esCoordinador = perfil.rol === "coordinador" || perfil.tenant_id === null;
+  // Quién ve TODO su tenant (y por tanto necesita el toggle "Mis/Todas"): el
+  // coordinador, el staff y el administrador del cliente. Sin incluirlo, la
+  // pestaña "Mis" mentiría: RLS ya le devuelve las de todas sus áreas.
+  const esCoordinador =
+    perfil.rol === "coordinador" ||
+    perfil.rol === "admin_cliente" ||
+    perfil.tenant_id === null;
 
   return (
     <div className="space-y-8">

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
 import {
   ESTADO_META,
   TONO_CLASSES,
@@ -121,6 +122,38 @@ export function Chip({
       )}
     >
       {children}
+    </span>
+  );
+}
+
+/**
+ * Badge de ORIGEN de la solicitud. Visible para TODOS los roles (staff, área,
+ * coordinador y administrador del cliente): saber quién pidió el dato es parte
+ * de la trazabilidad, no un detalle interno. El teal es IRStrat; el dorado, el
+ * propio cliente.
+ */
+export function OrigenBadge({
+  origen,
+  className,
+}: {
+  origen: OrigenSolicitud;
+  className?: string;
+}) {
+  const meta = ORIGEN_META[origen];
+  const c = TONO_CLASSES[meta.tono];
+  return (
+    <span
+      title={meta.ayuda}
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border px-2.5 py-0.5 text-xs font-medium",
+        c.text,
+        c.bg,
+        c.border,
+        className
+      )}
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", c.dot)} aria-hidden />
+      {meta.label}
     </span>
   );
 }

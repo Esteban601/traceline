@@ -2,6 +2,7 @@ import { cn } from "@/lib/cn";
 import { TONO_CLASSES } from "@/lib/estados";
 import { fmtFechaHora } from "@/lib/fechas";
 import { accionMeta, resumenBitacora, justificacionDe } from "@/lib/bitacora-vista";
+import { actorBitacora, type Rol } from "@/lib/roles";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export type EventoBitacora = {
@@ -10,11 +11,10 @@ export type EventoBitacora = {
   accion: string;
   detalle: Record<string, unknown> | null;
   usuario: string | null;
+  /** Rol de quien actuó: la bitácora del cliente y la del staff se distinguen. */
+  usuarioRol?: Rol | null;
+  usuarioTenantId?: string | null;
 };
-
-function limpiar(v: string | null): string {
-  return (v ?? "").replace(/\[DEMO\]\s*/i, "").trim();
-}
 
 /** Timeline cronológico de la bitácora de una solicitud (más reciente arriba). */
 export function Timeline({ eventos }: { eventos: EventoBitacora[] }) {
@@ -47,7 +47,7 @@ export function Timeline({ eventos }: { eventos: EventoBitacora[] }) {
             </div>
             {resumen && <p className="mt-0.5 text-sm text-muted">{resumen}</p>}
             <p className="mt-0.5 text-xs text-muted">
-              {e.usuario ? limpiar(e.usuario) : "Sistema"}
+              {actorBitacora(e.usuario, e.usuarioRol ?? null, e.usuarioTenantId)}
             </p>
             {justificacion && (
               <p className="mt-1.5 rounded-lg border border-gold/25 bg-gold/5 px-2.5 py-1.5 text-xs leading-relaxed text-ink/90">

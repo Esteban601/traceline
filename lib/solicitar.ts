@@ -4,6 +4,7 @@ import type { Database } from "@/lib/database.types";
 import { enviarCorreo, modoConsola } from "@/lib/email/enviar";
 import { plantillaSolicitud, type SolicitudEmail } from "@/lib/email/plantillas";
 import { logCorreo } from "@/lib/bitacora";
+import type { OrigenSolicitud } from "@/lib/origen";
 
 export type ResumenSolicitud = {
   modo: "resend" | "consola";
@@ -24,6 +25,7 @@ type SolRow = {
   id: string;
   titulo: string;
   estado: string;
+  origen: OrigenSolicitud;
   fecha_limite: string | null;
   responsable_cliente_id: string | null;
   reporte: { tenant_id: string } | null;
@@ -34,12 +36,19 @@ type SolRow = {
  * Envía la solicitud de información y avanza el estado. Agrupa por responsable y
  * manda UN correo por persona con todas sus solicitudes elegibles (estado
  * 'pendiente' + responsable asignado). Sirve para el envío individual (un id) y
- * el masivo (varios ids). Se ejecuta como el staff (sesión) — RLS lo permite.
+ * el masivo (varios ids). Se ejecuta con la sesión de quien envía — RLS acota lo
+ * que puede leer y actualizar.
+ *
+ * `origenPermitido` aplica la REGLA DE ORIGEN también aquí: cada lado mueve sus
+ * propias solicitudes. Sin este filtro, un envío masivo del administrador del
+ * cliente intentaría transicionar las de IRStrat y el trigger de la base lo
+ * cortaría a mitad del lote, con el correo ya enviado.
  */
 export async function enviarSolicitudesCore(
   db: SupabaseClient<Database>,
   usuarioId: string | null,
-  ids: string[]
+  ids: string[],
+  origenPermitido: OrigenSolicitud
 ): Promise<ResumenSolicitud> {
   const resumen: ResumenSolicitud = {
     modo: modoConsola() ? "consola" : "resend",
@@ -56,7 +65,7 @@ export async function enviarSolicitudesCore(
   const { data, error } = await db
     .from("solicitudes")
     .select(
-      "id, titulo, estado, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
+      "id, titulo, estado, origen, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
     )
     .in("id", unicos);
 
@@ -76,7 +85,10 @@ export async function enviarSolicitudesCore(
   const grupos = new Map<string, Grupo>();
   for (const s of sols) {
     const elegible =
-      s.estado === "pendiente" && s.responsable != null && !!s.responsable.email;
+      s.estado === "pendiente" &&
+      s.origen === origenPermitido &&
+      s.responsable != null &&
+      !!s.responsable.email;
     if (!elegible) {
       resumen.omitidas += 1;
       continue;

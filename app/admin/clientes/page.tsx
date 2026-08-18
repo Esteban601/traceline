@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
+import { requiereStaff } from "@/lib/data";
 import { ClientesView, type ClienteFila } from "./clientes-view";
 
 export const metadata: Metadata = { title: "Clientes" };
 
 export default async function ClientesPage() {
-  const perfil = await getPerfilActual();
-  if (!perfil) return null; // el layout ya protege
+  // Sección de la firma: el administrador del cliente no entra (el middleware ya
+  // lo rebota; esta es la barrera de página).
+  // El switch de "carga por IRStrat" es una acción de administrador: la ficha se
+  // renderiza sin él para el analista, y la server action lo rechaza igual.
+  const perfil = await requiereStaff();
+  const esAdmin = perfil.rol === "admin";
 
   const db = await createClient();
 
@@ -15,7 +19,7 @@ export default async function ClientesPage() {
     await Promise.all([
       db
         .from("tenants")
-        .select("id, nombre, slug, prefijo_folio, logo_url, activo, created_at")
+        .select("id, nombre, slug, prefijo_folio, logo_url, activo, staff_puede_cargar, created_at")
         .order("activo", { ascending: false })
         .order("nombre", { ascending: true }),
       db
@@ -53,6 +57,7 @@ export default async function ClientesPage() {
       prefijo_folio: string;
       logo_url: string | null;
       activo: boolean;
+      staff_puede_cargar: boolean;
       created_at: string;
     }[]
   ).map((t) => ({
@@ -62,6 +67,7 @@ export default async function ClientesPage() {
     prefijoFolio: t.prefijo_folio,
     logoUrl: t.logo_url,
     activo: t.activo,
+    staffPuedeCargar: t.staff_puede_cargar,
     createdAt: t.created_at,
     areas: areasPorTenant.get(t.id) ?? [],
     usuarios: usuariosPorTenant.get(t.id) ?? 0,
@@ -84,7 +90,7 @@ export default async function ClientesPage() {
         </p>
       </header>
 
-      <ClientesView clientes={clientes} />
+      <ClientesView clientes={clientes} esAdmin={esAdmin} />
     </div>
   );
 }

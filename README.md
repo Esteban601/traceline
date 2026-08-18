@@ -22,6 +22,11 @@ emisoras BMV (IRStrat / Vert).
   genera su Excel.
 - ✅ **Import de un cliente real (GCARSO)**: `scripts/import-gcarso.mjs` recrea el
   proceso IAS 2025 de Grupo Carso, con extensión VERT del catálogo.
+- ✅ **Rol admin-cliente (tier de autoservicio)**: un usuario del cliente
+  administra su propio tenant desde el panel —crea solicitudes internas, las
+  valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
+  origen** (cada lado valida lo suyo) y el **toggle de carga por IRStrat** por
+  cliente. Ver más abajo.
 - 🌱 **Correo y recordatorios (Fase 1)** — solicitar, recordar y avisar observaciones vía Resend (rama `fase-1-recordatorios`).
 
 Stack: Next.js 15 (App Router, TypeScript, pnpm) + Supabase local (CLI + Docker).
@@ -58,6 +63,7 @@ Todas las rutas del portal están protegidas por middleware (sin sesión → `/l
 | `operaciones@empresademo.example` | Cliente acotado por área | **7** solicitudes (Operaciones) |
 | `finanzas@empresademo.example` | Cliente acotado por área | **4** solicitudes (Finanzas) |
 | `coordinador@empresademo.example` | Coordinador + toggle "Mis/Todas" | Solicitudes del tenant |
+| `admin.cliente@empresademo.example` | **Administrador del cliente** (autoservicio): entra al **panel**, no al portal | Todas las solicitudes del tenant demo |
 | `analista@irstrat.example` | Staff IRStrat (panel interno completo) | Todo |
 | `admin@irstrat.example` | Staff IRStrat con rol **admin** (puede congelar reportes) | Todo |
 
@@ -438,6 +444,262 @@ Con `supabase start`, `supabase db reset` y `pnpm dev` corriendo, como
     confirma. Intenta entrar con su usuario: el acceso queda cortado y el cliente
     sigue en la lista marcado como *Inactivo*.
 
+## Rol admin-cliente: el tier de autoservicio
+
+Hasta aquí la plataforma asumía que **IRStrat** operaba el proceso y el cliente
+solo respondía. El rol `admin_cliente` abre el otro modo: un usuario **del
+cliente** administra su propio tenant sin acompañamiento —pide información a sus
+áreas, la revisa, la valida y genera su Excel— sin ver ni tocar nada de otra
+emisora.
+
+No es un staff con menos botones ni un usuario de portal con más: entra al
+**panel** (`/admin`), acotado a su cliente, con la marca de su cliente.
+
+### Matriz de permisos
+
+La misma regla vive en tres capas, y la autoridad es siempre la de abajo:
+**RLS + triggers** (`supabase/migrations/20260820130000_admin_cliente.sql`),
+**server actions** y **UI**. `lib/roles.ts` y `lib/origen.ts` son esa regla escrita
+una vez para que las tres no se desalineen.
+
+| Puede | Detalle |
+|-------|---------|
+| Ver **todas** las solicitudes de su tenant | Todas las áreas, no solo la suya. Nunca de otro tenant. |
+| Subir evidencia | Como cualquier área de su cliente, eligiendo el área de origen. |
+| Crear y editar solicitudes | Solo las **suyas** (origen `cliente`). Las de IRStrat las ve, no las modifica. |
+| Revisar, observar y validar | Solo las de origen `cliente` — ver la regla dura, abajo. |
+| Crear y editar áreas | Su catálogo (`areas_tenant`). Renombrar propaga a solicitudes y perfiles. |
+| Crear y desactivar usuarios | Solo de su tenant y solo con rol **responsable de área** o **administrador del cliente**. |
+| Su matriz, su cobertura, su bitácora | Con el **export de su Excel** de taxonomía y el de trazabilidad. |
+
+| No puede | Por qué |
+|----------|---------|
+| `/admin/clientes`, `/admin/reportes`, `/admin/plantillas` | Son multi-emisora o propiedad de la firma. |
+| Captura de taxonomía (clima, objetivos, cuestionarios) | Trabajo de analista. |
+| Escribir el catálogo de datapoints o el mapeo NIIF | El mapeo a la norma lo decide IRStrat. El formulario de solicitud no le ofrece datapoints. |
+| Crear staff, o usuarios de otro tenant | La server action ignora el `tenant_id` del formulario y toma el del perfil; RLS lo vuelve a negar. |
+| **Congelar** un reporte | Decisión registrada abajo. |
+| Eliminar solicitudes o áreas | La trazabilidad no admite borrar historia: las áreas se **desactivan**; retirar una solicitud es un acto de IRStrat. |
+| Ver nada cross-tenant | RLS. Una URL directa de otra emisora responde *"Solicitud no encontrada"*. |
+
+> **Lectura de la taxonomía, decisión explícita.** Su tier incluye "su cobertura
+> con el export de su Excel", y esa vista **es** el catálogo de la norma: sin
+> lectura, su cobertura saldría vacía y su Excel no sería suyo. Se le abre en
+> **solo lectura** (datapoints, rubros, mapeo de la plantilla y el mapeo de sus
+> propias solicitudes). Los usuarios de área siguen sin verlo, y la escritura
+> sigue siendo exclusiva del staff.
+
+### Origen de la solicitud y validación por origen
+
+`solicitudes.origen` dice **quién pidió** la información: `irstrat` (la firma) o
+`cliente` (el administrador del cliente, para su propio equipo). Es `NOT NULL` con
+default `irstrat`, y el backfill de lo existente es un hecho histórico: hasta esta
+migración no había otra vía de crear solicitudes que el panel interno.
+
+**Badge visible para todos los roles** —staff, área, coordinador y administrador—
+en la matriz y en el detalle, y también en el portal del cliente: **Solicitud
+IRStrat** (teal) vs **Solicitud interna** (dorado). Saber de dónde viene la
+petición es parte de la trazabilidad, no un detalle interno. En la matriz la
+columna *Origen* aparece solo cuando la vista mezcla los dos: repetir "Solicitud
+IRStrat" en cada fila de un cliente que nunca creó una interna sería ruido.
+
+**REGLA DURA:** cada lado revisa, observa y valida **lo suyo**.
+
+- Origen `irstrat` → solo el staff de IRStrat.
+- Origen `cliente` → solo el `admin_cliente` de ese tenant.
+- El otro lado **la ve completa** (la trazabilidad es compartida) pero no la
+  transiciona: en vez de botones deshabilitados, la UI dice de quién es la
+  revisión. La server action lo rechaza y el trigger
+  `trg_solicitud_origen_transicion` lo impide en la base.
+
+Dos excepciones deliberadas, ambas de la firma sobre el reporte entero: el
+**congelamiento** y la **edición de campos** de una solicitud interna (p. ej.
+asignar el rubro de taxonomía que hace que su valor llene una celda). Las
+**transiciones automáticas** por llegada de evidencia o captura
+(`pendiente→recibido`, `validado→en_revision`) no son actos de revisión y siguen
+funcionando para cualquiera que tenga derecho a cargar: los triggers las marcan
+con un ajuste local a la transacción para que el candado las distinga.
+
+### Trazabilidad de la fuente de validación
+
+Donde un valor validado alimenta una celda, la trazabilidad dice **quién lo
+validó** —el origen lo determina, así que no hay ambigüedad que resolver:
+
+- **Cobertura** (`/admin/cobertura`): cada solicitud ligada ya validada lleva su
+  etiqueta (`IRStrat` / `Interna`), con el texto completo en el tooltip
+  (*Validación IRStrat* / *Validación interna del cliente*).
+- **Excel de trazabilidad** (`/admin/cobertura/export`): columna
+  **Origen / validación**.
+- **Excel de taxonomía oficial**: a la celda de **Notas/Brechas** se agrega
+  `(validación interna del cliente)` **solo cuando la validación fue interna**. El
+  documento oficial se lee asumiendo la validación de la firma, así que lo que hay
+  que declarar es la excepción. `verify:export` comprueba que el libro de Empresa
+  Demo **no** lleva esa nota: todas sus validaciones son de staff y su export es la
+  referencia que no debe moverse.
+
+### Bitácora
+
+Todo acto del administrador del cliente se registra igual que uno del staff, y
+**con su rol visible** (`Nombre · Administrador del cliente` vs
+`Nombre · IRStrat · Analista`). Sin el rol, dos actos idénticos se leerían como del
+mismo lado. Se añaden las entidades `areas_tenant` al filtro y las acciones
+`area_creada` / `area_editada` / `area_desactivada` / `area_reactivada` y
+`tenant_carga_staff_habilitada` / `…_deshabilitada`.
+
+### Toggle "carga por IRStrat" (por cliente, solo super admin)
+
+`tenants.staff_puede_cargar`, `NOT NULL default false`: **el comportamiento actual
+se conserva como default**. El switch está en la ficha del cliente en
+`/admin/clientes`, visible y editable **solo para el rol `admin`** de IRStrat (no
+analista, no administrador del cliente) — y el trigger
+`trg_tenant_toggle_carga_staff` lo revalida en la base.
+
+- **Apagado (default).** En el detalle staff de una solicitud la zona de carga
+  **está presente**, en gris y bloqueada, con la leyenda *"La carga de evidencia
+  corresponde al cliente"*. Presente y no escondida: así se ve que existe y de
+  quién es la tarea. Un POST de carga del staff se rechaza en la server action **y**
+  en el trigger.
+- **Encendido.** El staff puede cargar evidencia de ese cliente, **exigiendo
+  siempre el área en cuyo nombre carga** (periodo y captura igual que el cliente), y
+  con **trazabilidad obligatoria e inborrable**: el historial dice *"Cargado por
+  [nombre] (IRStrat) en nombre de [área]"* —también en el portal del cliente, que
+  tiene derecho a ver quién subió lo que aparece como suyo—, la bitácora lo registra
+  igual, y `evidencias.cargado_por_staff` la **calcula el trigger**, no la
+  aplicación. Por eso la marca no es configurable: el toggle habilita la
+  *capacidad*, nunca oculta la *autoría*.
+- **Apagar de nuevo** no retira ninguna marca ya puesta; solo vuelve a bloquear la
+  carga. La confirmación del switch lo dice con esas palabras.
+- La **validación posterior** sigue las reglas de origen sin cambios: que IRStrat
+  cargue la evidencia de una solicitud interna del cliente no le da derecho a
+  validarla.
+
+> **Efecto lateral que valía la pena arreglar.** Para que el historial pueda decir
+> *quién* de IRStrat cargó, el cliente tiene que poder leer ese nombre. RLS no lo
+> permitía: los perfiles de la firma quedaban fuera del alcance de un usuario con
+> tenant, así que el historial —y las observaciones, desde antes de este sprint—
+> mostraban "—". Se abre en **solo lectura**, y solo los perfiles que **aparecen
+> en lo que ese usuario ya puede ver** (quien subió su evidencia, capturó su valor
+> o comentó en su solicitud): así se puede poner el nombre sin que nadie pueda
+> enumerar el equipo de la firma. Un rastro que no dice quién no sirve para
+> aseguramiento.
+
+> **GCARSO nace con el toggle encendido, y es un hecho del proceso real**, no una
+> conveniencia del script: la evidencia de Carso la subió IRStrat a partir del
+> checklist y del IAS que el cliente entregó por correo. Con el toggle encendido,
+> cada una de esas 32 evidencias queda marcada como cargada por IRStrat en nombre
+> de su área — que es exactamente lo que ocurrió.
+
+### Refuerzos que pidió el code-review
+
+Tres huecos que el rol nuevo abría o volvía alcanzables, cerrados en las dos capas:
+
+- **Una invitación es un cambio de contraseña diferido.** La política de
+  `invitaciones` solo acotaba `tenant_id`, no `perfil_id`; con el alta de usuarios
+  ya en manos del cliente, eso permitía emitirse una liga contra una cuenta ajena
+  —incluida una de IRStrat— y quedársela al canjearla. Ahora el destinatario tiene
+  que ser alguien a quien quien la emite **sí administra** (RLS + una política
+  **restrictiva** que aplica a todos, staff incluido), y la acción de canje —que
+  corre con `service_role` y por definición no pasa por RLS— vuelve a comprobar que
+  el perfil pertenezca al tenant de la invitación.
+- **El toggle también se gatea en el ALTA.** El trigger cubría solo `UPDATE`, así
+  que un analista podía dar de alta un cliente que naciera con la carga por IRStrat
+  ya habilitada y saltarse la regla de administrador entera.
+- **El aviso de observación por correo no puede mentir sobre el origen.** El texto
+  decía "El equipo de IRStrat registró una observación" fijo; en una solicitud
+  interna, el único canal que sale de la plataforma habría contradicho al badge, a
+  la bitácora y a la nota del Excel. Ahora dice quién la registró. Por lo mismo, la
+  copia de las ligas de invitación pasó de "pídele una nueva al equipo de IRStrat"
+  a "a quien te dio el acceso": desde el autoservicio, IRStrat puede no ser quien
+  la emitió.
+
+Y dos que ya estaban ahí y quedaron cerrados de paso: un reporte **congelado** ya
+no admite solicitudes nuevas (el candado de Fase 2 cubría el `UPDATE`, no el
+`INSERT`, ni para el staff), y un archivo subido cuya fila de evidencia falla ya no
+queda huérfano en el bucket (el cliente no tiene `DELETE` en storage, así que la
+limpieza la hace el servidor sobre lo que acaba de crear).
+
+### Decisiones registradas como revisables
+
+- **Congelar un reporte sigue siendo un acto de IRStrat.** El administrador del
+  cliente **ve** los reportes de su tenant pero no puede congelarlos: el
+  congelamiento es la firma del cierre para aseguramiento y hoy lo respalda la
+  firma. Está bloqueado en RLS (no tiene escritura en `reportes`) y en el trigger
+  de transición. **Revisable**: si el tier de autoservicio llega a incluir el
+  cierre, se abre con su propia migración y su propia confirmación reforzada.
+- **`coordinador` lo sigue asignando IRStrat.** El administrador del cliente solo
+  nombra responsables de área y otros administradores como él. Revisable si el rol
+  de coordinador pasa a ser una figura interna del cliente.
+- **Sin borrado.** No elimina solicitudes ni áreas (las áreas se desactivan).
+- **Los recordatorios masivos siguen siendo de la firma.** Corren con
+  `service_role` sobre todos los clientes, así que el botón no se le ofrece. El
+  envío de **sus** solicitudes sí, con el filtro de origen aplicado.
+
+### Prueba E2E con sesiones reales
+
+```bash
+supabase start && supabase db reset && pnpm dev   # en una terminal
+pnpm e2e:admin-cliente                            # en otra
+pnpm e2e:admin-cliente http://localhost:3001      # otro puerto
+```
+
+`scripts/e2e-admin-cliente.mjs` levanta Chromium y **inicia sesión por el
+formulario real** (no cookies forjadas) con cuatro identidades: el administrador
+del cliente, un usuario de área, el analista y el admin de IRStrat. Cada
+afirmación se comprueba donde de verdad se decide:
+
+- **UI** — que la app no *ofrezca* lo que no corresponde (botones ausentes, zona
+  de carga en gris, secciones fuera del menú, URL directa que rebota) y que el
+  flujo completo funcione cuando sí corresponde.
+- **Datos** — con la sesión **real** de ese mismo usuario contra Postgres: que la
+  escritura se rechace aunque nadie pase por la UI. Esa es la capa que un POST
+  forjado tampoco salta. *Esconder un botón no es una barrera y el script no lo
+  cuenta como tal.*
+
+Cubre: entrada al panel con menú reducido y marca del cliente; alta de una
+solicitud interna que nace con origen `cliente` y su badge; carga de evidencia por
+un usuario de área; validación por el administrador del cliente; su Excel con la
+nota de validación interna; el rechazo de validar una solicitud de IRStrat (UI y
+datos); que no pueda crear staff ni salir de su tenant (incluidas URL directas y
+aislamiento en ambos sentidos); gestión y renombrado de áreas con propagación; que
+el staff conserve todo lo suyo; y el ciclo completo del toggle de carga
+(apagado → encendido → carga marcada → apagado, sin perder la marca).
+
+Usa un **tenant propio** (`e2e-autoservicio`) y lo elimina al terminar, incluso si
+algo falla: el export de Empresa Demo es la referencia de `verify:export` y no debe
+moverse.
+
+### Guía de prueba manual (QA)
+
+Con `supabase db reset` y `pnpm dev` corriendo:
+
+1. **Entrada.** `/login` con `admin.cliente@empresademo.example` (`Demo2025!`).
+   Debe aterrizar en **`/admin`**, con el nombre de *Empresa Demo SAB* en el menú
+   y solo cuatro secciones: Matriz, Cobertura, Bitácora, Usuarios y áreas.
+2. **Solicitud interna.** *Nueva solicitud interna* → título, área **RH**, marca
+   *Es cuantitativa* con unidad `tCO2e`, responsable `Responsable RH`. Al guardar,
+   el detalle debe mostrar el badge **Solicitud interna** (dorado). Envíala.
+3. **Respuesta del área.** En ventana privada, `rh@empresademo.example` → esa
+   solicitud (con su badge) → sube un archivo con periodo `2025` y una cifra.
+4. **Validación interna.** De vuelta como administrador: *Poner en revisión* →
+   *Validar*. En `/admin/bitacora` el evento aparece con
+   *Administrador del cliente*.
+5. **Regla de origen.** Abre cualquier solicitud del seed (badge **Solicitud
+   IRStrat**): no hay botones de transición, sino la nota de a quién corresponde.
+   Como `analista@irstrat.example`, abre la interna del paso 2: mismo trato al
+   revés.
+6. **Aislamiento.** Como administrador del cliente, pega en la barra
+   `/admin/clientes` → vuelve a la matriz. Pega la URL de una solicitud de GCARSO
+   (tómala del panel staff) → *"Solicitud no encontrada"*.
+7. **Áreas.** *Usuarios y áreas* → agrega **Legal**; renombra **RH** y comprueba
+   que las solicitudes de esa área y el usuario de RH quedan con el nombre nuevo
+   (si el reporte estuviera congelado, la app lo impide y lo explica).
+8. **Toggle.** Como `admin@irstrat.example` → `/admin/clientes` → enciende
+   *Carga de evidencia por IRStrat* en Empresa Demo. Abre una solicitud del seed:
+   la zona de carga se activa; carga un archivo eligiendo el área. El historial y
+   el portal del cliente deben decir *"Cargado por … (IRStrat) en nombre de …"*.
+   Apágalo: la zona vuelve a gris y la marca sigue ahí.
+   Con `analista@irstrat.example` el switch **no** aparece.
+
 ## Import de un cliente real: GCARSO (proceso IAS 2025)
 
 `scripts/import-gcarso.mjs` recrea dentro de la plataforma el proceso de recabado
@@ -469,6 +731,11 @@ mensaje explícito, porque el reporte nacería sin poder resolver ninguna celda 
 | Tablas del checklist | 42 capturas | Valores reales del ejercicio 2025, una por división o subsidiaria más un **consolidado** al final (la plataforma toma la última captura como valor vigente). |
 | Informe `.docx` | 3 registros de clima + 2 objetivos | Solo los ítems numerados de las tablas `[100002]` y `[100003]`. Las secciones `[805600]+` (SASB de industria) **no se importan**. |
 | IAS 2025 `.pdf` | Evidencia cualitativa + contexto | Cada capítulo se recorta con `pdf-lib` y se adjunta a las solicitudes de política que la especificación lista, con la cita de páginas. **Nunca** a una solicitud cuyo entregable es la cifra. |
+
+El tenant nace con el **toggle "carga por IRStrat" encendido** y su evidencia queda
+marcada como cargada por IRStrat en nombre de cada área: en el proceso real la subió
+la firma a partir de lo que Carso entregó por correo. Ver la sección del rol
+admin-cliente.
 
 **Nada se inventa.** Lo que el proceso real no entregó (filas con `ND`, `N/A` o
 `XXXX`) no se captura: el hueco es información y la plataforma lo muestra como
