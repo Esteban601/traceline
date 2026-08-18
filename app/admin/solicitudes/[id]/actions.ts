@@ -429,10 +429,14 @@ export async function subirEvidenciaPanel(
     // quedaría huérfano para siempre y sin ninguna vía de la aplicación para
     // limpiarlo. Es una limpieza del servidor sobre algo que el servidor acaba de
     // crear, no una puerta de borrado para nadie.
-    await createAdminClient()
-      .storage.from(BUCKET)
-      .remove([path])
-      .catch(() => {});
+    try {
+      // createAdminClient() lanza de forma SÍNCRONA si falta la clave de servicio,
+      // así que un `.catch()` no lo atraparía y el error de limpieza taparía el
+      // error real que trajimos hasta aquí.
+      await createAdminClient().storage.from(BUCKET).remove([path]);
+    } catch (limpieza) {
+      console.error("[evidencia] no se pudo retirar el archivo huérfano:", limpieza);
+    }
     return {
       ok: false,
       error: `No se registró la evidencia: ${evErr?.message ?? "error desconocido"}`,

@@ -168,7 +168,10 @@ export function SolicitudForm({
     fd.set("unidad_esperada", unidad);
     fd.set("fecha_limite", fechaLimite);
     fd.set("responsable_cliente_id", respCliente);
-    fd.set("responsable_irstrat_id", respIrstrat);
+    // En modo cliente este campo no se muestra ni se envía: no es suyo. La server
+    // action lo ignora igualmente, pero mandar un valor que el usuario no ve ni
+    // controla solo invita a que alguien lo tome por editable.
+    if (!soloCliente) fd.set("responsable_irstrat_id", respIrstrat);
     fd.set("orden", orden);
     fd.set("rubro_clave", rubroClave);
     fd.set("rubro_taxonomia", rubroTaxonomia);

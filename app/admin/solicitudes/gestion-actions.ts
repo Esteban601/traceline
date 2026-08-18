@@ -305,8 +305,12 @@ export async function editarSolicitud(
   const tieneEvidencia = (count ?? 0) > 0;
 
   if (!soyStaff) {
-    campos.responsable_irstrat_id = null;
     campos.datapointIds = [];
+    // El administrador del cliente no escribe este campo. Se ignora lo que llegue
+    // —su formulario ni lo ofrece— para no validarlo contra un perfil de staff que
+    // RLS le oculta, y más abajo tampoco entra al UPDATE, para no borrar la
+    // asignación que hubiera hecho el staff.
+    campos.responsable_irstrat_id = null;
   }
 
   const errResp = await validarResponsables(db, campos, reporte.tenant_id);
@@ -319,10 +323,13 @@ export async function editarSolicitud(
     unidad_esperada: campos.unidad_esperada,
     fecha_limite: campos.fecha_limite,
     responsable_cliente_id: campos.responsable_cliente_id,
-    responsable_irstrat_id: campos.responsable_irstrat_id,
     rubro_clave: campos.rubro_clave,
     rubro_taxonomia: campos.rubro_taxonomia,
   };
+  // Solo el staff escribe el responsable de IRStrat. Incluirlo en el UPDATE para
+  // el administrador del cliente le BORRARÍA la asignación con solo guardar una
+  // fecha límite; omitirlo la deja intacta.
+  if (soyStaff) update.responsable_irstrat_id = campos.responsable_irstrat_id;
   if (campos.orden != null) update.orden = campos.orden;
 
   // Título y descripción: solo si NO hay evidencia (el enunciado que el cliente

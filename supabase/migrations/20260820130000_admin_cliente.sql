@@ -724,6 +724,7 @@ grant execute on function public.fn_renombrar_area(uuid, text) to authenticated;
 create index if not exists evidencias_subido_por_idx on public.evidencias (subido_por);
 create index if not exists capturas_valor_capturado_por_idx on public.capturas_valor (capturado_por);
 create index if not exists comentarios_autor_idx on public.comentarios (autor_id);
+create index if not exists bitacora_usuario_idx on public.bitacora (usuario_id);
 
 create policy perfiles_staff_visible_al_cliente on public.perfiles_usuario
   for select to authenticated
@@ -746,6 +747,17 @@ create policy perfiles_staff_visible_al_cliente on public.perfiles_usuario
         select 1 from public.comentarios c
         where c.autor_id = perfiles_usuario.id
           and public.fn_puede_ver_solicitud(c.solicitud_id)
+      )
+      -- La BITÁCORA también nombra a quien actuó, y buena parte de los actos de
+      -- IRStrat solo dejan rastro ahí: crear una solicitud, cambiar su estado,
+      -- congelar un reporte, mover el toggle de carga. Sin esta rama, esas
+      -- entradas se le mostraban al cliente como «Sistema» — que no es un dato
+      -- que falte, es una atribución falsa, peor que el "—" que se vino a
+      -- arreglar. `bitacora_select` acota el subquery a su propio tenant.
+      or exists (
+        select 1 from public.bitacora b
+        where b.usuario_id = perfiles_usuario.id
+          and b.tenant_id = public.fn_current_tenant()
       )
     )
   );

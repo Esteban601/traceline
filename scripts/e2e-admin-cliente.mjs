@@ -247,6 +247,22 @@ async function crearFixture(admin, staffDb) {
  * sí las borra service_role, que es quien administra GoTrue.
  */
 async function limpiarFixture(admin, staffDb, { tenantId }) {
+  // Los ARCHIVOS van primero: al borrar el reporte, las filas de `evidencias` se
+  // van por cascada y con ellas la única referencia a sus objetos de storage, que
+  // quedarían para siempre en el bucket. Se enumeran por carpeta de solicitud,
+  // igual que hace `import-gcarso.mjs --limpiar`.
+  const { data: solsArchivos } = await staffDb
+    .from("solicitudes")
+    .select("id, reporte:reportes!inner(tenant_id)")
+    .eq("reporte.tenant_id", tenantId);
+  for (const s of solsArchivos ?? []) {
+    const carpeta = `${tenantId}/${s.id}`;
+    const { data: objs } = await admin.storage.from("evidencias").list(carpeta);
+    if (objs?.length) {
+      await admin.storage.from("evidencias").remove(objs.map((o) => `${carpeta}/${o.name}`));
+    }
+  }
+
   // ORDEN OBLIGATORIO. `evidencias.subido_por` y `capturas_valor.capturado_por`
   // apuntan a `perfiles_usuario` con ON DELETE RESTRICT (la cadena de custodia no
   // admite huérfanos), así que borrar primero las cuentas falla en silencio y el
@@ -380,7 +396,37 @@ async function main() {
       .single();
     ok(internaDb?.origen === "cliente", `en la base nace con origen 'cliente' (${internaDb?.origen})`);
 
+    // El administrador del cliente puede EDITAR la suya, y al hacerlo no debe
+    // borrar lo que solo el staff escribe. Se comprueba con el responsable de
+    // IRStrat: su formulario no lo ofrece, así que llegaría vacío al servidor y un
+    // UPDATE que lo incluyera lo dejaría en null con solo guardar una fecha.
+    const staffIdParaResp = (await staffDb.auth.getUser()).data.user.id;
+    await staffDb
+      .from("solicitudes")
+      .update({ responsable_irstrat_id: staffIdParaResp })
+      .eq("id", solInternaId);
+    await ir(ac.page, `/admin/solicitudes/${solInternaId}/editar`);
+    await ac.page.fill("#fecha_limite", "2027-06-30");
+    await Promise.all([
+      ac.page.waitForURL(`**/admin/solicitudes/${solInternaId}`, { timeout: 30_000 }),
+      ac.page.getByRole("button", { name: "Guardar cambios" }).click(),
+    ]);
+    const { data: trasEditar } = await staffDb
+      .from("solicitudes")
+      .select("responsable_irstrat_id, fecha_limite")
+      .eq("id", solInternaId)
+      .single();
+    ok(
+      trasEditar?.fecha_limite === "2027-06-30",
+      `al editar la suya, el cambio se guarda (${trasEditar?.fecha_limite})`
+    );
+    ok(
+      trasEditar?.responsable_irstrat_id === staffIdParaResp,
+      "y NO borra el responsable de IRStrat que había asignado el staff"
+    );
+
     // Envío: pasa a 'solicitado' con el filtro de origen aplicado.
+    await ir(ac.page, `/admin/solicitudes/${solInternaId}`);
     await ac.page.getByRole("button", { name: "Enviar solicitud" }).click();
     await ac.page.waitForTimeout(1500);
     const { data: trasEnvio } = await staffDb
@@ -831,6 +877,21 @@ async function main() {
       "el menú del staff conserva sus secciones (Clientes)"
     );
 
+    // Y el acto del staff se le atribuye A ÉL en la bitácora del cliente, con su
+    // nombre y su rol. Sin la rama de bitácora en `perfiles_staff_visible_al_cliente`,
+    // esta entrada se le mostraba al cliente como «Sistema»: no un dato que falta,
+    // una atribución falsa.
+    await ir(ac.page, "/admin/bitacora");
+    ok(
+      (await ac.page.getByText("Analista IRStrat · IRStrat · Analista").count()) > 0,
+      "en la bitácora del cliente, el acto de IRStrat lleva su nombre y su rol"
+    );
+    const filasBitacora = ac.page.locator("li").filter({ hasText: "Cambio de estado" });
+    ok(
+      (await filasBitacora.filter({ hasText: "Sistema" }).count()) === 0,
+      "y ningún cambio de estado hecho por una persona aparece como “Sistema”"
+    );
+
     // -----------------------------------------------------------------------
     bloque("10) Toggle “carga por IRStrat” — apagado (default)");
     // -----------------------------------------------------------------------
@@ -971,12 +1032,16 @@ async function main() {
       "el historial dice “Cargado por [nombre] (IRStrat) en nombre de [área]”, con el nombre real"
     );
 
-    const { data: bitCarga } = await staffDb
-      .from("bitacora")
-      .select("detalle")
-      .eq("entidad", "evidencias")
-      .eq("entidad_id", evStaff[0].id)
-      .single();
+    // Sin `?.`, un fallo de la carga tiraría un TypeError que se llevaría por
+    // delante los bloques 13 y 14 — justo la cobertura del toggle.
+    const { data: bitCarga } = evStaff?.[0]?.id
+      ? await staffDb
+          .from("bitacora")
+          .select("detalle")
+          .eq("entidad", "evidencias")
+          .eq("entidad_id", evStaff[0].id)
+          .single()
+      : { data: null };
     ok(
       bitCarga?.detalle?.cargado_por_staff === true &&
         bitCarga?.detalle?.area_origen === "Capital Humano",
@@ -1000,7 +1065,12 @@ async function main() {
       .update({ staff_puede_cargar: false })
       .eq("id", tenantId)
       .select("id");
-    ok(!apagar.error, `el admin de IRStrat apaga el toggle (${apagar.error?.message ?? "ok"})`);
+    // `error: null` no basta: un UPDATE que RLS filtra devuelve 0 filas sin error,
+    // y esta aserción tiene que distinguir "lo apagó" de "no tocó nada".
+    ok(
+      !apagar.error && (apagar.data ?? []).length === 1,
+      `el admin de IRStrat apaga el toggle (${apagar.error?.message ?? `${(apagar.data ?? []).length} fila(s)`})`
+    );
 
     const { data: evTrasApagar } = await staffDb
       .from("evidencias")

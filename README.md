@@ -21,7 +21,9 @@ emisoras BMV (IRStrat / Vert).
   definición reutilizable (rubros canónicos + año relativo); cualquier cliente
   genera su Excel.
 - ✅ **Import de un cliente real (GCARSO)**: `scripts/import-gcarso.mjs` recrea el
-  proceso IAS 2025 de Grupo Carso, con extensión VERT del catálogo.
+  proceso IAS 2025 de Grupo Carso, con extensión VERT del catálogo, y
+  `scripts/import-gcarso-historico.mjs` suma el **comparativo 2024** (y 2023
+  donde la fuente lo trae) desde los documentos del proceso anterior.
 - ✅ **Rol admin-cliente (tier de autoservicio)**: un usuario del cliente
   administra su propio tenant desde el panel —crea solicitudes internas, las
   valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
@@ -578,10 +580,13 @@ analista, no administrador del cliente) — y el trigger
 > permitía: los perfiles de la firma quedaban fuera del alcance de un usuario con
 > tenant, así que el historial —y las observaciones, desde antes de este sprint—
 > mostraban "—". Se abre en **solo lectura**, y solo los perfiles que **aparecen
-> en lo que ese usuario ya puede ver** (quien subió su evidencia, capturó su valor
-> o comentó en su solicitud): así se puede poner el nombre sin que nadie pueda
-> enumerar el equipo de la firma. Un rastro que no dice quién no sirve para
-> aseguramiento.
+> en lo que ese usuario ya puede ver**: quien subió su evidencia, capturó su valor,
+> comentó en su solicitud **o dejó un acto en su bitácora**. Esa última rama importa
+> porque buena parte de lo que hace IRStrat solo deja rastro ahí (crear una
+> solicitud, cambiar su estado, congelar un reporte): sin ella el cliente veía esas
+> entradas como **«Sistema»**, que no es un dato que falte sino una atribución
+> falsa. Así se puede poner el nombre sin que nadie pueda enumerar el equipo de la
+> firma; un rastro que no dice quién no sirve para aseguramiento.
 
 > **GCARSO nace con el toggle encendido, y es un hecho del proceso real**, no una
 > conveniencia del script: la evidencia de Carso la subió IRStrat a partir del
@@ -767,6 +772,167 @@ como parte de NIIF S1/S2.
 > quedan ligadas a la hoja bloqueada `NIIF S1 46 a 50`, que se recaba pero no se
 > exporta. La recomendación registrada es escalarlo a dirección y contactar a
 > `licensing@sasb.org` **antes** de dar acceso a Grupo Carso.
+
+### Histórico: el comparativo 2024
+
+`scripts/import-gcarso-historico.mjs` (`pnpm import:gcarso-historico`) suma a las
+solicitudes que ya existen las cifras de **años anteriores** y la evidencia
+cualitativa del proceso previo. No crea solicitudes: requiere que el import de
+2025 haya corrido.
+
+```bash
+node scripts/import-gcarso.mjs             # primero el proceso 2025
+node scripts/import-gcarso-historico.mjs   # después el comparativo
+```
+
+La especificación autoritativa es la hoja **'Historico 2024'** del mapeo, que
+decide archivo por archivo si se capturan cifras o solo se adjunta evidencia, a
+qué destino y con qué regla. Las cifras del script son transcripción a mano de los
+documentos, y **cada captura lleva su cita** (sector/concepto + archivo y página)
+en `justificacion`, visible en la bitácora de la solicitud.
+
+**Tres reglas mandan sobre todo:**
+
+1. **El año es el año.** Cada cifra se captura con su periodo real. Nada se
+   "estira" a 2024 para llenar la columna comparativa. El caso que lo prueba:
+   `Número de Empleados 2024.docx` **no contiene 2024** —sus tablas son 2022 y
+   2023, más una serie 2019-2023—, así que se capturó como 2022 y 2023 y el hueco
+   de 2024 quedó declarado en la nota, no rellenado.
+2. **Los estados no cambian.** La hoja 8 lo dice: la captura histórica se suma a
+   la solicitud existente. Como el trigger de Fase 2 reabre a *en revisión* toda
+   solicitud validada que reciba una captura, el script **restaura el estado
+   original al final**. Nada se promueve a `validado` por venir del histórico. Lo
+   que sí se deja pasar es el avance automático `solicitado → recibido` de las que
+   recibieron evidencia: es la regla de la plataforma para "llegó evidencia".
+3. **Nada se inventa.** Solo cifras que los archivos contienen textualmente. No se
+   convierten unidades (el consumo eléctrico entra en MWh porque así lo declara la
+   fuente, no en GJ), no se suman perímetros distintos y no se fabrican
+   consolidados que el documento no declare. Donde la fuente **se contradice
+   consigo misma**, se captura la cifra de su tabla y la discrepancia queda escrita
+   en la cita: p. ej. el consumo eléctrico de Cables (105,102 en la p. 45 vs.
+   106,102 que suma la tabla de la p. 48) y el agua de Autopartes en 2023 (117,505
+   en la narrativa vs. 115,121 en la tabla por centro de trabajo).
+
+#### Qué entra, y qué no
+
+| Archivo | Qué se hizo |
+|---------|-------------|
+| `Reporte Anual Amb 2024 (17 jun 2025).pdf` (8.2 MB) | **58 capturas** de GEI por alcance, agua, energía y residuos, por sector y con año real (2023 y 2024), más **8 consolidados**. Se **recorta por sección** con `pdf-lib` y cada tabla recibe solo su parte: 2.6 MB en cuatro recortes en vez de 32.8 MB de copias del PDF completo. |
+| `Cursos capacitación GCarso 2024.xlsx` | 779,453 participantes (2024) y 8,708 brigadistas; los demás programas, como nota. |
+| `Resumen Responsabilidad Social 2024 (GS) (VFinal).xlsx` | 11,809 cursos de Grupo Sanborns (2024). Corrobora las cifras del archivo anterior. |
+| `Número de Empleados 2024.docx` | Plantilla total 2023 (94,458) y 2022 (94,827) — **el archivo no trae 2024**. |
+| `Sustentabilidad 2024 GCARSO 200525.docx` | Evidencia narrativa en distintivo ESR, comunidades y derechos humanos. |
+| `Salud Integral Sostenible … .docx` | Evidencia + nota con MIDO 2024 (17,731 valorados) y las tendencias 2023→2024. |
+| `Estrategia ASG de Condumex Jun-25.docx` | Evidencia en la solicitud de ética/anticorrupción de Industrial (su Pilar 3). |
+| `ASG (Autopartes).pdf` (10.0 MB) | Evidencia en la misma solicitud de Industrial. |
+
+**Total: 71 capturas nuevas** (47 de 2024, 23 de 2023, 1 de 2022), **14 evidencias**
+(14.7 MB) y **11 notas**.
+
+**Los consolidados, y por qué existen.** La plataforma muestra como *cifra vigente*
+la última captura confirmada, así que sin un total al cierre el dato visible de una
+tabla sería el de un sector cualquiera — el mismo problema que el import de 2025 ya
+resolvió poniendo su consolidado al final. Por eso el script inserta **por periodo
+ascendente y, dentro de cada uno, los sectores primero y su total después**: el
+orden no es cosmético.
+
+De 2024, GEI usa el total que el **propio reporte declara** (104,289 tCO₂e). Los
+demás no los declara nadie: el script los **suma en código a partir de las mismas
+entradas** —así una corrección de cifra corrige el total, no pueden separarse— y la
+captura queda etiquetada con sus componentes y con la aclaración de que la suma es
+del import, no del reporte. Los residuos se suman **por clase y nunca entre clases**:
+RSU, RME y RP son conceptos distintos y un total que los junte no significa nada; de
+2023 no hay total de ninguna clase porque el reporte solo trae comparativo de algunos
+sectores.
+
+El único par realmente comparable año contra año es el de **GEI**: el total de 2023
+(105,720 tCO₂e) se suma de los **mismos tres sectores** que componen el 104,289 de
+2024 —Autopartes, Cables y CIDEC—, así que ahí sí hay comparativo de perímetro contra
+perímetro. Los totales de agua y energía de 2023 y 2024 **no** lo son, y lo dice su
+etiqueta: el propio reporte señala que en 2024 amplió su alcance con 12 centros
+adicionales.
+
+Lo que la hoja 8 marca como **NO importar** se respeta: los informes completos de
+27 MB y 83 MB, el mapeo GRI (Fase 4), el cronograma interno y —bloqueado por
+licenciamiento— el mapeo SASB y la norma oficial de la IFRS Foundation.
+
+**Dónde se desvió del Destino de la spec, y por qué.** La hoja 8 manda el resumen
+de Grupo Sanborns a "solicitudes sociales de Comercial" y el deck de Autopartes a
+"cualitativas de Industrial", pero su propia regla es *"solo lo que mapee claro"*.
+Comercial no tiene ninguna solicitud de plantilla o capacitación (sus sociales son
+rotación y salarios en tienda, que el archivo no cubre), así que sus cifras fueron
+a las corporativas de capacitación, que es lo que el archivo contiene. Y el
+`Estrategia ASG de Condumex` no se adjuntó a la solicitud de *materiales críticos*
+de Industrial porque no trata el tema. Adjuntar un documento a una solicitud que no
+sostiene es peor que dejarla sin evidencia.
+
+#### Qué pasa si el import falla a mitad
+
+La restauración de estados corre en un **`finally`**, no al final del camino
+feliz. Si una subida devuelve 4xx o la sesión caduca después de que las primeras
+capturas ya reabrieron las solicitudes validadas, esas solicitudes volverían a su
+estado y el script diría por qué abortó. Una restauración que solo ocurre cuando
+todo sale bien no restaura nada. Probado: quitando un archivo fuente a mitad de la
+corrida, el import aborta con su error y las 6 solicitudes validadas de GCARSO
+siguen validadas.
+
+Y como es idempotente, el remedio de un fallo parcial es **volver a correrlo**:
+detecta lo ya escrito, completa lo que falta y reintenta la restauración.
+
+#### Peso de los archivos (punto abierto de la spec)
+
+`ASG (Autopartes).pdf` mide **10.0 MB** y **entró sin problema**: el bucket
+`evidencias` no declara límite propio, así que hereda el global del proyecto
+(50 MiB en `supabase/config.toml`). El script mide cada archivo al subirlo, reporta
+los mayores de 8 MB y **se niega a forzar** cualquiera que exceda el límite,
+sugiriendo el recorte en su lugar. Si el ambiente de despliegue tuviera un tope más
+bajo, el recorte natural es por tema —Becas Telmex, ASUME, Bienestar Social,
+gobernanza— con el mismo `pdf-lib` que ya recorta el Reporte Ambiental.
+
+#### El comparativo 2024 de la plantilla oficial sigue vacío, y por qué
+
+Esta es la conclusión importante y no se maquilló. En el Excel de taxonomía, la
+única celda con columna comparativa que tiene solicitud detrás es **Alcance 1**, y
+la alimenta la solicitud de **Materiales** (Elementia + Fortaleza, 2,643,446.803 t
+en 2025). **Ninguno de los ocho documentos históricos cubre a Materiales**: el
+Reporte Anual Ambiental 2024 declara en su p. 5 que cubre dos subsidiarias —Carso
+Infraestructura y Construcción, y Grupo Condumex (con Nacobre y Logtec)— más CIDEC
+y las oficinas corporativas. Su total declarado de 104,289 tCO₂e son Autopartes +
+Cables + CIDEC.
+
+Poner esa cifra en la columna 2024 de esa fila habría empalmado dos perímetros
+distintos en un mismo comparativo: exactamente el tipo de error que un
+aseguramiento limitado busca. Así que la celda **sigue diciendo
+`Sin evidencia (2024)`** y las 58 capturas ambientales viven donde les corresponde,
+en las tablas de desempeño corporativas, con su cita y su perímetro declarado en la
+nota.
+
+**Para cerrarlo hay dos caminos, y ninguno es técnico — los decide dirección:**
+
+1. **Pedir el dato que falta.** Las **emisiones de Alcance 1 de 2024 de Elementia y
+   Fortaleza Materiales**, el mismo perímetro que Carso entregó para 2025. Con eso
+   el comparativo se llena solo, sin tocar nada más. Es el camino limpio.
+2. **Mover el rubro a la tabla corporativa de GEI.** Es más ambicioso y hay un
+   hallazgo que lo hace tentador: el checklist de 2025 **sí trae el GEI consolidado
+   de todo Grupo Carso** en su hoja `Ambiental` (fila *Total GCarso*: Alcance 1
+   2,858,744.568 t y Alcance 2 599,841.699 t), pero el import de 2025 **no lo
+   capturó** — la solicitud «Tabla Desempeño Ambiental. Gases Efecto Invernadero»
+   quedó sin cifras de 2025, y por eso su valor vigente hoy es el total 2024 del
+   histórico. Capturar ese 2025 y mover ahí el rubro daría un Alcance 1 de grupo con
+   comparativo real… **pero cambiaría la cifra de 2025 que ya está validada** en la
+   plantilla oficial (de 2,643,446.803 a 2,858,744.568). Eso no se hace sin
+   autorización explícita: es reemplazar un dato de un entregable ya revisado.
+
+Ninguna de las dos se aplicó. Lo que sí está listo es el mecanismo: el momento en
+que exista una captura validada del año anterior en la solicitud del rubro, la
+columna se llena y la nota de brecha desaparece (probado en `verify:export`).
+
+`verify:export` cubre las dos caras del asunto: en el cliente de verificación
+comprueba que **la columna comparativa SÍ se llena** cuando existe captura validada
+del año anterior (y que la nota de brecha desaparece sola al cerrarse el hueco), y
+en GCARSO comprueba que sigue vacía **porque el histórico no cubre a Materiales** —
+no porque el import no haya corrido: verifica que el reporte tiene sus 42 capturas
+de 2024 y sus 20 de 2023, y que ninguna se colgó de la solicitud del rubro.
 
 ## Documentación
 

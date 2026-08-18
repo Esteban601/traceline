@@ -419,11 +419,19 @@ async function main() {
         Number(cellText(g1, "C3")) === 1234.5,
         `C3 (Alcance 1, ${fixture.ejercicio} validado) = 1234.5 — año RELATIVO resuelto`
       );
-      // El año anterior no tiene captura: hueco por 'Sin evidencia', no por otra causa.
-      ok(cellText(g1, "D3") === "", `D3 (Alcance 1, ${fixture.ejercicio - 1}) VACÍA`);
+      // AÑO COMPARATIVO: con captura validada del año anterior, la columna se
+      // LLENA. Es la garantía que pide el import del histórico: llenar las
+      // columnas que hoy dicen 'Sin evidencia (AAAA)' donde ya haya captura
+      // validada de ese año.
       ok(
-        cellText(g1, "E3") === `Sin evidencia (${fixture.ejercicio - 1})`,
-        `E3 = 'Sin evidencia (${fixture.ejercicio - 1})'`
+        Number(cellText(g1, "D3")) === fixture.valorComparativo,
+        `D3 (Alcance 1, ${fixture.ejercicio - 1} validado) = ${fixture.valorComparativo} — la columna comparativa se llena`
+      );
+      // Y sin huecos en la fila, la celda de notas queda VACÍA: la nota de brecha
+      // desaparece sola cuando el hueco se cierra.
+      ok(
+        cellText(g1, "E3") === "",
+        `E3 sin nota de brecha: la fila del Alcance 1 quedó completa (${fixture.ejercicio - 1} y ${fixture.ejercicio})`
       );
 
       // Rubros mapeados que este reporte NO pide: causa NUEVA y distinta.
@@ -515,10 +523,44 @@ async function main() {
       Math.abs(Number(cellText(c1, "C3")) - 2643446.803) < 0.01,
       `Alcance 1 2025 = suma real de Materiales (${cellText(c1, "C3")})`
     );
+    // COMPARATIVO 2024 de la plantilla oficial. Sigue vacío DESPUÉS del import del
+    // histórico, y la razón está medida más abajo: la celda la alimenta la
+    // solicitud de Materiales (Elementia + Fortaleza) y ninguno de los documentos
+    // históricos entregados cubre a Materiales — el Reporte Anual Ambiental 2024
+    // cubre CICSA, Condumex, CIDEC y corporativo. Llenarla con las cifras de esos
+    // sectores empalmaría dos perímetros distintos en la misma fila comparativa.
     ok(
       cellText(c1, "D3") === "" && cellText(c1, "E3") === "Sin evidencia (2024)",
-      "2024 vacío con su causa: el proceso real no entregó comparativo"
+      "2024 vacío con su causa: el histórico entregado no cubre a Materiales, que es quien alimenta la celda"
     );
+
+    // Y se comprueba que la causa es esa y no que el histórico no corrió: el
+    // reporte SÍ tiene capturas 2024, solo no en la solicitud del rubro.
+    const { data: capsHist } = await client
+      .from("capturas_valor")
+      .select("periodo, solicitud:solicitudes!inner(reporte_id, rubro_taxonomia)")
+      .eq("solicitud.reporte_id", repCarso.id)
+      .in("periodo", ["2023", "2024"]);
+    const hist = capsHist ?? [];
+    if (hist.length === 0) {
+      console.log(
+        "  (histórico no importado: corre `node scripts/import-gcarso-historico.mjs` " +
+          "para verificar también el comparativo)"
+      );
+    } else {
+      ok(
+        hist.filter((c) => c.periodo === "2024").length > 0,
+        `el histórico dejó capturas 2024 en el reporte (${hist.filter((c) => c.periodo === "2024").length})`
+      );
+      ok(
+        hist.filter((c) => c.periodo === "2023").length > 0,
+        `y capturas 2023 con su año real, sin estirarlas a 2024 (${hist.filter((c) => c.periodo === "2023").length})`
+      );
+      ok(
+        hist.every((c) => c.solicitud?.rubro_taxonomia == null),
+        "ninguna de esas capturas se colgó de la solicitud que alimenta la plantilla oficial"
+      );
+    }
     // Rubros que el reporte de Carso no pide: causa propia, distinta.
     ok(
       cellText(c1, "E4") === "Sin solicitud en el reporte" &&
@@ -572,6 +614,13 @@ const FIXTURE = {
   prefijo: "VXP",
   ejercicio: 2026,
   valor: 1234.5,
+  /**
+   * Valor del AÑO COMPARATIVO (ejercicio - 1). Existe para probar la columna que
+   * el import del histórico viene a llenar: sin una captura validada del año
+   * anterior, la celda del comparativo queda en blanco con su nota de brecha, y
+   * el único modo de saber que se llena cuando SÍ la hay es probarlo.
+   */
+  valorComparativo: 987.65,
 };
 
 async function crearFixture(client, rastro = {}) {
@@ -656,6 +705,21 @@ async function crearFixture(client, rastro = {}) {
     confirmado: true,
   });
   if (cErr) throw new Error(`no se pudo crear la captura: ${cErr.message}`);
+
+  // Captura del AÑO COMPARATIVO, sobre la MISMA solicitud: es exactamente la
+  // forma que tiene un histórico (mismo concepto, mismo perímetro, otro año), y
+  // es lo que debe llenar la columna del año anterior en la plantilla oficial.
+  const { error: cCompErr } = await client.from("capturas_valor").insert({
+    solicitud_id: solicitud.id,
+    evidencia_id: evidencia.id,
+    valor: FIXTURE.valorComparativo,
+    unidad: "tCO2e",
+    periodo: String(FIXTURE.ejercicio - 1),
+    capturado_por: staffId,
+    confirmado: true,
+    justificacion: "Comparativo del ejercicio anterior (histórico).",
+  });
+  if (cCompErr) throw new Error(`no se pudo crear la captura comparativa: ${cCompErr.message}`);
 
   // 'validado' AL FINAL: los triggers de Fase 2 reabren la solicitud en cada
   // inserción de evidencia/captura (mismo orden que usa el seed).

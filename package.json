@@ -8,6 +8,7 @@
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
     "verify:export": "node scripts/verify-export.mjs",
+    "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
     "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs"
   },
   "engines": {

@@ -125,8 +125,15 @@ capas** para todos los roles de aplicación (`authenticated`, `anon`):
 Correcciones ⇒ **filas nuevas** (nunca `UPDATE`). En `capturas_valor` la
 corrección se marca con `confirmado` (la fila anterior queda `confirmado=false`).
 
-> Nota: el rol `postgres` (migraciones/seed) y `service_role` hacen bypass; la
-> inmutabilidad protege el acceso de la aplicación, que corre como `authenticated`.
+> Nota: el rol `postgres` (migraciones/seed) hace bypass; la inmutabilidad protege
+> el acceso de la aplicación, que corre como `authenticated`.
+>
+> **`service_role` tampoco puede borrarlas**, y conviene no confundirlo: salta RLS,
+> pero los GRANT son otra cosa y no los tiene. Medido: `service_role` solo tiene
+> `SELECT` en `comentarios` y ninguna escritura en `evidencias` ni
+> `capturas_valor`. Así que ni un script con la llave de servicio retracta
+> evidencia fila por fila — el único borrado posible es **por cascada** desde el
+> reporte o el tenant, que es justo el que usa `import-gcarso.mjs --limpiar`.
 
 ---
 
@@ -231,13 +238,21 @@ cierra aquí porque la carga por IRStrat lo volvió evidente.)
 
 Lo que se abre NO es "el staff", son **los perfiles que aparecen en lo que ese
 usuario ya puede ver**: quien subió una evidencia suya, quien capturó un valor
-suyo o quien comentó en una de sus solicitudes (tres `EXISTS` acotados por
-`fn_puede_ver_solicitud`, con índices en `evidencias.subido_por`,
-`capturas_valor.capturado_por` y `comentarios.autor_id`). La diferencia importa
-porque **RLS es a nivel de fila, no de columna**: una política de "todo el staff"
-habría dejado enumerar por REST el equipo completo de la firma con sus correos y
-sus roles, que es mucho más de lo que hace falta para poner un nombre en un
-historial.
+suyo, quien comentó en una de sus solicitudes (tres `EXISTS` acotados por
+`fn_puede_ver_solicitud`) **o quien dejó un acto en la bitácora de su tenant**.
+Índices en `evidencias.subido_por`, `capturas_valor.capturado_por`,
+`comentarios.autor_id` y `bitacora.usuario_id`.
+
+La cuarta rama no es un extra: buena parte de lo que hace IRStrat **solo** deja
+rastro en la bitácora —crear una solicitud, cambiar su estado, congelar un reporte,
+mover el toggle de carga—, y sin ella el embed devolvía `null` y `actorBitacora`
+pintaba esas entradas como **«Sistema»**. Eso es peor que un hueco: es atribuirle a
+un proceso automático algo que hizo una persona.
+
+La diferencia con abrir "todo el staff" importa porque **RLS es a nivel de fila, no
+de columna**: una política sin acotar habría dejado enumerar por REST el equipo
+completo de la firma con sus correos y sus roles, que es mucho más de lo que hace
+falta para poner un nombre en un historial.
 
 **Por qué el administrador del cliente lee la taxonomía.** Su tier incluye "su
 cobertura, con el export de su Excel", y esa vista **es** el catálogo de la norma.
