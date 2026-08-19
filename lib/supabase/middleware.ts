@@ -72,7 +72,7 @@ export async function updateSession(request: NextRequest) {
     // y tenants_select el tenant propio, así que este join no necesita privilegios.
     const { data: perfil } = await supabase
       .from("perfiles_usuario")
-      .select("tenant_id, rol, tenants(activo)")
+      .select("tenant_id, rol, debe_cambiar_password, tenants(activo)")
       .eq("id", user.id)
       .single();
     const esStaff = perfil != null && perfil.tenant_id === null;
@@ -101,9 +101,21 @@ export async function updateSession(request: NextRequest) {
       return salida;
     }
 
+    // Contraseña temporal: no hay más navegación que cambiarla. Va ANTES de
+    // cualquier otro ruteo —incluido el de /login → home— porque su "home"
+    // mientras el flag esté encendido es /restablecer. Las rutas públicas quedan
+    // fuera a propósito: /restablecer es una de ellas (si no, el redirect sería
+    // a sí mismo, en bucle) y también el camino para salirse (/login) y el de
+    // /auth.
+    if (perfil?.debe_cambiar_password && !esPublica) {
+      return redirigir("/restablecer");
+    }
+
     // Ya autenticado en /login → a su home según rol.
     if (pathname === "/login") {
-      return redirigir(entraAlPanel ? "/admin" : "/portal");
+      return redirigir(
+        perfil?.debe_cambiar_password ? "/restablecer" : entraAlPanel ? "/admin" : "/portal"
+      );
     }
 
     // El panel es para el staff y para el administrador del cliente; el usuario

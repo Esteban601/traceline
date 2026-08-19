@@ -85,8 +85,11 @@ from (values
 -- =============================================================================
 -- 2. Tenant demo
 -- =============================================================================
-insert into public.tenants (id, nombre, slug, prefijo_folio, activo)
-values ('10000000-0000-0000-0000-000000000001', '[DEMO] Empresa Demo SAB', 'empresa-demo-sab', 'DEMO', true);
+-- `es_demo = true` explícito: es la ÚNICA emisora de demostración. De ella
+-- dependen la franja "Entorno de demostración" en sus sesiones y el pie [DEMO]
+-- de su Excel. Un cliente real nace con el default (false).
+insert into public.tenants (id, nombre, slug, prefijo_folio, activo, es_demo)
+values ('10000000-0000-0000-0000-000000000001', '[DEMO] Empresa Demo SAB', 'empresa-demo-sab', 'DEMO', true, true);
 
 -- Catálogo de áreas del tenant demo. Son las MISMAS que usan sus usuarios y sus
 -- solicitudes (no se inventan áreas nuevas): el catálogo solo las hace

@@ -1,12 +1,13 @@
-import { IS_STAGING } from "@/lib/app";
-
 /**
- * Franja discreta y permanente para el entorno de demostración. Solo se renderiza
- * con NEXT_PUBLIC_STAGING=true (Heroku); en local es null y no altera el layout.
+ * Franja de emisora de demostración. Se renderiza cuando la sesión pertenece a
+ * un tenant con `es_demo = true` —lo decide quien la monta, no una variable de
+ * ambiente—, porque en el mismo despliegue conviven la demo y clientes con datos
+ * reales: una franja global le diría "datos ilustrativos" a Grupo Carso encima
+ * de su información real.
+ *
  * Crema sobre teal (tokens de DESIGN.md), no invasiva.
  */
-export function StagingBanner() {
-  if (!IS_STAGING) return null;
+export function BannerDemo() {
   return (
     <div
       role="note"

@@ -9,7 +9,9 @@
     "lint": "eslint",
     "verify:export": "node scripts/verify-export.mjs",
     "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
-    "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs"
+    "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs",
+    "e2e:banner-demo": "node scripts/e2e-banner-demo.mjs",
+    "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs"
   },
   "engines": {
     "node": "22.x"

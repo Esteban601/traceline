@@ -42,6 +42,8 @@ versionan**. Los `.env*` no (usa `.env.example` como plantilla).
 | … | `20260821130000_alcance_bitacora_policy.sql` | Vuelve a declarar `perfiles_staff_visible_al_cliente` con su rama de bitácora. Existe porque esa rama se añadió al archivo de `20260820130000` **después** de que ya estuviera aplicado a staging: en vez de confiar en qué versión quedó en cada ambiente, esta migración converge los dos. **Regla que queda:** una migración aplicada no se edita, se corrige con otra. |
 | … | `20260821120000_nota_alcance.sql` | `solicitudes.nota_alcance`: salvedad de perímetro que el export agrega a la celda de Notas/Brechas. |
 | … | `20260820130000_admin_cliente.sql` | Rol admin-cliente: `solicitudes.origen`, `tenants.staff_puede_cargar`, `evidencias.cargado_por_staff`, sus políticas RLS, los triggers de la regla de origen y del toggle, y `fn_renombrar_area`. |
+| … | `20260822120000_tenant_es_demo.sql` | `tenants.es_demo` + `trg_tenant_es_demo`: la etiqueta de demostración deja de ser del ambiente (`NEXT_PUBLIC_STAGING`) y pasa a ser del cliente. Backfill por el prefijo `[DEMO]` del nombre; default `false` (un cliente nuevo nace real). |
+| … | `20260822130000_debe_cambiar_password.sql` | `perfiles_usuario.debe_cambiar_password` + `grant update (debe_cambiar_password) … to service_role`: cambio forzado cuando la contraseña se entregó por un canal externo. |
 
 ---
 
@@ -150,7 +152,8 @@ corrección se marca con `confirmado` (la fila anterior queda `confirmado=false`
 | `trg_solicitud_origen_transicion` | BEFORE UPDATE `solicitudes` | **Regla dura de origen**: las de `origen='irstrat'` solo las transiciona el staff; las de `origen='cliente'`, solo el `admin_cliente` de ese tenant. Excepciones deliberadas: el **congelamiento** (acto de IRStrat sobre el reporte) y las **transiciones automáticas** por llegada de evidencia/captura, que los triggers marcan con el ajuste local `app.transicion_automatica`. |
 | `trg_comentario_observacion_origen` | BEFORE INSERT `comentarios` | Una **observación formal** (`es_observacion`) solo la registra el lado dueño del origen. Cierra además un hueco previo: la política de `comentarios` dejaba marcar el flag a cualquiera con acceso. |
 | `trg_evidencia_marca_carga` | BEFORE INSERT `evidencias` | Si quien inserta es staff, exige `tenants.staff_puede_cargar` y `area_origen`, y **calcula** `cargado_por_staff = true`. Si no es staff, la fija en `false`. La aplicación nunca escribe esa marca: por eso es inborrable. |
-| `trg_tenant_toggle_carga_staff` | BEFORE UPDATE `tenants` | `staff_puede_cargar` solo lo cambia el rol `admin` de IRStrat. |
+| `trg_tenant_toggle_carga_staff` | BEFORE INSERT OR UPDATE `tenants` | `staff_puede_cargar` solo lo cambia el rol `admin` de IRStrat. Cubre el INSERT porque dar de alta un cliente ya encendido es otra forma de cambiarlo. |
+| `trg_tenant_es_demo` | BEFORE INSERT OR UPDATE `tenants` | `es_demo` solo lo cambia el rol `admin` de IRStrat, por la misma razón y con la misma forma: marcar (o desmarcar) una emisora cambia lo que su propio entregable dice de sí mismo. |
 
 Las funciones de trigger son `SECURITY DEFINER` para poder escribir en
 `bitacora` a pesar de que el `INSERT` directo esté revocado: la bitácora solo
@@ -263,6 +266,28 @@ Se abre en **solo lectura** (`datapoints_taxonomia`, `rubros_taxonomia`,
 `mapeo_export`, y `mapeo_solicitud_datapoint` acotado a las solicitudes que ya
 puede ver). La **escritura** del catálogo y del mapeo NIIF sigue siendo exclusiva
 del staff, y los usuarios de área (`cliente`) no ven nada de esto.
+
+---
+
+## Etiqueta de demostración y contraseña temporal
+
+| Objeto | Qué es |
+|--------|--------|
+| `tenants.es_demo` (mig. `20260822120000`) | `true` = emisora de **demostración**: sus sesiones muestran la franja «Entorno de demostración» y su Excel de taxonomía lleva el pie `[DEMO]`. `NOT NULL default false`: un cliente nuevo nace **real**, porque el costo de equivocarse en ese sentido (una franja de más) es menor que el contrario. Antes las dos marcas se inferían del prefijo `[DEMO]` del **nombre**: renombrar una emisora le cambiaba el entregable. El `noindex/nofollow` **no** depende de esta columna: es propiedad de la URL y sigue siendo global. |
+| `perfiles_usuario.debe_cambiar_password` (mig. `20260822130000`) | `true` = la contraseña vigente es **temporal** y se entregó por un canal externo (dictada, impresa). Mientras esté encendida, el ingreso y el middleware fuerzan `/restablecer` y ninguna otra vista se renderiza. La apaga el servidor con `service_role` **después** de que `auth.updateUser` cambió la contraseña, o el canje de invitación. |
+
+**Por qué el apagado no es una función `security definer`.** Sería una RPC que
+cualquier sesión podría llamar desde el navegador para saltarse el cambio sin
+cambiar nada. El camino queda dentro de la acción que ya comprobó el cambio, y el
+privilegio se concede **por columna**:
+
+```sql
+grant update (debe_cambiar_password) on public.perfiles_usuario to service_role;
+```
+
+Es el patrón de la casa aplicado al detalle: `service_role` no tiene escritura por
+default sobre `perfiles_usuario` (medido: solo `SELECT`), y aquí gana exactamente
+un campo — ni rol, ni tenant, ni área.
 
 ---
 

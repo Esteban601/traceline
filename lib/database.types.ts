@@ -646,6 +646,7 @@ export type Database = {
           activo: boolean
           area: string | null
           created_at: string
+          debe_cambiar_password: boolean
           email: string
           id: string
           nombre: string
@@ -656,6 +657,7 @@ export type Database = {
           activo?: boolean
           area?: string | null
           created_at?: string
+          debe_cambiar_password?: boolean
           email: string
           id: string
           nombre: string
@@ -666,6 +668,7 @@ export type Database = {
           activo?: boolean
           area?: string | null
           created_at?: string
+          debe_cambiar_password?: boolean
           email?: string
           id?: string
           nombre?: string
@@ -1033,6 +1036,7 @@ export type Database = {
         Row: {
           activo: boolean
           created_at: string
+          es_demo: boolean
           id: string
           logo_url: string | null
           nombre: string
@@ -1043,6 +1047,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           created_at?: string
+          es_demo?: boolean
           id?: string
           logo_url?: string | null
           nombre: string
@@ -1053,6 +1058,7 @@ export type Database = {
         Update: {
           activo?: boolean
           created_at?: string
+          es_demo?: boolean
           id?: string
           logo_url?: string | null
           nombre?: string

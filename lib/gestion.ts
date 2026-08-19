@@ -74,6 +74,27 @@ export function puedeEliminarSolicitud(
  * Server-only (usa Web Crypto). Formato: 4 bloques de 4 (letras sin ambiguas +
  * dígitos) separados por '-' y un símbolo final, p. ej. "k7Ra-9mPq-3xTn-h2Kd!".
  */
+/**
+ * Contraseña temporal LEGIBLE, en formato `XXXX-xxxx-0000`: un bloque de
+ * mayúsculas, uno de minúsculas y uno de dígitos. Es para las cuentas cuya
+ * contraseña se entrega por un canal externo —dictada, o impresa en un manual—,
+ * donde el costo de un carácter confundible lo paga quien la teclea.
+ *
+ * Por eso el alfabeto excluye lo ambiguo (I/l/1, O/0) y por eso viene siempre
+ * acompañada de `debe_cambiar_password`: se entrega para entrar a cambiarla, no
+ * para usarla.
+ */
+export function generarPasswordLegible(): string {
+  const MAY = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // sin I ni O
+  const MIN = "abcdefghijkmnpqrstuvwxyz";   // sin l ni o
+  const NUM = "23456789";                   // sin 0 ni 1
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  const bloque = (abc: string, desde: number) =>
+    Array.from({ length: 4 }, (_, i) => abc[bytes[desde + i] % abc.length]).join("");
+  return `${bloque(MAY, 0)}-${bloque(MIN, 4)}-${bloque(NUM, 8)}`;
+}
+
 export function generarPasswordTemporal(): string {
   const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
   const bytes = new Uint8Array(16);

@@ -33,7 +33,7 @@ export async function login(
   // solo rutas internas para evitar open redirect).
   const { data: perfil } = await supabase
     .from("perfiles_usuario")
-    .select("tenant_id, rol, tenants(activo)")
+    .select("tenant_id, rol, debe_cambiar_password, tenants(activo)")
     .eq("id", data.user.id)
     .single();
 
@@ -44,6 +44,15 @@ export async function login(
     return {
       error: "El acceso de tu organización está desactivado. Contacta al equipo de IRStrat.",
     };
+  }
+
+  // Contraseña temporal: el destino es cambiarla, y se decide AQUÍ. El
+  // middleware también lo impone en cada request, pero si el destino de este
+  // redirect fuera /admin o /portal, la navegación acabaría mostrando
+  // /restablecer con la URL anterior en la barra: el rebote ocurre durante la
+  // misma navegación y el router no reescribe la dirección.
+  if (perfil?.debe_cambiar_password) {
+    redirect("/restablecer");
   }
 
   if (perfil != null && puedeEntrarPanel(perfil)) {

@@ -14,6 +14,11 @@ export type PerfilActual = {
   rol: Rol;
   tenant_id: string | null;
   email: string;
+  /**
+   * ¿Su contraseña vigente es la TEMPORAL que se le entregó por fuera? Mientras
+   * sea true no se le renderiza ninguna vista: cambia la contraseña primero.
+   */
+  debe_cambiar_password: boolean;
 };
 
 /** Perfil del usuario autenticado (o null si no hay sesión / perfil). */
@@ -26,7 +31,7 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
 
   const { data } = await supabase
     .from("perfiles_usuario")
-    .select("id, nombre, area, rol, tenant_id, email")
+    .select("id, nombre, area, rol, tenant_id, email, debe_cambiar_password")
     .eq("id", user.id)
     .single();
 
@@ -70,6 +75,12 @@ export type TenantActual = {
   activo: boolean;
   /** ¿IRStrat tiene habilitada la carga de evidencia para este cliente? */
   staff_puede_cargar: boolean;
+  /**
+   * ¿Es una emisora de demostración? Decide la franja "Entorno de demostración"
+   * en SUS sesiones y el pie [DEMO] de SU Excel. No es propiedad del ambiente:
+   * en el mismo despliegue conviven la demo y clientes reales.
+   */
+  es_demo: boolean;
 };
 
 /**
@@ -85,7 +96,7 @@ export async function getTenantDe(
   const supabase = await createClient();
   const { data } = await supabase
     .from("tenants")
-    .select("id, nombre, logo_url, prefijo_folio, activo, staff_puede_cargar")
+    .select("id, nombre, logo_url, prefijo_folio, activo, staff_puede_cargar, es_demo")
     .eq("id", perfil.tenant_id)
     .single();
 

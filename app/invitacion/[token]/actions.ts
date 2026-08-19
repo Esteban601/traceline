@@ -113,6 +113,18 @@ export async function establecerContrasena(
     };
   }
 
+  // Canjear la invitación TAMBIÉN cierra un cambio forzado pendiente: la
+  // contraseña que acaba de establecer es suya, no la temporal que alguien más
+  // conocía. Sin esto, una cuenta con el flag encendido que entrara por la liga
+  // quedaría rebotando a /restablecer para siempre.
+  const { error: flagErr } = await admin
+    .from("perfiles_usuario")
+    .update({ debe_cambiar_password: false })
+    .eq("id", invitacion.perfil_id);
+  if (flagErr) {
+    console.error("[invitacion] no se pudo apagar debe_cambiar_password:", flagErr.message);
+  }
+
   await logEvento(admin, {
     tenantId: invitacion.tenant_id,
     usuarioId: perfilInvitado.id,

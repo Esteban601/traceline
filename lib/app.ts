@@ -13,9 +13,13 @@ export const APP_URL = (
 ).replace(/\/+$/, "");
 
 /**
- * ¿Estamos en el ambiente de staging/demostración? Se activa con
- * NEXT_PUBLIC_STAGING=true (config var solo en Heroku). En local queda false → sin
- * banner ni noindex, sin cambio de comportamiento. Es NEXT_PUBLIC (se inlinea en
- * build) para poder leerse tanto en servidor como en cliente si hiciera falta.
+ * ¿Es un despliegue SIN dominio propio, que no debe indexarse? Se activa con
+ * NEXT_PUBLIC_STAGING=true (config var solo en Heroku). En local queda false, sin
+ * cambio de comportamiento.
+ *
+ * Solo gobierna el noindex/nofollow del layout, que es una propiedad de la URL.
+ * La franja "Entorno de demostración" YA NO depende de esto: es del tenant
+ * (`tenants.es_demo`), porque en el mismo despliegue conviven la emisora demo y
+ * clientes con datos reales, y una franja global le mentiría a estos últimos.
  */
 export const IS_STAGING = process.env.NEXT_PUBLIC_STAGING === "true";

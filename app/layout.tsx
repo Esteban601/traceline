@@ -3,7 +3,6 @@ import { Sora, Inter } from "next/font/google";
 import "./globals.css";
 import { APP_NAME, IS_STAGING } from "@/lib/app";
 import { ToastProvider } from "@/components/ui/toast";
-import { StagingBanner } from "@/components/staging-banner";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -25,7 +24,8 @@ export const metadata: Metadata = {
   },
   description:
     "Portal de recabado y trazabilidad de evidencia de sostenibilidad (NIIF S1/S2).",
-  // En staging bloqueamos indexación (datos demo, no debe aparecer en buscadores).
+  // Sin dominio propio, este despliegue no debe aparecer en buscadores. Es global
+  // a propósito: no depende de qué tenant tenga la sesión (ni de si hay sesión).
   ...(IS_STAGING ? { robots: { index: false, follow: false } } : {}),
 };
 
@@ -37,7 +37,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${sora.variable} ${inter.variable}`}>
       <body className="antialiased">
-        <StagingBanner />
+        {/* La franja de demostración NO va aquí: este layout no sabe de qué
+            tenant es la sesión (y en /login no hay ninguna). La montan los
+            layouts autenticados, que ya resuelven el tenant. */}
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

@@ -973,6 +973,167 @@ en GCARSO comprueba que sigue vacía **porque el histórico no cubre a Materiale
 no porque el import no haya corrido: verifica que el reporte tiene sus 42 capturas
 de 2024 y sus 20 de 2023, y que ninguna se colgó de la solicitud del rubro.
 
+## La etiqueta de demostración es del cliente, no del ambiente
+
+Hasta este sprint la franja **«Entorno de demostración — datos ilustrativos»** se
+prendía con `NEXT_PUBLIC_STAGING`, una propiedad del **despliegue**. Desde que
+Grupo Carso opera en ese mismo despliegue, la franja **mentía** en la cabeza de
+cada pantalla: sus datos son reales y su entregable es oficial.
+
+La etiqueta ahora es del tenant: **`tenants.es_demo`**.
+
+| | Empresa Demo | Grupo Carso (y cualquier cliente nuevo) |
+|---|---|---|
+| `es_demo` | `true` (seed) | `false` (**default** de la columna) |
+| Franja en el portal | sí | no |
+| Franja en su panel (admin-cliente) | sí | no |
+| Pie `[DEMO]` en el Excel de taxonomía | sí | no |
+
+- **El default es `false` a propósito.** Los dos errores no cuestan lo mismo: una
+  franja de más en una demo es un detalle; una franja de menos sobre datos demo
+  presentados como oficiales es un problema de credibilidad. Se elige el que
+  falla del lado seguro *para el cliente real*, que es quien firma el reporte.
+- **El pie del Excel sigue la columna, no el nombre.** Antes se infería del
+  prefijo `[DEMO]` del nombre del tenant: renombrar una emisora cambiaba su
+  entregable. Ahora `es_demo` decide las dos marcas —la franja y el pie— y no hay
+  dos fuentes de verdad que se puedan contradecir.
+- **El `noindex/nofollow` se conserva GLOBAL** (`NEXT_PUBLIC_STAGING`, en
+  `app/layout.tsx`). No depende del tenant ni de que haya sesión: es una
+  propiedad de la URL, que no tiene dominio propio y no debe indexarse. `/login`
+  no lleva franja —no hay tenant del que decirla— y sí lleva el `noindex`.
+- **Quién la mueve:** solo el rol `admin` de IRStrat, impuesto por el trigger
+  `trg_tenant_es_demo` en INSERT **y** UPDATE (dar de alta una emisora ya marcada
+  es otra forma de marcarla). El analista no puede; el administrador del cliente,
+  tampoco.
+- **No hay switch en la UI, y es deliberado** (revisable): la etiqueta se fija en
+  el seed o en una migración. Si mañana hace falta una demo nueva para un
+  prospecto, hoy se marca con SQL como administrador —
+  `update public.tenants set es_demo = true where slug = '<slug>';` — y el switch
+  en la ficha del cliente queda como pendiente, junto al de «carga por IRStrat».
+- **En el panel del staff no hay franja.** El staff de IRStrat no tiene tenant:
+  sirve a todos y cambia de emisora con `?tenant=` *dentro* de cada pantalla, un
+  dato que un layout no recibe. Ahí la demo se distingue por el prefijo `[DEMO]`
+  de su nombre, visible en el selector, en la matriz y en el nombre del archivo
+  exportado.
+
+```bash
+pnpm e2e:banner-demo        # sesiones reales: demo con franja, cliente real sin ella
+```
+
+Fija las dos direcciones del error (falta en la demo / sobra en un real), que el
+libro de cada quien lleve o no `[DEMO]`, que el `noindex` siga siendo global, y que
+al encender el flag esa *misma* sesión empiece a mostrar la franja — la prueba de
+que sigue a la columna y no a un nombre.
+
+## Contraseña temporal y cambio forzado
+
+Una contraseña que se entrega **fuera de la plataforma** —dictada por teléfono,
+impresa en un manual— la conoce alguien más que su dueño desde el minuto uno.
+`perfiles_usuario.debe_cambiar_password` hace que sirva para una sola cosa:
+entrar a cambiarla.
+
+- **Formato legible `XXXX-xxxx-0000`** (`generarPasswordLegible()` en
+  `lib/gestion.ts`): un bloque de mayúsculas, uno de minúsculas y uno de dígitos,
+  con el alfabeto sin caracteres confundibles (`I`/`l`/`1`, `O`/`0`). Es para
+  teclearla desde un papel; el costo de una ambigüedad lo paga quien la escribe.
+- **Mientras el flag esté encendido no se renderiza ninguna otra vista.** El
+  ruteo vive en dos lugares a propósito: la acción de ingreso manda directo a
+  `/restablecer` (si mandara a `/admin`, el rebote pasaría *dentro* de la misma
+  navegación y la barra de direcciones se quedaría en la anterior), y el
+  middleware lo impone en cada request para cualquier ruta no pública. Los
+  layouts del portal y del panel lo repiten: defensa en profundidad.
+- **La pantalla dice la verdad de por qué está ahí:** «Cambia tu contraseña para
+  continuar», no «esta liga venció» — que es el otro camino a `/restablecer`.
+- **El flag se apaga en los dos caminos que establecen una contraseña**: la
+  acción de restablecimiento (después de que `auth.updateUser` cambió la
+  contraseña de verdad) y el canje de invitación. Si el apagado falla, se reporta
+  y el flag **sigue encendido**: volver a `/restablecer` es molesto, pero lo
+  contrario dejaría la puerta abierta en silencio.
+- **Se apaga con `service_role`, no con una función `security definer`.** Una RPC
+  para apagarlo sería una llamada que cualquier sesión podría hacer desde el
+  navegador para saltarse el cambio sin cambiar nada. El grant es **de columna**:
+  `grant update (debe_cambiar_password) on public.perfiles_usuario to
+  service_role;` — puede apagar el flag y nada más de esa tabla (ni rol, ni
+  tenant, ni área).
+
+```bash
+pnpm e2e:cambio-password    # temporal → rebote forzoso → definitiva → la temporal deja de servir
+```
+
+## Respaldos y restauración (Supabase)
+
+Estado **medido** del proyecto de staging `ewgnvjtjhvdltvkopptn` (19 ago 2026, vía
+Management API):
+
+| | |
+|---|---|
+| Plan de la organización | **Pro** |
+| Respaldos diarios | **sí**, físicos, `COMPLETED` — 8 disponibles (retención de 7 días del plan) |
+| Último respaldo | 19 ago 2026, 08:48 UTC (uno diario, ~09:00 UTC) |
+| **PITR** | **APAGADO** (`pitr_enabled: false`) |
+| Costo de encenderlo | add-on: 7 días $100/mes · 14 días $200 · 28 días $400 |
+| Región | `us-east-2` |
+
+```bash
+# Estado, sin entrar al dashboard (token de la CLI en el keychain):
+TOK=$(security find-generic-password -s "Supabase CLI" -w)
+curl -s -H "Authorization: Bearer $TOK" \
+  https://api.supabase.com/v1/projects/ewgnvjtjhvdltvkopptn/database/backups
+```
+
+### Lo que el respaldo NO cubre
+
+**Los archivos de evidencia no están en el respaldo de la base.** Es explícito en
+la documentación de Supabase: *«Database backups do not include objects you store
+via the Storage API, as the database only includes metadata about these objects»*.
+En esta plataforma eso es la mitad del producto: restaurar la base traería de
+vuelta las filas de `evidencias` apuntando a objetos que podrían no existir.
+
+Súmese el candado de trazabilidad: `evidencias`, `capturas_valor` y `bitacora` son
+**append-only** (sin UPDATE ni DELETE ni para `service_role`), así que un borrado
+accidental desde la aplicación no es posible — pero tampoco lo es *reparar* nada
+desde la aplicación. Solo el borrado en cascada de un reporte o un tenant elimina
+esas filas, y ese es justo el accidente contra el que el respaldo tiene que servir.
+
+### Procedimiento de restauración
+
+1. **Antes de tocar nada**, sacar una copia lógica del estado actual (por malo que
+   sea): `supabase db dump --linked -f pre-restore.sql` y
+   `supabase db dump --linked --data-only -f pre-restore-datos.sql`. Un restore es
+   destructivo; sin esto no hay vuelta atrás de la vuelta atrás.
+2. **Base de datos** — Dashboard → *Database → Backups* → elegir el día y
+   restaurar. Los respaldos físicos **no se descargan**: el restore es en sitio y
+   **el proyecto queda inaccesible mientras corre** (minutos, según tamaño). Con
+   PITR encendido se elige además la hora exacta.
+3. **Archivos de evidencia** — no vienen en el paso 2. Se reponen desde la copia
+   del bucket:
+   ```bash
+   # Respaldo (correr periódicamente; medido: 46 objetos, 64 MB solo GCARSO):
+   supabase storage cp -r ss:///evidencias ./respaldo-evidencias --linked --experimental -j 4
+   # Reposición tras un restore:
+   supabase storage cp -r ./respaldo-evidencias ss:///evidencias --linked --experimental -j 4
+   ```
+   La ruta es `{tenant_id}/{solicitud_id}/{archivo}` y es la que guarda
+   `evidencias.archivo_path`: si se repone con la misma ruta, las descargas del
+   portal vuelven a resolver sin tocar la base.
+4. **Cuadrar base y archivos.** Después de un restore parcial, los dos huecos
+   posibles son filas sin objeto y objetos sin fila. Se detectan cruzando
+   `select archivo_path from evidencias` contra `supabase storage ls -r`, y se
+   resuelven reponiendo el archivo (nunca borrando la fila: es append-only).
+5. **Verificar con lo que ya existe:** `pnpm verify:export` (el Excel de los tres
+   tenants), `pnpm e2e:admin-cliente`, `pnpm e2e:banner-demo` y un login real de
+   cliente. Si el export de GCARSO sale íntegro, la cadena base→archivos→entregable
+   está sana.
+
+### Pendiente para operar en serio
+
+Grupo Carso opera hoy sobre staging. Con PITR apagado, la ventana de pérdida es de
+**hasta 24 horas** (el respaldo es diario) y el bucket **no tiene respaldo
+automático de ninguna clase**. Antes de que esto sea el ambiente de producción de
+un cliente que firma su informe anual, hay dos decisiones de dirección pendientes:
+encender **PITR 7 días** ($100/mes) y dejar el `storage cp` corriendo periódicamente
+fuera de Supabase. Ninguna de las dos es código: son costo y operación.
+
 ## Documentación
 
 - **[DESIGN.md](./DESIGN.md)** — sistema de diseño: tokens, tipografía, componentes, motion.

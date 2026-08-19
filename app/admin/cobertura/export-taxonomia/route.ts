@@ -571,7 +571,9 @@ export async function GET(request: Request) {
   // TODO lo demás. RLS ya limita al staff, pero el filtro es explícito.
   const { data: reporte, error: repErr } = await supabase
     .from("reportes")
-    .select("id, nombre, ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug)")
+    .select(
+      "id, nombre, ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug, es_demo)"
+    )
     .eq("id", reporteId)
     .maybeSingle();
 
@@ -903,8 +905,17 @@ export async function GET(request: Request) {
   // Pie discreto en cada hoja llenada. La marca [DEMO] SOLO para el tenant de
   // demostración: estampar "[DEMO]" en el entregable oficial de una emisora real
   // sería falsear su documento.
-  const tenantRep = reporte.tenant as unknown as { nombre: string; slug: string | null } | null;
-  const esDemo = /\[DEMO\]/i.test(tenantRep?.nombre ?? "");
+  //
+  // La condición es la columna `tenants.es_demo`, la misma que enciende la franja
+  // en la UI: antes se infería del prefijo "[DEMO]" del nombre, y una emisora real
+  // que se llamara así —o la demo renombrada— habría cambiado su entregable con un
+  // renombre.
+  const tenantRep = reporte.tenant as unknown as {
+    nombre: string;
+    slug: string | null;
+    es_demo: boolean;
+  } | null;
+  const esDemo = tenantRep?.es_demo === true;
   const fechaHoy = fmtFecha(new Date());
   const pie = `Generado por ${APP_NAME} — ${fechaHoy}${esDemo ? " — [DEMO]" : ""}`;
   for (const { ws, ultimaFila } of hojasTocadas.values()) {

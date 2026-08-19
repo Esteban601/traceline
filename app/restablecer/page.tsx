@@ -17,11 +17,29 @@ export default async function RestablecerPage() {
     data: { user },
   } = await db.auth.getUser();
 
-  const marca = {
-    titulo: "Elige tu contraseña nueva.",
-    texto:
-      "Con ella entrarás de aquí en adelante. La liga de recuperación queda invalidada en cuanto la guardes.",
-  };
+  // ¿Llegó por la liga de recuperación o forzada por una contraseña temporal? El
+  // texto no puede ser el mismo: en el segundo caso no hay "liga que venció", hay
+  // una contraseña que otras personas conocen y un cambio que no es opcional.
+  const { data: perfil } = user
+    ? await db
+        .from("perfiles_usuario")
+        .select("debe_cambiar_password")
+        .eq("id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const forzado = perfil?.debe_cambiar_password === true;
+
+  const marca = forzado
+    ? {
+        titulo: "Tu contraseña actual es temporal.",
+        texto:
+          "Se te entregó por fuera de la plataforma, así que alguien más la conoce. La que elijas aquí es solo tuya.",
+      }
+    : {
+        titulo: "Elige tu contraseña nueva.",
+        texto:
+          "Con ella entrarás de aquí en adelante. La liga de recuperación queda invalidada en cuanto la guardes.",
+      };
 
   if (!user) {
     return (
@@ -44,12 +62,19 @@ export default async function RestablecerPage() {
   return (
     <AuthShell
       encabezado="Acceso"
-      titulo="Establece tu contraseña nueva"
+      titulo={forzado ? "Cambia tu contraseña para continuar" : "Establece tu contraseña nueva"}
       descripcion={
-        <>
-          Vas a cambiar la contraseña de{" "}
-          <span className="font-medium text-ink">{user.email}</span>.
-        </>
+        forzado ? (
+          <>
+            Entraste con una contraseña temporal. Elige la definitiva de{" "}
+            <span className="font-medium text-ink">{user.email}</span> para seguir.
+          </>
+        ) : (
+          <>
+            Vas a cambiar la contraseña de{" "}
+            <span className="font-medium text-ink">{user.email}</span>.
+          </>
+        )
       }
       marca={marca}
     >
