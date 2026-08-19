@@ -5,6 +5,10 @@ import type { Database, Json } from "@/lib/database.types";
 export type AccionCorreo =
   | "solicitud_enviada"
   | "recordatorio_enviado"
+  // Recordatorio PROGRAMADO de una solicitud (N días antes de su fecha límite).
+  // Va aparte del digest porque es lo que hace idempotente al cron y porque en la
+  // bitácora se lee distinto: "faltan 3 días para esta solicitud", no "tienes N".
+  | "recordatorio_programado_enviado"
   | "aviso_observacion";
 
 /**

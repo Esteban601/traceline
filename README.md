@@ -79,9 +79,12 @@ Recorridos sugeridos:
 
 ## Correo y recordatorios (Fase 1)
 
-Sistema de solicitud y recordatorios por correo (Resend). Tres plantillas HTML
+Sistema de solicitud y recordatorios por correo (Resend). Plantillas HTML
 alineadas al DESIGN.md: (a) solicitud de información, (b) recordatorio semanal
-(digest, con observaciones destacadas) y (c) aviso de observación.
+(digest, con observaciones destacadas), (b-bis) **recordatorio programado** de una
+solicitud a N días de su fecha límite (ver
+[Recordatorios programados](#recordatorios-programados-por-solicitud)),
+(c) aviso de observación y (d) invitación de acceso.
 
 ### Modo consola (sin cuenta de Resend)
 
@@ -121,18 +124,60 @@ como un bloque `📧 CORREO (modo consola)` con destinatario y asunto.
 Toda acción de correo queda en `bitacora` (`entidad = 'correo'`, acciones
 `solicitud_enviada` / `recordatorio_enviado` / `aviso_observacion`).
 
-### Despliegue en producción (pendiente de configurar)
+### Activar el envío real (Resend) — paso a paso
 
-- Define `RESEND_API_KEY` y `EMAIL_FROM` (dominio verificado en Resend),
-  `NEXT_PUBLIC_APP_URL` (URL pública) y `CRON_SECRET`.
-- **Cron de recordatorios (Heroku Scheduler)** — *no configurado en este sprint*.
-  Programar un job periódico (p. ej. semanal) que ejecute:
-  ```bash
-  curl -fsS -X POST "$NEXT_PUBLIC_APP_URL/api/recordatorios" \
-    -H "x-cron-secret: $CRON_SECRET"
-  ```
-  El endpoint agrupa por responsable, respeta la regla anti-spam de 5 días y
-  registra cada envío en la bitácora.
+Hoy **staging manda todo a modo consola**, y para staging eso es lo correcto: los
+correos de prueba no deben llegarle a nadie. Estos son los pasos exactos para
+encender el envío real cuando la dirección lo decida. El código no cambia: la única
+condición es que exista `RESEND_API_KEY`.
+
+1. **Cuenta y dominio.** En [resend.com](https://resend.com) → *Domains* → *Add
+   Domain*, con el dominio desde el que se va a escribir (p. ej. `irstrat.com` o un
+   subdominio propio como `avisos.irstrat.com`; un subdominio aísla la reputación
+   de envío del correo corporativo).
+2. **DNS.** Resend entrega los registros a publicar en la zona del dominio: `TXT`
+   de verificación, `MX`/`TXT` de **SPF** y `TXT` de **DKIM**. Se agregan en el
+   proveedor de DNS y se espera a que Resend marque el dominio *Verified*. Sin
+   dominio verificado, Resend solo deja enviar desde `onboarding@resend.dev` — que
+   es el default del código y sirve para una prueba, no para escribirle a un
+   cliente. Conviene además publicar **DMARC** (`_dmarc` `TXT` con al menos
+   `v=DMARC1; p=none; rua=mailto:…`) para ver qué pasa con los envíos.
+3. **API key.** *API Keys* → *Create API Key* con permiso de **envío** (no de
+   administración). Se copia una sola vez.
+4. **Config vars** en la app (Heroku):
+   ```bash
+   heroku config:set --app <app> \
+     RESEND_API_KEY="re_..." \
+     EMAIL_FROM="TRACELINE <avisos@irstrat.com>" \
+     NEXT_PUBLIC_APP_URL="https://<dominio-publico>"
+   ```
+   `EMAIL_FROM` es **configurable por entorno** a propósito (`lib/email/enviar.ts`
+   lo lee de la variable, con `onboarding@resend.dev` como default) y su dominio
+   tiene que ser el verificado en el paso 2, o Resend rechaza el envío.
+   `NEXT_PUBLIC_APP_URL` se inlinea en build: **requiere redeploy**, no basta con
+   cambiar la variable.
+5. **Comprobar antes de escribirle a un cliente.** Con un tenant de prueba (o la
+   Empresa Demo), disparar un recordatorio y confirmar en el *dashboard* de Resend
+   que el envío salió y no rebotó. En la respuesta del endpoint y en la bitácora el
+   campo `modo` pasa de `"consola"` a `"resend"`: es la señal de que el correo salió
+   de verdad.
+6. **Antes de encenderlo, revisar a quién se le va a escribir.** Las cuentas de
+   demostración usan el TLD reservado `.example` y no existen; los usuarios de
+   GCARSO en staging también (`@gcarso.example`). Con Resend activo, cada envío a
+   esas direcciones es un rebote, y los rebotes dañan la reputación del dominio. El
+   orden correcto es: primero los correos reales de las personas, después la clave.
+
+**Cron de recordatorios (Heroku Scheduler)** — *no configurado todavía*. Programar
+un job **diario** (los recordatorios programados se evalúan por día; el digest trae
+su propia regla anti-spam de 5 días, así que correr a diario no lo multiplica):
+
+```bash
+curl -fsS -X POST "$NEXT_PUBLIC_APP_URL/api/recordatorios" \
+  -H "x-cron-secret: $CRON_SECRET"
+```
+
+Una sola llamada hace las dos pasadas: primero los **programados** por solicitud,
+después el **digest** por responsable. El orden importa (ver abajo).
 
 ## Candado de trazabilidad (Fase 2)
 
@@ -1140,6 +1185,104 @@ automático de ninguna clase**. Antes de que esto sea el ambiente de producción
 un cliente que firma su informe anual, hay dos decisiones de dirección pendientes:
 encender **PITR 7 días** ($100/mes) y dejar el `storage cp` corriendo periódicamente
 fuera de Supabase. Ninguna de las dos es código: son costo y operación.
+
+## Recordatorios programados por solicitud
+
+El digest de Fase 1 dice "tienes N pendientes". Esto dice **"faltan 3 días para
+esta"**. Son dos cosas distintas y las dos hacen falta: el digest ordena la carga
+de trabajo; el recordatorio programado defiende un plazo concreto.
+
+### El modelo
+
+`solicitudes_recordatorios` (migración `20260823120000`): una fila por intervalo,
+con `dias_antes > 0` (máx. 365), `activo` y unicidad por `(solicitud_id,
+dias_antes)`.
+
+- **Es una tabla y no un campo** porque los intervalos son varios, se prenden y
+  apagan por separado y admiten personalizados. Un array en `solicitudes` no
+  podría expresar *"configurado y apagado"*, que es justo lo que distingue «nunca
+  lo quisieron» de «lo quitaron a propósito» — y lo que permite que el formulario
+  vuelva a mostrar un personalizado desmarcado en vez de perderlo.
+- **Presets 7 / 3 / 1**, con **7 y 1 encendidos** por default: una semana antes da
+  tiempo a juntar la evidencia y el día previo es el empujón. El de 3 se ofrece
+  apagado para no convertir cada solicitud en tres correos.
+- **Herencia.** Los tres caminos que crean solicitudes aplican el mismo criterio:
+  el formulario (casillas ya marcadas), la server action cuando no recibe la
+  sección, y el **clonado desde plantilla**. Las clonadas nacen con los presets
+  aunque todavía no tengan fecha límite: la plantilla no guarda plazos —son del
+  calendario de cada cliente— y el día que alguien pone la fecha, los avisos ya
+  están configurados. Es el punto de heredarlos.
+- **Sin fecha límite la sección no se esconde: explica.** Un recordatorio se
+  calcula desde el plazo («7 días antes de *qué*»), así que sin fecha no hay
+  cuándo. Se puede configurar igual.
+- **Quién gestiona:** staff de IRStrat y el `admin_cliente` del tenant — incluidos
+  los recordatorios de solicitudes de origen `irstrat`. Es una **excepción
+  deliberada a la regla de origen**, y la razón es de quién es el correo: a quien
+  se le avisa es a *su* gente. La regla de origen protege quién revisa y valida el
+  **contenido**; el calendario de avisos internos del cliente no es contenido. El
+  usuario de área **ve** su calendario (para saber cuándo le van a escribir) y no
+  lo modifica. Un reporte **congelado** queda fuera por completo.
+
+### El cron
+
+`POST /api/recordatorios` (mismo endpoint, mismo `CRON_SECRET`) hace **dos
+pasadas, en este orden**:
+
+1. **Programados** — recordatorios activos cuya fecha de disparo
+   (`fecha_limite - dias_antes`) es hoy.
+2. **Digest** — el resumen por responsable de Fase 1.
+
+El orden no es cosmético: la regla anti-spam del digest lee la bitácora, así que
+quien acaba de recibir un aviso por un vencimiento concreto **no** recibe además el
+resumen genérico. Al revés, recibiría los dos.
+
+- **Destinatarios:** los usuarios **activos del área** responsable, más el
+  responsable asignado si no estuviera en ella (es quien tiene la solicitud a su
+  nombre; saltárselo por una diferencia de catálogo sería el peor error posible).
+  Si no hay a quién escribirle, **se reporta** en el resumen del cron — un
+  recordatorio configurado sin destinatarios es un hueco de operación, no un
+  silencio aceptable.
+- **No se recuerda lo cumplido:** `validado` y `congelado` quedan fuera. Recordar
+  lo cumplido es ruido, y el ruido enseña a ignorar los recordatorios que sí
+  importan. `recibido` y `en_revision` **sí** se recuerdan: la entrega puede estar
+  incompleta y el plazo sigue siendo el plazo.
+- **Anti-spam, con una salvedad honesta.** La regla de 5 días del digest **no**
+  puede aplicarse a los programados: la escalera normal es 7-3-1 y entre el de 3 y
+  el de 1 hay dos días, así que bloquearía justo el aviso más útil. Lo que se
+  garantiza en su lugar es que **un recordatorio no se manda dos veces el mismo
+  día** (idempotencia si el cron corre de más) y que un envío programado **sí**
+  bloquea el digest de esa persona por los 5 días de la regla original.
+- **"Hoy" es el de México**, no el del servidor (`hoyOperacion()` en
+  `lib/fechas.ts`). En Heroku el proceso corre en UTC y un cron de madrugada
+  evaluaría el día siguiente, mandando los avisos con un día de adelanto: los
+  plazos los pone una persona en su propio calendario.
+- **`?fecha=YYYY-MM-DD`** evalúa otro día. Existe para las pruebas de punta a punta
+  —simular el cron sin mover el reloj de la máquina— y solo la alcanza quien ya
+  tiene el secreto del cron. La respuesta devuelve `fechaEvaluada` para que nunca
+  haya duda de qué día se evaluó.
+- El **botón manual** del panel sigue disparando solo el digest: el calendario de
+  los programados lo lleva el cron.
+
+### El rastro
+
+Cada envío deja una entrada en `bitacora` (`entidad = 'correo'`, acción
+`recordatorio_programado_enviado`), **una por destinatario** —la regla anti-spam se
+aplica por persona, así que necesita saber a quién se le escribió— con el
+recordatorio, los días, el plazo, el área, el estado en que estaba la solicitud y
+el modo (`consola` / `resend`). El detalle de la solicitud lo muestra en su sección
+**Recordatorios**: lo configurado (con la fecha en que caerá cada uno) y lo ya
+enviado, con los correos a los que salió.
+
+```bash
+pnpm e2e:recordatorios      # crea la solicitud por UI, corre el cron real y valida
+```
+
+Cubre el ciclo completo: fecha límite a 3 días → recordatorio de 3 días programado
+→ cron con fecha forzada → correo (modo consola) a las **dos** personas del área y
+a nadie más → segunda corrida omitida → validar la solicitud → el cron ya no la
+recuerda. Y las guardas: sin `x-cron-secret` es 401, el usuario de área no cambia
+su propio calendario, otro tenant no lo ve, y la base rechaza «0 días antes» y los
+intervalos repetidos.
 
 ## Documentación
 

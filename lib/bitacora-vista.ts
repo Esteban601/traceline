@@ -13,6 +13,7 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   cambio_estado: { label: "Cambio de estado", tono: "ambar-fuerte" },
   solicitud_enviada: { label: "Solicitud enviada", tono: "ambar-fuerte" },
   recordatorio_enviado: { label: "Recordatorio enviado", tono: "ambar" },
+  recordatorio_programado_enviado: { label: "Recordatorio programado enviado", tono: "ambar" },
   aviso_observacion: { label: "Observación notificada", tono: "rojo" },
   solicitud_creada: { label: "Solicitud creada", tono: "verde" },
   solicitud_editada: { label: "Solicitud editada", tono: "gris" },

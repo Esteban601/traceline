@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
+import { PRESETS_DEFAULT_ACTIVOS } from "@/lib/recordatorios-plan";
 
 export type PlantillaState = {
   ok: boolean;
@@ -197,6 +198,26 @@ export async function crearReporteDesdePlantilla(
       continue;
     }
     clonadas += 1;
+
+    // Recordatorios heredados: cada solicitud clonada nace con los presets
+    // default. Todavía no tienen fecha límite (la plantilla no la guarda: es del
+    // calendario de cada cliente), así que no disparan nada hasta que alguien la
+    // pone — y ese día ya están configurados, que es el punto de heredarlos.
+    const { error: recErr } = await db.from("solicitudes_recordatorios").insert(
+      PRESETS_DEFAULT_ACTIVOS.map((dias_antes) => ({
+        solicitud_id: nueva.id,
+        dias_antes,
+        activo: true,
+      }))
+    );
+    // No aborta el clonado: una solicitud sin sus avisos sigue siendo una
+    // solicitud válida, y perder el reporte entero por eso sería peor. Queda en el
+    // log del servidor y se puede reconfigurar desde el detalle.
+    if (recErr) {
+      console.error(
+        `[plantilla] recordatorios default de "${it.titulo}" no se crearon: ${recErr.message}`
+      );
+    }
 
     const dps = (it.datapoint_ids ?? []).filter(Boolean);
     if (dps.length > 0) {

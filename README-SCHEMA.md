@@ -44,6 +44,7 @@ versionan**. Los `.env*` no (usa `.env.example` como plantilla).
 | … | `20260820130000_admin_cliente.sql` | Rol admin-cliente: `solicitudes.origen`, `tenants.staff_puede_cargar`, `evidencias.cargado_por_staff`, sus políticas RLS, los triggers de la regla de origen y del toggle, y `fn_renombrar_area`. |
 | … | `20260822120000_tenant_es_demo.sql` | `tenants.es_demo` + `trg_tenant_es_demo`: la etiqueta de demostración deja de ser del ambiente (`NEXT_PUBLIC_STAGING`) y pasa a ser del cliente. Backfill por el prefijo `[DEMO]` del nombre; default `false` (un cliente nuevo nace real). |
 | … | `20260822130000_debe_cambiar_password.sql` | `perfiles_usuario.debe_cambiar_password` + `grant update (debe_cambiar_password) … to service_role`: cambio forzado cuando la contraseña se entregó por un canal externo. |
+| … | `20260823120000_recordatorios_programados.sql` | `solicitudes_recordatorios` + `fn_gestiona_recordatorios`: avisos por correo a N días de la fecha límite de una solicitud. Grants explícitos (tabla nueva): los cuatro comandos a `authenticated`, **solo SELECT** a `service_role` — el cron lee la configuración, no la cambia. |
 
 ---
 
@@ -288,6 +289,20 @@ grant update (debe_cambiar_password) on public.perfiles_usuario to service_role;
 Es el patrón de la casa aplicado al detalle: `service_role` no tiene escritura por
 default sobre `perfiles_usuario` (medido: solo `SELECT`), y aquí gana exactamente
 un campo — ni rol, ni tenant, ni área.
+
+---
+
+## Recordatorios programados
+
+| Objeto | Qué es |
+|--------|--------|
+| `solicitudes_recordatorios` | Un intervalo por fila (`dias_antes > 0`, máx. 365, único por solicitud). `activo = false` es **configurado y apagado**, distinto de no existir: eso es lo que un array en `solicitudes` no podía expresar. Sin `fecha_limite` la configuración es válida y no dispara — las solicitudes clonadas de plantilla nacen así. |
+| `fn_gestiona_recordatorios(solicitud)` | Autorización de ESCRITURA: staff, o `admin_cliente` del tenant, y solo si el reporte no está `congelado`. Excepción deliberada a la regla de origen: el `admin_cliente` gestiona también los avisos de solicitudes `irstrat`, porque a quien se le escribe es a su gente. La lectura la gobierna `fn_puede_ver_solicitud` (la misma que evidencias y comentarios), así que el usuario de área ve su calendario y no lo cambia. |
+
+El cron (`POST /api/recordatorios`) corre **programados y luego digest**: el orden
+es lo que evita dos correos el mismo día a la misma persona, porque la regla
+anti-spam del digest lee `bitacora`. Cada envío queda como
+`recordatorio_programado_enviado`, **una entrada por destinatario**.
 
 ---
 

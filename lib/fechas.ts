@@ -13,6 +13,19 @@
 /** Zona horaria de presentación para timestamps. */
 const TIME_ZONE = "America/Mexico_City";
 
+/**
+ * Hoy, en el calendario de OPERACIÓN (México), como YYYY-MM-DD.
+ *
+ * No es lo mismo que la fecha del servidor: en Heroku el proceso corre en UTC, y
+ * un cron a las 00:30 UTC es todavía el día anterior en México. Los plazos
+ * (`fecha_limite`) los pone una persona en su calendario, así que "hoy" tiene que
+ * ser el de esa persona o los recordatorios salen un día antes.
+ */
+export function hoyOperacion(): string {
+  // 'en-CA' formatea ISO (YYYY-MM-DD) y el timeZone hace el resto.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());
+}
+
 // --- Timestamps (instantes) — en hora de México --------------------------------
 
 /** "25 feb 2026" */

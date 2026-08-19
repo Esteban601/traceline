@@ -1032,6 +1032,38 @@ export type Database = {
           },
         ]
       }
+      solicitudes_recordatorios: {
+        Row: {
+          activo: boolean
+          created_at: string
+          dias_antes: number
+          id: string
+          solicitud_id: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          dias_antes: number
+          id?: string
+          solicitud_id: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          dias_antes?: number
+          id?: string
+          solicitud_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_recordatorios_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           activo: boolean
@@ -1079,6 +1111,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_gestiona_recordatorios: {
+        Args: { p_solicitud_id: string }
+        Returns: boolean
+      }
       fn_is_admin_cliente: { Args: never; Returns: boolean }
       fn_is_staff: { Args: never; Returns: boolean }
       fn_log_correo: {

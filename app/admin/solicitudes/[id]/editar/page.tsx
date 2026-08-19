@@ -50,13 +50,21 @@ export default async function EditarSolicitudPage({
   // internas. Las de IRStrat las ve en el detalle, pero no las modifica.
   if (!puedeEditarOrigen(origen, perfil)) notFound();
 
-  const [{ data: mapeo }, { count }, opciones] = await Promise.all([
+  const [{ data: mapeo }, { count }, opciones, { data: recordatorios }] = await Promise.all([
     db.from("mapeo_solicitud_datapoint").select("datapoint_id").eq("solicitud_id", id),
     db
       .from("evidencias")
       .select("id", { count: "exact", head: true })
       .eq("solicitud_id", id),
     cargarOpcionesFormulario(perfil),
+    // Solo los ACTIVOS: los apagados existen en la base para distinguirse de "nunca
+    // configurado", pero en el formulario eso se ve como una casilla sin marcar.
+    db
+      .from("solicitudes_recordatorios")
+      .select("dias_antes")
+      .eq("solicitud_id", id)
+      .eq("activo", true)
+      .order("dias_antes", { ascending: false }),
   ]);
 
   const tieneEvidencia = (count ?? 0) > 0;
@@ -145,6 +153,7 @@ export default async function EditarSolicitudPage({
     rubro_taxonomia: sol.rubro_taxonomia ?? "",
     nota_alcance: sol.nota_alcance ?? "",
     datapointIds: (mapeo ?? []).map((m) => m.datapoint_id),
+    recordatorios: (recordatorios ?? []).map((r) => r.dias_antes),
   };
 
   return (

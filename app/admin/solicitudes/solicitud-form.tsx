@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { NOTA_ALCANCE_MAX } from "@/lib/gestion";
+import { PRESETS_DEFAULT_ACTIVOS } from "@/lib/recordatorios-plan";
+import { RecordatoriosSeccion } from "./recordatorios-seccion";
 import { DatapointSelector, type DatapointOpcion } from "./datapoint-selector";
 import type { GestionState } from "./gestion-actions";
 
@@ -49,6 +51,8 @@ export type ValoresIniciales = {
   rubro_taxonomia: string;
   nota_alcance: string;
   datapointIds: string[];
+  /** Días ACTIVOS de recordatorio ya configurados para esta solicitud. */
+  recordatorios: number[];
 };
 
 function limpiar(nombre: string): string {
@@ -112,6 +116,13 @@ export function SolicitudForm({
   const [rubroTaxonomia, setRubroTaxonomia] = useState(inicial?.rubro_taxonomia ?? "");
   const [notaAlcance, setNotaAlcance] = useState(inicial?.nota_alcance ?? "");
   const [datapointIds, setDatapointIds] = useState<string[]>(inicial?.datapointIds ?? []);
+  // Al crear, la solicitud nace con los presets default encendidos (la server
+  // action aplica los mismos si el formulario no trae la sección, y son los que
+  // heredan las solicitudes clonadas de plantilla: un solo criterio en los tres
+  // caminos).
+  const [recordatorios, setRecordatorios] = useState<number[]>(
+    inicial?.recordatorios ?? [...PRESETS_DEFAULT_ACTIVOS]
+  );
 
   const reporte = useMemo(
     () => reportes.find((r) => r.id === reporteId) ?? null,
@@ -180,6 +191,9 @@ export function SolicitudForm({
     fd.set("rubro_taxonomia", rubroTaxonomia);
     if (!soloCliente) fd.set("nota_alcance", notaAlcance);
     for (const id of datapointIds) fd.append("datapoint_ids", id);
+    // Centinela + lista: la server action distingue "ninguno" de "sin sección".
+    fd.set("recordatorios_presentes", "1");
+    for (const d of recordatorios) fd.append("recordatorio_dias", String(d));
     startTransition(() => dispatch(fd));
   };
 
@@ -344,6 +358,15 @@ export function SolicitudForm({
           />
         </div>
       </div>
+
+      {/* Recordatorios automáticos — junto a la fecha límite porque el plazo y el
+          aviso del plazo son la misma decisión. */}
+      <RecordatoriosSeccion
+        fechaLimite={fechaLimite}
+        dias={recordatorios}
+        onChange={setRecordatorios}
+        disabled={pending}
+      />
 
       {/* Rubro clave (discrepancias) */}
       <div>

@@ -20,6 +20,11 @@ import { AccionesStaff } from "./acciones-staff";
 import { CargaPanel } from "./carga-panel";
 import { EliminarSolicitud } from "./eliminar-solicitud";
 import { Timeline, type EventoBitacora } from "./timeline";
+import {
+  RecordatoriosVista,
+  type EnvioRecordatorio,
+  type RecordatorioConfig,
+} from "./recordatorios-vista";
 
 export const metadata: Metadata = { title: "Solicitud (interno)" };
 
@@ -106,6 +111,7 @@ export default async function SolicitudStaffPage({
     discrepancias,
     { data: areasCatalogo },
     { data: tenantSol },
+    { data: recordatorios },
   ] = await Promise.all([
     supabase
       .from("evidencias")
@@ -156,6 +162,13 @@ export default async function SolicitudStaffPage({
       .select("staff_puede_cargar")
       .eq("id", reporteSol.tenant_id)
       .maybeSingle(),
+    // Recordatorios configurados (activos Y apagados: los apagados dicen que
+    // alguien los quitó a propósito, que es información distinta de la ausencia).
+    supabase
+      .from("solicitudes_recordatorios")
+      .select("id, dias_antes, activo")
+      .eq("solicitud_id", id)
+      .order("dias_antes", { ascending: false }),
   ]);
 
   const evs = (evidencias ?? []) as unknown as EvidenciaRow[];
@@ -181,6 +194,27 @@ export default async function SolicitudStaffPage({
       usuarioTenantId: b.usuario?.tenant_id ?? null,
     })
   );
+  // Recordatorios: la configuración de la tabla y los envíos ya registrados, que
+  // salen de la MISMA bitácora que alimenta el timeline (no de un log aparte: el
+  // rastro de un correo enviado es el mismo dato, leído de otra forma).
+  const recordatoriosConfig = (recordatorios ?? []) as RecordatorioConfig[];
+  const enviosRecordatorio: EnvioRecordatorio[] = ((bitacora ?? []) as unknown as {
+    id: string;
+    created_at: string;
+    accion: string;
+    detalle: Record<string, unknown> | null;
+  }[])
+    .filter((b) => b.accion === "recordatorio_programado_enviado")
+    .map((b) => ({
+      id: b.id,
+      created_at: b.created_at,
+      recordatorio_id: (b.detalle?.recordatorio_id as string | undefined) ?? null,
+      dias_antes: (b.detalle?.dias_antes as number | undefined) ?? null,
+      fecha_disparo: (b.detalle?.fecha_disparo as string | undefined) ?? null,
+      destinatarios: (b.detalle?.destinatarios as number | undefined) ?? null,
+      email: (b.detalle?.email as string | undefined) ?? null,
+    }));
+
   const discrepanciasSol = discrepancias.porSolicitud.get(id) ?? [];
   const estado = sol.estado as EstadoSolicitud;
   const reporte = reporteSol;
@@ -618,6 +652,16 @@ export default async function SolicitudStaffPage({
             )}
           </section>
         )}
+
+        {/* Recordatorios configurados y enviados */}
+        <RecordatoriosVista
+          solicitudId={sol.id}
+          fechaLimite={sol.fecha_limite}
+          estado={estado}
+          configurados={recordatoriosConfig}
+          envios={enviosRecordatorio}
+          puedeConfigurar={puedeEditar}
+        />
 
         {/* Conversación completa */}
         <section className="space-y-4">

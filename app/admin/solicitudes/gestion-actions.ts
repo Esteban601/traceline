@@ -13,6 +13,7 @@ import {
   puedeDeclararAlcance,
   NOTA_ALCANCE_MAX,
 } from "@/lib/gestion";
+import { PRESETS_DEFAULT_ACTIVOS, normalizarDias } from "@/lib/recordatorios-plan";
 import type { EstadoSolicitud } from "@/lib/estados";
 import type { TablesUpdate } from "@/lib/database.types";
 
@@ -40,6 +41,13 @@ type CamposSolicitud = {
   rubro_taxonomia: string | null;
   nota_alcance: string | null;
   datapointIds: string[];
+  /**
+   * Días ACTIVOS de recordatorio, o null si el formulario no trae la sección
+   * (null = "no me pronuncio", que no es lo mismo que [] = "ninguno"). La
+   * diferencia importa: un caller que no renderiza la sección no debe borrar en
+   * silencio el calendario que alguien configuró.
+   */
+  recordatorios: number[] | null;
 };
 
 function texto(fd: FormData, k: string): string | null {
@@ -68,6 +76,11 @@ function leerCampos(fd: FormData): CamposSolicitud {
     datapointIds: Array.from(new Set(fd.getAll("datapoint_ids").map((v) => String(v)))).filter(
       Boolean
     ),
+    // El campo centinela distingue "sin recordatorios" de "sin sección".
+    recordatorios:
+      fd.get("recordatorios_presentes") === "1"
+        ? normalizarDias(fd.getAll("recordatorio_dias").map((v) => String(v)))
+        : null,
   };
 }
 
@@ -122,6 +135,62 @@ async function reemplazarMapeo(
   );
   if (insErr) return `No se pudo guardar el mapeo a datapoints: ${insErr.message}`;
   return null;
+}
+
+/**
+ * Deja el calendario de recordatorios de una solicitud EXACTAMENTE con los días
+ * indicados como activos. Los que existían y no vienen no se BORRAN: se apagan
+ * (`activo = false`), que es la diferencia entre "nunca lo quisieron" y "lo
+ * quitaron a propósito" — y lo que permite que el formulario vuelva a mostrar un
+ * personalizado desmarcado en vez de perderlo.
+ *
+ * Devuelve el resumen para la bitácora, o un mensaje de error.
+ */
+async function reconciliarRecordatorios(
+  db: Awaited<ReturnType<typeof createClient>>,
+  solicitudId: string,
+  activos: number[]
+): Promise<{ error: string } | { resumen: { activos: number[]; apagados: number[] } }> {
+  const { data: existentes, error: exErr } = await db
+    .from("solicitudes_recordatorios")
+    .select("id, dias_antes, activo")
+    .eq("solicitud_id", solicitudId);
+  if (exErr) return { error: `No se pudieron leer los recordatorios: ${exErr.message}` };
+
+  const previos = new Map((existentes ?? []).map((r) => [r.dias_antes, r]));
+  const deseados = new Set(activos);
+
+  const nuevos = activos.filter((d) => !previos.has(d));
+  const encender = activos.filter((d) => previos.get(d)?.activo === false);
+  const apagar = (existentes ?? []).filter((r) => r.activo && !deseados.has(r.dias_antes));
+
+  if (nuevos.length > 0) {
+    const { error } = await db.from("solicitudes_recordatorios").insert(
+      nuevos.map((dias_antes) => ({ solicitud_id: solicitudId, dias_antes, activo: true }))
+    );
+    if (error) return { error: `No se pudieron guardar los recordatorios: ${error.message}` };
+  }
+  for (const dias of encender) {
+    const { error } = await db
+      .from("solicitudes_recordatorios")
+      .update({ activo: true })
+      .eq("id", previos.get(dias)!.id);
+    if (error) return { error: `No se pudo reactivar el recordatorio de ${dias} días: ${error.message}` };
+  }
+  for (const r of apagar) {
+    const { error } = await db
+      .from("solicitudes_recordatorios")
+      .update({ activo: false })
+      .eq("id", r.id);
+    if (error) return { error: `No se pudo apagar el recordatorio de ${r.dias_antes} días: ${error.message}` };
+  }
+
+  return {
+    resumen: {
+      activos: [...deseados].sort((a, b) => b - a),
+      apagados: apagar.map((r) => r.dias_antes).sort((a, b) => b - a),
+    },
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -229,6 +298,14 @@ export async function crearSolicitud(
     if (errMap) return { ok: false, error: errMap };
   }
 
+  // Recordatorios. Si el formulario no trajo la sección, la solicitud NACE con los
+  // presets default: es la misma herencia que reciben las solicitudes clonadas de
+  // plantilla, y hace que el caso normal (fecha límite + avisos) no dependa de que
+  // alguien se acuerde de marcar dos casillas.
+  const plan = campos.recordatorios ?? [...PRESETS_DEFAULT_ACTIVOS];
+  const recRes = await reconciliarRecordatorios(db, creada.id, plan);
+  if ("error" in recRes) return { ok: false, error: recRes.error };
+
   await logEvento(db, {
     tenantId: reporte.tenant_id,
     usuarioId: perfil.id,
@@ -240,6 +317,7 @@ export async function crearSolicitud(
       area: campos.area_asignada,
       reporte_id: reporteId,
       datapoints: campos.datapointIds.length,
+      recordatorios: recRes.resumen.activos,
       origen,
       rol: perfil.rol,
     },
@@ -365,6 +443,15 @@ export async function editarSolicitud(
     if (errMap) return { ok: false, error: errMap };
   }
 
+  // Recordatorios: solo si el formulario trajo la sección. `null` es "no me
+  // pronuncio" y deja el calendario como estaba.
+  let recordatorios: number[] | null = null;
+  if (campos.recordatorios != null) {
+    const recRes = await reconciliarRecordatorios(db, solicitudId, campos.recordatorios);
+    if ("error" in recRes) return { ok: false, error: recRes.error };
+    recordatorios = recRes.resumen.activos;
+  }
+
   await logEvento(db, {
     tenantId: reporte.tenant_id,
     usuarioId: perfil.id,
@@ -375,6 +462,7 @@ export async function editarSolicitud(
       titulo: campos.titulo,
       enunciado_bloqueado: tieneEvidencia,
       datapoints: campos.datapointIds.length,
+      ...(recordatorios != null ? { recordatorios } : {}),
       origen,
       rol: perfil.rol,
     },

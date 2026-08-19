@@ -234,6 +234,50 @@ export function plantillaObservacion(
 }
 
 /**
+ * (c-bis) Recordatorio PROGRAMADO de una solicitud: a N días de su fecha límite.
+ *
+ * Es distinto del digest (c): habla de UNA solicitud, dice cuánto falta y en qué
+ * estado está —qué falta exactamente—, y lleva directo a ella, no al tablero. Se
+ * dispara por el calendario que alguien configuró, no por la acumulación de
+ * pendientes, así que el asunto empieza por el plazo: es la información por la que
+ * se abre (o no) el correo.
+ */
+export function plantillaRecordatorioProgramado(
+  nombre: string,
+  sol: SolicitudEmail,
+  opts: { diasAntes: number; estadoLabel: string; queFalta: string }
+): Plantilla {
+  const plazo =
+    opts.diasAntes === 1 ? "Vence mañana" : `Faltan ${opts.diasAntes} días`;
+  const subject = `${plazo}: ${sol.titulo}`;
+  const intro = `${plazo} el plazo de una solicitud del Informe Anual Sustentable.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 14px 0;line-height:1.6;">${esc(
+      intro
+    )}</p>
+    ${listaSolicitudes([sol])}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:2px 0 16px 0;">
+      <tr>
+        <td style="padding:12px 14px;border-left:3px solid ${COLOR.gold};border-radius:8px;background:${COLOR.crema};font-family:${FONT};font-size:14px;color:${COLOR.ink};line-height:1.6;">
+          <strong style="color:${COLOR.ink};">Estado hoy:</strong> ${esc(opts.estadoLabel)}<br>
+          ${esc(opts.queFalta)}
+        </td>
+      </tr>
+    </table>
+    ${boton(urlSolicitud(sol.id), "Abrir la solicitud")}`;
+  return {
+    subject,
+    html: layout({
+      preheader: intro,
+      etiqueta: "Recordatorio",
+      titulo: opts.diasAntes === 1 ? "Tu entrega vence mañana" : `Tu entrega vence en ${opts.diasAntes} días`,
+      cuerpoHtml,
+    }),
+  };
+}
+
+/**
  * (d) Invitación de acceso. Lleva a establecer la contraseña propia mediante una
  * liga de un solo uso con expiración. Queda implementada para cuando exista la
  * cuenta real de Resend; en modo consola el correo se imprime en el log y la vía
