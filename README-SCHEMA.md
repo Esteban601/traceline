@@ -39,6 +39,8 @@ versionan**. Los `.env*` no (usa `.env.example` como plantilla).
 | 3 | `20260704172203_triggers.sql` | Versionado de evidencia, transición de estado, bitácora. |
 | 4 | `20260704172204_storage_evidencias.sql` | Bucket privado `evidencias` y políticas de acceso. |
 | … | `20260820120000_rol_admin_cliente_enum.sql` | Valor `admin_cliente` en el enum `rol_usuario`. **Va solo**: Postgres prohíbe usar un valor de enum nuevo en la misma transacción que lo crea. |
+| … | `20260821130000_alcance_bitacora_policy.sql` | Vuelve a declarar `perfiles_staff_visible_al_cliente` con su rama de bitácora. Existe porque esa rama se añadió al archivo de `20260820130000` **después** de que ya estuviera aplicado a staging: en vez de confiar en qué versión quedó en cada ambiente, esta migración converge los dos. **Regla que queda:** una migración aplicada no se edita, se corrige con otra. |
+| … | `20260821120000_nota_alcance.sql` | `solicitudes.nota_alcance`: salvedad de perímetro que el export agrega a la celda de Notas/Brechas. |
 | … | `20260820130000_admin_cliente.sql` | Rol admin-cliente: `solicitudes.origen`, `tenants.staff_puede_cargar`, `evidencias.cargado_por_staff`, sus políticas RLS, los triggers de la regla de origen y del toggle, y `fn_renombrar_area`. |
 
 ---
