@@ -150,7 +150,14 @@ export default async function SolicitudPage({
   const bloqueHistorial = (
     <section className="space-y-4">
       <h2 className="font-display text-xl font-semibold text-ink">
-        {accion.completada ? "Lo que entregaste" : "Tus entregas"}
+        {/* El encabezado tampoco puede decir «tus entregas» de una lista donde hay
+            cargas de IRStrat: se neutraliza en ese caso y se conserva la voz del
+            cliente cuando todo lo entregó él. */}
+        {evs.some((e) => e.cargado_por_staff)
+          ? "Entregas registradas"
+          : accion.completada
+            ? "Lo que entregaste"
+            : "Tus entregas"}
       </h2>
       {evs.length === 0 ? (
         <EmptyState
@@ -172,11 +179,31 @@ export default async function SolicitudPage({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    {/* Frase, no metadata */}
+                    {/* Frase, no metadata. Y la frase tiene que decir la verdad:
+                        cuando la carga la hizo IRStrat en nombre del área, «Entregaste»
+                        sería falso en el lugar más visible de la página, con la
+                        corrección en letra chica debajo. El toggle de carga habilita
+                        la capacidad; nunca cambia de quién fue el acto. */}
                     <p className="text-sm leading-relaxed text-ink">
-                      Entregaste{" "}
-                      <span className="font-medium">{ev.nombre_original}</span> el{" "}
-                      {fmtFechaLarga(ev.created_at)}
+                      {ev.cargado_por_staff ? (
+                        <>
+                          <span className="font-medium">IRStrat cargó</span>{" "}
+                          <span className="font-medium">{ev.nombre_original}</span> el{" "}
+                          {fmtFechaLarga(ev.created_at)}
+                          {ev.area_origen ? (
+                            <>
+                              {" "}
+                              en nombre de <span className="font-medium">{ev.area_origen}</span>
+                            </>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          Entregaste{" "}
+                          <span className="font-medium">{ev.nombre_original}</span> el{" "}
+                          {fmtFechaLarga(ev.created_at)}
+                        </>
+                      )}
                       {ev.periodo_cubierto ? (
                         <>
                           {" "}
@@ -213,13 +240,11 @@ export default async function SolicitudPage({
                           ? `, reemplazó a la del ${fmtFecha(previa.created_at)}`
                           : ""}
                       </span>
-                      {/* Cuando la carga la hizo IRStrat en nombre del área, se
-                          dice aquí también: el cliente tiene que poder ver quién
-                          subió lo que aparece como suyo. */}
+                      {/* La frase de arriba ya dice que la cargó IRStrat; aquí va
+                          quién, con nombre, que es lo que un rastro necesita. */}
                       {ev.cargado_por_staff ? (
                         <span className="font-medium text-gold-dark">
-                          · Cargado por {limpiar(ev.subio?.nombre)} (IRStrat)
-                          {ev.area_origen ? ` en nombre de ${ev.area_origen}` : ""}
+                          · {limpiar(ev.subio?.nombre)} (IRStrat)
                         </span>
                       ) : (
                         <span>· {limpiar(ev.subio?.nombre)}</span>

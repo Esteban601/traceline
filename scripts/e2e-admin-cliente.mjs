@@ -1050,11 +1050,24 @@ async function main() {
 
     // El cliente también lo ve en su portal: no hay autoría oculta.
     await ir(areaUI.page, `/portal/solicitudes/${solIrstrat.id}`);
+    // La frase PRINCIPAL del portal tiene que decir la verdad: «Entregaste» sobre
+    // una carga de IRStrat sería falso en el lugar más visible, con la corrección
+    // en letra chica debajo.
     ok(
       (await areaUI.page
-        .getByText("Cargado por Analista IRStrat (IRStrat) en nombre de Capital Humano")
+        .getByText(/IRStrat cargó .* en nombre de Capital Humano/)
         .count()) > 0,
-      "el cliente ve en su portal quién de IRStrat hizo esa carga, con nombre y área"
+      "el portal dice que la cargó IRStrat en nombre del área, no «Entregaste»"
+    );
+    ok(
+      (await areaUI.page.getByText("Analista IRStrat (IRStrat)").count()) > 0,
+      "y nombra a quién de IRStrat la cargó"
+    );
+    const encabezado = await areaUI.page.locator("h2").allTextContents();
+    ok(
+      encabezado.some((h) => h.includes("Entregas registradas")) &&
+        !encabezado.some((h) => /Tus entregas|Lo que entregaste/.test(h)),
+      `el encabezado no se atribuye la lista al cliente (${encabezado.join(" | ")})`
     );
 
     // -----------------------------------------------------------------------

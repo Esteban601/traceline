@@ -571,6 +571,12 @@ analista, no administrador del cliente) — y el trigger
   *capacidad*, nunca oculta la *autoría*.
 - **Apagar de nuevo** no retira ninguna marca ya puesta; solo vuelve a bloquear la
   carga. La confirmación del switch lo dice con esas palabras.
+- **El portal del cliente no se atribuye la carga.** La frase principal de su
+  historial dice *"IRStrat cargó X el … en nombre de \<área\>"*, no *"Entregaste
+  X"*, y el encabezado pasa de *Tus entregas* a *Entregas registradas* cuando la
+  lista incluye alguna. Un "Entregaste" en el lugar más visible con la corrección en
+  letra chica debajo es peor que no decir nada: el toggle habilita la capacidad,
+  nunca cambia de quién fue el acto.
 - La **validación posterior** sigue las reglas de origen sin cambios: que IRStrat
   cargue la evidencia de una solicitud interna del cliente no le da derecho a
   validarla.
