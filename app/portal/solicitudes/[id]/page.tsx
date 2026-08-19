@@ -215,7 +215,11 @@ export default async function SolicitudPage({
 
                     {capturasEv.map((c) => (
                       <p key={c.id} className="mt-1.5 text-sm text-ink">
-                        <span className="text-muted">Reportaste: </span>
+                        {/* Misma verdad que la frase de arriba: si la carga fue de
+                            IRStrat, la cifra la registró IRStrat, no el cliente. */}
+                        <span className="text-muted">
+                          {ev.cargado_por_staff ? "Cifra registrada: " : "Reportaste: "}
+                        </span>
                         <span className="font-semibold tabular-nums">
                           {fmtNum.format(c.valor)}
                         </span>{" "}
