@@ -760,6 +760,13 @@ contraseñas fuertes generadas en cada corrida y mostradas una sola vez al final
 No se crean cuentas a nombre de personas reales: los nombres del proceso viven
 como texto en cada solicitud.
 
+A ellos se suma, dada de alta desde el panel y **no por el script**, la cuenta de
+administración del cliente: `sostenibilidad@gcarso.example` (rol `admin_cliente`),
+la jefatura de sostenibilidad de Carso. Es la cuenta del manual, así que su acceso
+se entrega como **contraseña temporal legible con cambio forzado**
+(`debe_cambiar_password`), no como liga de invitación: una liga en un documento
+impreso vence a las 72 h y deja el manual inservible.
+
 ### Extensión VERT del catálogo
 
 El proceso de Carso pide cuatro conceptos que la norma no cubre como datapoint
