@@ -56,6 +56,10 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   vb_area_dado: { label: "Visto bueno del área", tono: "verde" },
   vb_area_retirado: { label: "Visto bueno del área retirado", tono: "ambar-fuerte" },
   vb_area_revocado: { label: "Visto bueno revocado por evidencia nueva", tono: "ambar-fuerte" },
+  solicitud_difundida: { label: "Solicitud difundida a varias áreas", tono: "ambar-fuerte" },
+  solicitud_declinada: { label: "El área declaró que no le corresponde", tono: "gris" },
+  solicitud_retomada: { label: "El área retomó la solicitud", tono: "azul" },
+  copia_desactivada: { label: "Copia de la difusión retirada", tono: "gris" },
 };
 
 export function accionMeta(accion: string): { label: string; tono: Tono } {
@@ -179,6 +183,19 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
       const nombre = s(detalle, "nombre");
       const anterior = s(detalle, "nombre_anterior");
       return anterior && anterior !== nombre ? `${anterior} → ${nombre}` : (nombre ?? "");
+    }
+    case "solicitud_difundida": {
+      const copias = n(detalle, "copias");
+      const areas = detalle?.areas;
+      const lista = Array.isArray(areas) ? areas.filter(Boolean).join(", ") : null;
+      return [copias != null ? `${copias} áreas` : null, lista].filter(Boolean).join(" · ");
+    }
+    case "solicitud_declinada":
+    case "solicitud_retomada":
+    case "copia_desactivada": {
+      const area = s(detalle, "area");
+      const titulo = limpiar(s(detalle, "titulo"));
+      return [area, titulo].filter(Boolean).join(" · ");
     }
     case "vb_area_dado":
     case "vb_area_retirado": {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { NOTA_ALCANCE_MAX } from "@/lib/gestion";
 import { PRESETS_DEFAULT_ACTIVOS } from "@/lib/recordatorios-plan";
+import { AreasSelector } from "./areas-selector";
 import { RecordatoriosSeccion } from "./recordatorios-seccion";
 import { DatapointSelector, type DatapointOpcion } from "./datapoint-selector";
 import type { GestionState } from "./gestion-actions";
@@ -105,7 +106,21 @@ export function SolicitudForm({
   );
   const [titulo, setTitulo] = useState(inicial?.titulo ?? "");
   const [descripcion, setDescripcion] = useState(inicial?.descripcion ?? "");
-  const [area, setArea] = useState(inicial?.area_asignada ?? "");
+  // Áreas en PLURAL: una sola es la solicitud de siempre; dos o más, una difusión
+  // (una copia por área). Al EDITAR nunca hay multi-selección: se edita una copia
+  // concreta, y cambiar su área no puede convertirla en varias.
+  const [areasSel, setAreasSel] = useState<string[]>(
+    inicial?.area_asignada ? [inicial.area_asignada] : []
+  );
+  // Área escrita a mano y aún sin "Agregar": la gobierna el formulario para poder
+  // incluirla al enviar. Sin esto, escribirla y pulsar "Crear solicitud" la perdía.
+  const [areaLibre, setAreaLibre] = useState("");
+  const areasFinales = (() => {
+    const pendiente = areaLibre.trim();
+    if (!pendiente || areasSel.includes(pendiente)) return areasSel;
+    return modo === "editar" ? [pendiente] : [...areasSel, pendiente];
+  })();
+  const difusion = modo === "crear" && areasFinales.length > 1;
   const [esCuant, setEsCuant] = useState(inicial?.es_cuantitativa ?? false);
   const [unidad, setUnidad] = useState(inicial?.unidad_esperada ?? "");
   const [fechaLimite, setFechaLimite] = useState(inicial?.fecha_limite ?? "");
@@ -177,7 +192,8 @@ export function SolicitudForm({
     fd.set("reporte_id", reporteId);
     fd.set("titulo", titulo);
     fd.set("descripcion", descripcion);
-    fd.set("area_asignada", area);
+    fd.set("areas_presentes", "1");
+    for (const a of areasFinales) fd.append("area_asignada", a);
     if (esCuant) fd.set("es_cuantitativa", "on");
     fd.set("unidad_esperada", unidad);
     fd.set("fecha_limite", fechaLimite);
@@ -188,7 +204,10 @@ export function SolicitudForm({
     if (!soloCliente) fd.set("responsable_irstrat_id", respIrstrat);
     fd.set("orden", orden);
     fd.set("rubro_clave", rubroClave);
-    fd.set("rubro_taxonomia", rubroTaxonomia);
+    // En una difusión el rubro NO viaja: la celda del entregable la llena una sola
+    // solicitud, y N copias peleándose por ella producirían un Excel indefinido.
+    // Se asigna después, desde el detalle de la copia que resultó ser la dueña.
+    fd.set("rubro_taxonomia", difusion ? "" : rubroTaxonomia);
     if (!soloCliente) fd.set("nota_alcance", notaAlcance);
     for (const id of datapointIds) fd.append("datapoint_ids", id);
     // Centinela + lista: la server action distingue "ninguno" de "sin sección".
@@ -279,22 +298,14 @@ export function SolicitudForm({
       {/* Área + orden */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label htmlFor="area_asignada" className={labelCls}>
-            Área asignada
-          </label>
-          <input
-            id="area_asignada"
-            list="areas-tenant"
-            value={area}
-            onChange={(e) => setArea(e.target.value)}
-            placeholder="RH, Operaciones, Finanzas…"
-            className={inputCls}
+          <AreasSelector
+            areas={areasTenant}
+            seleccionadas={areasSel}
+            onChange={(next) => setAreasSel(modo === "editar" ? next.slice(-1) : next)}
+            libre={areaLibre}
+            onLibreChange={setAreaLibre}
+            disabled={pending}
           />
-          <datalist id="areas-tenant">
-            {areasTenant.map((a) => (
-              <option key={a} value={a} />
-            ))}
-          </datalist>
         </div>
         <div>
           <label htmlFor="orden" className={labelCls}>
@@ -395,8 +406,9 @@ export function SolicitudForm({
         </label>
         <select
           id="rubro_taxonomia"
-          value={rubroTaxonomia}
+          value={difusion ? "" : rubroTaxonomia}
           onChange={(e) => setRubroTaxonomia(e.target.value)}
+          disabled={difusion}
           className={inputCls}
         >
           <option value="">Ninguno — no alimenta una celda de la plantilla</option>
@@ -406,6 +418,15 @@ export function SolicitudForm({
             </option>
           ))}
         </select>
+        {difusion && (
+          <p className="mt-1.5 rounded-xl border border-dashed border-line bg-crema/40 px-3.5 py-2.5 text-xs leading-relaxed text-ink">
+            <span className="font-semibold">Una difusión no lleva rubro.</span> La celda
+            del entregable la llena <span className="font-medium">una sola</span>{" "}
+            solicitud, y varias copias peleándose por ella dejarían el Excel
+            indefinido. Cuando sepas qué área tenía la información, asígnale el rubro
+            desde el detalle de esa copia.
+          </p>
+        )}
         <p className="mt-1.5 text-xs leading-relaxed text-muted">
           Qué celda de la plantilla oficial llena el valor de esta solicitud. Es lo
           que hace que el Excel de taxonomía salga lleno. Un rubro lo alimenta{" "}

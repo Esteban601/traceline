@@ -32,6 +32,9 @@ export type FilaMatriz = {
   tenantLogo: string | null;
   /** Visto bueno del ÁREA (doble verificación). No es un estado: marca paralela. */
   vbFirmado: boolean;
+  /** Copia de una difusión que el área declaró ajena, o que quien difundió retiró. */
+  declinada: boolean;
+  desactivada: boolean;
 };
 
 /**
@@ -394,7 +397,17 @@ export function MatrizSolicitudes({
                       )}
                       <td className="px-4 py-3 text-muted">{f.area ?? "—"}</td>
                       <td className="px-4 py-3">
-                        <EstadoBadge estado={f.estado} />
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <EstadoBadge estado={f.estado} />
+                          {/* Una copia declinada aparecería como "Solicitado" —es su
+                              estado real— y en la matriz eso se lee como trabajo
+                              pendiente que nadie va a hacer. La marca lo aclara. */}
+                          {(f.declinada || f.desactivada) && (
+                            <span className="whitespace-nowrap rounded-pill border border-gris/25 bg-gris/10 px-2 py-0.5 text-[11px] font-medium text-gris">
+                              {f.declinada ? "Declinada" : "Retirada"}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <MarcasCompactas

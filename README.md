@@ -1434,6 +1434,111 @@ Verificado con Playwright, incluido el PDF real generado por el motor del navega
 (9 páginas para las 91 filas NIIF + la extensión GRI, con los grupos sin cortar a
 la mitad y el pie repetido al pie de cada página).
 
+## Solicitudes multi-área: difusión
+
+El caso real: **quien pide la información no sabe qué área la tiene.** Antes había
+que adivinar, y una solicitud mal dirigida se quedaba semanas en el limbo con el
+área mirándola sin saber que no era suya. Ahora se pregunta a varias —o a todas— y
+las que no aplican **lo declaran**.
+
+### El modelo no cambia: una copia por área
+
+Difundir crea **una copia idéntica por área**, unidas por
+`solicitudes.grupo_difusion_id`. Cada copia sigue siendo una solicitud normal: su
+área, su responsable, su evidencia, su visto bueno de área, su validación por
+origen y sus candados, sin una sola excepción. Lo único nuevo es el hilo que las
+une y dos marcas paralelas.
+
+**No hay tabla de grupos** porque un grupo no tiene atributos propios: el
+enunciado, la fecha límite y los recordatorios viven en cada copia —porque cada
+copia es una solicitud de verdad—, y quién difundió y cuándo ya está en la
+bitácora. Un `uuid` compartido *es* el grupo; una tabla con un id y nada más solo
+añadiría un JOIN y un lugar donde desincronizarse.
+
+**Dos marcas, dos actores** (ninguna es un estado; la máquina de estados no se
+toca):
+
+| | Quién | Qué dice |
+|---|---|---|
+| `declinada` | el **área** (responsable o su jefe) | "esto no me corresponde" |
+| `desactivada` | quien **difundió** | "ya sé quién la tenía; estas copias sobran" |
+
+Se leen distinto en la vista de grupo y en el entregable, así que son dos columnas
+y no un enum de "cerrada".
+
+### Crear una difusión
+
+El selector de área del formulario es **multi-selección con casillas**, con atajo
+**"Todas las áreas"**. Con dos o más, la UI avisa cuántas copias va a crear.
+
+- **La difusión no lleva rubro de taxonomía**, y el selector se deshabilita
+  diciéndolo: la celda del entregable la llena **una sola** solicitud (hay un
+  índice único por reporte y rubro), así que N copias peleándose por ella dejarían
+  el Excel indefinido — y la segunda copia moriría con un error de unicidad que
+  nadie sabría leer. Cuando se sabe qué área tenía el dato, el rubro se le asigna a
+  esa copia desde su detalle.
+- **El responsable designado tampoco viaja**: solo aplica a *su* área, y ponerlo en
+  todas las copias le mandaría a una persona el trabajo de otras cinco.
+- Lo que **sí** se hereda en todas: enunciado, descripción, fecha límite,
+  recordatorios y el mapeo a datapoints.
+- **Bitácora:** un acto de difusión (`solicitud_difundida`) con su conteo y sus
+  áreas, más la creación de cada copia.
+
+### "No aplica a mi área"
+
+En el portal, las copias de una difusión ofrecen el botón al **área**: el
+responsable y su jefe, que son "el área". El coordinador y el administrador del
+cliente **no** declinan por ellos — declarar que algo no te corresponde lo dice
+quien hace el trabajo, y firmarlo desde arriba sería poner en su boca algo que no
+dijo.
+
+Al declinar (con ConfirmDialog y **nota opcional**, que es el lugar de "esto lo
+tiene Operaciones"):
+
+1. se **publica el comentario** estándar en la conversación, con la nota;
+2. `declinada = true`;
+3. la solicitud **sale de sus pendientes**, de su barra de avance y de los
+   recordatorios, y se muestra en gris como *Declinada*;
+4. **no acepta evidencia** (lo impide un trigger, no solo la UI);
+5. es **reversible** con "Retomar" mientras el grupo siga abierto, y el retorno
+   también queda en la conversación.
+
+**No se declina lo ya entregado.** Si el área subió un archivo, la información sí
+le correspondía; dejar las dos cosas juntas volvería el expediente contradictorio,
+así que el trigger lo rechaza y la UI lo explica.
+
+### La vista de grupo (quien difundió)
+
+En el detalle de cualquier copia, un panel con las N áreas y **su respuesta** —
+entregó / en proceso / declinó / copia retirada / sin respuesta—, la nota de quien
+declinó, y liga a cada copia. La tabla no repite el estado interno: traduce la
+respuesta, que es lo que decide el siguiente movimiento.
+
+**"Desactivar copias"** cierra la difusión: ofrece las que declinaron o siguen sin
+responder —**nunca** las que entregaron algo— y las retira del juego. No borra
+nada: cada copia conserva su conversación, su declaración y su historia; lo que
+cambia es que deja de pedir, de contar y de recordar. Quién puede hacerlo lo decide
+la regla de origen de siempre.
+
+### Entregables y cobertura
+
+- Una copia declinada o retirada **no es una brecha**: no es "sin evidencia" sino
+  "no aplica". Sale de la cobertura y del Excel oficial de taxonomía.
+- El **Excel de trazabilidad** las lista con una columna **Difusión** que dice cuál
+  es cuál: sin ella, una copia declinada se leería como una solicitud sin evidencia,
+  un hueco donde en realidad hubo respuesta.
+
+```bash
+pnpm e2e:difusion
+```
+
+Difunde a tres áreas con "Todas las áreas", una entrega, otra declina con su nota y
+la tercera se queda silente; comprueba la vista de grupo con los tres caminos,
+retira las copias que sobran y confirma la columna del entregable. Negativos: un
+área no ve las copias de otra (ni por id), otra área no declina por ella, el jefe no
+edita el contenido, la que entregó no se puede declinar ni retirar, y el rubro no es
+seleccionable en una difusión.
+
 ## Documentación
 
 - **[DESIGN.md](./DESIGN.md)** — sistema de diseño: tokens, tipografía, componentes, motion.

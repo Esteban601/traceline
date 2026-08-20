@@ -31,6 +31,11 @@ type CamposSolicitud = {
   titulo: string;
   descripcion: string | null;
   area_asignada: string | null;
+  /**
+   * Todas las áreas seleccionadas. Una sola = solicitud normal; dos o más =
+   * DIFUSIÓN (una copia por área). `null` si el formulario no trajo la sección.
+   */
+  areas: string[] | null;
   es_cuantitativa: boolean;
   unidad_esperada: string | null;
   fecha_limite: string | null;
@@ -63,6 +68,17 @@ function leerCampos(fd: FormData): CamposSolicitud {
     titulo: String(fd.get("titulo") ?? "").trim(),
     descripcion: texto(fd, "descripcion"),
     area_asignada: texto(fd, "area_asignada"),
+    areas:
+      fd.get("areas_presentes") === "1"
+        ? Array.from(
+            new Set(
+              fd
+                .getAll("area_asignada")
+                .map((v) => String(v).trim())
+                .filter(Boolean)
+            )
+          )
+        : null,
     es_cuantitativa: esCuant,
     // La unidad solo tiene sentido si es cuantitativa.
     unidad_esperada: esCuant ? texto(fd, "unidad_esperada") : null,
@@ -260,29 +276,50 @@ export async function crearSolicitud(
     orden = (maxRow?.orden ?? 0) + 10;
   }
 
-  const { data: creada, error: insErr } = await db
-    .from("solicitudes")
-    .insert({
-      reporte_id: reporteId,
-      titulo: campos.titulo,
-      descripcion: campos.descripcion,
-      area_asignada: campos.area_asignada,
-      es_cuantitativa: campos.es_cuantitativa,
-      unidad_esperada: campos.unidad_esperada,
-      fecha_limite: campos.fecha_limite,
-      responsable_cliente_id: campos.responsable_cliente_id,
-      responsable_irstrat_id: campos.responsable_irstrat_id,
-      orden,
-      rubro_clave: campos.rubro_clave,
-      rubro_taxonomia: campos.rubro_taxonomia,
-      nota_alcance: campos.nota_alcance,
-      origen,
-      // estado se queda en el default 'pendiente'.
-    })
-    .select("id")
-    .single();
+  // ÁREAS: una sola es la solicitud de siempre; dos o más son una DIFUSIÓN — una
+  // copia idéntica por área, unidas por el mismo `grupo_difusion_id`. El modelo de
+  // un-área-por-solicitud no cambia; lo que cambia es cuántas se crean.
+  const areasDestino =
+    campos.areas != null && campos.areas.length > 0
+      ? campos.areas
+      : [campos.area_asignada].filter((a): a is string => a != null);
+  const esDifusion = areasDestino.length > 1;
+  const grupoId = esDifusion ? crypto.randomUUID() : null;
 
-  if (insErr || !creada) {
+  // El rubro de taxonomía NO viaja en una difusión: la celda del entregable la
+  // llena UNA solicitud (hay un único índice por reporte y rubro), así que N
+  // copias con el mismo rubro serían un Excel indefinido — y la segunda copia
+  // moriría con un error de unicidad que nadie sabría leer. Se asigna después,
+  // desde el detalle de la copia que resultó ser la dueña de la información.
+  const rubroTaxonomia = esDifusion ? null : campos.rubro_taxonomia;
+
+  const filas = (areasDestino.length > 0 ? areasDestino : [null]).map((area, i) => ({
+    reporte_id: reporteId,
+    titulo: campos.titulo,
+    descripcion: campos.descripcion,
+    area_asignada: area,
+    es_cuantitativa: campos.es_cuantitativa,
+    unidad_esperada: campos.unidad_esperada,
+    fecha_limite: campos.fecha_limite,
+    // El responsable designado solo aplica a SU área: en una difusión, ponerlo en
+    // todas las copias le mandaría a una persona el trabajo de otras cinco.
+    responsable_cliente_id: esDifusion ? null : campos.responsable_cliente_id,
+    responsable_irstrat_id: campos.responsable_irstrat_id,
+    orden: (orden ?? 0) + i,
+    rubro_clave: campos.rubro_clave,
+    rubro_taxonomia: rubroTaxonomia,
+    nota_alcance: campos.nota_alcance,
+    origen,
+    grupo_difusion_id: grupoId,
+    // estado se queda en el default 'pendiente'.
+  }));
+
+  const { data: creadas, error: insErr } = await db
+    .from("solicitudes")
+    .insert(filas)
+    .select("id, area_asignada");
+
+  if (insErr || !creadas || creadas.length === 0) {
     if (insErr?.code === "23505" && insErr.message.includes("rubro_taxonomia")) {
       return {
         ok: false,
@@ -292,39 +329,74 @@ export async function crearSolicitud(
     }
     return { ok: false, error: "No se pudo crear la solicitud." };
   }
+  // La primera copia es la que se abre al terminar; las demás quedan listadas en
+  // su panel de grupo.
+  const creada = creadas[0];
 
-  if (soyStaff) {
-    const errMap = await reemplazarMapeo(db, creada.id, campos.datapointIds);
-    if (errMap) return { ok: false, error: errMap };
+  // Lo que se hereda va a TODAS las copias: el mapeo a datapoints y el calendario
+  // de recordatorios. Una copia sin sus avisos sería una copia que nadie recuerda.
+  const plan = campos.recordatorios ?? [...PRESETS_DEFAULT_ACTIVOS];
+  let recordatoriosActivos: number[] = [];
+  for (const c of creadas) {
+    if (soyStaff) {
+      const errMap = await reemplazarMapeo(db, c.id, campos.datapointIds);
+      if (errMap) return { ok: false, error: errMap };
+    }
+    const recRes = await reconciliarRecordatorios(db, c.id, plan);
+    if ("error" in recRes) return { ok: false, error: recRes.error };
+    recordatoriosActivos = recRes.resumen.activos;
   }
 
-  // Recordatorios. Si el formulario no trajo la sección, la solicitud NACE con los
-  // presets default: es la misma herencia que reciben las solicitudes clonadas de
-  // plantilla, y hace que el caso normal (fecha límite + avisos) no dependa de que
-  // alguien se acuerde de marcar dos casillas.
-  const plan = campos.recordatorios ?? [...PRESETS_DEFAULT_ACTIVOS];
-  const recRes = await reconciliarRecordatorios(db, creada.id, plan);
-  if ("error" in recRes) return { ok: false, error: recRes.error };
-
-  await logEvento(db, {
-    tenantId: reporte.tenant_id,
-    usuarioId: perfil.id,
-    accion: "solicitud_creada",
-    entidad: "solicitudes",
-    entidadId: creada.id,
-    detalle: {
-      titulo: campos.titulo,
-      area: campos.area_asignada,
-      reporte_id: reporteId,
-      datapoints: campos.datapointIds.length,
-      recordatorios: recRes.resumen.activos,
-      origen,
-      rol: perfil.rol,
-    },
-  });
+  // BITÁCORA. Una difusión es UN acto —"se preguntó a estas N áreas"— y así se
+  // registra, con su conteo y sus áreas; además de la creación de cada copia, que
+  // es lo que deja rastro en el timeline de cada solicitud.
+  if (esDifusion) {
+    await logEvento(db, {
+      tenantId: reporte.tenant_id,
+      usuarioId: perfil.id,
+      accion: "solicitud_difundida",
+      entidad: "solicitudes",
+      entidadId: creada.id,
+      detalle: {
+        titulo: campos.titulo,
+        grupo_difusion_id: grupoId,
+        copias: creadas.length,
+        areas: creadas.map((c) => c.area_asignada),
+        reporte_id: reporteId,
+        origen,
+        rol: perfil.rol,
+      },
+    });
+  }
+  for (const c of creadas) {
+    await logEvento(db, {
+      tenantId: reporte.tenant_id,
+      usuarioId: perfil.id,
+      accion: "solicitud_creada",
+      entidad: "solicitudes",
+      entidadId: c.id,
+      detalle: {
+        titulo: campos.titulo,
+        area: c.area_asignada,
+        reporte_id: reporteId,
+        datapoints: campos.datapointIds.length,
+        recordatorios: recordatoriosActivos,
+        ...(grupoId ? { grupo_difusion_id: grupoId, copias: creadas.length } : {}),
+        origen,
+        rol: perfil.rol,
+      },
+    });
+  }
 
   revalidatePath("/admin");
-  return { ok: true, error: null, mensaje: "Solicitud creada.", solicitudId: creada.id };
+  return {
+    ok: true,
+    error: null,
+    mensaje: esDifusion
+      ? `Difusión creada: ${creadas.length} copias, una por área.`
+      : "Solicitud creada.",
+    solicitudId: creada.id,
+  };
 }
 
 // -----------------------------------------------------------------------------

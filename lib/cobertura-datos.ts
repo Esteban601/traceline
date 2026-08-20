@@ -73,7 +73,7 @@ export async function cargarCobertura(
     db
       .from("solicitudes")
       .select(
-        "id, titulo, estado, origen, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
+        "id, titulo, estado, origen, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
       ),
     cargarDiscrepancias(db),
     db
@@ -117,11 +117,18 @@ export async function cargarCobertura(
     titulo: string;
     estado: string;
     origen: OrigenSolicitud;
+    declinada: boolean;
+    desactivada: boolean;
     reporte: { tenant_id: string } | null;
   }[];
   const solById = new Map<string, SolLigada>();
   for (const s of solsRaw) {
     if (tenantSel && s.reporte?.tenant_id !== tenantSel) continue;
+    // Una copia de difusión que el área declaró ajena —o que quien difundió
+    // retiró— NO es una brecha de evidencia: es un "no aplica". Contarla dejaría
+    // el datapoint en rojo por una pregunta que ya se respondió, y con la peor de
+    // las lecturas: que falta información cuando lo que falta es nada.
+    if (s.declinada || s.desactivada) continue;
     solById.set(s.id, {
       id: s.id,
       titulo: s.titulo,

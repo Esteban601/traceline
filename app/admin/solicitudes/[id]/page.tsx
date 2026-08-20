@@ -22,6 +22,8 @@ import { EliminarSolicitud } from "./eliminar-solicitud";
 import { Timeline, type EventoBitacora } from "./timeline";
 import { MarcasVerificacion } from "@/components/marcas-verificacion";
 import { cargarVerificaciones } from "@/lib/verificaciones";
+import { estadoEnGrupo } from "@/lib/difusion";
+import { GrupoDifusion, type CopiaDelGrupo } from "./grupo-difusion";
 import {
   RecordatoriosVista,
   type EnvioRecordatorio,
@@ -83,7 +85,7 @@ export default async function SolicitudStaffPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, nota_alcance, vb_area_por, vb_area_fecha, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, nota_alcance, vb_area_por, vb_area_fecha, grupo_difusion_id, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
     )
     .eq("id", id)
     .single();
@@ -114,6 +116,7 @@ export default async function SolicitudStaffPage({
     { data: areasCatalogo },
     { data: tenantSol },
     { data: recordatorios },
+    { data: copiasGrupo },
   ] = await Promise.all([
     supabase
       .from("evidencias")
@@ -171,6 +174,14 @@ export default async function SolicitudStaffPage({
       .select("id, dias_antes, activo")
       .eq("solicitud_id", id)
       .order("dias_antes", { ascending: false }),
+    // Copias hermanas de la difusión (si esta lo es). RLS ya acota al tenant.
+    sol.grupo_difusion_id
+      ? supabase
+          .from("solicitudes")
+          .select("id, area_asignada, estado, declinada, desactivada")
+          .eq("grupo_difusion_id", sol.grupo_difusion_id)
+          .order("orden", { ascending: true })
+      : Promise.resolve({ data: [] }),
   ]);
 
   const evs = (evidencias ?? []) as unknown as EvidenciaRow[];
@@ -227,6 +238,62 @@ export default async function SolicitudStaffPage({
     vb_area_por: sol.vb_area_por,
     vb_area_fecha: sol.vb_area_fecha,
   });
+
+  // GRUPO DE DIFUSIÓN. Se arma con las copias hermanas: cuántas evidencias tiene
+  // cada una (para traducir su respuesta) y, si declinó, la nota con la que lo
+  // declaró — que es la pista de dónde SÍ está el dato.
+  const copias = (copiasGrupo ?? []) as {
+    id: string;
+    area_asignada: string | null;
+    estado: string;
+    declinada: boolean;
+    desactivada: boolean;
+  }[];
+  let grupo: CopiaDelGrupo[] = [];
+  if (sol.grupo_difusion_id && copias.length > 0) {
+    const idsCopias = copias.map((c) => c.id);
+    const [{ data: evsGrupo }, { data: bitDeclinada }] = await Promise.all([
+      supabase.from("evidencias").select("solicitud_id").in("solicitud_id", idsCopias),
+      supabase
+        .from("bitacora")
+        .select("entidad_id, detalle, created_at")
+        .eq("accion", "solicitud_declinada")
+        .in("entidad_id", idsCopias)
+        .order("created_at", { ascending: false }),
+    ]);
+    const nEvs = new Map<string, number>();
+    for (const e of evsGrupo ?? []) {
+      nEvs.set(e.solicitud_id, (nEvs.get(e.solicitud_id) ?? 0) + 1);
+    }
+    // La más reciente por copia: si un área declinó, retomó y volvió a declinar, la
+    // nota que vale es la última.
+    const notaPorCopia = new Map<string, { nota: string | null; cuando: string }>();
+    for (const b of bitDeclinada ?? []) {
+      if (!b.entidad_id || notaPorCopia.has(b.entidad_id)) continue;
+      const d = b.detalle as { nota?: string | null } | null;
+      notaPorCopia.set(b.entidad_id, { nota: d?.nota ?? null, cuando: b.created_at });
+    }
+    grupo = copias.map((c) => {
+      const evidencias = nEvs.get(c.id) ?? 0;
+      const nota = c.declinada ? notaPorCopia.get(c.id) : undefined;
+      return {
+        id: c.id,
+        area: c.area_asignada,
+        estadoGrupo: estadoEnGrupo({
+          estado: c.estado as EstadoSolicitud,
+          declinada: c.declinada,
+          desactivada: c.desactivada,
+          evidencias,
+        }),
+        evidencias,
+        declinada: c.declinada,
+        desactivada: c.desactivada,
+        notaDeclinada: nota?.nota ?? null,
+        declinadaEn: nota?.cuando ?? null,
+        esEsta: c.id === id,
+      };
+    });
+  }
 
   const discrepanciasSol = discrepancias.porSolicitud.get(id) ?? [];
   const estado = sol.estado as EstadoSolicitud;
@@ -664,6 +731,11 @@ export default async function SolicitudStaffPage({
               </div>
             )}
           </section>
+        )}
+
+        {/* Grupo de difusión: quién de todas las áreas tenía la información */}
+        {grupo.length > 1 && (
+          <GrupoDifusion copias={grupo} puedeDesactivar={puedeRevisar} />
         )}
 
         {/* Las dos verificaciones: visto bueno del área y validación final */}

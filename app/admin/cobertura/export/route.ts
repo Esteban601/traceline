@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     supabase
       .from("solicitudes")
       .select(
-        "id, titulo, estado, origen, area_asignada, vb_area_por, vb_area_fecha, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), vb:perfiles_usuario!solicitudes_vb_area_por_fkey(nombre)"
+        "id, titulo, estado, origen, area_asignada, vb_area_por, vb_area_fecha, grupo_difusion_id, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), vb:perfiles_usuario!solicitudes_vb_area_por_fkey(nombre)"
       ),
     supabase
       .from("evidencias")
@@ -133,6 +133,8 @@ export async function GET(request: Request) {
     area: string | null;
     /** Visto bueno del área, ya redactado para la celda ("Ana Ruiz · 12 mar 2026"). */
     vistoBueno: string;
+    /** Estado dentro de la difusión, o vacío si la solicitud no es una copia. */
+    difusion: string;
   };
   const solById = new Map<string, Sol>();
   for (const s of (sols ?? []) as unknown as {
@@ -143,6 +145,9 @@ export async function GET(request: Request) {
     area_asignada: string | null;
     vb_area_por: string | null;
     vb_area_fecha: string | null;
+    grupo_difusion_id: string | null;
+    declinada: boolean;
+    desactivada: boolean;
     vb: { nombre: string } | null;
     reporte: { tenant_id: string } | null;
   }[]) {
@@ -158,6 +163,13 @@ export async function GET(request: Request) {
         s.vb_area_por && s.vb_area_fecha
           ? `${limpiar(s.vb?.nombre) || "Jefe de área"} · ${fmtFechaHora(s.vb_area_fecha)}`
           : "Sin visto bueno del área",
+      difusion: !s.grupo_difusion_id
+        ? ""
+        : s.desactivada
+          ? "Difusión · copia retirada"
+          : s.declinada
+            ? "Difusión · el área declaró que no le corresponde"
+            : "Difusión a varias áreas",
     });
   }
 
@@ -226,6 +238,10 @@ export async function GET(request: Request) {
     // entra lo validado, y el visto bueno no es una validación.
     { header: "Visto bueno del área", width: 30 },
     { header: "Área", width: 18 },
+    // Difusión: una misma pregunta a varias áreas. Sin esta columna, una copia
+    // declinada se leería como una solicitud sin evidencia — un hueco donde en
+    // realidad hubo respuesta.
+    { header: "Difusión", width: 26 },
     { header: "Últ. versión", width: 12 },
     { header: "Archivo evidencia", width: 34 },
     { header: "Fecha evidencia", width: 18 },
@@ -255,7 +271,8 @@ export async function GET(request: Request) {
         "",
         "", // origen / validación
         "", // visto bueno del área
-        "",
+        "", // área
+        "", // difusión
         "",
         "",
         "",
@@ -283,6 +300,7 @@ export async function GET(request: Request) {
           : ORIGEN_META[sol.origen].label,
         sol.vistoBueno,
         sol.area ?? "",
+        sol.difusion,
         ev ? ev.version : "",
         ev ? ev.archivo : "",
         ev ? fmtFechaHora(ev.fecha) : "",

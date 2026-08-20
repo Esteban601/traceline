@@ -609,7 +609,12 @@ export async function GET(request: Request) {
       // la celda lleva la nota de validación interna del cliente. `nota_alcance`
       // es la salvedad de perímetro de la cifra, redactada para el entregable.
       .select("id, estado, origen, rubro_taxonomia, nota_alcance")
-      .eq("reporte_id", reporteId),
+      .eq("reporte_id", reporteId)
+      // Las copias de difusión declinadas o retiradas quedan fuera del entregable
+      // oficial: no son una brecha de evidencia ("falta el dato") sino un "no
+      // aplica a esa área", y de todas formas una difusión nunca lleva rubro.
+      .eq("declinada", false)
+      .eq("desactivada", false),
     // Capturas del reporte: se filtran por la solicitud embebida (!inner) en vez
     // de traer las de todas las emisoras y descartarlas en memoria.
     supabase

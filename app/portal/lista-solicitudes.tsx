@@ -18,6 +18,12 @@ export type SolicitudResumen = {
   unidad_esperada: string | null;
   orden: number;
   responsable_cliente_id: string | null;
+  /** Copia de una difusión: la misma pregunta se hizo a varias áreas. */
+  grupo_difusion_id: string | null;
+  /** El área declaró que no le corresponde. */
+  declinada: boolean;
+  /** Quien difundió retiró esta copia. */
+  desactivada: boolean;
 };
 
 function ordenar(a: SolicitudResumen, b: SolicitudResumen) {
@@ -162,6 +168,29 @@ export function ListaSolicitudes({
 
                 <div className="flex shrink-0 items-center gap-3">
                   {(() => {
+                    // Declinada o retirada: en gris, y con su palabra. Mostrarle
+                    // "pendiente de tu información" a algo que el área declaró
+                    // ajeno sería contradecirla en su propia lista.
+                    if (s.declinada || s.desactivada) {
+                      return (
+                        <span className="inline-flex items-center gap-1.5 rounded-pill bg-gris/12 px-2.5 py-1 text-xs font-medium text-gris">
+                          <svg
+                            aria-hidden
+                            viewBox="0 0 24 24"
+                            className="size-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M8 12h8" />
+                          </svg>
+                          {s.declinada ? "Declinada" : "Retirada"}
+                        </span>
+                      );
+                    }
                     const accion = accionCliente(s.estado);
                     const t = TONO_CLASSES[accion.tono];
                     return (

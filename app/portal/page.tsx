@@ -6,6 +6,7 @@ import { KPIS, contarPorBucket } from "@/lib/estados";
 import { ListaSolicitudes, type SolicitudResumen } from "./lista-solicitudes";
 import { ProgresoReporte } from "./progreso-reporte";
 import { accionCliente } from "./estado-cliente";
+import { cuentaEnAvance } from "@/lib/difusion";
 
 export const metadata: Metadata = { title: "Tablero" };
 
@@ -17,7 +18,7 @@ export default async function TableroPage() {
   const { data, error } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, area_asignada, estado, fecha_limite, es_cuantitativa, unidad_esperada, orden, responsable_cliente_id"
+      "id, titulo, area_asignada, estado, fecha_limite, es_cuantitativa, unidad_esperada, orden, responsable_cliente_id, grupo_difusion_id, declinada, desactivada"
     );
 
   if (error) {
@@ -25,8 +26,13 @@ export default async function TableroPage() {
   }
 
   const solicitudes = (data ?? []) as SolicitudResumen[];
-  const conteos = contarPorBucket(solicitudes.map((s) => s.estado));
-  const completadas = solicitudes.filter((s) => accionCliente(s.estado).completada).length;
+  // Las copias de difusión que el área declaró ajenas —o que quien difundió
+  // retiró— NO cuentan: ni en los indicadores, ni en la barra de avance, ni en el
+  // denominador. Dejarlas dentro haría que un área terminara su trabajo con la
+  // barra a medias por preguntas que no eran suyas.
+  const enJuego = solicitudes.filter(cuentaEnAvance);
+  const conteos = contarPorBucket(enJuego.map((s) => s.estado));
+  const completadas = enJuego.filter((s) => accionCliente(s.estado).completada).length;
   // Nombre completo del perfil (sin el prefijo [DEMO]); el CSS se encarga de que
   // un nombre largo envuelva por palabras y, si no cabe, se acorte con elipsis
   // en dos líneas — nunca cortando una palabra a la mitad.
@@ -58,7 +64,9 @@ export default async function TableroPage() {
         </p>
       </header>
 
-      <ProgresoReporte completadas={completadas} total={solicitudes.length} />
+      {/* El denominador también excluye lo declinado: si no cuenta arriba, no puede
+          contar abajo. */}
+      <ProgresoReporte completadas={completadas} total={enJuego.length} />
 
       <section aria-label="Resumen por estado">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

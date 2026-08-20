@@ -13,9 +13,17 @@ import { accionCliente, IconoAccion } from "@/app/portal/estado-cliente";
 import { MarcasVerificacion } from "@/components/marcas-verificacion";
 import { cargarVerificaciones } from "@/lib/verificaciones";
 import { esJefeDeSuArea, puedeDarVB, puedeRetirarVB, motivoSinVB } from "@/lib/vb-area";
+import {
+  esDeSuArea,
+  esDifundida,
+  motivoSinDeclinar,
+  puedeDeclinar,
+  puedeRetomar,
+} from "@/lib/difusion";
 import { UploadEvidencia } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
 import { VBAreaJefe } from "./vb-area-jefe";
+import { NoAplica } from "./no-aplica";
 
 export const metadata: Metadata = { title: "Solicitud" };
 
@@ -69,7 +77,7 @@ export default async function SolicitudPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, vb_area_por, vb_area_fecha, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, vb_area_por, vb_area_fecha, grupo_difusion_id, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
     )
     .eq("id", id)
     .single();
@@ -120,7 +128,10 @@ export default async function SolicitudPage({
   // Acción esperada del cliente (idioma del cliente). Rige la jerarquía: si el
   // cliente debe actuar, la carga es la protagonista; si no, lo es el resumen.
   const accion = accionCliente(estado);
-  const esperaEvidencia = accion.esperaCarga && !reporteCongelado;
+  // Una copia declinada o retirada no espera evidencia: el trigger la rechazaría,
+  // y ofrecer el formulario sería invitar a un error.
+  const fueraDeJuego = sol.declinada || sol.desactivada;
+  const esperaEvidencia = accion.esperaCarga && !reporteCongelado && !fueraDeJuego;
   const tAccion = TONO_CLASSES[accion.tono];
 
   // LAS DOS VERIFICACIONES: el visto bueno del área y la validación final. Se
@@ -139,6 +150,28 @@ export default async function SolicitudPage({
     vb_area_por: sol.vb_area_por,
     vb_area_fecha: sol.vb_area_fecha,
   });
+  // DIFUSIÓN: esta copia es una de varias preguntas a distintas áreas. El acto de
+  // "no aplica" es del área a la que se preguntó — el responsable y su jefe—, y no
+  // de quien coordina: declarar que algo no te corresponde lo dice quien hace el
+  // trabajo.
+  const solDif = {
+    area_asignada: sol.area_asignada,
+    estado,
+    grupo_difusion_id: sol.grupo_difusion_id,
+    declinada: sol.declinada,
+    desactivada: sol.desactivada,
+  };
+  const bloqueNoAplica =
+    esDifundida(solDif) && esDeSuArea(perfil, solDif) ? (
+      <NoAplica
+        solicitudId={sol.id}
+        declinada={sol.declinada}
+        puedeDeclinar={puedeDeclinar(perfil, solDif, evs.length > 0)}
+        puedeRetomar={puedeRetomar(perfil, solDif)}
+        motivo={motivoSinDeclinar(perfil, solDif, evs.length > 0)}
+      />
+    ) : null;
+
   // El acto del jefe solo se le ofrece al jefe DE ESTA área.
   const soyJefeDeEsta = esJefeDeSuArea(perfil, solVB);
   const bloqueVB = soyJefeDeEsta ? (
@@ -435,15 +468,40 @@ export default async function SolicitudPage({
       {/* Encabezado de la solicitud */}
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span
-            className={
-              "inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-sm font-medium " +
-              `${tAccion.bg} ${tAccion.text}`
-            }
-          >
-            <IconoAccion tipo={accion.icono} className="size-4" />
-            {accion.titulo}
-          </span>
+          {/* Declinada o retirada: el estado que importa al área es ese, y en gris.
+              El de la máquina de estados sigue existiendo, pero decirle "pendiente
+              de tu información" a algo que declaró no ser suyo sería contradecirla. */}
+          {fueraDeJuego ? (
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-gris/12 px-3 py-1 text-sm font-medium text-gris">
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8 12h8" />
+              </svg>
+              {sol.declinada ? "Declinada — no aplica a esta área" : "Copia retirada"}
+            </span>
+          ) : (
+            <span
+              className={
+                "inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-sm font-medium " +
+                `${tAccion.bg} ${tAccion.text}`
+              }
+            >
+              <IconoAccion tipo={accion.icono} className="size-4" />
+              {accion.titulo}
+            </span>
+          )}
+          {esDifundida(solDif) && (
+            <Chip tono="teal">Difusión a varias áreas</Chip>
+          )}
           {/* Badge de ORIGEN: quién pidió el dato. Visible también para el área,
               que tiene derecho a saber si la petición viene de IRStrat o de la
               propia organización. */}
@@ -489,6 +547,7 @@ export default async function SolicitudPage({
         <div className="space-y-10">
           {/* Protagonista: la carga */}
           {bloqueCarga}
+          {bloqueNoAplica}
           {bloqueVB}
           {/* Secundario: entregas + conversación */}
           <div className="grid gap-8 lg:grid-cols-2">
@@ -505,8 +564,9 @@ export default async function SolicitudPage({
           </div>
           {/* Secundario: el visto bueno del jefe y cargar una versión nueva */}
           <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+            {bloqueNoAplica}
             {bloqueVB}
-            {bloqueCarga}
+            {!fueraDeJuego && bloqueCarga}
           </aside>
         </div>
       )}

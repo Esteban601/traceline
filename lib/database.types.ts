@@ -944,10 +944,13 @@ export type Database = {
         Row: {
           area_asignada: string | null
           created_at: string
+          declinada: boolean
+          desactivada: boolean
           descripcion: string | null
           es_cuantitativa: boolean
           estado: Database["public"]["Enums"]["estado_solicitud"]
           fecha_limite: string | null
+          grupo_difusion_id: string | null
           id: string
           nota_alcance: string | null
           orden: number
@@ -966,10 +969,13 @@ export type Database = {
         Insert: {
           area_asignada?: string | null
           created_at?: string
+          declinada?: boolean
+          desactivada?: boolean
           descripcion?: string | null
           es_cuantitativa?: boolean
           estado?: Database["public"]["Enums"]["estado_solicitud"]
           fecha_limite?: string | null
+          grupo_difusion_id?: string | null
           id?: string
           nota_alcance?: string | null
           orden?: number
@@ -988,10 +994,13 @@ export type Database = {
         Update: {
           area_asignada?: string | null
           created_at?: string
+          declinada?: boolean
+          desactivada?: boolean
           descripcion?: string | null
           es_cuantitativa?: boolean
           estado?: Database["public"]["Enums"]["estado_solicitud"]
           fecha_limite?: string | null
+          grupo_difusion_id?: string | null
           id?: string
           nota_alcance?: string | null
           orden?: number
@@ -1124,6 +1133,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_es_de_su_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_es_jefe_de_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_gestiona_recordatorios: {
         Args: { p_solicitud_id: string }

@@ -82,7 +82,14 @@ export type AccionEvento =
   // una server action, una carga hecha por otra vía la dejaría sin rastro.
   | "vb_area_dado"
   | "vb_area_retirado"
-  | "vb_area_revocado";
+  | "vb_area_revocado"
+  // Difusión multi-área: un acto de quien pregunta ("se difundió a N áreas"), y
+  // los dos de la respuesta — el área que declara que no le corresponde, y quien
+  // difundió retirando las copias que sobraron.
+  | "solicitud_difundida"
+  | "solicitud_declinada"
+  | "solicitud_retomada"
+  | "copia_desactivada";
 
 /**
  * Registra un evento de gestión (crear/editar/eliminar solicitud, alta/baja de

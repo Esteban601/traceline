@@ -69,6 +69,11 @@ export async function procesarRecordatorios(
       "id, titulo, estado, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(activo)), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
     )
     .in("estado", ESTADOS_RECORDABLES)
+    // Una copia de difusión que el área declaró ajena —o que quien difundió
+    // retiró— no se recuerda: sería insistirle a alguien por algo que ya dijo que
+    // no le toca, que es la forma más rápida de que dejen de leer los correos.
+    .eq("declinada", false)
+    .eq("desactivada", false)
     .not("responsable_cliente_id", "is", null)
     .order("fecha_limite", { ascending: true });
 
@@ -255,6 +260,8 @@ type RecordatorioRow = {
     fecha_limite: string | null;
     area_asignada: string | null;
     responsable_cliente_id: string | null;
+    declinada: boolean;
+    desactivada: boolean;
     reporte: { tenant_id: string; tenant: { activo: boolean } | null } | null;
   } | null;
 };
@@ -296,7 +303,7 @@ export async function procesarRecordatoriosProgramados(
   const { data, error } = await db
     .from("solicitudes_recordatorios")
     .select(
-      "id, dias_antes, solicitud:solicitudes!solicitudes_recordatorios_solicitud_id_fkey(id, titulo, estado, fecha_limite, area_asignada, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(activo)))"
+      "id, dias_antes, solicitud:solicitudes!solicitudes_recordatorios_solicitud_id_fkey(id, titulo, estado, fecha_limite, area_asignada, responsable_cliente_id, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(activo)))"
     )
     .eq("activo", true);
 
@@ -309,6 +316,7 @@ export async function procesarRecordatoriosProgramados(
     if (!s || !s.fecha_limite) return false;                      // sin plazo no hay disparo
     if (s.reporte?.tenant?.activo === false) return false;         // cliente desactivado
     if (ESTADOS_NO_RECORDABLES.includes(s.estado)) return false;   // cumplido: no se recuerda
+    if (s.declinada || s.desactivada) return false;                 // no aplica a esa área
     return fechaDisparo(s.fecha_limite, r.dias_antes) === hoyISO;
   });
 

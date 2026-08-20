@@ -45,6 +45,7 @@ versionan**. Los `.env*` no (usa `.env.example` como plantilla).
 | … | `20260822120000_tenant_es_demo.sql` | `tenants.es_demo` + `trg_tenant_es_demo`: la etiqueta de demostración deja de ser del ambiente (`NEXT_PUBLIC_STAGING`) y pasa a ser del cliente. Backfill por el prefijo `[DEMO]` del nombre; default `false` (un cliente nuevo nace real). |
 | … | `20260822130000_debe_cambiar_password.sql` | `perfiles_usuario.debe_cambiar_password` + `grant update (debe_cambiar_password) … to service_role`: cambio forzado cuando la contraseña se entregó por un canal externo. |
 | … | `20260824120000_rol_jefe_area_enum.sql` | Valor `jefe_area` en el enum `rol_usuario`. **Va solo** (misma razón que `admin_cliente`). |
+| … | `20260826120000_difusion_multiarea.sql` | Difusión multi-área: `solicitudes.grupo_difusion_id`, `declinada`, `desactivada`, `fn_es_de_su_area`, la política de escritura del área y los triggers de las dos marcas y del bloqueo de evidencia. Reescribe `fn_valida_vb_area` para que el jefe de área pueda declinar además de mover el visto bueno. |
 | … | `20260825120000_extension_gri.sql` | Renombre CON mapeo de la extensión: `marco` pasa de `'VERT'` a `'GRI'` y los 4 datapoints reciben su código oficial (`GRI 303-5`, `306-3`, `404-1`, `2-7 / 401-1`). El CHECK queda en `('NIIF','GRI')`. No toca los 91 NIIF ni la plantilla oficial. |
 | … | `20260824130000_visto_bueno_area.sql` | `solicitudes.vb_area_por/vb_area_fecha`, `fn_es_jefe_de_area`, la política de escritura del jefe, el trigger de reglas duras y el de revocación por evidencia nueva. Corrige además `fn_puede_ver_solicitud` y `solicitudes_select` para que el rol nuevo quede acotado a su área, y amplía las políticas del `admin_cliente` para que pueda dar de alta jefes. |
 | … | `20260823120000_recordatorios_programados.sql` | `solicitudes_recordatorios` + `fn_gestiona_recordatorios`: avisos por correo a N días de la fecha límite de una solicitud. Grants explícitos (tabla nueva): los cuatro comandos a `authenticated`, **solo SELECT** a `service_role` — el cron lee la configuración, no la cambia. |
@@ -157,6 +158,8 @@ corrección se marca con `confirmado` (la fila anterior queda `confirmado=false`
 | `trg_comentario_observacion_origen` | BEFORE INSERT `comentarios` | Una **observación formal** (`es_observacion`) solo la registra el lado dueño del origen. Cierra además un hueco previo: la política de `comentarios` dejaba marcar el flag a cualquiera con acceso. |
 | `trg_evidencia_marca_carga` | BEFORE INSERT `evidencias` | Si quien inserta es staff, exige `tenants.staff_puede_cargar` y `area_origen`, y **calcula** `cargado_por_staff = true`. Si no es staff, la fija en `false`. La aplicación nunca escribe esa marca: por eso es inborrable. |
 | `trg_tenant_toggle_carga_staff` | BEFORE INSERT OR UPDATE `tenants` | `staff_puede_cargar` solo lo cambia el rol `admin` de IRStrat. Cubre el INSERT porque dar de alta un cliente ya encendido es otra forma de cambiarlo. |
+| `trg_solicitud_difusion` | BEFORE UPDATE `solicitudes` | Reglas duras de la difusión: `declinada` solo la mueve el ÁREA de la solicitud (y no si ya entregó evidencia, ni con el expediente cerrado); `desactivada` solo quien difundió, por la regla de origen, y nunca sobre una copia con entrega; el `grupo_difusion_id` no se reasigna; y si la sesión es de un rol de área, la única columna que puede cambiar es `declinada`. |
+| `trg_evidencia_no_si_fuera_difusion` | BEFORE INSERT `evidencias` | Una copia declinada o retirada no acepta evidencia: retomarla la reabre. |
 | `trg_solicitud_vb_area` | BEFORE UPDATE `solicitudes` | Reglas duras del **visto bueno del área**: solo el jefe de esa área lo mueve, exige evidencia, **calcula** autor y fecha, queda fijo tras la validación, y si la sesión es de un jefe de área impide que cambie cualquier otra columna de la fila. |
 | `trg_evidencia_revoca_vb` | AFTER INSERT `evidencias` | Evidencia nueva **revoca** el visto bueno y lo registra en bitácora (`vb_area_revocado`, sin autor humano: es acto del sistema). Marca el cambio con `app.vb_automatico` para no exigirse sesión de jefe a sí mismo. |
 | `trg_tenant_es_demo` | BEFORE INSERT OR UPDATE `tenants` | `es_demo` solo lo cambia el rol `admin` de IRStrat, por la misma razón y con la misma forma: marcar (o desmarcar) una emisora cambia lo que su propio entregable dice de sí mismo. |
@@ -272,6 +275,21 @@ Se abre en **solo lectura** (`datapoints_taxonomia`, `rubros_taxonomia`,
 `mapeo_export`, y `mapeo_solicitud_datapoint` acotado a las solicitudes que ya
 puede ver). La **escritura** del catálogo y del mapeo NIIF sigue siendo exclusiva
 del staff, y los usuarios de área (`cliente`) no ven nada de esto.
+
+---
+
+## Difusión multi-área
+
+| Objeto | Qué es |
+|--------|--------|
+| `solicitudes.grupo_difusion_id` | Mismo valor = misma difusión (una copia por área del mismo enunciado). **No hay tabla de grupos**: un grupo no tiene atributos propios —el enunciado, el plazo y los recordatorios viven en cada copia porque cada copia es una solicitud de verdad— y quién difundió está en la bitácora. |
+| `solicitudes.declinada` | El ÁREA declaró que no le corresponde. Marca paralela, no estado. Quién y cuándo están en el comentario que se publica y en la bitácora; duplicarlos en columnas sería una segunda versión del mismo hecho. CHECK: solo tiene sentido dentro de una difusión. |
+| `solicitudes.desactivada` | Quien difundió retiró la copia. Otro actor y otra lectura en el entregable que `declinada`: por eso son dos columnas y no un enum. |
+| `fn_es_de_su_area(solicitud)` | Autoriza el "no aplica": rol de área (`cliente` o `jefe_area`) **activo**, mismo tenant, misma área. El coordinador y el administrador del cliente quedan fuera a propósito. |
+
+**Qué NO cuenta una copia declinada o retirada:** los pendientes y la barra de
+avance del área, los recordatorios (digest y programados), la cobertura de la
+taxonomía y el Excel oficial. Sí aparece en el de trazabilidad, con su estado.
 
 ---
 

@@ -812,7 +812,10 @@ async function main() {
       p_area_id: areaRh.id,
       p_nombre: "Capital Humano",
     });
-    ok(!rename.error, `renombra “RH” → “Capital Humano” (${rename.error?.message ?? "ok"})`);
+    ok(
+      !rename.error,
+      `renombra “RH” → “Capital Humano” (${rename.error?.message ?? "ok"})`
+    );
     const { data: solRenombrada } = await staffDb
       .from("solicitudes")
       .select("area_asignada")

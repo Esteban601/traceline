@@ -19,6 +19,7 @@ export function ConfirmDialog({
   cargando = false,
   onConfirm,
   onCancel,
+  children,
 }: {
   open: boolean;
   titulo: string;
@@ -29,6 +30,13 @@ export function ConfirmDialog({
   cargando?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /**
+   * Contenido opcional entre la descripción y los botones: una nota, un campo, lo
+   * que la decisión necesite. Sin esto, cualquier confirmación con un dato de más
+   * tendría que reimplementar el diálogo entero —y perder el foco, el Escape y el
+   * backdrop que este ya resuelve—.
+   */
+  children?: React.ReactNode;
 }) {
   const titleId = useId();
   const descId = useId();
@@ -70,6 +78,7 @@ export function ConfirmDialog({
             {descripcion}
           </p>
         )}
+        {children && <div className="mt-4">{children}</div>}
         <div className="mt-6 flex justify-end gap-2.5">
           <Button variant="secondary" size="sm" onClick={onCancel} disabled={cargando}>
             {cancelar}
