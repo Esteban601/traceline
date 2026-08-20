@@ -259,10 +259,15 @@ export default async function SolicitudPage({
 
                     {capturasEv.map((c) => (
                       <p key={c.id} className="mt-1.5 text-sm text-ink">
-                        {/* Misma verdad que la frase de arriba: si la carga fue de
-                            IRStrat, la cifra la registró IRStrat, no el cliente. */}
+                        {/* Misma verdad que la frase de arriba, y por la misma
+                            regla: la cifra viaja pegada a esa evidencia, así que
+                            «Reportaste» solo vale si la entrega es de quien mira.
+                            Con la carga de IRStrat era falso; con el JEFE DE ÁREA
+                            —que ve las cifras de su gente— también. */}
                         <span className="text-muted">
-                          {ev.cargado_por_staff ? "Cifra registrada: " : "Reportaste: "}
+                          {ev.cargado_por_staff || ev.subido_por !== perfil.id
+                            ? "Cifra registrada: "
+                            : "Reportaste: "}
                         </span>
                         <span className="font-semibold tabular-nums">
                           {fmtNum.format(c.valor)}

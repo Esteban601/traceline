@@ -374,6 +374,12 @@ async function main() {
         (await jefeUI.page.getByText(/Entregaste/).count()) === 0,
       "al jefe la página le dice quién de su área entregó, no «Entregaste»"
     );
+    // La cifra va pegada a esa entrega: tampoco es «Reportaste» para el jefe.
+    ok(
+      (await jefeUI.page.getByText("Cifra registrada:").count()) > 0 &&
+        (await jefeUI.page.getByText("Reportaste:").count()) === 0,
+      "y la cifra tampoco se le atribuye a él («Cifra registrada», no «Reportaste»)"
+    );
     const btnVB = jefeUI.page.getByRole("button", { name: "Dar visto bueno" });
     ok((await btnVB.count()) > 0, "ahora el jefe sí ve el botón");
     await btnVB.first().click();
