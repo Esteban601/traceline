@@ -44,6 +44,8 @@ versionan**. Los `.env*` no (usa `.env.example` como plantilla).
 | … | `20260820130000_admin_cliente.sql` | Rol admin-cliente: `solicitudes.origen`, `tenants.staff_puede_cargar`, `evidencias.cargado_por_staff`, sus políticas RLS, los triggers de la regla de origen y del toggle, y `fn_renombrar_area`. |
 | … | `20260822120000_tenant_es_demo.sql` | `tenants.es_demo` + `trg_tenant_es_demo`: la etiqueta de demostración deja de ser del ambiente (`NEXT_PUBLIC_STAGING`) y pasa a ser del cliente. Backfill por el prefijo `[DEMO]` del nombre; default `false` (un cliente nuevo nace real). |
 | … | `20260822130000_debe_cambiar_password.sql` | `perfiles_usuario.debe_cambiar_password` + `grant update (debe_cambiar_password) … to service_role`: cambio forzado cuando la contraseña se entregó por un canal externo. |
+| … | `20260824120000_rol_jefe_area_enum.sql` | Valor `jefe_area` en el enum `rol_usuario`. **Va solo** (misma razón que `admin_cliente`). |
+| … | `20260824130000_visto_bueno_area.sql` | `solicitudes.vb_area_por/vb_area_fecha`, `fn_es_jefe_de_area`, la política de escritura del jefe, el trigger de reglas duras y el de revocación por evidencia nueva. Corrige además `fn_puede_ver_solicitud` y `solicitudes_select` para que el rol nuevo quede acotado a su área, y amplía las políticas del `admin_cliente` para que pueda dar de alta jefes. |
 | … | `20260823120000_recordatorios_programados.sql` | `solicitudes_recordatorios` + `fn_gestiona_recordatorios`: avisos por correo a N días de la fecha límite de una solicitud. Grants explícitos (tabla nueva): los cuatro comandos a `authenticated`, **solo SELECT** a `service_role` — el cron lee la configuración, no la cambia. |
 
 ---
@@ -154,6 +156,8 @@ corrección se marca con `confirmado` (la fila anterior queda `confirmado=false`
 | `trg_comentario_observacion_origen` | BEFORE INSERT `comentarios` | Una **observación formal** (`es_observacion`) solo la registra el lado dueño del origen. Cierra además un hueco previo: la política de `comentarios` dejaba marcar el flag a cualquiera con acceso. |
 | `trg_evidencia_marca_carga` | BEFORE INSERT `evidencias` | Si quien inserta es staff, exige `tenants.staff_puede_cargar` y `area_origen`, y **calcula** `cargado_por_staff = true`. Si no es staff, la fija en `false`. La aplicación nunca escribe esa marca: por eso es inborrable. |
 | `trg_tenant_toggle_carga_staff` | BEFORE INSERT OR UPDATE `tenants` | `staff_puede_cargar` solo lo cambia el rol `admin` de IRStrat. Cubre el INSERT porque dar de alta un cliente ya encendido es otra forma de cambiarlo. |
+| `trg_solicitud_vb_area` | BEFORE UPDATE `solicitudes` | Reglas duras del **visto bueno del área**: solo el jefe de esa área lo mueve, exige evidencia, **calcula** autor y fecha, queda fijo tras la validación, y si la sesión es de un jefe de área impide que cambie cualquier otra columna de la fila. |
+| `trg_evidencia_revoca_vb` | AFTER INSERT `evidencias` | Evidencia nueva **revoca** el visto bueno y lo registra en bitácora (`vb_area_revocado`, sin autor humano: es acto del sistema). Marca el cambio con `app.vb_automatico` para no exigirse sesión de jefe a sí mismo. |
 | `trg_tenant_es_demo` | BEFORE INSERT OR UPDATE `tenants` | `es_demo` solo lo cambia el rol `admin` de IRStrat, por la misma razón y con la misma forma: marcar (o desmarcar) una emisora cambia lo que su propio entregable dice de sí mismo. |
 
 Las funciones de trigger son `SECURITY DEFINER` para poder escribir en
@@ -270,6 +274,26 @@ del staff, y los usuarios de área (`cliente`) no ven nada de esto.
 
 ---
 
+## Visto bueno del área (doble verificación)
+
+| Objeto | Qué es |
+|--------|--------|
+| `rol_usuario.jefe_area` | JEFE de un área del cliente. Permisos del responsable de área (acotado a SU área por `fn_puede_ver_solicitud`) más dar/retirar el visto bueno. Entra al **portal**; `puedeEntrarPanel` es false. No valida: el trigger de origen se lo niega como a cualquiera. |
+| `solicitudes.vb_area_por` / `vb_area_fecha` | La firma vigente del área. CHECK de que viajen juntas; `ON DELETE RESTRICT` sobre el perfil (una firma no queda huérfana, igual que `evidencias.subido_por`). **Columnas y no tabla**: el visto bueno es estado actual de un solo valor, y su historial ya vive en `bitacora` (append-only) con sus tres actos —`vb_area_dado`, `vb_area_retirado`, `vb_area_revocado`—. |
+| `fn_es_jefe_de_area(solicitud)` | Autorización: jefe **activo**, del mismo tenant y de la **misma área** que la solicitud. Es lo que sostiene la política de escritura y el trigger. |
+
+**Por qué hacen falta política Y trigger.** RLS no distingue columnas: la política
+`solicitudes_jefe_area_vb` abre el UPDATE de la fila, y el trigger es el que acota
+qué puede cambiar (solo las dos columnas del visto bueno, comparando el resto de la
+fila en bloque con `to_jsonb`). Ninguna de las dos piezas sobra.
+
+**La revocación no depende de la aplicación.** Vive en `trg_evidencia_revoca_vb`,
+así que una carga hecha por el panel, por el import o por un script también retira
+la firma. Si dependiera de la server action del portal, existiría el caso de una
+firma que respalda un archivo que ya no es el vigente.
+
+---
+
 ## Etiqueta de demostración y contraseña temporal
 
 | Objeto | Qué es |
@@ -322,6 +346,7 @@ Contraseña única para todos: **`Demo2025!`**
 | Cliente | `rh@empresademo.example` | RH | Solo solicitudes de RH |
 | Cliente | `operaciones@empresademo.example` | Operaciones | Solo solicitudes de Operaciones |
 | Cliente | `finanzas@empresademo.example` | Finanzas | Solo solicitudes de Finanzas |
+| **Jefe de área** | `jefe.rh@empresademo.example` | RH | Solo RH; además da/retira el visto bueno del área |
 | **Administrador del cliente** | `admin.cliente@empresademo.example` | — | Panel acotado al tenant demo (autoservicio) |
 | Analista IRStrat (staff) | `analista@irstrat.example` | — (staff) | Todo |
 

@@ -13,6 +13,9 @@ import type { Database } from "@/lib/database.types";
 //   * staff IRStrat        — perfil sin tenant (`analista` | `admin`). Ve todo.
 //   * admin_cliente        — usuario DEL CLIENTE que administra su propio tenant
 //                            (tier de autoservicio). Entra al PANEL, acotado.
+//   * jefe_area            — JEFE de un área del cliente, en el PORTAL. Ve y carga
+//                            lo de SU área (como el responsable) y además da o
+//                            retira el VISTO BUENO DEL ÁREA. No valida.
 //   * cliente / coordinador — usuarios del cliente en el PORTAL. Sin cambios.
 // =============================================================================
 
@@ -32,6 +35,26 @@ export function esStaffRol(p: IdentidadRol): boolean {
  */
 export function esAdminCliente(p: IdentidadRol): boolean {
   return p.rol === "admin_cliente" && p.tenant_id !== null;
+}
+
+/**
+ * ¿Es JEFE de un área del cliente? El rol tiene los permisos del responsable de
+ * área más el visto bueno del área. Vive en el PORTAL, no en el panel: su trabajo
+ * es revisar lo que su gente entrega, no administrar la emisora.
+ */
+export function esJefeArea(p: IdentidadRol): boolean {
+  return p.rol === "jefe_area" && p.tenant_id !== null;
+}
+
+/**
+ * Roles del cliente ACOTADOS A SU ÁREA. Es la misma lista que la base usa en
+ * `fn_puede_ver_solicitud` y en `solicitudes_select`: si aquí y allá dejan de
+ * coincidir, la UI ofrecería lo que RLS filtra (o peor, al revés).
+ */
+export const ROLES_DE_AREA: readonly Rol[] = ["cliente", "jefe_area"] as const;
+
+export function esRolDeArea(p: IdentidadRol): boolean {
+  return ROLES_DE_AREA.includes(p.rol) && p.tenant_id !== null;
 }
 
 /** ¿Este perfil entra al PANEL (`/admin`) y no al portal simple? */
@@ -111,6 +134,12 @@ const ROL_AREA: OpcionRol = {
   label: "Responsable de área",
   ayuda: "Ve y responde solo las solicitudes de su área.",
 };
+const ROL_JEFE_AREA: OpcionRol = {
+  value: "jefe_area",
+  label: "Jefe de área",
+  ayuda:
+    "Ve y carga lo de su área, y da el visto bueno del área a lo que su equipo entrega.",
+};
 const ROL_COORDINADOR: OpcionRol = {
   value: "coordinador",
   label: "Coordinador",
@@ -126,17 +155,19 @@ const ROL_ADMIN_CLIENTE: OpcionRol = {
 /** Roles que puede asignar el STAFF de IRStrat a un usuario del cliente. */
 export const ROLES_ASIGNABLES_STAFF: readonly OpcionRol[] = [
   ROL_AREA,
+  ROL_JEFE_AREA,
   ROL_COORDINADOR,
   ROL_ADMIN_CLIENTE,
 ] as const;
 
 /**
- * Roles que puede asignar el ADMINISTRADOR DEL CLIENTE: solo área y otro
- * administrador como él. Nunca staff (no aparece y la server action lo rechaza)
- * y tampoco `coordinador`, que sigue siendo una designación de IRStrat.
+ * Roles que puede asignar el ADMINISTRADOR DEL CLIENTE: los de área —responsable
+ * y jefe— y otro administrador como él. Nunca staff (no aparece y la server action
+ * lo rechaza) y tampoco `coordinador`, que sigue siendo designación de IRStrat.
  */
 export const ROLES_ASIGNABLES_ADMIN_CLIENTE: readonly OpcionRol[] = [
   ROL_AREA,
+  ROL_JEFE_AREA,
   ROL_ADMIN_CLIENTE,
 ] as const;
 
@@ -151,9 +182,13 @@ export function puedeAsignarRol(p: IdentidadRol, rol: string): rol is Rol {
   return rolesAsignablesPor(p).some((r) => r.value === rol);
 }
 
-/** ¿El rol necesita área asignada? Solo el de área acota su visibilidad. */
+/**
+ * ¿El rol necesita área asignada? Los dos roles acotados por área: el responsable
+ * y su jefe. Sin área, un jefe de área no es jefe de nada — y `fn_es_jefe_de_area`
+ * devolvería false para todo.
+ */
 export function rolRequiereArea(rol: Rol): boolean {
-  return rol === "cliente";
+  return ROLES_DE_AREA.includes(rol);
 }
 
 /**
@@ -164,6 +199,7 @@ export function rolRequiereArea(rol: Rol): boolean {
  */
 export const ROL_LABEL: Record<Rol, string> = {
   cliente: "Responsable de área",
+  jefe_area: "Jefe de área",
   coordinador: "Coordinador",
   admin_cliente: "Administrador del cliente",
   analista: "Analista",

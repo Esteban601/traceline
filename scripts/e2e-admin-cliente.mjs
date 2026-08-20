@@ -638,10 +638,15 @@ async function main() {
     await ir(ac.page, "/admin/usuarios");
     await ac.page.getByRole("button", { name: "Nuevo usuario" }).click();
     const opcionesRol = await ac.page.locator("#u-rol option").allTextContents();
+    // Los TRES roles del cliente que él administra: responsable de área, jefe de
+    // área (sprint del visto bueno) y otro administrador como él. Nunca staff ni
+    // 'coordinador', que sigue siendo designación de IRStrat.
     ok(
-      opcionesRol.length === 2 &&
+      opcionesRol.length === 3 &&
         opcionesRol.includes("Responsable de área") &&
-        opcionesRol.includes("Administrador del cliente"),
+        opcionesRol.includes("Jefe de área") &&
+        opcionesRol.includes("Administrador del cliente") &&
+        !opcionesRol.some((o) => /Coordinador|IRStrat|Analista|^Administrador$/.test(o)),
       `los roles ofrecidos son solo los suyos (${opcionesRol.join(", ")})`
     );
     ok(

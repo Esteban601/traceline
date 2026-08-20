@@ -53,6 +53,9 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   area_reactivada: { label: "Área reactivada", tono: "verde" },
   invitacion_creada: { label: "Invitación generada", tono: "ambar" },
   invitacion_usada: { label: "Invitación canjeada", tono: "verde" },
+  vb_area_dado: { label: "Visto bueno del área", tono: "verde" },
+  vb_area_retirado: { label: "Visto bueno del área retirado", tono: "ambar-fuerte" },
+  vb_area_revocado: { label: "Visto bueno revocado por evidencia nueva", tono: "ambar-fuerte" },
 };
 
 export function accionMeta(accion: string): { label: string; tono: Tono } {
@@ -167,6 +170,17 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
       const nombre = s(detalle, "nombre");
       const anterior = s(detalle, "nombre_anterior");
       return anterior && anterior !== nombre ? `${anterior} → ${nombre}` : (nombre ?? "");
+    }
+    case "vb_area_dado":
+    case "vb_area_retirado": {
+      const area = s(detalle, "area");
+      const titulo = limpiar(s(detalle, "titulo"));
+      return [area, titulo].filter(Boolean).join(" · ");
+    }
+    case "vb_area_revocado": {
+      // El motivo es lo que explica una revocación que nadie pidió.
+      const v = n(detalle, "version");
+      return `Llegó evidencia nueva${v != null ? ` (v${v})` : ""}: el área tiene que volver a revisar`;
     }
     case "invitacion_creada":
     case "invitacion_usada":

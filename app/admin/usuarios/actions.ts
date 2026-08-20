@@ -264,8 +264,13 @@ async function crearInvitacion(
 /**
  * ¿Este perfil puede administrar a ESE usuario del cliente? El staff, a
  * cualquiera; el administrador del cliente, solo a los de su tenant y solo con
- * rol de área o administrador (el `coordinador` sigue siendo designación de
- * IRStrat). Espejo de `perfiles_admin_cliente_update` en RLS.
+ * los roles que él mismo puede asignar (el `coordinador` sigue siendo designación
+ * de IRStrat). Espejo de `perfiles_admin_cliente_update` en RLS.
+ *
+ * La lista NO se repite aquí: se pregunta a `puedeAsignarRol`, que es la misma
+ * fuente que alimenta el selector del alta. Cuando entró el rol `jefe_area`, una
+ * lista escrita a mano en este archivo lo habría dejado creable pero no
+ * administrable — dado de alta y sin poder desactivarlo.
  */
 function puedeAdministrarUsuario(
   perfil: PerfilActual,
@@ -274,7 +279,7 @@ function puedeAdministrarUsuario(
   if (esStaff(perfil)) return true;
   if (!esAdminCliente(perfil)) return false;
   if (objetivo.tenant_id === null || objetivo.tenant_id !== perfil.tenant_id) return false;
-  return objetivo.rol === "cliente" || objetivo.rol === "admin_cliente";
+  return puedeAsignarRol(perfil, objetivo.rol);
 }
 
 /**

@@ -10,8 +10,12 @@ import { TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
 import type { OrigenSolicitud } from "@/lib/origen";
 import { fmtFecha, fmtFechaHora, fmtFechaLarga, fmtDiaLargo } from "@/lib/fechas";
 import { accionCliente, IconoAccion } from "@/app/portal/estado-cliente";
+import { MarcasVerificacion } from "@/components/marcas-verificacion";
+import { cargarVerificaciones } from "@/lib/verificaciones";
+import { esJefeDeSuArea, puedeDarVB, puedeRetirarVB, motivoSinVB } from "@/lib/vb-area";
 import { UploadEvidencia } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
+import { VBAreaJefe } from "./vb-area-jefe";
 
 export const metadata: Metadata = { title: "Solicitud" };
 
@@ -31,6 +35,8 @@ type EvidenciaRow = {
   /** Marca inborrable: la cargó IRStrat en nombre del área. */
   cargado_por_staff: boolean;
   created_at: string;
+  /** Quién la cargó. Decide si la frase puede decir «entregaste». */
+  subido_por: string;
   subio: { nombre: string } | null;
 };
 type CapturaRow = {
@@ -63,7 +69,7 @@ export default async function SolicitudPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, vb_area_por, vb_area_fecha, reporte:reportes!solicitudes_reporte_id_fkey(nombre, ejercicio, estado, fecha_congelamiento)"
     )
     .eq("id", id)
     .single();
@@ -75,7 +81,7 @@ export default async function SolicitudPage({
       supabase
         .from("evidencias")
         .select(
-          "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, cargado_por_staff, created_at, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
+          "id, version, nombre_original, periodo_cubierto, area_origen, justificacion, cargado_por_staff, created_at, subido_por, subio:perfiles_usuario!evidencias_subido_por_fkey(nombre)"
         )
         .eq("solicitud_id", id)
         .order("version", { ascending: false }),
@@ -117,6 +123,34 @@ export default async function SolicitudPage({
   const esperaEvidencia = accion.esperaCarga && !reporteCongelado;
   const tAccion = TONO_CLASSES[accion.tono];
 
+  // LAS DOS VERIFICACIONES: el visto bueno del área y la validación final. Se
+  // muestran a todos —también al responsable de área que cargó—, porque saber si
+  // su jefe ya respaldó la entrega es parte de saber en qué va su trabajo.
+  const solVB = {
+    area_asignada: sol.area_asignada,
+    estado,
+    vb_area_por: sol.vb_area_por,
+    vb_area_fecha: sol.vb_area_fecha,
+  };
+  const verificaciones = await cargarVerificaciones(supabase, {
+    id: sol.id,
+    estado,
+    origen: sol.origen as OrigenSolicitud,
+    vb_area_por: sol.vb_area_por,
+    vb_area_fecha: sol.vb_area_fecha,
+  });
+  // El acto del jefe solo se le ofrece al jefe DE ESTA área.
+  const soyJefeDeEsta = esJefeDeSuArea(perfil, solVB);
+  const bloqueVB = soyJefeDeEsta ? (
+    <VBAreaJefe
+      solicitudId={sol.id}
+      firmado={sol.vb_area_por != null}
+      puedeFirmar={puedeDarVB(perfil, solVB, evs.length > 0)}
+      puedeRetirar={puedeRetirarVB(perfil, solVB)}
+      motivo={motivoSinVB(perfil, solVB, evs.length > 0)}
+    />
+  ) : null;
+
   // ---- Bloques reutilizables (se colocan según la jerarquía) ---------------
   const bloqueCarga = (
     <div className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
@@ -153,7 +187,7 @@ export default async function SolicitudPage({
         {/* El encabezado tampoco puede decir «tus entregas» de una lista donde hay
             cargas de IRStrat: se neutraliza en ese caso y se conserva la voz del
             cliente cuando todo lo entregó él. */}
-        {evs.some((e) => e.cargado_por_staff)
+        {evs.some((e) => e.cargado_por_staff || e.subido_por !== perfil.id)
           ? "Entregas registradas"
           : accion.completada
             ? "Lo que entregaste"
@@ -163,8 +197,12 @@ export default async function SolicitudPage({
         <EmptyState
           compacto
           glifo="↑"
-          titulo="Aún no has entregado nada"
-          descripcion="Cuando subas un archivo aparecerá aquí, con su periodo y su cifra."
+          titulo={soyJefeDeEsta ? "El área todavía no entrega nada" : "Aún no has entregado nada"}
+          descripcion={
+            soyJefeDeEsta
+              ? "Cuando alguien de tu área suba un archivo aparecerá aquí, con su periodo y su cifra, y podrás dar el visto bueno."
+              : "Cuando subas un archivo aparecerá aquí, con su periodo y su cifra."
+          }
         />
       ) : (
         <ul className="space-y-3">
@@ -179,11 +217,11 @@ export default async function SolicitudPage({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    {/* Frase, no metadata. Y la frase tiene que decir la verdad:
-                        cuando la carga la hizo IRStrat en nombre del área, «Entregaste»
-                        sería falso en el lugar más visible de la página, con la
-                        corrección en letra chica debajo. El toggle de carga habilita
-                        la capacidad; nunca cambia de quién fue el acto. */}
+                    {/* Frase, no metadata. Y la frase tiene que decir la verdad de
+                        QUIÉN entregó: «Entregaste» solo si la carga es de quien está
+                        mirando. Con IRStrat cargando en nombre del área era falso, y
+                        con el JEFE DE ÁREA —que ve las entregas de su gente— también
+                        lo sería. El acto tiene autor y la página lo nombra. */}
                     <p className="text-sm leading-relaxed text-ink">
                       {ev.cargado_por_staff ? (
                         <>
@@ -197,9 +235,15 @@ export default async function SolicitudPage({
                             </>
                           ) : null}
                         </>
-                      ) : (
+                      ) : ev.subido_por === perfil.id ? (
                         <>
                           Entregaste{" "}
+                          <span className="font-medium">{ev.nombre_original}</span> el{" "}
+                          {fmtFechaLarga(ev.created_at)}
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium">{limpiar(ev.subio?.nombre)}</span> entregó{" "}
                           <span className="font-medium">{ev.nombre_original}</span> el{" "}
                           {fmtFechaLarga(ev.created_at)}
                         </>
@@ -434,10 +478,13 @@ export default async function SolicitudPage({
         </dl>
       </header>
 
+      <MarcasVerificacion verificaciones={verificaciones} />
+
       {esperaEvidencia ? (
         <div className="space-y-10">
           {/* Protagonista: la carga */}
           {bloqueCarga}
+          {bloqueVB}
           {/* Secundario: entregas + conversación */}
           <div className="grid gap-8 lg:grid-cols-2">
             {bloqueHistorial}
@@ -451,8 +498,11 @@ export default async function SolicitudPage({
             {bloqueHistorial}
             {bloqueConversacion}
           </div>
-          {/* Secundario: cargar una versión nueva */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">{bloqueCarga}</aside>
+          {/* Secundario: el visto bueno del jefe y cargar una versión nueva */}
+          <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+            {bloqueVB}
+            {bloqueCarga}
+          </aside>
         </div>
       )}
     </div>

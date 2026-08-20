@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
-import { esAdminCliente, rolesAsignablesPor, type OpcionRol, type Rol } from "@/lib/roles";
+import { esAdminCliente, rolesAsignablesPor, type OpcionRol, type Rol, puedeAsignarRol } from "@/lib/roles";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import {
   UsuariosView,
@@ -76,7 +76,7 @@ export default async function UsuariosPage({
       soyStaff ||
       (esAdminCliente(perfil) &&
         p.tenant_id === perfil.tenant_id &&
-        (p.rol === "cliente" || p.rol === "admin_cliente")),
+        puedeAsignarRol(perfil, p.rol)),
   }));
 
   const catalogo = (areasCatalogo ?? []) as {

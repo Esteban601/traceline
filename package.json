@@ -12,7 +12,8 @@
     "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs",
     "e2e:banner-demo": "node scripts/e2e-banner-demo.mjs",
     "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs",
-    "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs"
+    "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
+    "e2e:vb-area": "node scripts/e2e-vb-area.mjs"
   },
   "engines": {
     "node": "22.x"

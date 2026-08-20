@@ -64,6 +64,7 @@ Todas las rutas del portal están protegidas por middleware (sin sesión → `/l
 | `rh@empresademo.example` | Cliente acotado por área | **5** solicitudes (RH) |
 | `operaciones@empresademo.example` | Cliente acotado por área | **7** solicitudes (Operaciones) |
 | `finanzas@empresademo.example` | Cliente acotado por área | **4** solicitudes (Finanzas) |
+| `jefe.rh@empresademo.example` | **Jefe de área** (RH): lo mismo que el responsable **más** dar y retirar el visto bueno del área | **5** solicitudes (RH) |
 | `coordinador@empresademo.example` | Coordinador + toggle "Mis/Todas" | Solicitudes del tenant |
 | `admin.cliente@empresademo.example` | **Administrador del cliente** (autoservicio): entra al **panel**, no al portal | Todas las solicitudes del tenant demo |
 | `analista@irstrat.example` | Staff IRStrat (panel interno completo) | Todo |
@@ -1283,6 +1284,103 @@ a nadie más → segunda corrida omitida → validar la solicitud → el cron ya
 recuerda. Y las guardas: sin `x-cron-secret` es 401, el usuario de área no cambia
 su propio calendario, otro tenant no lo ve, y la base rechaza «0 días antes» y los
 intervalos repetidos.
+
+## Jefe de área y visto bueno del área (doble verificación)
+
+Así se recaba la información de verdad en una emisora: la gente del área carga, su
+**jefe** revisa que lo cargado sea lo que el área quiere entregar, y **encima** va
+la validación final. La plataforma modelaba el primero y el tercero; el segundo
+ocurría por WhatsApp y no dejaba rastro. Ahora es parte del expediente.
+
+### El rol `jefe_area`
+
+Los permisos del responsable de área —ve y carga **lo de su área**— más uno propio:
+dar y retirar el visto bueno de las solicitudes de su área.
+
+- **Vive en el PORTAL**, no en el panel: su trabajo es revisar lo que su gente
+  entrega, no administrar la emisora. `/admin` lo rebota.
+- **No valida.** La validación final sigue la regla de origen (IRStrat para las
+  suyas, el administrador del cliente para las internas) y el trigger la niega al
+  jefe igual que a cualquier otro.
+- **No gestiona usuarios ni áreas.** Lo dan de alta el staff o el administrador del
+  cliente, que ahora puede asignar tres roles: responsable de área, **jefe de área**
+  y otro administrador.
+- **Acotado a su área en la base, no en la UI.** `fn_puede_ver_solicitud` y la
+  política `solicitudes_select` tratan a `jefe_area` igual que a `cliente`. Sin ese
+  cambio el rol nuevo habría caído en la rama "otros roles del tenant" y habría
+  visto **todas** las áreas — exactamente lo contrario de lo que es.
+
+### El visto bueno
+
+Columnas `solicitudes.vb_area_por` y `vb_area_fecha` (migración `20260824130000`).
+
+**Por qué columnas y no una tabla.** El visto bueno es un hecho de *estado actual*
+—¿está firmada hoy, y por quién?—, de un solo valor y consultado en cada listado.
+Su *historial* ya tiene dónde vivir: la `bitacora`, append-only, donde quedan las
+tres clases de acto (dar, retirar y la revocación automática). Una tabla aparte
+duplicaría ese registro y convertiría la pregunta más frecuente en un
+`order by … limit 1` por solicitud. Es el mismo criterio por el que
+`solicitudes.estado` es una columna y su historia está en la bitácora.
+
+Las reglas duras, en RLS **y** en trigger:
+
+| Regla | Dónde se impone |
+|---|---|
+| Solo el jefe **del área** de esa solicitud lo da o lo retira | política `solicitudes_jefe_area_vb` + `fn_es_jefe_de_area` |
+| **No se firma el vacío**: se exige al menos una evidencia | trigger `trg_solicitud_vb_area` |
+| El jefe **solo** puede cambiar esas dos columnas de la fila | mismo trigger, comparando el resto de la fila en bloque (`to_jsonb`) — una columna futura queda protegida sin tocar nada |
+| Quién firma y cuándo **los calcula la base** | mismo trigger (`auth.uid()`, `now()`): firmar "en nombre de" otro no funciona |
+| **Evidencia nueva lo revoca**, con entrada de bitácora | trigger `trg_evidencia_revoca_vb` sobre `evidencias` |
+| Una vez **validada**, la marca queda fija | mismo trigger (congelado ya lo impide el candado de Fase 2) |
+
+**No es un estado.** La máquina de estados no cambió: el visto bueno es una marca
+paralela. La validación final **no lo requiere** —se puede validar sin él— y el
+export oficial sigue mirando solo `validado`, porque el visto bueno no es una
+validación. Lo que sí cambia es que ahora **se ven las dos**.
+
+**La revocación automática es del sistema, no de una persona.** Vive en un trigger
+y no en la server action a propósito: si dependiera de la acción del portal, una
+carga hecha por otra vía (el panel, el import, un script) dejaría una firma
+respaldando un archivo que ya no es el vigente, y sin rastro de la contradicción.
+
+### Las dos marcas, en todas las vistas
+
+```
+✓ VISTO BUENO DEL ÁREA          – VALIDACIÓN
+  Ana Ruiz · Jefe de área          Recibido
+  12 mar 2026, 10:04               Pendiente de validación
+```
+
+- En el **detalle** (portal y panel) con la misma pieza
+  (`components/marcas-verificacion.tsx`): la doble verificación solo sirve si todos
+  ven lo mismo.
+- En la **matriz**, como indicador compacto de dos puntos (`VB · Val.`): en 135
+  renglones no cabe la frase, pero sí la pregunta de quién ya pasó por las dos manos.
+- **Una marca ausente se dice, no se esconde.** «Sin visto bueno del área» en gris
+  es información; ocultarla dejaría la pantalla insinuando que la única verificación
+  que existe es la que sí está.
+- En el **Excel de trazabilidad** hay una columna nueva, junto a *Origen /
+  validación*, y cuando no se dio la celda lo escribe (una celda vacía en un
+  entregable se lee como "no aplica"). El **Excel oficial de taxonomía no cambia**.
+
+### El detalle que se descubrió al construirlo
+
+El portal decía «**Entregaste** archivo.xlsx» en la lista de entregas. Para el jefe
+de área —que ve las entregas de *su gente*— eso es falso, igual que lo era para una
+carga hecha por IRStrat. Ahora la frase nombra al autor: «Entregaste» solo si la
+carga es de quien está mirando; si no, «[Nombre] entregó…». El E2E lo fija.
+
+```bash
+pnpm e2e:vb-area
+```
+
+Recorre la cadena completa con sesiones reales: el área carga → el jefe firma → las
+dos marcas aparecen en portal, panel y matriz → llega evidencia nueva y el visto
+bueno se revoca con su entrada de bitácora → el jefe re-firma → IRStrat valida y las
+dos marcas quedan ✓. Más el camino de validar **sin** visto bueno (procede, y la
+pantalla lo dice) y los negativos: el jefe de otra área no firma, el responsable
+tampoco, el jefe no valida, no edita el contenido, no ve otras áreas, no firma sin
+evidencia y no puede retirar la firma después de la validación.
 
 ## Documentación
 

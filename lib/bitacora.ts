@@ -76,7 +76,13 @@ export type AccionEvento =
   | "area_desactivada"
   | "area_reactivada"
   | "invitacion_creada"
-  | "invitacion_usada";
+  | "invitacion_usada"
+  // Visto bueno del ÁREA (doble verificación). La revocación automática la
+  // registra la BASE (fn_evidencia_revoca_vb), no la aplicación: si dependiera de
+  // una server action, una carga hecha por otra vía la dejaría sin rastro.
+  | "vb_area_dado"
+  | "vb_area_retirado"
+  | "vb_area_revocado";
 
 /**
  * Registra un evento de gestión (crear/editar/eliminar solicitud, alta/baja de

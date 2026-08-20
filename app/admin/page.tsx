@@ -18,6 +18,7 @@ type SolicitudRow = {
   area_asignada: string | null;
   estado: EstadoSolicitud;
   origen: OrigenSolicitud;
+  vb_area_por: string | null;
   orden: number;
   created_at: string;
   responsable: { nombre: string } | null;
@@ -51,7 +52,7 @@ export default async function AdminMatrizPage({
       supabase
         .from("solicitudes")
         .select(
-          "id, titulo, area_asignada, estado, origen, orden, created_at, responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre), reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
+          "id, titulo, area_asignada, estado, origen, orden, created_at, vb_area_por, responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre), reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
         ),
       supabase.from("evidencias").select("solicitud_id, created_at"),
       supabase.from("comentarios").select("solicitud_id, created_at"),
@@ -132,6 +133,7 @@ export default async function AdminMatrizPage({
       ultimaActividad: ultima.get(s.id) ?? s.created_at,
       tenantNombre: t ? limpiarNombreTenant(t.nombre) : null,
       tenantLogo: t?.logo_url ?? null,
+      vbFirmado: s.vb_area_por != null,
     };
   });
 

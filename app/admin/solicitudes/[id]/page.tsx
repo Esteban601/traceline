@@ -20,6 +20,8 @@ import { AccionesStaff } from "./acciones-staff";
 import { CargaPanel } from "./carga-panel";
 import { EliminarSolicitud } from "./eliminar-solicitud";
 import { Timeline, type EventoBitacora } from "./timeline";
+import { MarcasVerificacion } from "@/components/marcas-verificacion";
+import { cargarVerificaciones } from "@/lib/verificaciones";
 import {
   RecordatoriosVista,
   type EnvioRecordatorio,
@@ -81,7 +83,7 @@ export default async function SolicitudStaffPage({
   const { data: sol } = await supabase
     .from("solicitudes")
     .select(
-      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, nota_alcance, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
+      "id, titulo, descripcion, area_asignada, estado, origen, es_cuantitativa, unidad_esperada, fecha_limite, nota_alcance, vb_area_por, vb_area_fecha, reporte:reportes!solicitudes_reporte_id_fkey(id, nombre, ejercicio, estado, tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(nombre, email)"
     )
     .eq("id", id)
     .single();
@@ -214,6 +216,17 @@ export default async function SolicitudStaffPage({
       destinatarios: (b.detalle?.destinatarios as number | undefined) ?? null,
       email: (b.detalle?.email as string | undefined) ?? null,
     }));
+
+  // LAS DOS VERIFICACIONES, calculadas igual que en el portal: el visto bueno del
+  // área y la validación final. Quien valida tiene que ver si el área ya respaldó
+  // lo entregado — es la mitad del valor de la doble verificación.
+  const verificaciones = await cargarVerificaciones(supabase, {
+    id: sol.id,
+    estado: sol.estado as EstadoSolicitud,
+    origen,
+    vb_area_por: sol.vb_area_por,
+    vb_area_fecha: sol.vb_area_fecha,
+  });
 
   const discrepanciasSol = discrepancias.porSolicitud.get(id) ?? [];
   const estado = sol.estado as EstadoSolicitud;
@@ -652,6 +665,9 @@ export default async function SolicitudStaffPage({
             )}
           </section>
         )}
+
+        {/* Las dos verificaciones: visto bueno del área y validación final */}
+        <MarcasVerificacion verificaciones={verificaciones} />
 
         {/* Recordatorios configurados y enviados */}
         <RecordatoriosVista

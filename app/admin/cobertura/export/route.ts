@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     supabase
       .from("solicitudes")
       .select(
-        "id, titulo, estado, origen, area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)"
+        "id, titulo, estado, origen, area_asignada, vb_area_por, vb_area_fecha, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), vb:perfiles_usuario!solicitudes_vb_area_por_fkey(nombre)"
       ),
     supabase
       .from("evidencias")
@@ -131,6 +131,8 @@ export async function GET(request: Request) {
     estado: EstadoSolicitud;
     origen: OrigenSolicitud;
     area: string | null;
+    /** Visto bueno del área, ya redactado para la celda ("Ana Ruiz · 12 mar 2026"). */
+    vistoBueno: string;
   };
   const solById = new Map<string, Sol>();
   for (const s of (sols ?? []) as unknown as {
@@ -139,6 +141,9 @@ export async function GET(request: Request) {
     estado: string;
     origen: string;
     area_asignada: string | null;
+    vb_area_por: string | null;
+    vb_area_fecha: string | null;
+    vb: { nombre: string } | null;
     reporte: { tenant_id: string } | null;
   }[]) {
     if (tenantParam && s.reporte?.tenant_id !== tenantParam) continue;
@@ -147,6 +152,12 @@ export async function GET(request: Request) {
       estado: s.estado as EstadoSolicitud,
       origen: s.origen as OrigenSolicitud,
       area: s.area_asignada,
+      // Se dice explícitamente cuando NO lo hay: una celda vacía en un entregable
+      // de trazabilidad se lee como "no aplica", y aquí sí aplica y no se dio.
+      vistoBueno:
+        s.vb_area_por && s.vb_area_fecha
+          ? `${limpiar(s.vb?.nombre) || "Jefe de área"} · ${fmtFechaHora(s.vb_area_fecha)}`
+          : "Sin visto bueno del área",
     });
   }
 
@@ -209,6 +220,11 @@ export async function GET(request: Request) {
     // Fuente de la validación: quién pidió el dato y, si ya está validado, quién
     // lo validó. En un entregable de trazabilidad eso no puede quedar implícito.
     { header: "Origen / validación", width: 30 },
+    // La SEGUNDA verificación, la del área. Va junto a la validación final porque
+    // es lo que un revisor compara: quién respaldó el dato adentro y quién lo
+    // aceptó. Este libro es el de trazabilidad; el oficial no cambia — ahí solo
+    // entra lo validado, y el visto bueno no es una validación.
+    { header: "Visto bueno del área", width: 30 },
     { header: "Área", width: 18 },
     { header: "Últ. versión", width: 12 },
     { header: "Archivo evidencia", width: 34 },
@@ -236,6 +252,7 @@ export async function GET(request: Request) {
         "", // solicitud
         "",
         "", // origen / validación
+        "", // visto bueno del área
         "",
         "",
         "",
@@ -260,6 +277,7 @@ export async function GET(request: Request) {
         sol.estado === "validado" || sol.estado === "congelado"
           ? ORIGEN_META[sol.origen].validacion
           : ORIGEN_META[sol.origen].label,
+        sol.vistoBueno,
         sol.area ?? "",
         ev ? ev.version : "",
         ev ? ev.archivo : "",

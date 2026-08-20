@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { ROL_LABEL, type OpcionRol, type Rol } from "@/lib/roles";
+import { ROL_LABEL, rolRequiereArea, type OpcionRol, type Rol } from "@/lib/roles";
 import { AREA_MAX } from "@/lib/tenants";
 import { fmtFechaHora } from "@/lib/fechas";
 import {
@@ -90,6 +90,8 @@ export function UsuariosView({
     tenantInicial ?? (tenants.length === 1 ? tenants[0].id : "")
   );
   const [rol, setRol] = useState<string>(roles[0]?.value ?? "cliente");
+  // ¿El rol elegido lleva área? Misma función que usan la server action y RLS.
+  const requiereArea = rolRequiereArea(rol as Rol);
   const [area, setArea] = useState("");
 
   const [credenciales, setCredenciales] = useState<AltaUsuarioState["creado"]>(null);
@@ -128,7 +130,10 @@ export function UsuariosView({
     fd.set("email", email);
     fd.set("tenant_id", tenantId);
     fd.set("rol", rol);
-    fd.set("area", rol === "cliente" ? area : "");
+    // Los dos roles acotados por área (responsable y jefe) mandan su área; los
+    // demás, ninguna. La regla vive en lib/roles.ts, que es la que aplica también
+    // la server action: compararla aquí con un literal fue el bug del rol nuevo.
+    fd.set("area", requiereArea ? area : "");
     startTransition(() => dispatch(fd));
   };
 
@@ -253,7 +258,7 @@ export function UsuariosView({
                 <label htmlFor="u-area" className={labelCls}>
                   Área{" "}
                   <span className="font-normal text-muted">
-                    {rol === "cliente" ? "" : "· no aplica"}
+                    {requiereArea ? "" : "· no aplica"}
                   </span>
                 </label>
                 {/* Con catálogo de áreas se elige de la lista: el área debe
@@ -265,10 +270,10 @@ export function UsuariosView({
                     id="u-area"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
-                    disabled={rol !== "cliente"}
+                    disabled={!requiereArea}
                     className={inputCls}
                   >
-                    <option value="">{rol === "cliente" ? "Selecciona…" : "—"}</option>
+                    <option value="">{requiereArea ? "Selecciona…" : "—"}</option>
                     {areasTenant.map((a) => (
                       <option key={a} value={a}>
                         {a}
@@ -280,8 +285,8 @@ export function UsuariosView({
                     id="u-area"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
-                    disabled={rol !== "cliente"}
-                    placeholder={rol === "cliente" ? "RH, Operaciones…" : "—"}
+                    disabled={!requiereArea}
+                    placeholder={requiereArea ? "RH, Operaciones…" : "—"}
                     className={inputCls}
                   />
                 )}

@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { ESTADO_META, TONO_CLASSES, type EstadoSolicitud } from "@/lib/estados";
 import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
+import { MarcasCompactas } from "@/components/marcas-verificacion";
 import { relativo, fmtFechaHora } from "@/lib/fechas";
 import { cn } from "@/lib/cn";
 import { enviarSolicitudesMasivo } from "./actions";
@@ -29,6 +30,8 @@ export type FilaMatriz = {
   /** Cliente dueño de la solicitud (null si el reporte perdió su tenant). */
   tenantNombre: string | null;
   tenantLogo: string | null;
+  /** Visto bueno del ÁREA (doble verificación). No es un estado: marca paralela. */
+  vbFirmado: boolean;
 };
 
 /**
@@ -319,6 +322,11 @@ export function MatrizSolicitudes({
                   {mostrarCliente && <th className="px-4 py-3 font-medium">Cliente</th>}
                   <th className="px-4 py-3 font-medium">Área</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
+                  {/* Las dos verificaciones en dos puntos: en 135 renglones no cabe
+                      la frase, pero sí la pregunta de quién ya pasó por las dos manos. */}
+                  <th className="px-4 py-3 text-center font-medium" title="Visto bueno del área · Validación">
+                    VB · Val.
+                  </th>
                   <th className="px-4 py-3 font-medium">Responsable</th>
                   <th className="px-4 py-3 text-center font-medium">Versiones</th>
                   <th className="px-4 py-3 font-medium">Última actividad</th>
@@ -387,6 +395,12 @@ export function MatrizSolicitudes({
                       <td className="px-4 py-3 text-muted">{f.area ?? "—"}</td>
                       <td className="px-4 py-3">
                         <EstadoBadge estado={f.estado} />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <MarcasCompactas
+                          vbFirmado={f.vbFirmado}
+                          validado={f.estado === "validado" || f.estado === "congelado"}
+                        />
                       </td>
                       <td className="px-4 py-3 text-muted">{f.responsable ?? "—"}</td>
                       <td className="px-4 py-3 text-center tabular-nums text-ink">

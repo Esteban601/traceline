@@ -960,6 +960,8 @@ export type Database = {
           rubro_taxonomia: string | null
           titulo: string
           unidad_esperada: string | null
+          vb_area_fecha: string | null
+          vb_area_por: string | null
         }
         Insert: {
           area_asignada?: string | null
@@ -980,6 +982,8 @@ export type Database = {
           rubro_taxonomia?: string | null
           titulo: string
           unidad_esperada?: string | null
+          vb_area_fecha?: string | null
+          vb_area_por?: string | null
         }
         Update: {
           area_asignada?: string | null
@@ -1000,6 +1004,8 @@ export type Database = {
           rubro_taxonomia?: string | null
           titulo?: string
           unidad_esperada?: string | null
+          vb_area_fecha?: string | null
+          vb_area_por?: string | null
         }
         Relationships: [
           {
@@ -1029,6 +1035,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rubros_taxonomia"
             referencedColumns: ["clave"]
+          },
+          {
+            foreignKeyName: "solicitudes_vb_area_por_fkey"
+            columns: ["vb_area_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1111,6 +1124,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_es_jefe_de_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_gestiona_recordatorios: {
         Args: { p_solicitud_id: string }
         Returns: boolean
@@ -1178,6 +1192,7 @@ export type Database = {
         | "analista"
         | "admin"
         | "admin_cliente"
+        | "jefe_area"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1327,6 +1342,7 @@ export const Constants = {
         "analista",
         "admin",
         "admin_cliente",
+        "jefe_area",
       ],
     },
   },
