@@ -21,7 +21,7 @@ emisoras BMV (IRStrat / Vert).
   definición reutilizable (rubros canónicos + año relativo); cualquier cliente
   genera su Excel.
 - ✅ **Import de un cliente real (GCARSO)**: `scripts/import-gcarso.mjs` recrea el
-  proceso IAS 2025 de Grupo Carso, con extensión VERT del catálogo, y
+  proceso IAS 2025 de Grupo Carso, con extensión GRI del catálogo, y
   `scripts/import-gcarso-historico.mjs` suma el **comparativo 2024** (y 2023
   donde la fuente lo trae) desde los documentos del proceso anterior.
 - ✅ **Rol admin-cliente (tier de autoservicio)**: un usuario del cliente
@@ -813,14 +813,32 @@ se entrega como **contraseña temporal legible con cambio forzado**
 (`debe_cambiar_password`), no como liga de invitación: una liga en un documento
 impreso vence a las 72 h y deja el manual inservible.
 
-### Extensión VERT del catálogo
+### Extensión GRI del catálogo
 
-El proceso de Carso pide cuatro conceptos que la norma no cubre como datapoint
-propio: plantilla y rotación, capacitación, agua y residuos. Se incorporaron al
-catálogo con `datapoints_taxonomia.marco = 'VERT'` (los 91 de la norma quedan en
-`'NIIF'`) y en `/admin/cobertura` aparecen en una **sección propia, "Extensión
-VERT"**, con su propio conteo y fuera del avance de la norma. Nunca se presentan
-como parte de NIIF S1/S2.
+El proceso de Carso pide cuatro conceptos que NIIF S1/S2 no cubre como datapoint
+propio: agua, residuos, capacitación y plantilla/rotación. **No son invención de la
+firma: GRI ya los norma**, así que están en el catálogo con su código oficial
+(migración `20260825120000`, que hizo el renombre desde el marco `VERT` con su
+mapeo):
+
+| Concepto | Código | Antes |
+|---|---|---|
+| Agua: consumo, tratamiento y descarga | **GRI 303-5** | `VERT-AMB-01` |
+| Residuos por tipo y manejo | **GRI 306-3** | `VERT-AMB-02` |
+| Capacitación: horas, temáticas y cobertura | **GRI 404-1** | `VERT-SOC-02` |
+| Plantilla total y rotación | **GRI 2-7 / 401-1** | `VERT-SOC-01` |
+
+`datapoints_taxonomia.marco` vale `'NIIF'` (los 91 de la norma) o `'GRI'` (estos
+cuatro), y en `/admin/cobertura` aparecen en una **sección propia, "Extensión
+GRI"**, con su propio conteo y fuera del avance de la norma. Cada tarjeta muestra
+su código GRI igual que las NIIF muestran el suyo, para que quien lea el
+entregable pueda ir a la norma y comprobarlo. Nunca se presentan como parte de
+NIIF S1/S2, y el Excel oficial de taxonomía sigue siendo solo de la norma.
+
+**El de plantilla/rotación lleva dos códigos** (`GRI 2-7 / 401-1`) porque el
+datapoint cubre las dos cosas. Partirlo en dos habría cambiado el universo y el
+mapeo de las solicitudes ya ligadas —que es dato del cliente—, así que se deja
+compuesto y se explica.
 
 > **Licenciamiento IFRS Foundation — pendiente de escalar.** La portada del mapeo
 > de importación deja constancia: el checklist de Carso usa métricas y códigos
@@ -1381,6 +1399,40 @@ dos marcas quedan ✓. Más el camino de validar **sin** visto bueno (procede, y
 pantalla lo dice) y los negativos: el jefe de otra área no firma, el responsable
 tampoco, el jefe no valida, no edita el contenido, no ve otras áreas, no firma sin
 evidencia y no puede retirar la firma después de la validación.
+
+## Informe de cobertura para imprimir (PDF)
+
+`/admin/cobertura/informe` es el tablero de cobertura maquetado **como documento**:
+encabezado con emisora, reporte y **fecha de corte**, anillos por pilar, tarjetas de
+totales, el desglose por norma y pilar con sus barras, la extensión GRI aparte, y un
+pie discreto de la plataforma. El botón **Exportar PDF** de la cobertura lo abre en
+otra pestaña y dispara `window.print()`; el PDF lo produce el navegador
+("Guardar como PDF").
+
+- **Sin motor de PDF en el servidor.** El documento ya sabemos maquetarlo en HTML y
+  el navegador imprime igual de bien: meter Puppeteer o similar habría añadido un
+  binario, memoria y una fuente de fallos a un dyno que hoy no los tiene, para
+  producir el mismo archivo.
+- **Los mismos números que el tablero.** Las dos vistas cargan con
+  `lib/cobertura-datos.ts`. Si cada una calculara lo suyo, tarde o temprano el PDF
+  diría un porcentaje distinto del de la pantalla — y de las dos cifras, la que el
+  cliente archiva es la del PDF.
+- **Sin un solo control interactivo:** lo que se ve es lo que se imprime. Las
+  reglas de `@media print` viven en la propia vista (`@page` carta, `break-inside:
+  avoid` por grupo, ocultado de la barra de la app) porque solo aplican a este
+  documento, y tenerlas al lado del maquetado evita que alguien "limpie" un salto
+  de página sin saber qué rompía.
+- **Permisos:** es una ruta del panel, así que entran staff y administrador del
+  cliente, y RLS acota los datos. El administrador del cliente **no necesita ruta
+  aparte**: el alcance lo pone su sesión. Su encabezado se resuelve desde su propia
+  emisora —llega sin `?tenant=` porque no tiene selector— y no desde el parámetro;
+  sin eso, el documento que archiva su auditor saldría encabezado con un guion.
+- **Fecha de corte, siempre.** Una cobertura sin fecha no se puede archivar: mañana
+  dice otra cosa.
+
+Verificado con Playwright, incluido el PDF real generado por el motor del navegador
+(9 páginas para las 91 filas NIIF + la extensión GRI, con los grupos sin cortar a
+la mitad y el pie repetido al pie de cada página).
 
 ## Documentación
 

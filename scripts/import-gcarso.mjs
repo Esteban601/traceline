@@ -342,11 +342,13 @@ function mapearRubro(texto, hoja, id = null) {
   const t = texto.toLowerCase();
   const rubroId = RUBRO_POR_ID[`${hoja}|${id}`];
   if (rubroId) return { rubro: rubroId, datapoints: ["NIIF S2 29 (a)(i)"] };
-  if (/\bagua\b|hídric/.test(t)) return { rubro: null, datapoints: ["VERT-AMB-01"] };
-  if (/residuo/.test(t)) return { rubro: null, datapoints: ["VERT-AMB-02"] };
+  // Los cuatro de la EXTENSIÓN GRI, por su código oficial (antes VERT-*: ver la
+  // migración 20260825120000, que hizo el renombre con su mapeo a GRI).
+  if (/\bagua\b|hídric/.test(t)) return { rubro: null, datapoints: ["GRI 303-5"] };
+  if (/residuo/.test(t)) return { rubro: null, datapoints: ["GRI 306-3"] };
   if (/rotación|colaboradores|plantilla|permiso parental|tipo de colaborador/.test(t))
-    return { rubro: null, datapoints: ["VERT-SOC-01"] };
-  if (/capacitac|capacitad/.test(t)) return { rubro: null, datapoints: ["VERT-SOC-02"] };
+    return { rubro: null, datapoints: ["GRI 2-7 / 401-1"] };
+  if (/capacitac|capacitad/.test(t)) return { rubro: null, datapoints: ["GRI 404-1"] };
   if (/gases de efecto invernadero|gases efecto invernadero|emisiones/.test(t))
     return { rubro: null, datapoints: ["NIIF S2 29 (a)(i)"] };
   if (/anticorrupción|corrupción|soborno|denuncia|consejo|derechos humanos|discriminación|ética/.test(t))

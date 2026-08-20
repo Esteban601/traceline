@@ -97,9 +97,9 @@ export function BitacoraView({
           </label>
         )}
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-wide text-muted">
-          Entidad
+          Tipo de evento
           <select value={entidad} onChange={(e) => setEntidad(e.target.value)} className={selectCls}>
-            <option value="todos">Todas</option>
+            <option value="todos">Todos</option>
             {ENTIDADES.map((e) => (
               <option key={e.value} value={e.value}>
                 {e.label}

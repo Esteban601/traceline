@@ -244,8 +244,10 @@ export async function GET(request: Request) {
     if (ligadas.length === 0) {
       t.addRow([
         d.codigo,
-        d.marco === "VERT" ? "Extensión VERT" : "NIIF",
-        d.norma,
+        d.marco === "GRI" ? "Extensión GRI" : "NIIF",
+        // La norma solo aplica a los NIIF: rotular "S1" un datapoint de GRI le
+        // atribuiría a la taxonomía oficial algo que no dice.
+        d.marco === "GRI" ? "GRI" : d.norma,
         d.pilar,
         d.seccion_indice ?? "",
         d.descripcion,
@@ -267,8 +269,10 @@ export async function GET(request: Request) {
       const ev = ultimaEv.get(sid);
       t.addRow([
         d.codigo,
-        d.marco === "VERT" ? "Extensión VERT" : "NIIF",
-        d.norma,
+        d.marco === "GRI" ? "Extensión GRI" : "NIIF",
+        // La norma solo aplica a los NIIF: rotular "S1" un datapoint de GRI le
+        // atribuiría a la taxonomía oficial algo que no dice.
+        d.marco === "GRI" ? "GRI" : d.norma,
         d.pilar,
         d.seccion_indice ?? "",
         d.descripcion,

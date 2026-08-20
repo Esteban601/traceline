@@ -133,11 +133,11 @@ export async function cargarOpcionesFormulario(
     usuariosCliente,
     staff,
     areas,
-    // `norma` se sustituye por 'VERT' en los de la extensión: en el selector,
-    // un VERT rotulado 'S1' se leería como parte de la norma.
+    // `norma` se sustituye por 'GRI' en los de la extensión: en el selector, un
+    // datapoint de GRI rotulado 'S1' se leería como parte de la norma NIIF.
     datapoints: (datapoints as unknown as (DatapointOpcion & { marco?: string })[]).map((d) => ({
       ...d,
-      norma: d.marco === "VERT" ? "VERT" : d.norma,
+      norma: d.marco === "GRI" ? "GRI" : d.norma,
     })) as DatapointOpcion[],
     rubros,
   };

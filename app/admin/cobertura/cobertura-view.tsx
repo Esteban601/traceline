@@ -5,31 +5,19 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TONO_CLASSES, ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
-import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
+import { ORIGEN_META } from "@/lib/origen";
 import { COBERTURA_META, COBERTURA_ORDEN, type Cobertura } from "@/lib/cobertura";
+import {
+  PILAR_CORTO,
+  PILAR_LABEL,
+  PILAR_ORDEN,
+  distribucion,
+  pct,
+  type DatapointCobertura,
+} from "@/lib/cobertura-vista";
+import { Anillo, AnillosStyle } from "@/components/ui/anillo";
 import { ExportButton } from "./export-button";
 import { TaxonomiaExportButton } from "./taxonomia-export-button";
-
-export type DatapointCobertura = {
-  id: string;
-  codigo: string;
-  norma: "S1" | "S2";
-  /** NIIF = taxonomía oficial · VERT = extensión propia de la firma. */
-  marco: "NIIF" | "VERT";
-  pilar: string;
-  seccionIndice: string | null;
-  descripcion: string;
-  ods: string | null;
-  cobertura: Cobertura;
-  discrepancia: boolean;
-  solicitudes: {
-    id: string;
-    titulo: string;
-    estado: EstadoSolicitud;
-    /** De él sale la FUENTE de la validación (IRStrat o interna del cliente). */
-    origen: OrigenSolicitud;
-  }[];
-};
 
 /** Estados en los que el valor de la solicitud ya entró como validado. */
 const VALIDADA: ReadonlySet<EstadoSolicitud> = new Set<EstadoSolicitud>([
@@ -62,36 +50,6 @@ const NORMAS: { key: Norma; label: string }[] = [
   { key: "S2", label: "NIIF S2 · Clima" },
 ];
 
-const PILAR_ORDEN = ["gobernanza", "estrategia", "riesgos", "metricas"];
-const PILAR_LABEL: Record<string, string> = {
-  extension: "Extensión de la firma",
-  gobernanza: "Gobernanza",
-  estrategia: "Estrategia",
-  riesgos: "Gestión de riesgos",
-  metricas: "Métricas y objetivos",
-};
-const PILAR_CHIP_LABEL: Record<string, string> = {
-  gobernanza: "Gobernanza",
-  estrategia: "Estrategia",
-  riesgos: "Riesgos",
-  metricas: "Métricas",
-};
-
-function pct(n: number, total: number): number {
-  return total === 0 ? 0 : Math.round((n / total) * 100);
-}
-
-function distribucion(items: DatapointCobertura[]): Record<Cobertura, number> {
-  const base: Record<Cobertura, number> = {
-    cubierto: 0,
-    parcial: 0,
-    sin_evidencia: 0,
-    sin_solicitud: 0,
-  };
-  for (const d of items) base[d.cobertura] += 1;
-  return base;
-}
-
 export function CoberturaView({
   datapoints: todosLosDatapoints,
   selector,
@@ -99,6 +57,7 @@ export function CoberturaView({
   tenantNombre = null,
   reporteId = null,
   soyStaff = true,
+  informe,
 }: {
   datapoints: DatapointCobertura[];
   /** Selectores de cliente y reporte, inyectados desde el servidor. */
@@ -110,17 +69,19 @@ export function CoberturaView({
   reporteId?: string | null;
   /** false = administrador del cliente: es SU cobertura, no la de la firma. */
   soyStaff?: boolean;
+  /** Botón "Exportar PDF" (abre el informe para imprimir), inyectado desde el servidor. */
+  informe?: React.ReactNode;
 }) {
-  // La extensión VERT se aparta ANTES de cualquier cálculo: los KPIs, los
-  // anillos y el universo son de la norma. Si los 4 datapoints propios entraran
-  // al conteo, el "X de 91" dejaría de hablar de NIIF S1/S2 y le atribuiría a la
-  // norma requerimientos que son de la firma.
+  // La extensión GRI se aparta ANTES de cualquier cálculo: los KPIs, los anillos
+  // y el universo son de la norma NIIF. Si los 4 datapoints GRI entraran al
+  // conteo, el "X de 91" dejaría de hablar de NIIF S1/S2 y le atribuiría a esa
+  // norma requerimientos que son de otra.
   const datapoints = useMemo(
-    () => todosLosDatapoints.filter((d) => d.marco !== "VERT"),
+    () => todosLosDatapoints.filter((d) => d.marco === "NIIF"),
     [todosLosDatapoints]
   );
-  const datapointsVert = useMemo(
-    () => todosLosDatapoints.filter((d) => d.marco === "VERT"),
+  const datapointsGri = useMemo(
+    () => todosLosDatapoints.filter((d) => d.marco === "GRI"),
     [todosLosDatapoints]
   );
 
@@ -134,11 +95,11 @@ export function CoberturaView({
   // Anillos por pilar sobre el UNIVERSO completo (overview estable, no filtrado).
   const anillos = useMemo(
     () =>
-      PILAR_ORDEN.map((p) => {
+      [...PILAR_ORDEN].map((p) => {
         const items = datapoints.filter((d) => d.pilar === p);
         return {
           key: p,
-          label: PILAR_CHIP_LABEL[p],
+          label: PILAR_CORTO[p],
           cubierto: items.filter((d) => d.cobertura === "cubierto").length,
           total: items.length,
         };
@@ -166,7 +127,7 @@ export function CoberturaView({
     const out: { key: string; norma: Norma; pilar: string; items: DatapointCobertura[] }[] = [];
     for (const { key: n } of NORMAS) {
       if (norma !== "todos" && norma !== n) continue;
-      for (const p of PILAR_ORDEN) {
+      for (const p of [...PILAR_ORDEN]) {
         if (pilares.size > 0 && !pilares.has(p)) continue;
         const items = visibles.filter((d) => d.norma === n && d.pilar === p);
         if (items.length > 0) out.push({ key: `${n}:${p}`, norma: n, pilar: p, items });
@@ -191,11 +152,11 @@ export function CoberturaView({
       return next;
     });
 
-  // 'vert' es una sección más para efectos de expandir/colapsar: sin incluirla,
+  // 'gri' es una sección más para efectos de expandir/colapsar: sin incluirla,
   // 'Expandir todo' la cerraba y el rótulo mentía sobre su estado.
   const clavesExpandibles = [
     ...grupos.map((g) => g.key),
-    ...(datapointsVert.length > 0 ? ["vert"] : []),
+    ...(datapointsGri.length > 0 ? ["gri"] : []),
   ];
   const todosAbiertos =
     clavesExpandibles.length > 0 && clavesExpandibles.every((k) => abiertos.has(k));
@@ -218,6 +179,7 @@ export function CoberturaView({
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           {selector}
+          {informe}
           <TaxonomiaExportButton reporteId={reporteId} />
           <ExportButton tenantId={tenantId} />
         </div>
@@ -272,7 +234,7 @@ export function CoberturaView({
             <span className="text-xs font-medium uppercase tracking-wide text-muted">
               Pilar
             </span>
-            {PILAR_ORDEN.map((p) => {
+            {[...PILAR_ORDEN].map((p) => {
               const activo = pilares.has(p);
               return (
                 <button
@@ -286,7 +248,7 @@ export function CoberturaView({
                       : "border-line bg-surface text-muted hover:border-teal/30 hover:text-ink"
                   )}
                 >
-                  {PILAR_CHIP_LABEL[p]}
+                  {PILAR_CORTO[p]}
                 </button>
               );
             })}
@@ -371,11 +333,11 @@ export function CoberturaView({
         </div>
       )}
 
-      {datapointsVert.length > 0 && (
-        <ExtensionVert
-          items={datapointsVert}
-          abierto={abiertos.has("vert")}
-          onToggle={() => toggleGrupo("vert")}
+      {datapointsGri.length > 0 && (
+        <ExtensionGri
+          items={datapointsGri}
+          abierto={abiertos.has("gri")}
+          onToggle={() => toggleGrupo("gri")}
         />
       )}
     </div>
@@ -383,14 +345,15 @@ export function CoberturaView({
 }
 
 /**
- * Extensión VERT — los datapoints propios de la firma, SEPARADOS de la norma.
+ * Extensión GRI — lo que la firma recaba ADEMÁS de NIIF S1/S2, con su código GRI.
  *
- * Van en su propia sección, con su propio conteo y un rótulo que dice qué son.
- * Nunca se mezclan con los 91 de NIIF S1/S2 ni se presentan como parte de la
- * norma: son requerimientos que la firma decidió recabar además de ella, y
- * confundirlos sería atribuirle a NIIF algo que no dice.
+ * Van en su propia sección, con su propio conteo y un rótulo que dice de qué
+ * marco son. Nunca se mezclan con los 91 de NIIF S1/S2: son requerimientos de
+ * otra norma, y confundirlos sería atribuirle a NIIF algo que no dice. Cada
+ * tarjeta muestra su código GRI igual que las NIIF muestran el suyo, para que
+ * quien lea el entregable pueda ir a la norma y comprobarlo.
  */
-function ExtensionVert({
+function ExtensionGri({
   items,
   abierto,
   onToggle,
@@ -404,20 +367,20 @@ function ExtensionVert({
     <section className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-6">
         <h2 className="font-display text-lg font-semibold text-ink">
-          Extensión VERT
+          Extensión GRI
           <span className="ml-2 text-sm font-normal text-muted">
-            {items.length} {items.length === 1 ? "datapoint" : "datapoints"} propios de la firma
+            {items.length} {items.length === 1 ? "datapoint" : "datapoints"} con código GRI
           </span>
         </h2>
         <p className="max-w-2xl text-xs leading-relaxed text-muted">
-          Fuera de la taxonomía NIIF S1/S2: conceptos que la firma recaba además
-          de la norma. No cuentan en el avance de arriba ni entran a la plantilla
+          Fuera de la taxonomía NIIF S1/S2: conceptos normados por GRI que la firma
+          recaba además. No cuentan en el avance de arriba ni entran a la plantilla
           oficial.
         </p>
       </div>
       <div className="rounded-card border border-gold/30 bg-gold/[0.04]">
         <GrupoCobertura
-          norma={"VERT" as Norma}
+          norma={"GRI" as Norma}
           pilar="extension"
           items={items}
           abierto={abierto}
@@ -470,65 +433,6 @@ function KpiCobertura({
   );
 }
 
-// Geometría del anillo (r constante → circunferencia constante, reutilizable en
-// el keyframe compartido). viewBox 80×80, trazo de 6.
-const ANILLO_R = 32;
-const ANILLO_C = 2 * Math.PI * ANILLO_R;
-
-// Animación de trazo por CSS (no depende de JS: el arco se dibuja en SSR con su
-// strokeDashoffset final y el keyframe solo lo "entra" al cargar). El keyframe
-// parte de vacío (offset = circunferencia) hacia el valor de reposo del elemento.
-const ANILLO_STYLE = `
-  @keyframes dibujar-anillo { from { stroke-dashoffset: ${ANILLO_C.toFixed(3)}px; } }
-  .anillo-arco { animation: dibujar-anillo 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-  @media (prefers-reduced-motion: reduce) { .anillo-arco { animation: none; } }
-`;
-
-/** Anillo de progreso SVG (trazo fino, editorial). Dibuja sin JS; anima al cargar. */
-function Anillo({ cubierto, total, label }: { cubierto: number; total: number; label: string }) {
-  const porcentaje = total === 0 ? 0 : Math.round((cubierto / total) * 100);
-  const objetivo = ANILLO_C * (1 - porcentaje / 100); // dashoffset final (reposo)
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="relative size-20">
-        <svg
-          viewBox="0 0 80 80"
-          width="80"
-          height="80"
-          className="size-20"
-          role="img"
-          aria-label={`${label}: ${porcentaje}% cubierto`}
-        >
-          <g transform="rotate(-90 40 40)">
-            <circle cx="40" cy="40" r={ANILLO_R} fill="none" strokeWidth="6" style={{ stroke: "var(--color-line)" }} />
-            {porcentaje > 0 && (
-              <circle
-                className="anillo-arco"
-                cx="40"
-                cy="40"
-                r={ANILLO_R}
-                fill="none"
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeDasharray={ANILLO_C}
-                strokeDashoffset={objetivo}
-                style={{ stroke: "var(--color-teal)" }}
-              />
-            )}
-          </g>
-        </svg>
-        <span className="absolute inset-0 grid place-items-center font-display text-base font-semibold tabular-nums text-ink">
-          {porcentaje}%
-        </span>
-      </div>
-      <span className="text-sm font-medium text-muted">{label}</span>
-      <span className="text-xs tabular-nums text-muted/70">
-        {cubierto}/{total}
-      </span>
-    </div>
-  );
-}
-
 function AnillosCobertura({
   anillos,
   totalCubierto,
@@ -543,7 +447,7 @@ function AnillosCobertura({
       aria-label="Avance de cobertura por pilar"
       className="flex flex-wrap items-center justify-between gap-x-8 gap-y-6 rounded-card border border-line bg-surface px-5 py-6 shadow-soft sm:px-6"
     >
-      <style>{ANILLO_STYLE}</style>
+      <AnillosStyle />
       <div className="grid grid-cols-2 gap-6 sm:flex sm:flex-wrap sm:items-start sm:gap-10">
         {anillos.map((a) => (
           <Anillo key={a.key} cubierto={a.cubierto} total={a.total} label={a.label} />

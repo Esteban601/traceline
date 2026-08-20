@@ -62,20 +62,29 @@ export function accionMeta(accion: string): { label: string; tono: Tono } {
   return ACCION_META[accion] ?? { label: accion, tono: "gris" };
 }
 
-/** Entidades reales de la bitácora, para el filtro de la vista global. */
+/**
+ * TIPOS DE EVENTO de la bitácora, para el filtro de la vista global y para la
+ * etiqueta de cada renglón.
+ *
+ * El `value` es el nombre de la tabla —así lo guarda `bitacora.entidad`— y la
+ * etiqueta está en el idioma de quien lee, no en el del esquema: quien audita
+ * busca "cifras reportadas", no `capturas_valor`. El orden es el del flujo de
+ * trabajo (lo que se pide, lo que llega, lo que se avisa) y no alfabético.
+ */
 export const ENTIDADES: { value: string; label: string }[] = [
   { value: "solicitudes", label: "Solicitudes" },
   { value: "evidencias", label: "Evidencias" },
-  { value: "capturas_valor", label: "Capturas de valor" },
-  { value: "correo", label: "Correos" },
-  { value: "perfiles_usuario", label: "Usuarios" },
-  { value: "plantillas", label: "Plantillas" },
+  { value: "capturas_valor", label: "Cifras reportadas" },
+  { value: "correo", label: "Correos enviados" },
   { value: "reportes", label: "Reportes" },
+  { value: "plantillas", label: "Plantillas de checklist" },
   { value: "registros_clima", label: "Registros de clima" },
   { value: "objetivos", label: "Objetivos" },
+  { value: "cuestionarios_respuestas", label: "Cuestionarios" },
+  { value: "perfiles_usuario", label: "Usuarios" },
+  { value: "areas_tenant", label: "Áreas del cliente" },
+  { value: "invitaciones", label: "Invitaciones de acceso" },
   { value: "tenants", label: "Clientes" },
-  { value: "areas_tenant", label: "Áreas" },
-  { value: "invitaciones", label: "Invitaciones" },
 ];
 
 type Detalle = Record<string, unknown> | null;
