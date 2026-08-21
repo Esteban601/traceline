@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { enviarCorreo, modoConsola } from "@/lib/email/enviar";
+import { enviarCorreo, modoConsola, detalleEnvio } from "@/lib/email/enviar";
 import { plantillaSolicitud, type SolicitudEmail } from "@/lib/email/plantillas";
 import { logCorreo } from "@/lib/bitacora";
 import type { OrigenSolicitud } from "@/lib/origen";
@@ -128,9 +128,7 @@ export async function enviarSolicitudesCore(
           nombre: g.nombre,
           solicitud_ids: g.ids,
           total: g.ids.length,
-          modo: r.modo,
-          enviado: false,
-          error: r.error ?? "sin detalle",
+          ...detalleEnvio(r),
         },
       });
       resumen.detalles.push({
@@ -173,8 +171,7 @@ export async function enviarSolicitudesCore(
         nombre: g.nombre,
         solicitud_ids: g.ids,
         total: g.ids.length,
-        modo: r.modo,
-        enviado: true,
+        ...detalleEnvio(r),
       },
     });
 

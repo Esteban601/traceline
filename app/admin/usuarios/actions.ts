@@ -15,6 +15,7 @@ import { generarPasswordTemporal } from "@/lib/gestion";
 import { AREA_MAX } from "@/lib/tenants";
 import { puedeAsignarRol, rolRequiereArea, ROL_LABEL } from "@/lib/roles";
 import { enviarCorreo, modoConsola, plantillaInvitacion } from "@/lib/email";
+import { detalleEnvio } from "@/lib/email/enviar";
 import {
   INVITACION_HORAS,
   expiracionInvitacion,
@@ -254,9 +255,7 @@ async function crearInvitacion(
       email: params.email,
       nombre: params.nombre,
       expira_en: expira.toISOString(),
-      modo: envio.modo,
-      enviado: envio.ok,
-      ...(envio.ok ? {} : { error: envio.error ?? "sin detalle" }),
+      ...detalleEnvio(envio),
     },
   });
 

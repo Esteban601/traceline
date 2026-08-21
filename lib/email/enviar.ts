@@ -16,10 +16,43 @@ import type { Plantilla } from "./plantillas";
 
 export type ResultadoEnvio = {
   ok: boolean;
-  modo: "resend" | "consola";
+  /**
+   * `consola`  — sin RESEND_API_KEY: se imprime, no se envía.
+   * `resend`   — se entregó al proveedor.
+   * `omitido`  — destinatario NO ENTREGABLE por diseño (dominio reservado).
+   */
+  modo: "resend" | "consola" | "omitido";
   id?: string;
   error?: string;
+  /** Por qué se omitió, cuando `modo === "omitido"`. */
+  motivo?: string;
 };
+
+/**
+ * Dominios de PRUEBA reservados por la IANA (RFC 2606 / 6761). Las cuentas demo
+ * usan `@empresademo.example` y las de GCARSO `@gcarso.example` a propósito: no
+ * son de nadie y no pueden recibir correo.
+ *
+ * Con Resend activo, mandarles correo no es inofensivo: cada intento es un REBOTE
+ * duro contra la reputación del dominio recién verificado, y una tanda de
+ * recordatorios los produciría por decenas — hasta que Resend suspenda la cuenta.
+ * Así que no se intenta: se omite y se dice por qué. El silencio de las cuentas de
+ * demostración deja de ser suerte y pasa a ser una decisión.
+ */
+const DOMINIOS_NO_ENTREGABLES = ["example", "invalid", "test", "localhost", "local"];
+
+function noEntregable(to: string): string | null {
+  const dominio = to.split("@")[1]?.toLowerCase().trim();
+  if (!dominio) return "la dirección no tiene dominio";
+  const ultimo = dominio.split(".").pop() ?? "";
+  if (DOMINIOS_NO_ENTREGABLES.includes(ultimo)) {
+    return `${dominio} es un dominio reservado para pruebas (RFC 2606): no recibe correo`;
+  }
+  if (dominio === "example.com" || dominio === "example.org" || dominio === "example.net") {
+    return `${dominio} es un dominio de ejemplo reservado: no recibe correo`;
+  }
+  return null;
+}
 
 const API_KEY = process.env.RESEND_API_KEY;
 const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
@@ -56,6 +89,17 @@ export async function enviarCorreo(
   to: string,
   plantilla: Plantilla
 ): Promise<ResultadoEnvio> {
+  // Dirección que no puede recibir correo. La guardia SOLO aplica con transporte
+  // real: el riesgo que evita —rebotes duros contra la reputación del dominio— no
+  // existe si no se está enviando. En modo consola se imprime como siempre (con la
+  // advertencia), y así las pruebas locales, que usan `.example` por norma, siguen
+  // recorriendo el mismo camino que la producción.
+  const motivo = noEntregable(to);
+  if (motivo && API_KEY) {
+    console.log(`[email] omitido — ${to}: ${motivo}`);
+    return { ok: true, modo: "omitido", motivo };
+  }
+
   if (!API_KEY) {
     // MODO CONSOLA — resumen legible en el log del servidor.
     console.log(
@@ -66,6 +110,7 @@ export async function enviarCorreo(
         `  De:     ${FROM}`,
         `  Asunto: ${plantilla.subject}`,
         "  (RESEND_API_KEY ausente → no se envía; define la clave para enviar)",
+        ...(motivo ? [`  ⚠ con envío real se OMITIRÍA: ${motivo}`] : []),
         "───────────────────────────────────────────────────────────────────",
         "",
       ].join("\n")
@@ -110,4 +155,23 @@ export async function enviarCorreo(
     console.error(`[email] fallo de transporte enviando a ${to}: ${mensaje}`);
     return { ok: false, modo: "resend", error: mensaje };
   }
+}
+
+/**
+ * Cómo se registra un envío en la bitácora, en UNA sola forma.
+ *
+ * Cuatro casos y cada uno se lee distinto: entregado al proveedor (con su id, que
+ * es lo que se busca en Resend cuando alguien pregunta "¿salió?"), impreso en
+ * consola, rechazado con su error, u OMITIDO porque la dirección no puede recibir.
+ * `enviado` es false en los dos últimos: decir "enviado" de un correo que nadie
+ * pudo recibir es la clase de dato que hace perder una tarde.
+ */
+export function detalleEnvio(r: ResultadoEnvio): Record<string, unknown> {
+  return {
+    modo: r.modo,
+    enviado: r.ok && r.modo !== "omitido",
+    ...(r.id ? { resend_id: r.id } : {}),
+    ...(r.motivo ? { motivo: r.motivo } : {}),
+    ...(r.error ? { error: r.error } : {}),
+  };
 }

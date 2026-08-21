@@ -19,7 +19,7 @@ import {
   type OrigenSolicitud,
 } from "@/lib/origen";
 import { enviarSolicitudesCore } from "@/lib/solicitar";
-import { enviarCorreo } from "@/lib/email/enviar";
+import { enviarCorreo, detalleEnvio } from "@/lib/email/enviar";
 import { plantillaObservacion } from "@/lib/email/plantillas";
 import { logCorreo } from "@/lib/bitacora";
 
@@ -219,9 +219,7 @@ export async function agregarObservacion(
       email: responsable.email,
       nombre: responsable.nombre,
       solicitud_id: sol.id,
-      modo: envio.modo,
-      enviado: envio.ok,
-      ...(envio.ok ? {} : { error: envio.error ?? "sin detalle" }),
+      ...detalleEnvio(envio),
     },
   });
 

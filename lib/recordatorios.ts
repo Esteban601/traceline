@@ -1,7 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { enviarCorreo, modoConsola } from "@/lib/email/enviar";
+import {
+  enviarCorreo,
+  modoConsola,
+  detalleEnvio,
+  type ResultadoEnvio,
+} from "@/lib/email/enviar";
 import {
   plantillaRecordatorio,
   plantillaRecordatorioProgramado,
@@ -172,9 +177,7 @@ export async function procesarRecordatorios(
           nombre: g.nombre,
           solicitud_ids: g.items.map((i) => i.id),
           total: g.items.length,
-          modo: r.modo,
-          enviado: false,
-          error: r.error ?? "sin detalle",
+          ...detalleEnvio(r),
         },
       });
       resumen.detalles.push({
@@ -200,8 +203,7 @@ export async function procesarRecordatorios(
         solicitud_ids: g.items.map((i) => i.id),
         total: g.items.length,
         con_observaciones: conObs,
-        modo: r.modo,
-        enviado: true,
+        ...detalleEnvio(r),
       },
     });
 
@@ -428,7 +430,7 @@ export async function procesarRecordatoriosProgramados(
     };
 
     let fallo: string | null = null;
-    const entregados: { id: string; email: string }[] = [];
+    const entregados: { id: string; email: string; envio: ResultadoEnvio }[] = [];
     for (const u of destinatarios.values()) {
       const plantilla = plantillaRecordatorioProgramado(u.nombre, solEmail, {
         diasAntes: r.dias_antes,
@@ -436,8 +438,14 @@ export async function procesarRecordatoriosProgramados(
         queFalta: queFalta(s.estado),
       });
       const envio = await enviarCorreo(u.email, plantilla);
-      if (envio.ok) entregados.push({ id: u.id, email: u.email });
-      else fallo = envio.error ?? "error desconocido";
+      // Un destinatario OMITIDO (dominio de pruebas) no cuenta como entregado: si
+      // contara, un recordatorio a puras cuentas @example quedaría registrado como
+      // enviado y nadie sabría por qué el cliente no recibió nada.
+      if (envio.ok && envio.modo !== "omitido") {
+        entregados.push({ id: u.id, email: u.email, envio });
+      } else {
+        fallo = envio.error ?? envio.motivo ?? "error desconocido";
+      }
     }
 
     if (entregados.length === 0) {
@@ -493,8 +501,7 @@ export async function procesarRecordatoriosProgramados(
           destinatario_id: e.id,
           email: e.email,
           destinatarios: entregados.length,
-          modo: modoConsola() ? "consola" : "resend",
-          enviado: true,
+          ...detalleEnvio(e.envio),
         },
       });
     }
