@@ -27,6 +27,14 @@ export type ResumenRecordatorios = {
   modo: "resend" | "consola";
   enviados: number; // correos efectivamente enviados
   omitidos: number; // responsables saltados por la regla anti-spam
+  /**
+   * Direcciones que no pueden recibir correo (dominios reservados: las cuentas de
+   * demostración). Se cuentan APARTE de `enviados` a propósito: el resumen del
+   * cron es lo que lee una persona para saber qué pasó, y decir "3 enviados" de
+   * tres direcciones que no existen es la clase de falso alivio que hace que nadie
+   * revise nada.
+   */
+  omitidosDominio: number;
   fallidos: number; // envíos con error
   responsables: number; // total de responsables con pendientes
   detalles: {
@@ -34,7 +42,7 @@ export type ResumenRecordatorios = {
     email: string;
     solicitudes: number;
     conObservaciones: number;
-    resultado: "enviado" | "omitido" | "fallido";
+    resultado: "enviado" | "omitido" | "omitido_dominio" | "fallido";
     motivo?: string;
   }[];
 };
@@ -62,6 +70,7 @@ export async function procesarRecordatorios(
     modo: modoConsola() ? "consola" : "resend",
     enviados: 0,
     omitidos: 0,
+    omitidosDominio: 0,
     fallidos: 0,
     responsables: 0,
     detalles: [],
@@ -191,6 +200,34 @@ export async function procesarRecordatorios(
       continue;
     }
 
+    if (r.modo === "omitido") {
+      resumen.omitidosDominio += 1;
+      resumen.detalles.push({
+        responsable: g.nombre.replace(/\[DEMO\]\s*/i, "").trim(),
+        email: g.email,
+        solicitudes: g.items.length,
+        conObservaciones: conObs,
+        resultado: "omitido_dominio",
+        motivo: r.motivo,
+      });
+      // Se registra igual: el intento existió y su razón es información.
+      await logCorreo(db, {
+        tenantId: g.tenantId,
+        usuarioId: null,
+        accion: "recordatorio_enviado",
+        entidadId: null,
+        detalle: {
+          responsable_id: g.responsableId,
+          email: g.email,
+          nombre: g.nombre,
+          solicitud_ids: g.items.map((i) => i.id),
+          total: g.items.length,
+          ...detalleEnvio(r),
+        },
+      });
+      continue;
+    }
+
     await logCorreo(db, {
       tenantId: g.tenantId,
       usuarioId: null, // acción de sistema/cron
@@ -261,6 +298,8 @@ export type ResumenProgramados = {
   disparos: number;
   enviados: number;
   omitidos: number;
+  /** Destinatarios saltados por ser cuentas de demostración (dominio reservado). */
+  omitidosDominio: number;
   fallidos: number;
   detalles: {
     solicitud: string;
@@ -318,6 +357,7 @@ export async function procesarRecordatoriosProgramados(
     disparos: 0,
     enviados: 0,
     omitidos: 0,
+    omitidosDominio: 0,
     fallidos: 0,
     detalles: [],
   };
@@ -430,6 +470,7 @@ export async function procesarRecordatoriosProgramados(
     };
 
     let fallo: string | null = null;
+    let omitidosDominio = 0;
     const entregados: { id: string; email: string; envio: ResultadoEnvio }[] = [];
     for (const u of destinatarios.values()) {
       const plantilla = plantillaRecordatorioProgramado(u.nombre, solEmail, {
@@ -443,13 +484,23 @@ export async function procesarRecordatoriosProgramados(
       // enviado y nadie sabría por qué el cliente no recibió nada.
       if (envio.ok && envio.modo !== "omitido") {
         entregados.push({ id: u.id, email: u.email, envio });
+      } else if (envio.modo === "omitido") {
+        omitidosDominio += 1;
+        fallo = envio.motivo ?? "dirección que no recibe correo";
       } else {
-        fallo = envio.error ?? envio.motivo ?? "error desconocido";
+        fallo = envio.error ?? "error desconocido";
       }
     }
 
     if (entregados.length === 0) {
-      resumen.fallidos += 1;
+      // Si NINGÚN destinatario podía recibir (todas cuentas de prueba), no es un
+      // fallo: es un disparo sin nadie a quien avisar, y así se reporta.
+      // Si NADIE podía recibir se cuenta como omitido, no como fallo. Se decide con
+      // el contador, no leyendo el texto del motivo: el mensaje puede cambiar.
+      const todoOmitido = omitidosDominio === destinatarios.size;
+      resumen.omitidosDominio += omitidosDominio;
+      if (todoOmitido) resumen.omitidos += 1;
+      else resumen.fallidos += 1;
       await logCorreo(db, {
         tenantId,
         usuarioId: null,
@@ -473,8 +524,10 @@ export async function procesarRecordatoriosProgramados(
         solicitudId: s.id,
         diasAntes: r.dias_antes,
         destinatarios: destinatarios.size,
-        resultado: "fallido",
-        motivo: fallo ?? "no se pudo enviar a ningún destinatario",
+        resultado: todoOmitido ? "omitido" : "fallido",
+        motivo: todoOmitido
+          ? `Ningún destinatario recibe correo (${destinatarios.size}): ${fallo}`
+          : (fallo ?? "no se pudo enviar a ningún destinatario"),
       });
       continue;
     }
@@ -506,6 +559,15 @@ export async function procesarRecordatoriosProgramados(
       });
     }
 
+    // Salió a alguien, pero puede haber quedado gente fuera: se dice cuánta y por
+    // qué, distinguiendo la cuenta de prueba (omitida) del error real (fallo).
+    resumen.omitidosDominio += omitidosDominio;
+    const noEntregados = destinatarios.size - entregados.length;
+    const fallosReales = noEntregados - omitidosDominio;
+    const notas = [
+      omitidosDominio > 0 ? `${omitidosDominio} omitido(s) por dominio de prueba` : null,
+      fallosReales > 0 ? `${fallosReales} fallo(s): ${fallo}` : null,
+    ].filter(Boolean);
     resumen.enviados += 1;
     resumen.detalles.push({
       solicitud: s.titulo,
@@ -513,7 +575,7 @@ export async function procesarRecordatoriosProgramados(
       diasAntes: r.dias_antes,
       destinatarios: entregados.length,
       resultado: "enviado",
-      motivo: fallo ? `con ${destinatarios.size - entregados.length} fallo(s): ${fallo}` : undefined,
+      motivo: notas.length > 0 ? notas.join("; ") : undefined,
     });
   }
 

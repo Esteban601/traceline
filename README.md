@@ -29,7 +29,11 @@ emisoras BMV (IRStrat / Vert).
   valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
   origen** (cada lado valida lo suyo) y el **toggle de carga por IRStrat** por
   cliente. Ver más abajo.
-- 🌱 **Correo y recordatorios (Fase 1)** — solicitar, recordar y avisar observaciones vía Resend (rama `fase-1-recordatorios`).
+- ✅ **Correo real (Resend) en staging**: solicitar, recordar (digest y
+  programados), avisar observaciones e invitar, más los correos de sesión de
+  Supabase Auth por SMTP propio. Con guarda de dominios reservados para no
+  escribirles a las cuentas de demostración. Ver
+  [Correo real en staging](#correo-real-en-staging-lo-que-quedó-encendido).
 
 Stack: Next.js 15 (App Router, TypeScript, pnpm) + Supabase local (CLI + Docker).
 Diseño: Tailwind v4 puro, paleta editorial crema/teal/dorado, Sora + Inter.
@@ -96,7 +100,7 @@ local sin cuenta de Resend. Variables (ver `.env.example`):
 | Variable | Rol |
 |----------|-----|
 | `RESEND_API_KEY` | Ausente → modo consola. Presente → envío real vía Resend. |
-| `EMAIL_FROM` | Remitente (dominio verificado en Resend). Irrelevante en modo consola. |
+| `EMAIL_FROM` | Remitente (dominio verificado en Resend). En modo consola se imprime igual, para ver con qué firma saldría. |
 | `NEXT_PUBLIC_APP_URL` | Base de los enlaces (CTA) de los correos. Local: `http://localhost:3000`. |
 | `CRON_SECRET` | Protege `POST /api/recordatorios` (header `x-cron-secret`). |
 
@@ -127,10 +131,11 @@ Toda acción de correo queda en `bitacora` (`entidad = 'correo'`, acciones
 
 ### Activar el envío real (Resend) — paso a paso
 
-Hoy **staging manda todo a modo consola**, y para staging eso es lo correcto: los
-correos de prueba no deben llegarle a nadie. Estos son los pasos exactos para
-encender el envío real cuando la dirección lo decida. El código no cambia: la única
-condición es que exista `RESEND_API_KEY`.
+**Staging ya envía de verdad** desde el 21 de agosto de 2026; el estado exacto está
+en [Correo real en staging](#correo-real-en-staging-lo-que-quedó-encendido). Lo que
+sigue es el procedimiento, que sirve para el próximo ambiente (o para cuando cambie
+el dominio). El código no cambia: la única condición es que exista
+`RESEND_API_KEY`.
 
 1. **Cuenta y dominio.** En [resend.com](https://resend.com) → *Domains* → *Add
    Domain*, con el dominio desde el que se va a escribir (p. ej. `irstrat.com` o un
@@ -168,7 +173,7 @@ condición es que exista `RESEND_API_KEY`.
    esas direcciones es un rebote, y los rebotes dañan la reputación del dominio. El
    orden correcto es: primero los correos reales de las personas, después la clave.
 
-**Cron de recordatorios (Heroku Scheduler)** — *no configurado todavía*. Programar
+**Cron de recordatorios (Heroku Scheduler).** Programar
 un job **diario** (los recordatorios programados se evalúan por día; el digest trae
 su propia regla anti-spam de 5 días, así que correr a diario no lo multiplica):
 
@@ -179,6 +184,106 @@ curl -fsS -X POST "$NEXT_PUBLIC_APP_URL/api/recordatorios" \
 
 Una sola llamada hace las dos pasadas: primero los **programados** por solicitud,
 después el **digest** por responsable. El orden importa (ver abajo).
+
+### Correo real en staging: lo que quedó encendido
+
+Staging es el ambiente operativo de Grupo Carso, así que el correo **sale de
+verdad**. Estado al 21 de agosto de 2026, verificado punta a punta con una
+dirección real.
+
+| Pieza | Valor / estado |
+|---|---|
+| App | `traceline-staging` |
+| `RESEND_API_KEY` | puesta como config var (nunca en el repo ni en un commit) |
+| `EMAIL_FROM` | `TRACELINE <avisos@traceline.aplglobalgroup.com>` |
+| `NEXT_PUBLIC_APP_URL` | `https://traceline-staging-70ce5b369e7c.herokuapp.com` |
+| Dominio en Resend | `traceline.aplglobalgroup.com`, verificado (SPF + DKIM) |
+| Auth de Supabase | SMTP propio: `smtp.resend.com:465`, usuario `resend` |
+| Cron | add-on `scheduler:standard` instalado; job diario 13:00 UTC |
+
+**Los correos salen por dos caminos distintos y los dos están cubiertos:**
+
+1. **Los de la plataforma** —solicitud, recordatorio (digest y programado), aviso
+   de observación, invitación— los manda la app con la API de Resend
+   (`lib/email/enviar.ts`).
+2. **Los de la sesión** —recuperar contraseña, confirmar correo, liga mágica— los
+   manda **Supabase Auth**, no la app. Con el SMTP default de Supabase están
+   limitados a 2 por hora y solo a miembros del proyecto: en un cliente real, "no
+   me llegó la liga" habría sido el primer reporte. Se configuró el **SMTP propio**
+   con la misma cuenta de Resend (`smtp_admin_email`
+   `avisos@traceline.aplglobalgroup.com`, remitente `TRACELINE`) y el límite subió
+   a **30 por hora**. Se hace por la Management API, no hay UI en el CLI:
+
+   ```bash
+   TOKEN=$(security find-generic-password -s "Supabase CLI" -w)   # macOS
+   curl -sS -X PATCH "https://api.supabase.com/v1/projects/$REF/config/auth" \
+     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"smtp_host":"smtp.resend.com","smtp_port":"465","smtp_user":"resend",
+          "smtp_pass":"re_...","smtp_admin_email":"avisos@traceline.aplglobalgroup.com",
+          "smtp_sender_name":"TRACELINE","rate_limit_email_sent":30}'
+   ```
+
+   `smtp_port` va como **cadena**; con número la API responde 400.
+
+#### La guarda de dominios reservados
+
+Las cuentas de demostración y las de GCARSO en staging usan direcciones
+`@empresademo.example` / `@gcarso.example`. Son direcciones que **no existen** (el
+TLD `.example` está reservado por el RFC 2606): con el envío encendido, el primer
+cron le habría escrito a todas y cada intento sería un **rebote duro** contra un
+dominio recién verificado. Eso es exactamente lo que quema la reputación de envío.
+
+Por eso `enviarCorreo` no las intenta: devuelve `modo: "omitido"` con su motivo, y
+el flujo que lo disparó **sigue su curso sin romperse**. La guarda solo aplica con
+transporte real — en modo consola el correo se imprime igual, con una línea que
+avisa `⚠ con envío real se OMITIRÍA`, para que las pruebas locales sigan
+recorriendo el mismo camino.
+
+Un omitido **no se cuenta como enviado** en ninguna parte: los resúmenes del cron y
+los toasts del panel llevan `omitidosDominio` aparte de `enviados`, `omitidos`
+(regla anti-spam) y `fallidos`. Decir "3 enviados" de tres direcciones inexistentes
+es la clase de falso alivio que hace que nadie revise nada. En consecuencia:
+
+- Un recordatorio programado cuyos destinatarios eran **todos** de prueba se
+  reporta `omitido`, no `fallido` ni `enviado`.
+- Enviar una solicitud a un responsable de prueba **no la marca como solicitada**:
+  la acción responde que la dirección no recibe correo y la solicitud sigue
+  pendiente. "Solicitada" significa "avisada".
+- El intento queda en `bitacora` con `modo: "omitido"` y su motivo: el rastro
+  existe aunque el correo no haya salido.
+
+Para que una cuenta de demostración reciba de verdad, se le cambia el correo a una
+dirección real desde `/admin/usuarios`. No hay interruptor para apagar la guarda:
+apagarla no tiene un caso de uso legítimo.
+
+#### El job del Scheduler
+
+`heroku addons:open scheduler --app traceline-staging` → *Add Job*:
+
+| Campo | Valor |
+|---|---|
+| Schedule | Daily |
+| Time | 13:00 UTC (07:00 en Ciudad de México, 08:00 en horario de verano) |
+| Command | `curl -fsS -X POST "$NEXT_PUBLIC_APP_URL/api/recordatorios" -H "x-cron-secret: $CRON_SECRET"` |
+
+El add-on no tiene CLI para los jobs: se agregan en el panel. Las variables del
+comando las resuelve el dyno, así que el secreto **no queda escrito** en la
+definición del job. `-fsS` hace que un 4xx/5xx falle con código de salida ≠ 0 y
+quede visible en `heroku logs --ps scheduler`.
+
+El día se evalúa en hora de **México**, no del servidor: el dyno corre en UTC y un
+cron de madrugada evaluaría el día siguiente, mandando los avisos con un día de
+adelanto.
+
+#### El dominio es un puente
+
+`traceline.aplglobalgroup.com` es un **dominio puente**: se usó porque su DNS estaba
+a mano. El remitente definitivo será un **subdominio de `irstrat.com`** (p. ej.
+`avisos.irstrat.com`) en cuanto haya acceso a GoDaddy. La mudanza es: verificar el
+subdominio nuevo en Resend, publicar SPF/DKIM/DMARC, cambiar `EMAIL_FROM` y el
+`smtp_admin_email` de Supabase Auth. Nada más — ningún remitente está escrito en el
+código. Conviene dejar el puente verificado unas semanas en paralelo, para que las
+ligas de correos ya enviados no queden apuntando a un dominio muerto.
 
 ## Candado de trazabilidad (Fase 2)
 
@@ -1288,9 +1393,15 @@ Cada envío deja una entrada en `bitacora` (`entidad = 'correo'`, acción
 `recordatorio_programado_enviado`), **una por destinatario** —la regla anti-spam se
 aplica por persona, así que necesita saber a quién se le escribió— con el
 recordatorio, los días, el plazo, el área, el estado en que estaba la solicitud y
-el modo (`consola` / `resend`). El detalle de la solicitud lo muestra en su sección
-**Recordatorios**: lo configurado (con la fecha en que caerá cada uno) y lo ya
-enviado, con los correos a los que salió.
+el modo (`consola` / `resend` / `omitido`). El detalle de la solicitud lo muestra en
+su sección **Recordatorios**: lo configurado (con la fecha en que caerá cada uno) y
+lo ya enviado, con los correos a los que salió.
+
+Con envío real, un destinatario de dominio reservado queda como `modo: "omitido"`
+con su motivo, y el resumen del cron lo cuenta en `omitidosDominio` — nunca en
+`enviados`. Si **ningún** destinatario del disparo podía recibir, el recordatorio se
+reporta `omitido`, no `fallido`: no hubo error, hubo un aviso sin nadie a quien
+avisar. Ver [la guarda de dominios reservados](#la-guarda-de-dominios-reservados).
 
 ```bash
 pnpm e2e:recordatorios      # crea la solicitud por UI, corre el cron real y valida

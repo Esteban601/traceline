@@ -25,6 +25,7 @@ export async function enviarSolicitudesMasivo(
       solicitudes: 0,
       omitidas: 0,
       fallidos: 0,
+      omitidosDominio: 0,
       detalles: [],
       error: "Acción reservada al panel.",
     };
@@ -50,6 +51,7 @@ export async function dispararRecordatorios(): Promise<
       modo: "consola",
       enviados: 0,
       omitidos: 0,
+      omitidosDominio: 0,
       fallidos: 0,
       responsables: 0,
       detalles: [],

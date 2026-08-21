@@ -30,6 +30,9 @@ export function BarraRecordatorios() {
         `${r.enviados} ${r.enviados === 1 ? "recordatorio enviado" : "recordatorios enviados"}`,
       ];
       if (r.omitidos > 0) partes.push(`${r.omitidos} omitidos (regla de 5 días)`);
+      if (r.omitidosDominio > 0) {
+        partes.push(`${r.omitidosDominio} sin buzón real (cuentas de demostración)`);
+      }
       if (r.fallidos > 0) {
         toast.error(`${partes.join(" · ")} · ${r.fallidos} con error${nota}`);
       } else {

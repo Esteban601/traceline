@@ -185,6 +185,9 @@ export function MatrizSolicitudes({
         `${r.solicitudes} ${r.solicitudes === 1 ? "solicitud" : "solicitudes"} marcadas`,
       ];
       if (r.omitidas > 0) partes.push(`${r.omitidas} omitidas`);
+      if (r.omitidosDominio > 0) {
+        partes.push(`${r.omitidosDominio} sin buzón real (cuentas de demostración)`);
+      }
       if (r.fallidos > 0) {
         toast.error(`${partes.join(" · ")} · ${r.fallidos} con error${nota}`);
       } else {

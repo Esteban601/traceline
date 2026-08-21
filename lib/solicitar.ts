@@ -12,11 +12,13 @@ export type ResumenSolicitud = {
   solicitudes: number; // solicitudes que pasaron a 'solicitado'
   omitidas: number; // ids no elegibles (no 'pendiente' o sin responsable)
   fallidos: number; // responsables cuyo envío falló
+  /** Direcciones que no pueden recibir correo (dominios reservados de prueba). */
+  omitidosDominio: number;
   detalles: {
     responsable: string;
     email: string;
     solicitudes: number;
-    resultado: "enviado" | "fallido";
+    resultado: "enviado" | "omitido_dominio" | "fallido";
     motivo?: string;
   }[];
 };
@@ -53,6 +55,7 @@ export async function enviarSolicitudesCore(
   const resumen: ResumenSolicitud = {
     modo: modoConsola() ? "consola" : "resend",
     correos: 0,
+    omitidosDominio: 0,
     solicitudes: 0,
     omitidas: 0,
     fallidos: 0,
@@ -111,6 +114,34 @@ export async function enviarSolicitudesCore(
   for (const g of grupos.values()) {
     const plantilla = plantillaSolicitud(g.nombre, g.items);
     const r = await enviarCorreo(g.email, plantilla);
+
+    if (r.modo === "omitido") {
+      // Nadie fue avisado: el estado NO avanza (solicitada significa avisada) y se
+      // reporta como omitido, no como enviado ni como fallo.
+      resumen.omitidosDominio += 1;
+      await logCorreo(db, {
+        tenantId: g.tenantId,
+        usuarioId,
+        accion: "solicitud_enviada",
+        entidadId: g.ids.length === 1 ? g.ids[0] : null,
+        detalle: {
+          responsable_id: g.responsableId,
+          email: g.email,
+          nombre: g.nombre,
+          solicitud_ids: g.ids,
+          total: g.ids.length,
+          ...detalleEnvio(r),
+        },
+      });
+      resumen.detalles.push({
+        responsable: g.nombre.replace(/\[DEMO\]\s*/i, "").trim(),
+        email: g.email,
+        solicitudes: g.items.length,
+        resultado: "omitido_dominio",
+        motivo: r.motivo,
+      });
+      continue;
+    }
 
     if (!r.ok) {
       resumen.fallidos += 1;

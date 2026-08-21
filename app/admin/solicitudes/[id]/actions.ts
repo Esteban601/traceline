@@ -269,6 +269,16 @@ export async function enviarSolicitud(
   if (r.fallidos > 0) {
     return { ok: false, error: r.detalles[0]?.motivo ?? "No se pudo enviar la solicitud." };
   }
+  if (r.omitidosDominio > 0) {
+    // La dirección del responsable no puede recibir correo (cuenta de
+    // demostración). No se avisó a nadie, así que la solicitud sigue pendiente y
+    // hay que decirlo: en silencio parecería enviada.
+    return {
+      ok: false,
+      error:
+        "No se envió: la dirección del responsable es de demostración y no recibe correo. La solicitud sigue pendiente.",
+    };
+  }
   if (r.correos === 0) {
     return {
       ok: false,
