@@ -114,7 +114,18 @@ export async function procesarRecordatorios(
 
   const bloqueados = new Set<string>();
   for (const r of recientes ?? []) {
-    const d = r.detalle as { responsable_id?: string; destinatario_id?: string } | null;
+    const d = r.detalle as {
+      responsable_id?: string;
+      destinatario_id?: string;
+      enviado?: boolean;
+    } | null;
+    // Solo bloquea el correo que SALIÓ. Un intento fallido (Resend caído) o
+    // omitido (buzón de demostración) queda en bitácora porque el rastro importa,
+    // pero no debe silenciar a esa persona cinco días: nadie recibió nada, y la
+    // regla existe para no repetirle un correo a quien ya lo tiene, no para
+    // castigar un error nuestro. Las entradas viejas no traen `enviado` y sí eran
+    // envíos: solo el `false` explícito deja de bloquear.
+    if (d?.enviado === false) continue;
     // El digest agrupa por responsable; el programado escribe a cada persona del
     // área. Las dos claves apuntan a un perfil y las dos bloquean.
     if (d?.responsable_id) bloqueados.add(d.responsable_id);

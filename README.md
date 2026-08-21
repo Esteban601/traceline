@@ -1376,6 +1376,12 @@ resumen genérico. Al revés, recibiría los dos.
   garantiza en su lugar es que **un recordatorio no se manda dos veces el mismo
   día** (idempotencia si el cron corre de más) y que un envío programado **sí**
   bloquea el digest de esa persona por los 5 días de la regla original.
+- **Solo bloquea el correo que SALIÓ.** La regla anti-spam lee la bitácora, y ahí
+  quedan también los intentos que no llegaron: un fallo de Resend o una dirección
+  omitida por la guarda de dominios. Si esos contaran, una caída de un día se
+  volvería una semana de silencio — y el silencio se vería exactamente igual que
+  "ya se le avisó". Solo las entradas con `enviado: true` bloquean; las viejas, que
+  no traen el campo, siguen bloqueando porque sí eran envíos.
 - **"Hoy" es el de México**, no el del servidor (`hoyOperacion()` en
   `lib/fechas.ts`). En Heroku el proceso corre en UTC y un cron de madrugada
   evaluaría el día siguiente, mandando los avisos con un día de adelanto: los

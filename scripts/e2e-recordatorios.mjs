@@ -499,6 +499,71 @@ async function main() {
     );
     ok(!mio5, "una solicitud sin fecha límite no dispara nada (y no truena el cron)");
     ok(sinFecha.status === 200, `el cron sigue respondiendo 200 (${sinFecha.status})`);
+
+    // -----------------------------------------------------------------------
+    bloque("9) Un correo que NO llegó no silencia a nadie 5 días");
+    // -----------------------------------------------------------------------
+    // La regla anti-spam del digest lee la bitácora. Si contara los intentos que
+    // NO salieron —Resend caído, o buzón de demostración omitido— una caída de un
+    // día se convertiría en una semana de silencio. Se prueba con las dos formas
+    // de entrada: la que no llegó (no debe bloquear) y la que sí (debe bloquear).
+    const { data: solDigest } = await staffDb
+      .from("solicitudes")
+      .insert({
+        reporte_id: fx.reporteId,
+        titulo: "Solicitud para el digest (e2e)",
+        area_asignada: FIXTURE.otraArea,
+        responsable_cliente_id: fx.usuarios.otraArea.id,
+        fecha_limite: enDias(30), // lejos: ningún programado dispara por ella
+        orden: 30,
+      })
+      .select("id")
+      .single();
+    await admin.from("solicitudes").update({ estado: "solicitado" }).eq("id", solDigest.id);
+
+    const enDigest = (cuerpo) =>
+      (cuerpo?.digest?.detalles ?? []).find((d) => d.email === fx.usuarios.otraArea.email);
+
+    // (a) intento OMITIDO en la bitácora: la persona sigue en el digest.
+    await admin.from("bitacora").insert({
+      tenant_id: tenantId,
+      entidad: "correo",
+      entidad_id: null,
+      accion: "recordatorio_enviado",
+      detalle: {
+        responsable_id: fx.usuarios.otraArea.id,
+        email: fx.usuarios.otraArea.email,
+        modo: "omitido",
+        enviado: false,
+        motivo: "dominio reservado (e2e)",
+      },
+    });
+    const conOmitido = await correrCron(enDias(0));
+    const d1 = enDigest(conOmitido.cuerpo);
+    ok(
+      !!d1 && d1.resultado !== "omitido",
+      `un intento que no salió no la bloquea (${d1?.resultado ?? "quedó fuera del digest"})`
+    );
+
+    // (b) envío REAL en la bitácora: ahora sí queda bloqueada.
+    await admin.from("bitacora").insert({
+      tenant_id: tenantId,
+      entidad: "correo",
+      entidad_id: null,
+      accion: "recordatorio_enviado",
+      detalle: {
+        responsable_id: fx.usuarios.otraArea.id,
+        email: fx.usuarios.otraArea.email,
+        modo: "consola",
+        enviado: true,
+      },
+    });
+    const conEnviado = await correrCron(enDias(0));
+    const d2 = enDigest(conEnviado.cuerpo);
+    ok(
+      !d2 || d2.resultado === "omitido",
+      `un envío que sí salió la bloquea por la regla de 5 días (${d2?.resultado ?? "ya no aparece"})`
+    );
   } finally {
     for (const c of ctxs) await c.close().catch(() => {});
     await browser.close();
