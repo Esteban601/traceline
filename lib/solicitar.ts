@@ -114,6 +114,25 @@ export async function enviarSolicitudesCore(
 
     if (!r.ok) {
       resumen.fallidos += 1;
+      // El estado NO avanza a 'solicitado': eso significaría que se avisó, y el
+      // aviso no salió. Pero el intento se registra, para que el hueco tenga
+      // explicación y no parezca que nadie hizo nada.
+      await logCorreo(db, {
+        tenantId: g.tenantId,
+        usuarioId,
+        accion: "solicitud_enviada",
+        entidadId: g.ids.length === 1 ? g.ids[0] : null,
+        detalle: {
+          responsable_id: g.responsableId,
+          email: g.email,
+          nombre: g.nombre,
+          solicitud_ids: g.ids,
+          total: g.ids.length,
+          modo: r.modo,
+          enviado: false,
+          error: r.error ?? "sin detalle",
+        },
+      });
       resumen.detalles.push({
         responsable: g.nombre.replace(/\[DEMO\]\s*/i, "").trim(),
         email: g.email,
@@ -155,6 +174,7 @@ export async function enviarSolicitudesCore(
         solicitud_ids: g.ids,
         total: g.ids.length,
         modo: r.modo,
+        enviado: true,
       },
     });
 

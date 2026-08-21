@@ -206,14 +206,9 @@ export async function agregarObservacion(
   );
   const envio = await enviarCorreo(responsable.email, plantilla);
 
-  if (!envio.ok) {
-    return {
-      ok: true,
-      error: null,
-      mensaje: `Observación registrada, pero el correo no pudo enviarse: ${envio.error ?? ""}`,
-    };
-  }
-
+  // La observación YA quedó registrada: el correo es el aviso, no el acto. Un
+  // fallo de envío se registra igual —con su motivo— en vez de desaparecer: si
+  // nadie recibió el aviso, eso es justo lo que hay que poder averiguar después.
   await logCorreo(supabase, {
     tenantId: reporte?.tenant_id ?? null,
     usuarioId: perfil.id,
@@ -225,8 +220,18 @@ export async function agregarObservacion(
       nombre: responsable.nombre,
       solicitud_id: sol.id,
       modo: envio.modo,
+      enviado: envio.ok,
+      ...(envio.ok ? {} : { error: envio.error ?? "sin detalle" }),
     },
   });
+
+  if (!envio.ok) {
+    return {
+      ok: true,
+      error: null,
+      mensaje: `Observación registrada, pero el correo no pudo enviarse: ${envio.error ?? ""}`,
+    };
+  }
 
   return {
     ok: true,

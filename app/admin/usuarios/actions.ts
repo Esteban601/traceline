@@ -255,6 +255,8 @@ async function crearInvitacion(
       nombre: params.nombre,
       expira_en: expira.toISOString(),
       modo: envio.modo,
+      enviado: envio.ok,
+      ...(envio.ok ? {} : { error: envio.error ?? "sin detalle" }),
     },
   });
 

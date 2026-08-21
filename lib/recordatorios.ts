@@ -158,6 +158,25 @@ export async function procesarRecordatorios(
 
     if (!r.ok) {
       resumen.fallidos += 1;
+      // El intento queda en la bitácora: un recordatorio que no salió es
+      // exactamente lo que alguien va a buscar cuando el cliente diga "nunca me
+      // avisaron". La respuesta del cron se pierde; la bitácora no.
+      await logCorreo(db, {
+        tenantId: g.tenantId,
+        usuarioId: null,
+        accion: "recordatorio_enviado",
+        entidadId: null,
+        detalle: {
+          responsable_id: g.responsableId,
+          email: g.email,
+          nombre: g.nombre,
+          solicitud_ids: g.items.map((i) => i.id),
+          total: g.items.length,
+          modo: r.modo,
+          enviado: false,
+          error: r.error ?? "sin detalle",
+        },
+      });
       resumen.detalles.push({
         responsable: g.nombre.replace(/\[DEMO\]\s*/i, "").trim(),
         email: g.email,
@@ -182,6 +201,7 @@ export async function procesarRecordatorios(
         total: g.items.length,
         con_observaciones: conObs,
         modo: r.modo,
+        enviado: true,
       },
     });
 
@@ -422,6 +442,24 @@ export async function procesarRecordatoriosProgramados(
 
     if (entregados.length === 0) {
       resumen.fallidos += 1;
+      await logCorreo(db, {
+        tenantId,
+        usuarioId: null,
+        accion: "recordatorio_programado_enviado",
+        entidadId: s.id,
+        detalle: {
+          solicitud_id: s.id,
+          titulo: s.titulo,
+          recordatorio_id: r.id,
+          dias_antes: r.dias_antes,
+          fecha_disparo: hoyISO,
+          area: s.area_asignada,
+          destinatarios: destinatarios.size,
+          modo: modoConsola() ? "consola" : "resend",
+          enviado: false,
+          error: fallo ?? "no se pudo enviar a ningún destinatario",
+        },
+      });
       resumen.detalles.push({
         solicitud: s.titulo,
         solicitudId: s.id,
@@ -456,6 +494,7 @@ export async function procesarRecordatoriosProgramados(
           email: e.email,
           destinatarios: entregados.length,
           modo: modoConsola() ? "consola" : "resend",
+          enviado: true,
         },
       });
     }

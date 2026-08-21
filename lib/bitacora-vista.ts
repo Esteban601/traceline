@@ -128,11 +128,20 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "solicitud_enviada": {
       const total = n(detalle, "total");
       const nombre = limpiar(s(detalle, "nombre"));
-      return [nombre, total ? `${total} solicitud(es)` : null].filter(Boolean).join(" · ");
+      const base = [nombre, total ? `${total} solicitud(es)` : null].filter(Boolean).join(" · ");
+      return detalle?.enviado === false
+        ? `${base} · NO SE ENVIÓ: ${s(detalle, "error") ?? "sin detalle"}`
+        : base;
     }
     case "recordatorio_enviado":
-    case "aviso_observacion":
-      return limpiar(s(detalle, "nombre")) ?? "Notificación por correo";
+    case "aviso_observacion": {
+      const quien = limpiar(s(detalle, "nombre")) ?? "Notificación por correo";
+      // Un intento fallido se registra igual que uno exitoso: si el renglón no lo
+      // dijera, un correo que nunca salió se leería como enviado.
+      return detalle?.enviado === false
+        ? `${quien} · NO SE ENVIÓ: ${s(detalle, "error") ?? "sin detalle"}`
+        : quien;
+    }
     case "solicitud_creada":
     case "solicitud_editada":
     case "solicitud_eliminada":
