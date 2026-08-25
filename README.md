@@ -1797,7 +1797,17 @@ las siete cuentas a mano, y sin él una corrida interrumpida dejaría cuentas cu
 contraseña ya nadie puede leer. `--rehacer` regenera cuentas y credenciales.
 
 Los logos se leen de **`logos-demo/<slug>.png`** (también ignorado: son marcas de
-terceros, no activos del producto).
+terceros, no activos del producto). Dos detalles del manejo:
+
+- **Se reducen a 400 px** antes de subir, el mismo tope que aplica el uploader de
+  `/admin/clientes` en el navegador (`LOGO_MAX_ANCHO`). Los archivos de diseño
+  vienen a resolución de imprenta —4500 px, ~100 kB— y el slot donde se pintan mide
+  32. Lo hace `sips`, que viene con macOS; si no está, sube el original y lo avisa.
+- **El objeto se nombra con la huella del archivo**, no con un timestamp como en la
+  aplicación. Así "¿cambió el logo?" se responde leyendo el nombre del objeto ya
+  guardado: si diseño reemplaza el archivo, la corrida siguiente lo detecta y lo
+  sustituye sola —sin bandera y sin `--rehacer`—, retira el anterior del bucket, y
+  si no cambió no vuelve a subir nada.
 
 ### Salvaguardas del propio script
 

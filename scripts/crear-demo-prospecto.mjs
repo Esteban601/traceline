@@ -41,8 +41,10 @@
 // Con `--rehacer` sí borra y reconstruye, y entonces las credenciales son nuevas.
 // =============================================================================
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -138,6 +140,9 @@ const PROSPECTOS = [
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
+
+/** Mismo tope que el uploader de la aplicación (lib/tenants.ts). */
+const LOGO_MAX_ANCHO = 400;
 
 // Nombres de plantilla preferidos, en orden. Si ninguno está, se toma la que más
 // rubros tenga: lo que el reporte necesita para que su Excel resuelva celdas son
@@ -367,6 +372,66 @@ function enDias(n) {
 
 const fmt = (n) => new Intl.NumberFormat("es-MX").format(n);
 
+const MIME_POR_EXT = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  svg: "image/svg+xml",
+  webp: "image/webp",
+};
+
+/**
+ * Prepara el logo para subirlo. Devuelve `{ bytes, ext, tipo, ancho }`.
+ *
+ * Los archivos que entrega diseño suelen venir a resolución de imprenta (4500 px)
+ * y el slot donde se pintan mide 32. El uploader de /admin/clientes reduce en el
+ * NAVEGADOR a `LOGO_MAX_ANCHO` (400 px) antes de subir; aquí no hay navegador, así
+ * que se hace con `sips`, que viene con macOS. Si no está disponible se sube el
+ * original y se avisa: un logo pesado es un desperdicio, no un defecto.
+ */
+function prepararLogo(rutaOrigen) {
+  const ext = path.extname(rutaOrigen).slice(1).toLowerCase();
+  const tipo = MIME_POR_EXT[ext];
+  if (!tipo) {
+    throw new Error(`Formato de logo no admitido: .${ext}. Usa PNG, JPG, SVG o WebP.`);
+  }
+  const original = fs.readFileSync(rutaOrigen);
+  // Los vectoriales no se reescalan: no tienen resolución que sobre.
+  if (ext === "svg") return { bytes: original, ext, tipo, nota: null };
+
+  const tmp = path.join(
+    os.tmpdir(),
+    `logo-demo-${crypto.randomBytes(6).toString("hex")}.${ext}`
+  );
+  try {
+    execFileSync("sips", ["-Z", String(LOGO_MAX_ANCHO), rutaOrigen, "--out", tmp], {
+      stdio: "pipe",
+    });
+    const reducido = fs.readFileSync(tmp);
+    fs.unlinkSync(tmp);
+    return {
+      bytes: reducido,
+      ext,
+      tipo,
+      nota: `reducido a ${LOGO_MAX_ANCHO} px (${Math.round(original.length / 1024)} kB → ${Math.round(reducido.length / 1024)} kB)`,
+    };
+  } catch {
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* no se creó */
+    }
+    return {
+      bytes: original,
+      ext,
+      tipo,
+      nota: `sin reducir (sips no disponible): ${Math.round(original.length / 1024)} kB`,
+    };
+  }
+}
+
+const huella = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 12);
+
 /**
  * Nombre de objeto seguro para storage — la MISMA función que usan el portal y el
  * panel (`nombreSeguro`). Las claves de storage no admiten acentos ni guiones
@@ -571,30 +636,47 @@ async function asegurarTenant({ db, admin, staffId }, p) {
 
   // Logo: mismo camino que /admin/clientes (bucket público `logos`, la URL
   // pública en `tenants.logo_url`).
-  if (!tenant.logo_url) {
+  //
+  // El objeto se nombra con la HUELLA del archivo, no con un timestamp como en la
+  // aplicación. Así "¿cambió el logo?" se responde leyendo el nombre del objeto
+  // que ya está guardado: si diseño reemplaza el archivo en logos-demo/, la
+  // corrida siguiente lo detecta y lo sustituye sola —sin bandera y sin
+  // --rehacer—, y si no cambió no se vuelve a subir. Con un timestamp habría que
+  // descargar el objeto y compararlo, o subirlo de nuevo en cada corrida.
+  {
     const ruta = path.join(DIR_LOGOS, p.logo);
     if (!fs.existsSync(ruta)) {
       throw new Error(
         `Falta el logo ${p.logo}. Colócalo en logos-demo/ (PNG, JPG, SVG o WebP).`
       );
     }
-    const ext = path.extname(p.logo).slice(1).toLowerCase();
-    const tipo =
-      ext === "svg" ? "image/svg+xml" : ext === "webp" ? "image/webp" : ext === "png" ? "image/png" : "image/jpeg";
-    const destino = `${tenant.id}/logo-${Date.now()}.${ext}`;
-    const { error: upErr } = await db.storage
-      .from("logos")
-      .upload(destino, fs.readFileSync(ruta), { contentType: tipo, upsert: false });
-    if (upErr) throw new Error(`logo ${p.slug}: ${upErr.message}`);
-    const {
-      data: { publicUrl },
-    } = db.storage.from("logos").getPublicUrl(destino);
-    const { error: updErr } = await db
-      .from("tenants")
-      .update({ logo_url: publicUrl })
-      .eq("id", tenant.id);
-    if (updErr) throw new Error(`logo_url ${p.slug}: ${updErr.message}`);
-    nuevo.push("logo");
+    const { bytes, ext, tipo, nota } = prepararLogo(ruta);
+    const destino = `${tenant.id}/logo-${huella(bytes)}.${ext}`;
+    const yaEsElMismo = (tenant.logo_url ?? "").endsWith(`/${destino}`);
+
+    if (!yaEsElMismo) {
+      const { error: upErr } = await db.storage
+        .from("logos")
+        .upload(destino, bytes, { contentType: tipo, upsert: true });
+      if (upErr) throw new Error(`logo ${p.slug}: ${upErr.message}`);
+      const {
+        data: { publicUrl },
+      } = db.storage.from("logos").getPublicUrl(destino);
+      const { error: updErr } = await db
+        .from("tenants")
+        .update({ logo_url: publicUrl })
+        .eq("id", tenant.id);
+      if (updErr) throw new Error(`logo_url ${p.slug}: ${updErr.message}`);
+
+      // El anterior ya no se referencia: se retira para no dejar basura en el
+      // bucket, igual que hace la acción de la aplicación.
+      const anterior = (tenant.logo_url ?? "").split("/logos/")[1];
+      if (anterior && anterior !== destino) {
+        await db.storage.from("logos").remove([anterior]);
+      }
+      nuevo.push(tenant.logo_url ? `logo reemplazado (${nota})` : `logo (${nota})`);
+      tenant.logo_url = publicUrl;
+    }
   }
 
   return { tenantId: tenant.id, nuevo };
