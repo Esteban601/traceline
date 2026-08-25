@@ -1741,18 +1741,18 @@ Dirección. Cada prospecto organiza el trabajo a su manera, así que la config t
 
 ### El estado escénico
 
-Once solicitudes con entrega, elegidas para que la pantalla cuente la historia
+Doce solicitudes con entrega, elegidas para que la pantalla cuente la historia
 completa en un scroll:
 
 | Solicitud | Estado | Por qué está |
 |---|---|---|
 | GEI Alcance 1 · 2 · 3-total | **validadas** | son los rubros que el mapeo celda↔dato resuelve: llenan `NIIF S2 29(a)(i)` C3/C4/C5. Sin ellas el Excel del mockup sale vacío |
-| Composición del Consejo · Competencias del Consejo · Riesgos físicos climáticos · Política de derechos humanos · Consumo de combustibles fósiles | **validadas** | encienden los cuatro anillos (ver abajo). Las cinco son cualitativas: entregan documento, no cifra, así que **no tocan el Excel** |
+| Composición del Consejo · Competencias del Consejo · Riesgos físicos climáticos · Política de derechos humanos · Consumo de combustibles fósiles · Efectos financieros de riesgos climáticos | **validadas** | encienden los cuatro anillos (ver abajo). Las seis son cualitativas: entregan documento, no cifra, así que **no tocan el Excel** |
 | Ingresos por productos/servicios sostenibles | **con observación** | y en otra área a propósito: un mockup donde solo se mueve un área se ve como una plataforma de un solo usuario |
 | Horas de capacitación | **en revisión, con visto bueno del área** | la doble verificación, con una marca puesta y la otra pendiente |
 | Diversidad e inclusión | **recibida** | cualitativa y **sin cifra**: que las dos formas de entrega convivan en la misma pantalla es parte de lo que hay que mostrar |
 
-Las 26 restantes quedan en `solicitado`, con fecha límite y sus recordatorios ya
+Las 25 restantes quedan en `solicitado`, con fecha límite y sus recordatorios ya
 configurados.
 
 #### Por qué son ESAS cinco y no otras cinco
@@ -1771,12 +1771,18 @@ la **única fuente** de un datapoint de cada pilar. Medido contra
 | Riesgos físicos climáticos | estrategia · `NIIF S2 10` — métricas · `NIIF S2 29(b)` |
 | Política de derechos humanos | **riesgos** · `NIIF S1 44(a)(i)a(v)`, el único datapoint del pilar con solicitud en la plantilla |
 | Consumo de combustibles fósiles | comparte `NIIF S2 EI14-E18` y `29(a)(i)` con las de GEI: sin ella quedan parciales |
+| Efectos financieros de riesgos climáticos | estrategia · `NIIF S2 16(a)`, `16(b)` |
 
-Resultado: Gobernanza 18 % (3/17) · Estrategia 6 % (2/36) · Riesgos 13 % (1/8) ·
-Métricas 10 % (3/30), 9 de 91 datapoints cubiertos. **Ojo con la intuición de que
+Resultado: Gobernanza 18 % (3/17) · Estrategia 11 % (4/36) · Riesgos 13 % (1/8) ·
+Métricas 10 % (3/30), 11 de 91 datapoints cubiertos. **Ojo con la intuición de que
 "riesgos climáticos" alimenta el pilar Riesgos**: alimenta Estrategia y Métricas. El
 pilar Riesgos de NIIF S1 lo alimenta la política de derechos humanos y debida
 diligencia.
+
+La escena también está calibrada para que **ninguna área quede sin movimiento**: en
+Grupo Acosta Verde y TRATON las cinco áreas tienen algo entregado, y en Inmobilia la
+quinta (Finanzas) la cubre precisamente la solicitud de efectos financieros. Un área
+en cero, en un mockup, se lee como una plataforma que solo usa una persona.
 
 ### Idempotencia y credenciales
 

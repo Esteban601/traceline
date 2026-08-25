@@ -269,6 +269,18 @@ const ESCENA = [
     estado: "validado",
     dias: 20,
   },
+  {
+    // Es del área financiera de la plantilla, y es la que le da movimiento a la
+    // quinta área de Inmobilia (donde el resto de la escena no cae). No está
+    // aquí solo por eso: es la fuente ÚNICA de `NIIF S2 16(a)` y `16(b)`, los
+    // dos datapoints de Estrategia sobre efectos financieros del clima, así que
+    // sube el anillo más flojo de 6 % a 11 %. En TRATON el `mueve` la lleva a
+    // Riesgos, que es donde vive ese análisis en una financiera.
+    re: /Efectos financieros de riesgos climáticos/i,
+    valor: null,
+    estado: "validado",
+    dias: 35,
+  },
 ];
 
 /** Plazo por default de las que no están en la escena (quedan en solicitado). */
