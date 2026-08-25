@@ -300,14 +300,28 @@ async function main() {
       .maybeSingle();
     ok(demoTenant?.es_demo === true, `la Empresa Demo quedó marcada es_demo (${demoTenant?.nombre})`);
 
-    const { data: reales } = await staffDb
-      .from("tenants")
-      .select("nombre, es_demo")
-      .not("nombre", "ilike", "%[DEMO]%");
-    ok(
-      (reales ?? []).every((t) => t.es_demo === false),
-      `ninguna emisora real quedó marcada (${(reales ?? []).length} revisada(s))`
+    // La dirección que SIGUE siendo válida: nadie se llama [DEMO] sin estar
+    // marcado. La inversa ya no: los mockups comerciales para prospectos llevan
+    // el nombre real de la empresa (scripts/crear-demo-prospecto.mjs), y
+    // deducir "es real" de su nombre es justo la inferencia que la columna
+    // `es_demo` vino a retirar.
+    const { data: todos } = await staffDb.from("tenants").select("slug, nombre, es_demo");
+    const mienten = (todos ?? []).filter(
+      (t) => /\[DEMO\]/i.test(t.nombre) && t.es_demo === false
     );
+    ok(
+      mienten.length === 0,
+      `nadie se llama [DEMO] sin estar marcado (${mienten.length} de ${(todos ?? []).length})`
+    );
+
+    // Y el cliente real por nombre y apellido: Grupo Carso opera aquí con datos
+    // reales, así que su marca es la que no puede moverse por accidente.
+    const carso = (todos ?? []).find((t) => t.slug === "gcarso");
+    if (carso) {
+      ok(carso.es_demo === false, `Grupo Carso NO está marcado como demostración`);
+    } else {
+      console.log("  · (sin tenant gcarso en esta base: comprobación omitida)");
+    }
 
     fixture = await crearFixture(admin, staffDb);
     tenantIdFixture = fixture.tenantId;

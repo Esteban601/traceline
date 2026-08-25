@@ -25,6 +25,7 @@ export type TenantOpcion = {
   nombre: string;
   logo_url: string | null;
   prefijo_folio: string;
+  es_demo: boolean;
 };
 export type ReporteOpcion = {
   id: string;
@@ -78,7 +79,7 @@ export async function cargarCobertura(
     cargarDiscrepancias(db),
     db
       .from("tenants")
-      .select("id, nombre, logo_url, prefijo_folio")
+      .select("id, nombre, logo_url, prefijo_folio, es_demo")
       .order("nombre", { ascending: true }),
     db
       .from("reportes")

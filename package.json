@@ -3,18 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start -p ${PORT:-3000}",
+    "dev": "next dev --turbopack",
     "lint": "eslint",
-    "verify:export": "node scripts/verify-export.mjs",
-    "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
+    "start": "next start -p ${PORT:-3000}",
+    "demo:prospectos": "node scripts/crear-demo-prospecto.mjs",
     "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs",
     "e2e:banner-demo": "node scripts/e2e-banner-demo.mjs",
     "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs",
+    "e2e:demo-prospectos": "node scripts/e2e-demo-prospectos.mjs",
     "e2e:difusion": "node scripts/e2e-difusion.mjs",
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
-    "e2e:vb-area": "node scripts/e2e-vb-area.mjs"
+    "e2e:vb-area": "node scripts/e2e-vb-area.mjs",
+    "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
+    "verify:export": "node scripts/verify-export.mjs"
   },
   "engines": {
     "node": "22.x"

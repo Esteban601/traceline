@@ -35,6 +35,7 @@ export default async function CoberturaPage({
     nombre: t.nombre,
     logoUrl: t.logo_url,
     prefijoFolio: t.prefijo_folio,
+    esDemo: t.es_demo,
   }));
 
   const nombreTenant = new Map(

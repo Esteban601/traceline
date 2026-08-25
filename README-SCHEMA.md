@@ -349,6 +349,30 @@ anti-spam del digest lee `bitacora`. Cada envío queda como
 
 ---
 
+---
+
+## Mockups de prospecto (sin objetos nuevos)
+
+`scripts/crear-demo-prospecto.mjs` monta emisoras de demostración con el nombre y
+el logo reales de un prospecto y datos ilustrativos. **No agrega tablas, columnas,
+triggers ni migraciones**: un mockup es un tenant como cualquier otro, con
+`es_demo = true`. Se registra aquí porque las garantías que lo hacen seguro son de
+base de datos, no del script:
+
+| Garantía | De dónde viene |
+|---|---|
+| Solo el rol `admin` de IRStrat puede marcar una emisora como demo | `trg_tenant_es_demo` |
+| La franja y el pie `[DEMO]` siguen la columna, no el nombre | `tenants.es_demo` |
+| El usuario de un prospecto no ve nada del otro ni de Carso | `solicitudes_select` / `fn_puede_ver_solicitud` / `fn_current_tenant` |
+| La evidencia la carga el área, no IRStrat | `staff_puede_cargar = false` + `fn_evidencia_marca_carga` |
+| El visto bueno lo da el jefe de esa área | `fn_es_jefe_de_area` + `trg_solicitud_vb_area` |
+| El estado avanza solo con evidencia real | `fn_evidencia_after_insert` |
+
+Las cuentas viven en `<slug>.example` (TLD reservado, RFC 2606), así que el cron de
+recordatorios las **omite** por la guarda de dominios y ningún correo sale hacia
+ellas. Sus contraseñas se generan por cuenta y quedan en `.credenciales-demo/`
+(ignorado por git); nunca comparten la del seed.
+
 ## Datos de demostración (seed)
 
 **Regla de oro respetada:** todo el seed es DEMO y está etiquetado como tal

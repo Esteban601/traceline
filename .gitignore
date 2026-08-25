@@ -60,3 +60,9 @@ import-gcarso/
 
 # Respaldos de base de datos tomados a mano antes de una migración.
 respaldo-*.sql
+logos-demo/
+
+# Contraseñas generadas de los tenants de demostración para prospectos
+# (scripts/crear-demo-prospecto.mjs). Cuentas @example de mockups, pero no van
+# al repo: una contraseña versionada es una contraseña publicada.
+.credenciales-demo/

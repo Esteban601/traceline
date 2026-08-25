@@ -16,6 +16,12 @@ export type TenantOpcionSelector = {
   nombre: string;
   logoUrl: string | null;
   prefijoFolio: string;
+  /**
+   * Emisora de demostración. El staff de IRStrat no ve la franja —no tiene tenant
+   * de sesión—, así que sin esta marca un mockup comercial con el nombre y el logo
+   * reales del prospecto se ve en este selector igual que un cliente que sí lo es.
+   */
+  esDemo?: boolean;
 };
 
 export function TenantSelector({
@@ -59,7 +65,9 @@ export function TenantSelector({
         limpiar={limpiar}
         opciones={tenants.map((t) => ({
           value: t.id,
-          label: `${limpiarNombreTenant(t.nombre)} · ${t.prefijoFolio}`,
+          label: `${limpiarNombreTenant(t.nombre)} · ${t.prefijoFolio}${
+            t.esDemo ? " · demostración" : ""
+          }`,
         }))}
       />
     </div>

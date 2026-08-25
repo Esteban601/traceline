@@ -29,6 +29,10 @@ emisoras BMV (IRStrat / Vert).
   valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
   origen** (cada lado valida lo suyo) y el **toggle de carga por IRStrat** por
   cliente. Ver más abajo.
+- ✅ **Mockups comerciales para prospectos**: tres emisoras de demostración con el
+  nombre y el logo reales del prospecto y datos ilustrativos, montadas por
+  `scripts/crear-demo-prospecto.mjs` sobre la maquinaria que ya existía. Ver
+  [Mockups comerciales](#mockups-comerciales-tenants-de-demostración-para-prospectos).
 - ✅ **Correo real (Resend) en staging**: solicitar, recordar (digest y
   programados), avisar observaciones e invitar, más los correos de sesión de
   Supabase Auth por SMTP propio. Con guarda de dominios reservados para no
@@ -1655,6 +1659,140 @@ retira las copias que sobran y confirma la columna del entregable. Negativos: un
 área no ve las copias de otra (ni por id), otra área no declina por ella, el jefe no
 edita el contenido, la que entregó no se puede declinar ni retirar, y el rubro no es
 seleccionable en una difusión.
+
+## Mockups comerciales: tenants de demostración para prospectos
+
+Para una reunión con un prospecto, la plataforma se enseña **con su nombre y su
+logo**, no con Empresa Demo SAB. Eso convierte un tour genérico en "así se vería tu
+proceso". Y abre un riesgo que hay que cerrar de raíz:
+
+> **El nombre y el logo son del prospecto. Los datos, nunca.**
+
+Todo lo demás de esta sección es la consecuencia de esa frase.
+
+`scripts/crear-demo-prospecto.mjs` monta un tenant así. Es *config-driven* (los
+prospectos son un arreglo al inicio del archivo) e **idempotente**.
+
+```bash
+node scripts/crear-demo-prospecto.mjs                 # los tres, sin destruir nada
+node scripts/crear-demo-prospecto.mjs --solo gav      # uno
+node scripts/crear-demo-prospecto.mjs --rehacer       # borra y reconstruye
+node scripts/crear-demo-prospecto.mjs --limpiar       # solo borra
+```
+
+### Lo que hace, con la maquinaria que ya existía
+
+No hay tablas, columnas ni migraciones nuevas: un mockup es un cliente como
+cualquier otro, marcado.
+
+| Paso | Con qué |
+|---|---|
+| Tenant `es_demo = true` + áreas + prefijo de folios | el alta de `/admin/clientes` |
+| Logo al bucket público `logos` y su URL en `tenants.logo_url` | el uploader de `/admin/clientes` |
+| Usuarios genéricos por área, un jefe de área y un administrador del cliente | el alta de `/admin/usuarios` |
+| Reporte 2025 con sus 37 solicitudes, rubros, mapeo a datapoints y recordatorios 7/1 | el clonado desde plantilla |
+| Entregas: evidencia y captura | la carga del portal, con la sesión del usuario del área |
+| Visto bueno | la sesión del **jefe** (`fn_es_jefe_de_area` lo exige) |
+| Observación | el staff, por la regla de origen |
+
+Lo único que se hace por debajo son dos cosas, las dos por una razón: poner las
+solicitudes en `solicitado` (el botón de enviar necesita un correo entregable y
+estas cuentas son `@example`, así que el envío se **omite** a propósito y el estado
+no avanzaría) y crear las cuentas en `auth`, que en la propia aplicación también
+pasa por `service_role`.
+
+### Qué protege que esto no se lea como información real
+
+Cuatro capas, y ninguna depende de que alguien se acuerde:
+
+1. **`es_demo = true`** enciende la franja "Entorno de demostración — datos
+   ilustrativos" en el portal *y* en el panel de su administrador, y el pie
+   **[DEMO]** en su Excel de taxonomía. Es la misma columna de
+   [la etiqueta de demostración](#la-etiqueta-de-demostración-es-del-cliente-no-del-ambiente).
+2. **Las cifras son redondas de un dígito significativo** (100,000 / 50,000 /
+   250,000 / 15,000 / 20 %). No es descuido: es lo que las delata a simple vista.
+3. **Cada captura lleva en su justificación** "Cifra ilustrativa de demostración. No
+   corresponde a información de \<prospecto\>", visible en el detalle de la
+   solicitud y en el historial.
+4. **Cada evidencia es un PDF generado al vuelo** que se explica solo: dice de qué
+   solicitud es, de qué área, y que su contenido no corresponde a información del
+   prospecto. Si alguien lo descarga y lo abre fuera de contexto, el documento
+   mismo lo aclara.
+
+Y para el lado de IRStrat, que **no ve la franja** (el staff no tiene tenant de
+sesión): el selector de cliente marca estas emisoras con `· demostración` y la
+ficha de `/admin/clientes` les pone un chip **Demostración**. Sin eso, un mockup
+con el nombre real del prospecto se ve en el panel interno igual que un cliente que
+sí contrató — y ese es el error que de verdad importa.
+
+### Las áreas: la plantilla se traduce, no se impone
+
+La plantilla habla de RH / Operaciones / Finanzas / Gobierno Corporativo /
+Dirección. Cada prospecto organiza el trabajo a su manera, así que la config trae:
+
+- `mapa` — área de la plantilla → área de este cliente (las cinco, obligatorio: sin
+  traducción la solicitud no le llega a nadie, y el script lo dice en vez de dejarla
+  huérfana).
+- `mueve` — reasignaciones por título, para que **ninguna área quede vacía**. Un
+  área sin una sola solicitud, en un mockup, se lee como un defecto de la plataforma
+  y no como una decisión. Ejemplo: en una financiera la categoría material de
+  Alcance 3 es la cartera (Categoría 15-Inversiones → Riesgos); en una inmobiliaria,
+  el uso de los productos vendidos → Comercialización.
+
+### El estado escénico
+
+Siete solicitudes con entrega, elegidas para que la pantalla cuente la historia
+completa en un scroll:
+
+| Solicitud | Estado | Por qué está |
+|---|---|---|
+| GEI Alcance 1 · 2 · 3-total | **validadas** | son los rubros que el mapeo celda↔dato resuelve: llenan `NIIF S2 29(a)(i)` C3/C4/C5. Sin ellas el Excel del mockup sale vacío |
+| Consumo de combustibles fósiles | **validada** | cualitativa. Comparte datapoint con las de GEI, y la cobertura exige que **todas** las solicitudes ligadas estén validadas: sin ella el anillo de Estrategia se queda en 0 % |
+| Ingresos por productos/servicios sostenibles | **con observación** | y en otra área a propósito: un mockup donde solo se mueve un área se ve como una plataforma de un solo usuario |
+| Horas de capacitación | **en revisión, con visto bueno del área** | la doble verificación, con una marca puesta y la otra pendiente |
+| Composición del Consejo | **recibida** | cualitativa y **sin cifra**: que las dos formas de entrega convivan en la misma pantalla es parte de lo que hay que mostrar |
+
+Las 30 restantes quedan en `solicitado`, con fecha límite y sus recordatorios ya
+configurados. La cobertura queda modesta a propósito — es un proceso empezando, no
+uno terminado.
+
+### Idempotencia y credenciales
+
+Por default el script **no destruye nada**: completa lo que falte y deja en paz lo
+que ya está. Correrlo dos veces no duplica áreas, usuarios, solicitudes ni objetos
+de storage.
+
+Las contraseñas se generan por cuenta (nunca una compartida, nunca la del seed) y
+quedan en **`.credenciales-demo/prospectos.json`**, ignorado por git y con permisos
+600. El archivo existe por dos razones concretas: quien presenta el mockup necesita
+las siete cuentas a mano, y sin él una corrida interrumpida dejaría cuentas cuya
+contraseña ya nadie puede leer. `--rehacer` regenera cuentas y credenciales.
+
+Los logos se leen de **`logos-demo/<slug>.png`** (también ignorado: son marcas de
+terceros, no activos del producto).
+
+### Salvaguardas del propio script
+
+- **No borra clientes reales.** `--rehacer` verifica `es_demo` antes de tocar nada:
+  si algún día existiera un cliente real con uno de estos slugs, se detiene.
+- **No adopta un tenant real.** Si el slug existe y no está marcado como
+  demostración, no lo modifica.
+- **Fuera de local exige autorización explícita** (`DEMO_TARGET_OK=1`). Subir el
+  nombre y el logo de una empresa que no es cliente a un ambiente compartido es una
+  decisión, no un detalle de operación.
+- **Exige el rol `admin`** de IRStrat: marcar una emisora como de demostración lo
+  gatea `trg_tenant_es_demo`.
+
+```bash
+pnpm e2e:demo-prospectos
+```
+
+Comprueba los tres: `es_demo`, logo que se descarga, franja en portal **y** panel,
+pie [DEMO] y las tres celdas GEI con su número, aislamiento por RLS con las
+sesiones reales (el usuario de uno no ve nada del otro ni de Grupo Carso, tampoco
+pidiendo por id), que **Grupo Carso y Empresa Demo siguen intactos** —el Excel de
+Carso sin [DEMO], el de la demo con él— y que correr el script otra vez no duplica
+nada.
 
 ## Documentación
 

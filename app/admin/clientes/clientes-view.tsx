@@ -38,6 +38,8 @@ export type ClienteFila = {
   activo: boolean;
   /** ¿IRStrat tiene habilitada la carga de evidencia para este cliente? */
   staffPuedeCargar: boolean;
+  /** Emisora de demostración: franja en sus sesiones y pie [DEMO] en su Excel. */
+  esDemo: boolean;
   createdAt: string;
   areas: string[];
   usuarios: number;
@@ -481,6 +483,10 @@ function ClienteCard({
                 {cliente.prefijoFolio}
               </span>
               {!cliente.activo && <Chip tono="gris">Inactivo</Chip>}
+              {/* Un mockup comercial lleva el nombre y el logo REALES del
+                  prospecto: sin esta marca, en esta lista se ve idéntico a un
+                  cliente que sí contrató. */}
+              {cliente.esDemo && <Chip tono="ambar">Demostración</Chip>}
             </div>
             <p className="mt-0.5 font-mono text-xs text-muted">{cliente.slug}</p>
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">

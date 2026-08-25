@@ -167,6 +167,11 @@ export function AdminSidebar({
   const ancho = colapsado ? "w-16 md:w-16" : "w-16 md:w-60";
   const soloIconos = "hidden" as const; // etiquetas ocultas en el rail móvil
   const etiquetaCls = colapsado ? soloIconos : "hidden md:inline";
+  // La marca necesita ser CAJA FLEX, no `inline`: el nombre del cliente se
+  // recorta con `truncate`, y un elemento inline no tiene ancho que recortar —el
+  // texto se sale del menú. Los renglones de navegación sí van inline (su
+  // etiqueta es corta y no compite con nada).
+  const marcaCls = colapsado ? soloIconos : "hidden md:flex";
   const grupoCls = colapsado ? soloIconos : "hidden md:block";
   const nombre = perfil.nombre.replace(/\[DEMO\]\s*/i, "");
 
@@ -180,8 +185,15 @@ export function AdminSidebar({
       {/* Marca. El staff ve la de la plataforma; el administrador del cliente ve
           la de SU emisora: el panel es suyo, no una ventana al interior de la
           firma. Sin logo, TenantLogo cae a las iniciales del design system. */}
-      <div className="flex h-16 shrink-0 items-center gap-2.5 px-3.5">
-        <Link href="/admin" className="flex items-center gap-2.5 transition duration-150 hover:opacity-85">
+      {/* `min-w-0` en toda la cadena flex: sin él el `truncate` de abajo no
+          recorta nada —un flex item no baja de su contenido— y un nombre largo
+          (p. ej. "TRATON Financial Services México") se sale del menú y se pinta
+          encima del contenido. */}
+      <div className="flex h-16 min-w-0 shrink-0 items-center gap-2.5 overflow-hidden px-3.5">
+        <Link
+          href="/admin"
+          className="flex min-w-0 items-center gap-2.5 transition duration-150 hover:opacity-85"
+        >
           {nombreCliente ? (
             <TenantLogo
               nombre={tenant!.nombre}
@@ -195,8 +207,8 @@ export function AdminSidebar({
               {APP_NAME.charAt(0)}
             </span>
           )}
-          <span className={cn("flex items-baseline gap-2", etiquetaCls)}>
-            <span className="truncate font-display text-base font-semibold tracking-tight">
+          <span className={cn("min-w-0 items-baseline gap-2", marcaCls)}>
+            <span className="min-w-0 truncate font-display text-base font-semibold tracking-tight">
               {nombreCliente ?? APP_NAME}
             </span>
             {!nombreCliente && (

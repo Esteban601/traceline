@@ -63,7 +63,7 @@ export default async function AdminMatrizPage({
         .select("accion, entidad, entidad_id, detalle, created_at"),
       supabase
         .from("tenants")
-        .select("id, nombre, logo_url, prefijo_folio, activo")
+        .select("id, nombre, logo_url, prefijo_folio, activo, es_demo")
         .order("nombre", { ascending: true }),
     ]);
 
@@ -77,12 +77,14 @@ export default async function AdminMatrizPage({
     logo_url: string | null;
     prefijo_folio: string;
     activo: boolean;
+    es_demo: boolean;
   }[];
   const tenantsOpc: TenantOpcionSelector[] = tenantsLista.map((t) => ({
     id: t.id,
     nombre: t.nombre,
     logoUrl: t.logo_url,
     prefijoFolio: t.prefijo_folio,
+    esDemo: t.es_demo,
   }));
   const tenantPorId = new Map(tenantsLista.map((t) => [t.id, t]));
 

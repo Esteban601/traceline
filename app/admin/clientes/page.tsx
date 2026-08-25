@@ -19,7 +19,7 @@ export default async function ClientesPage() {
     await Promise.all([
       db
         .from("tenants")
-        .select("id, nombre, slug, prefijo_folio, logo_url, activo, staff_puede_cargar, created_at")
+        .select("id, nombre, slug, prefijo_folio, logo_url, activo, staff_puede_cargar, es_demo, created_at")
         .order("activo", { ascending: false })
         .order("nombre", { ascending: true }),
       db
@@ -58,6 +58,7 @@ export default async function ClientesPage() {
       logo_url: string | null;
       activo: boolean;
       staff_puede_cargar: boolean;
+      es_demo: boolean;
       created_at: string;
     }[]
   ).map((t) => ({
@@ -68,6 +69,7 @@ export default async function ClientesPage() {
     logoUrl: t.logo_url,
     activo: t.activo,
     staffPuedeCargar: t.staff_puede_cargar,
+    esDemo: t.es_demo,
     createdAt: t.created_at,
     areas: areasPorTenant.get(t.id) ?? [],
     usuarios: usuariosPorTenant.get(t.id) ?? 0,
