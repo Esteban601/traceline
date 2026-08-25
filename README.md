@@ -1804,8 +1804,12 @@ que ya está. Correrlo dos veces no duplica áreas, usuarios, solicitudes ni obj
 de storage.
 
 Las contraseñas se generan por cuenta (nunca una compartida, nunca la del seed) y
-quedan en **`.credenciales-demo/prospectos.json`**, ignorado por git y con permisos
-600. El archivo existe por dos razones concretas: quien presenta el mockup necesita
+quedan en **`.credenciales-demo/prospectos-<destino>.json`** —`local`, o la
+referencia del proyecto de Supabase— ignorado por git y con permisos 600. Va por
+destino porque las mismas cuentas existen en local y en staging con contraseñas
+**distintas**: con un archivo único, correr contra staging borraría las de local sin
+avisar, y entrar a un mockup con la credencial del otro ambiente es un rato perdido
+que nadie relaciona con esto. El archivo existe por dos razones concretas: quien presenta el mockup necesita
 las siete cuentas a mano, y sin él una corrida interrumpida dejaría cuentas cuya
 contraseña ya nadie puede leer. `--rehacer` regenera cuentas y credenciales.
 

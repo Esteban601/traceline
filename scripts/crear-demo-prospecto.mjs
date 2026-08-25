@@ -372,20 +372,6 @@ const DIR_LOGOS = path.join(RAIZ, "logos-demo");
  * Son cuentas @example de emisoras de demostración con datos ilustrativos: lo que
  * protegen es el acceso a un mockup. Aun así el archivo no se versiona.
  */
-const CRED_FILE = path.join(RAIZ, ".credenciales-demo", "prospectos.json");
-
-function leerCredenciales() {
-  try {
-    return JSON.parse(fs.readFileSync(CRED_FILE, "utf8"));
-  } catch {
-    return {};
-  }
-}
-function guardarCredenciales(mapa) {
-  fs.mkdirSync(path.dirname(CRED_FILE), { recursive: true });
-  fs.writeFileSync(CRED_FILE, `${JSON.stringify(mapa, null, 2)}\n`, { mode: 0o600 });
-}
-
 function leerEnvLocal() {
   const out = {};
   const p = path.join(RAIZ, ".env.local");
@@ -398,6 +384,49 @@ function leerEnvLocal() {
 }
 const env = { ...leerEnvLocal(), ...process.env };
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
+
+/**
+ * Nombre corto del destino: `local`, o la referencia del proyecto de Supabase.
+ * Las mismas cuentas existen en local y en staging con contraseñas DISTINTAS
+ * (son bases distintas), así que el archivo de credenciales va por destino. Con
+ * un solo archivo, correr contra staging borraría las de local sin avisar.
+ */
+function claveDestino(url) {
+  if (!url) return "desconocido";
+  if (/127\.0\.0\.1|localhost/.test(url)) return "local";
+  try {
+    return new URL(url).hostname.split(".")[0];
+  } catch {
+    return "desconocido";
+  }
+}
+const DESTINO = claveDestino(SUPABASE_URL);
+const DIR_CRED = path.join(RAIZ, ".credenciales-demo");
+const CRED_FILE = path.join(DIR_CRED, `prospectos-${DESTINO}.json`);
+
+// Migración del archivo único de antes de que hubiera más de un destino. Se
+// mueve, no se copia: dos archivos con las mismas cuentas y contraseñas
+// distintas es la forma más rápida de entrar a un mockup con la credencial
+// equivocada y no entender por qué.
+{
+  const legado = path.join(DIR_CRED, "prospectos.json");
+  if (DESTINO === "local" && fs.existsSync(legado) && !fs.existsSync(CRED_FILE)) {
+    fs.renameSync(legado, CRED_FILE);
+    console.log(`  (credenciales movidas a ${path.relative(RAIZ, CRED_FILE)})`);
+  }
+}
+
+function leerCredenciales() {
+  try {
+    return JSON.parse(fs.readFileSync(CRED_FILE, "utf8"));
+  } catch {
+    return {};
+  }
+}
+function guardarCredenciales(mapa) {
+  fs.mkdirSync(DIR_CRED, { recursive: true });
+  fs.writeFileSync(CRED_FILE, `${JSON.stringify(mapa, null, 2)}\n`, { mode: 0o600 });
+}
 const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
 // El rol `admin` de IRStrat, no `analista`: marcar un tenant como de

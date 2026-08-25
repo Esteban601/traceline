@@ -81,8 +81,13 @@ const ok = (cond, msg) => {
   return cond;
 };
 
+// El archivo de credenciales va por destino (local y staging tienen las mismas
+// cuentas con contraseñas distintas): se resuelve igual que en el creador.
+const DESTINO = /127\.0\.0\.1|localhost/.test(SUPABASE_URL)
+  ? "local"
+  : new URL(SUPABASE_URL).hostname.split(".")[0];
 const credenciales = (() => {
-  const p = path.join(RAIZ, ".credenciales-demo", "prospectos.json");
+  const p = path.join(RAIZ, ".credenciales-demo", `prospectos-${DESTINO}.json`);
   if (!fs.existsSync(p)) {
     console.error(
       `\nFalta ${path.relative(RAIZ, p)}.\n` +
