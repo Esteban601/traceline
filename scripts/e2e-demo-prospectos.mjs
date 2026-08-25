@@ -19,9 +19,9 @@
  *     la plataforma y puede acabar en el correo de alguien.
  *  3. LAS CELDAS de NIIF S2 29(a)(i): que el mockup tenga números donde importa
  *     —si el Excel sale vacío, la demo no demuestra nada—.
- *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Tres tenants nuevos con 111
- *     solicitudes entre ellos no deben haber tocado al cliente real ni a la demo.
- *     En particular: el Excel de Carso NO lleva [DEMO].
+ *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Cinco tenants de demostración con
+ *     185 solicitudes entre ellos no deben haber tocado al cliente real ni a la
+ *     demo. En particular: el Excel de Carso NO lleva [DEMO].
  *  5. AISLAMIENTO por RLS: el usuario de un prospecto no ve nada del otro, ni de
  *     Grupo Carso. Es la misma frontera que protege a un cliente real, probada
  *     con las sesiones reales de estas cuentas.
@@ -59,7 +59,7 @@ const SERVICE = ENV.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_EMAIL = ENV.ADMIN_EMAIL || "admin@irstrat.example";
 const ADMIN_PASSWORD = ENV.ADMIN_PASSWORD || "Demo2025!";
 
-const SLUGS = ["gav", "traton-fs", "inmobilia"];
+const SLUGS = ["gav", "traton-fs", "inmobilia", "fibra-inn", "afirme"];
 const FRANJA = /entorno de demostraci.n/i;
 const EJERCICIO = 2025;
 // Las tres celdas que llenan las solicitudes validadas de la escena, y su valor.
@@ -162,7 +162,7 @@ async function main() {
 
   try {
     // -----------------------------------------------------------------------
-    bloque("1) Los tres existen, marcados como demostración, con logo");
+    bloque("1) Los cinco existen, marcados como demostración, con logo");
     // -----------------------------------------------------------------------
     const { data: tenants } = await staffDb
       .from("tenants")
@@ -395,6 +395,36 @@ async function main() {
       }
     } else {
       ok(false, "no hay credenciales del usuario de área de gav");
+    }
+
+    // La otra pareja: los dos prospectos que se agregaron después. El mecanismo es
+    // el mismo, pero un tenant nuevo mal dado de alta (sin tenant_id en el perfil,
+    // por ejemplo) se vería exactamente así y solo aquí saltaría.
+    const afirme = cuentaDe("afirme", "cliente");
+    if (afirme?.password) {
+      const db = await sesionDatos(afirme.email, afirme.password);
+      const { data: tVistos } = await db.from("tenants").select("slug");
+      ok(
+        (tVistos ?? []).length === 1 && tVistos[0].slug === "afirme",
+        `el usuario de afirme solo ve su emisora (${(tVistos ?? []).map((t) => t.slug).join(", ") || "ninguna"})`
+      );
+      const repFibra = reportePorSlug.get("fibra-inn");
+      if (repFibra) {
+        const { data: unaDeFibra } = await admin
+          .from("solicitudes")
+          .select("id")
+          .eq("reporte_id", repFibra)
+          .limit(1)
+          .single();
+        const { data: intento } = await db
+          .from("solicitudes")
+          .select("id")
+          .eq("id", unaDeFibra.id);
+        ok(
+          (intento ?? []).length === 0,
+          `y no alcanza una solicitud de fibra-inn ni por id (${(intento ?? []).length} filas)`
+        );
+      }
     }
 
     if (gavAdmin?.password) {

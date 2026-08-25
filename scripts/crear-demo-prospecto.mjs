@@ -113,6 +113,68 @@ const PROSPECTOS = [
     ],
   },
   {
+    slug: "fibra-inn",
+    nombre: "Fibra Inn",
+    prefijo: "FINN",
+    logo: "fibra-inn.png",
+    areas: [
+      "Operación Hotelera",
+      "Desarrollo y Mantenimiento",
+      "Administración y Finanzas",
+      "Capital Humano",
+      "Sostenibilidad",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Operación Hotelera",
+      Finanzas: "Administración y Finanzas",
+      "Gobierno Corporativo": "Sostenibilidad",
+      Dirección: "Sostenibilidad",
+    },
+    mueve: [
+      // En una fibra hotelera el efecto financiero del clima lo lleva el área que
+      // responde por el valor de los inmuebles y los seguros.
+      { re: /Efectos financieros de riesgos climáticos/i, area: "Administración y Finanzas" },
+      // "Uso de los productos/servicios" en un hotel es la estancia: la operación.
+      { re: /productos\/servicios sostenibles/i, area: "Operación Hotelera" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Operación Hotelera" },
+      // El riesgo físico y el capex de los inmuebles son de quien los construye y
+      // los mantiene. Sin esto, "Desarrollo y Mantenimiento" quedaría sin una sola
+      // entrega y en un mockup eso se lee como un área que nadie usa.
+      { re: /Riesgos físicos climáticos/i, area: "Desarrollo y Mantenimiento" },
+      { re: /Inversiones y gastos ambientales/i, area: "Desarrollo y Mantenimiento" },
+      { re: /Categoría 2-Bienes de capital/i, area: "Desarrollo y Mantenimiento" },
+    ],
+  },
+  {
+    slug: "afirme",
+    nombre: "Afirme",
+    prefijo: "AFR",
+    logo: "afirme.png",
+    areas: [
+      "Riesgos",
+      "Banca y Operaciones",
+      "Cumplimiento",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Banca y Operaciones",
+      Finanzas: "Administración y Finanzas",
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Riesgos",
+    },
+    // Mismo criterio de materialidad que TRATON, por ser grupo financiero: lo
+    // material no es la huella de las oficinas, es la cartera y el balance.
+    mueve: [
+      { re: /Categoría 15-Inversiones/i, area: "Riesgos" },
+      { re: /Efectos financieros de riesgos climáticos/i, area: "Riesgos" },
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos" },
+      { re: /Política de derechos humanos/i, area: "Cumplimiento" },
+    ],
+  },
+  {
     slug: "inmobilia",
     nombre: "Inmobilia",
     prefijo: "INM",

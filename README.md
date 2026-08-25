@@ -29,7 +29,7 @@ emisoras BMV (IRStrat / Vert).
   valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
   origen** (cada lado valida lo suyo) y el **toggle de carga por IRStrat** por
   cliente. Ver más abajo.
-- ✅ **Mockups comerciales para prospectos**: tres emisoras de demostración con el
+- ✅ **Mockups comerciales para prospectos**: cinco emisoras de demostración con el
   nombre y el logo reales del prospecto y datos ilustrativos, montadas por
   `scripts/crear-demo-prospecto.mjs` sobre la maquinaria que ya existía. Ver
   [Mockups comerciales](#mockups-comerciales-tenants-de-demostración-para-prospectos).
@@ -1674,11 +1674,24 @@ Todo lo demás de esta sección es la consecuencia de esa frase.
 prospectos son un arreglo al inicio del archivo) e **idempotente**.
 
 ```bash
-node scripts/crear-demo-prospecto.mjs                 # los tres, sin destruir nada
+node scripts/crear-demo-prospecto.mjs                 # todos, sin destruir nada
 node scripts/crear-demo-prospecto.mjs --solo gav      # uno
 node scripts/crear-demo-prospecto.mjs --rehacer       # borra y reconstruye
 node scripts/crear-demo-prospecto.mjs --limpiar       # solo borra
 ```
+
+### Los cinco montados
+
+| Emisora | slug · folio | Giro y criterio de materialidad |
+|---|---|---|
+| Grupo Acosta Verde | `gav` · GAV | Plazas comerciales. Riesgo físico y capex de los inmuebles → Desarrollo y Construcción |
+| TRATON Financial Services México | `traton-fs` · TFS | Financiera. Lo material es la cartera: Categoría 15-Inversiones y efectos financieros del clima → Riesgos |
+| Inmobilia | `inmobilia` · INM | Desarrollo inmobiliario. Uso de los productos vendidos e ingresos sostenibles → Comercialización |
+| Fibra Inn | `fibra-inn` · FINN | Fibra hotelera. "Uso de productos/servicios" es la estancia → Operación Hotelera; efectos financieros → Administración y Finanzas |
+| Afirme | `afirme` · AFR | Grupo financiero. Mismo criterio que TRATON |
+
+Agregar uno más es una entrada en el arreglo `PROSPECTOS` y su PNG en
+`logos-demo/`; nada más.
 
 ### Lo que hace, con la maquinaria que ya existía
 
@@ -1780,9 +1793,9 @@ pilar Riesgos de NIIF S1 lo alimenta la política de derechos humanos y debida
 diligencia.
 
 La escena también está calibrada para que **ninguna área quede sin movimiento**: en
-Grupo Acosta Verde y TRATON las cinco áreas tienen algo entregado, y en Inmobilia la
-quinta (Finanzas) la cubre precisamente la solicitud de efectos financieros. Un área
-en cero, en un mockup, se lee como una plataforma que solo usa una persona.
+las cinco áreas de cada emisora tienen algo entregado. Un área en cero, en un
+mockup, se lee como una plataforma que solo usa una persona — y es lo que decide
+varias de las reasignaciones de `mueve`.
 
 ### Idempotencia y credenciales
 
@@ -1825,7 +1838,7 @@ terceros, no activos del producto). Dos detalles del manejo:
 pnpm e2e:demo-prospectos
 ```
 
-Comprueba los tres: `es_demo`, logo que se descarga, franja en portal **y** panel,
+Comprueba los cinco: `es_demo`, logo que se descarga, franja en portal **y** panel,
 pie [DEMO] y las tres celdas GEI con su número, aislamiento por RLS con las
 sesiones reales (el usuario de uno no ve nada del otro ni de Grupo Carso, tampoco
 pidiendo por id), que **Grupo Carso y Empresa Demo siguen intactos** —el Excel de
