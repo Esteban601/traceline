@@ -209,18 +209,61 @@ const ESCENA = [
   {
     // Cualitativa: entrega documento y NO lleva cifra. Que en la misma pantalla
     // convivan las dos formas de entrega es parte de lo que hay que mostrar.
-    re: /Composición y responsabilidades del Consejo/i,
+    re: /Diversidad e inclusión/i,
     valor: null,
     estado: "recibido",
     dias: 50,
   },
+
+  // ---------------------------------------------------------------------------
+  // LAS CUATRO PARA QUE LOS CUATRO PILARES TENGAN COLOR.
+  //
+  // El mockup es para vender, y un tablero con los cuatro anillos en 0% dice
+  // "plataforma vacía" en la pantalla que más se enseña. Cuáles validar NO es
+  // cuestión de gusto: la cobertura de un datapoint exige que TODAS sus
+  // solicitudes ligadas estén validadas (N:N), así que hay que validar las que
+  // son la ÚNICA fuente de un datapoint de cada pilar. Se midió contra
+  // `mapeo_solicitud_datapoint`, y esto es lo que cada una enciende:
+  //
+  //   Composición del Consejo   → gobernanza: NIIF S2 6(a)
+  //   Competencias del Consejo  → gobernanza: NIIF S1 27(a)(ii), NIIF S2 6(a)(ii)
+  //   Riesgos físicos           → estrategia: NIIF S2 10 · métricas: NIIF S2 29(b)
+  //   Política de der. humanos  → riesgos: NIIF S1 44(a)(i)a(v)  ← el ÚNICO
+  //                               datapoint del pilar Riesgos con solicitud
+  //
+  // Las cuatro son cualitativas en la plantilla: entregan documento, no cifra,
+  // así que ninguna toca el Excel de taxonomía. Las celdas de la norma siguen
+  // saliendo solo de las tres de GEI.
+  // ---------------------------------------------------------------------------
   {
-    // La CUARTA validada, y está aquí por un motivo medible, no por gusto: la
-    // cobertura de un datapoint exige que TODAS sus solicitudes ligadas estén
-    // validadas (N:N), y esta comparte datapoint con las de GEI. Sin ella, los
-    // anillos de Gobernanza, Estrategia y Riesgos se quedan en 0% y el tablero
-    // del mockup se ve muerto justo en la pantalla que más se enseña. Con ella,
-    // Estrategia y Métricas se encienden. También es cualitativa (sin cifra).
+    re: /Composición y responsabilidades del Consejo/i,
+    valor: null,
+    estado: "validado",
+    dias: 20,
+  },
+  {
+    re: /Competencias del Consejo/i,
+    valor: null,
+    estado: "validado",
+    dias: 20,
+  },
+  {
+    re: /Riesgos físicos climáticos/i,
+    valor: null,
+    estado: "validado",
+    dias: 20,
+  },
+  {
+    // Sin esta, el pilar Riesgos se queda en 0% por más que se validen las de
+    // clima: es la única solicitud de la plantilla ligada a su datapoint.
+    re: /Política de derechos humanos/i,
+    valor: null,
+    estado: "validado",
+    dias: 20,
+  },
+  {
+    // Comparte datapoint con las de GEI (NIIF S2 EI14-E18 y 29(a)(i)): sin ella
+    // esos dos quedan parciales por más que las de GEI estén validadas.
     re: /Consumo de combustibles fósiles/i,
     valor: null,
     estado: "validado",
