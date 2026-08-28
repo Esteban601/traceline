@@ -19,8 +19,8 @@
  *     la plataforma y puede acabar en el correo de alguien.
  *  3. LAS CELDAS de NIIF S2 29(a)(i): que el mockup tenga números donde importa
  *     —si el Excel sale vacío, la demo no demuestra nada—.
- *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Cinco tenants de demostración con
- *     185 solicitudes entre ellos no deben haber tocado al cliente real ni a la
+ *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Siete tenants de demostración con
+ *     259 solicitudes entre ellos no deben haber tocado al cliente real ni a la
  *     demo. En particular: el Excel de Carso NO lleva [DEMO].
  *  5. AISLAMIENTO por RLS: el usuario de un prospecto no ve nada del otro, ni de
  *     Grupo Carso. Es la misma frontera que protege a un cliente real, probada
@@ -59,7 +59,7 @@ const SERVICE = ENV.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_EMAIL = ENV.ADMIN_EMAIL || "admin@irstrat.example";
 const ADMIN_PASSWORD = ENV.ADMIN_PASSWORD || "Demo2025!";
 
-const SLUGS = ["gav", "traton-fs", "inmobilia", "fibra-inn", "afirme"];
+const SLUGS = ["gav", "traton-fs", "inmobilia", "fibra-inn", "afirme", "bafar", "gcc"];
 const FRANJA = /entorno de demostraci.n/i;
 const EJERCICIO = 2025;
 // Las tres celdas que llenan las solicitudes validadas de la escena, y su valor.
@@ -167,7 +167,7 @@ async function main() {
 
   try {
     // -----------------------------------------------------------------------
-    bloque("1) Los cinco existen, marcados como demostración, con logo");
+    bloque(`1) Los ${SLUGS.length} existen, marcados como demostración, con logo`);
     // -----------------------------------------------------------------------
     const { data: tenants } = await staffDb
       .from("tenants")
@@ -370,7 +370,7 @@ async function main() {
         fuera.length === 0,
         `y ninguna solicitud de otro cliente (${sols?.length ?? 0} suyas, ${fuera.length} ajenas)`
       );
-      // Su área: un usuario de área ve SU área, no las cinco.
+      // Su área: un usuario de área ve SU área, no las cinco del catálogo.
       const areas = new Set((sols ?? []).map((s) => s.area_asignada));
       ok(areas.size === 1, `acotado a su área (${[...areas].join(", ") || "ninguna"})`);
 
@@ -428,6 +428,78 @@ async function main() {
         ok(
           (intento ?? []).length === 0,
           `y no alcanza una solicitud de fibra-inn ni por id (${(intento ?? []).length} filas)`
+        );
+      }
+    }
+
+    // Los dos últimos en entrar (Bafar y GCC). Se prueban aparte y contra un
+    // tercero —no entre ellos— porque el error que se busca es el de un tenant
+    // recién dado de alta: un perfil sin `tenant_id`, o un reporte colgado del
+    // tenant equivocado, se vería exactamente como "ve de más" y solo aquí salta.
+    for (const [slug, ajeno] of [
+      ["bafar", "gcc"],
+      ["gcc", "gav"],
+    ]) {
+      const cuenta = cuentaDe(slug, "cliente");
+      if (!cuenta?.password) {
+        ok(false, `no hay credenciales del usuario de área de ${slug}`);
+        continue;
+      }
+      const db = await sesionDatos(cuenta.email, cuenta.password);
+
+      const { data: tVistos } = await db.from("tenants").select("slug");
+      ok(
+        (tVistos ?? []).length === 1 && tVistos[0]?.slug === slug,
+        `el usuario de ${slug} solo ve su emisora (${(tVistos ?? []).map((t) => t.slug).join(", ") || "ninguna"})`
+      );
+
+      const { data: sols } = await db
+        .from("solicitudes")
+        .select("id, area_asignada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)");
+      const fuera = (sols ?? []).filter((s) => s.reporte?.tenant_id !== porSlug.get(slug).id);
+      ok(
+        fuera.length === 0,
+        `  y ninguna solicitud de otro cliente (${sols?.length ?? 0} suyas, ${fuera.length} ajenas)`
+      );
+      const areas = new Set((sols ?? []).map((s) => s.area_asignada));
+      ok(areas.size === 1, `  acotado a su área (${[...areas].join(", ") || "ninguna"})`);
+
+      const { data: perfilesVistos } = await db.from("perfiles_usuario").select("email");
+      const ajenos = (perfilesVistos ?? []).filter(
+        (u) => !u.email.endsWith(`@${slug}.example`) && !u.email.endsWith("@irstrat.example")
+      );
+      ok(ajenos.length === 0, `  ni usuarios de otros clientes (${ajenos.length} ajenos)`);
+
+      // Y por id explícito, contra una solicitud de otro prospecto.
+      const repAjeno = reportePorSlug.get(ajeno);
+      if (repAjeno) {
+        const { data: unaAjena } = await admin
+          .from("solicitudes")
+          .select("id")
+          .eq("reporte_id", repAjeno)
+          .limit(1)
+          .single();
+        const { data: intento } = await db.from("solicitudes").select("id").eq("id", unaAjena.id);
+        ok(
+          (intento ?? []).length === 0,
+          `  ni alcanza una solicitud de ${ajeno} pidiéndola por id (${(intento ?? []).length} filas)`
+        );
+      }
+
+      // El administrador del cliente ve las 37 de su emisora y ninguna ajena: es
+      // la vista del panel, la que se enseña en la reunión.
+      const cuentaAdmin = cuentaDe(slug, "admin_cliente");
+      if (cuentaAdmin?.password) {
+        const dbAdmin = await sesionDatos(cuentaAdmin.email, cuentaAdmin.password);
+        const { data: solsAdmin } = await dbAdmin
+          .from("solicitudes")
+          .select("id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id)");
+        const fueraAdmin = (solsAdmin ?? []).filter(
+          (s) => s.reporte?.tenant_id !== porSlug.get(slug).id
+        );
+        ok(
+          (solsAdmin ?? []).length === 37 && fueraAdmin.length === 0,
+          `  el administrador de ${slug} ve sus ${solsAdmin?.length ?? 0} solicitudes y ninguna ajena (${fueraAdmin.length})`
         );
       }
     }

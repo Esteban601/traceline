@@ -30,7 +30,7 @@
 // cuentas en auth, que también en la aplicación pasa por service_role.
 //
 // Uso:
-//   node scripts/crear-demo-prospecto.mjs                  # los tres, idempotente
+//   node scripts/crear-demo-prospecto.mjs                  # todos, idempotente
 //   node scripts/crear-demo-prospecto.mjs --solo gav       # uno
 //   node scripts/crear-demo-prospecto.mjs --rehacer        # borra y reconstruye
 //   node scripts/crear-demo-prospecto.mjs --limpiar        # solo borra
@@ -197,6 +197,87 @@ const PROSPECTOS = [
       { re: /Riesgos físicos climáticos/i, area: "Desarrollo y Proyectos" },
       { re: /productos\/servicios sostenibles/i, area: "Comercialización" },
       { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
+    ],
+  },
+  {
+    slug: "bafar",
+    nombre: "Grupo Bafar",
+    prefijo: "BFR",
+    logo: "bafar.png",
+    areas: [
+      "Producción y Plantas",
+      "Cadena de Suministro y Logística",
+      "Comercial",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Producción y Plantas",
+      Finanzas: "Administración y Finanzas",
+      // No hay área de sostenibilidad ni de gobierno en el catálogo: en un grupo
+      // agroindustrial de control familiar el expediente del Consejo y el plan
+      // de transición los arma la dirección de administración.
+      "Gobierno Corporativo": "Administración y Finanzas",
+      Dirección: "Administración y Finanzas",
+    },
+    // El riesgo físico climático, el capex ambiental y la Categoría 2-Bienes de
+    // capital ya caen en Producción y Plantas por el `mapa` (son Operaciones y
+    // Finanzas en la plantilla), salvo el capex, que vive en Finanzas y sí hay
+    // que moverlo: en una agroindustria la inversión ambiental es la planta.
+    mueve: [
+      { re: /Inversiones y gastos ambientales/i, area: "Producción y Plantas" },
+      // Lo que se vende: el ingreso sostenible y el uso del producto son del área
+      // que pone el producto en el anaquel, no de la planta.
+      { re: /productos\/servicios sostenibles/i, area: "Comercial" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercial" },
+      // En una agroindustria el Alcance 3 lo domina lo que se compra —grano,
+      // ganado— y la cadena de frío que lo mueve. Ese inventario lo arma
+      // abastecimiento, y es lo que le da movimiento a su área.
+      { re: /Alcance 3 — total/i, area: "Cadena de Suministro y Logística" },
+      { re: /Categoría 1-Bienes y servicios adquiridos/i, area: "Cadena de Suministro y Logística" },
+      { re: /Transporte y distribución/i, area: "Cadena de Suministro y Logística" },
+    ],
+  },
+  {
+    slug: "gcc",
+    nombre: "GCC",
+    prefijo: "GCC",
+    logo: "gcc.png",
+    areas: [
+      "Operaciones y Plantas",
+      "Técnica y Medio Ambiente",
+      "Comercial y Logística",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Operaciones y Plantas",
+      Finanzas: "Administración y Finanzas",
+      // En una cementera la función de sostenibilidad cuelga de la dirección
+      // técnica: es quien redacta el expediente del Consejo y quien firma el
+      // plan de transición y los escenarios climáticos.
+      "Gobierno Corporativo": "Técnica y Medio Ambiente",
+      Dirección: "Técnica y Medio Ambiente",
+    },
+    // Es el giro de mayor intensidad de carbono del portafolio de mockups, y por
+    // eso el reparto importa: los GEI, la energía y el riesgo físico se quedan en
+    // el área operativa —que es donde de verdad viven en una cementera, con el
+    // horno— y ahí es donde caen las validadas de la escena.
+    mueve: [
+      // El capex ambiental es de planta (filtros, quemadores, coprocesamiento),
+      // aunque la plantilla lo pida por Finanzas.
+      { re: /Inversiones y gastos ambientales/i, area: "Operaciones y Plantas" },
+      // El resto de lo ambiental —agua y residuos— es del área técnica, que es
+      // la que responde por la licencia ambiental de cada planta.
+      { re: /Consumo de agua/i, area: "Técnica y Medio Ambiente" },
+      { re: /disposición de residuos/i, area: "Técnica y Medio Ambiente" },
+      // El cemento se vende a granel y se mueve por tren y por camión: el uso del
+      // producto y el transporte son de la misma área comercial y logística.
+      { re: /productos\/servicios sostenibles/i, area: "Comercial y Logística" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercial y Logística" },
+      { re: /Transporte y distribución/i, area: "Comercial y Logística" },
     ],
   },
 ];

@@ -29,7 +29,7 @@ emisoras BMV (IRStrat / Vert).
   valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
   origen** (cada lado valida lo suyo) y el **toggle de carga por IRStrat** por
   cliente. Ver más abajo.
-- ✅ **Mockups comerciales para prospectos**: cinco emisoras de demostración con el
+- ✅ **Mockups comerciales para prospectos**: siete emisoras de demostración con el
   nombre y el logo reales del prospecto y datos ilustrativos, montadas por
   `scripts/crear-demo-prospecto.mjs` sobre la maquinaria que ya existía. Ver
   [Mockups comerciales](#mockups-comerciales-tenants-de-demostración-para-prospectos).
@@ -1680,7 +1680,7 @@ node scripts/crear-demo-prospecto.mjs --rehacer       # borra y reconstruye
 node scripts/crear-demo-prospecto.mjs --limpiar       # solo borra
 ```
 
-### Los cinco montados
+### Los siete montados
 
 | Emisora | slug · folio | Giro y criterio de materialidad |
 |---|---|---|
@@ -1689,6 +1689,8 @@ node scripts/crear-demo-prospecto.mjs --limpiar       # solo borra
 | Inmobilia | `inmobilia` · INM | Desarrollo inmobiliario. Uso de los productos vendidos e ingresos sostenibles → Comercialización |
 | Fibra Inn | `fibra-inn` · FINN | Fibra hotelera. "Uso de productos/servicios" es la estancia → Operación Hotelera; efectos financieros → Administración y Finanzas |
 | Afirme | `afirme` · AFR | Grupo financiero. Mismo criterio que TRATON |
+| Grupo Bafar | `bafar` · BFR | Agroindustria. Riesgo físico, capex ambiental y Bienes de capital → Producción y Plantas; el Alcance 3 lo domina lo que se compra y la cadena de frío → Cadena de Suministro y Logística; uso de los productos vendidos → Comercial |
+| GCC | `gcc` · GCC | Cementera. El giro de mayor intensidad de carbono del portafolio: GEI, energía, riesgo físico y capex ambiental → Operaciones y Plantas —que es donde caen sus validadas—; agua y residuos → Técnica y Medio Ambiente; efectos financieros → Administración y Finanzas |
 
 Agregar uno más es una entrada en el arreglo `PROSPECTOS` y su PNG en
 `logos-demo/`; nada más.
@@ -1842,7 +1844,7 @@ terceros, no activos del producto). Dos detalles del manejo:
 pnpm e2e:demo-prospectos
 ```
 
-Comprueba los cinco: `es_demo`, logo que se descarga, franja en portal **y** panel,
+Comprueba los siete: `es_demo`, logo que se descarga, franja en portal **y** panel,
 pie [DEMO] y las tres celdas GEI con su número, aislamiento por RLS con las
 sesiones reales (el usuario de uno no ve nada del otro ni de Grupo Carso, tampoco
 pidiendo por id), que **Grupo Carso y Empresa Demo siguen intactos** —el Excel de
