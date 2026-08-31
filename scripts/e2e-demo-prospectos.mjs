@@ -19,8 +19,8 @@
  *     la plataforma y puede acabar en el correo de alguien.
  *  3. LAS CELDAS de NIIF S2 29(a)(i): que el mockup tenga números donde importa
  *     —si el Excel sale vacío, la demo no demuestra nada—.
- *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Siete tenants de demostración con
- *     259 solicitudes entre ellos no deben haber tocado al cliente real ni a la
+ *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Ocho tenants de demostración con
+ *     296 solicitudes entre ellos no deben haber tocado al cliente real ni a la
  *     demo. En particular: el Excel de Carso NO lleva [DEMO].
  *  5. AISLAMIENTO por RLS: el usuario de un prospecto no ve nada del otro, ni de
  *     Grupo Carso. Es la misma frontera que protege a un cliente real, probada
@@ -59,7 +59,7 @@ const SERVICE = ENV.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_EMAIL = ENV.ADMIN_EMAIL || "admin@irstrat.example";
 const ADMIN_PASSWORD = ENV.ADMIN_PASSWORD || "Demo2025!";
 
-const SLUGS = ["gav", "traton-fs", "inmobilia", "fibra-inn", "afirme", "bafar", "gcc"];
+const SLUGS = ["gav", "traton-fs", "inmobilia", "fibra-inn", "afirme", "bafar", "gcc", "cadu"];
 const FRANJA = /entorno de demostraci.n/i;
 const EJERCICIO = 2025;
 // Las tres celdas que llenan las solicitudes validadas de la escena, y su valor.
@@ -439,6 +439,7 @@ async function main() {
     for (const [slug, ajeno] of [
       ["bafar", "gcc"],
       ["gcc", "gav"],
+      ["cadu", "inmobilia"],
     ]) {
       const cuenta = cuentaDe(slug, "cliente");
       if (!cuenta?.password) {

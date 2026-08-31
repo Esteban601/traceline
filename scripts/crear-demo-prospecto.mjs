@@ -280,6 +280,42 @@ const PROSPECTOS = [
       { re: /Transporte y distribución/i, area: "Comercial y Logística" },
     ],
   },
+  {
+    slug: "cadu",
+    nombre: "CADU Inmobiliaria",
+    prefijo: "CADU",
+    logo: "cadu.png",
+    areas: [
+      "Desarrollo y Construcción",
+      "Diseño y Urbanismo",
+      "Comercialización",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Desarrollo y Construcción",
+      Finanzas: "Administración y Finanzas",
+      // En una desarrolladora de vivienda la sostenibilidad se decide en el
+      // tablero: certificación, eficiencia y densidad se resuelven cuando se
+      // dibuja el conjunto, no cuando se vende. Por eso el expediente del
+      // Consejo y el plan de transición cuelgan de Diseño y Urbanismo.
+      "Gobierno Corporativo": "Diseño y Urbanismo",
+      Dirección: "Diseño y Urbanismo",
+    },
+    // El riesgo físico climático y la Categoría 2-Bienes de capital ya caen en
+    // Desarrollo y Construcción por el `mapa`; el capex ambiental vive en
+    // Finanzas en la plantilla y sí hay que moverlo: en una vivienda la
+    // inversión ambiental es la obra.
+    mueve: [
+      { re: /Inversiones y gastos ambientales/i, area: "Desarrollo y Construcción" },
+      // "Uso de los productos vendidos" en vivienda es la casa habitada, y el
+      // ingreso sostenible es lo que se vende como tal: los dos son del área
+      // que la coloca, no de la que la construye.
+      { re: /productos\/servicios sostenibles/i, area: "Comercialización" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
