@@ -19,8 +19,8 @@
  *     la plataforma y puede acabar en el correo de alguien.
  *  3. LAS CELDAS de NIIF S2 29(a)(i): que el mockup tenga números donde importa
  *     —si el Excel sale vacío, la demo no demuestra nada—.
- *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Ocho tenants de demostración con
- *     296 solicitudes entre ellos no deben haber tocado al cliente real ni a la
+ *  4. QUE CARSO Y EMPRESA DEMO SIGAN INTACTOS. Doce tenants de demostración con
+ *     444 solicitudes entre ellos no deben haber tocado al cliente real ni a la
  *     demo. En particular: el Excel de Carso NO lleva [DEMO].
  *  5. AISLAMIENTO por RLS: el usuario de un prospecto no ve nada del otro, ni de
  *     Grupo Carso. Es la misma frontera que protege a un cliente real, probada
@@ -59,7 +59,20 @@ const SERVICE = ENV.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_EMAIL = ENV.ADMIN_EMAIL || "admin@irstrat.example";
 const ADMIN_PASSWORD = ENV.ADMIN_PASSWORD || "Demo2025!";
 
-const SLUGS = ["gav", "traton-fs", "inmobilia", "fibra-inn", "afirme", "bafar", "gcc", "cadu"];
+const SLUGS = [
+  "gav",
+  "traton-fs",
+  "inmobilia",
+  "fibra-inn",
+  "afirme",
+  "bafar",
+  "gcc",
+  "cadu",
+  "planigrupo",
+  "frisa",
+  "fondo-de-fondos",
+  "odonnell",
+];
 const FRANJA = /entorno de demostraci.n/i;
 const EJERCICIO = 2025;
 // Las tres celdas que llenan las solicitudes validadas de la escena, y su valor.
@@ -440,6 +453,16 @@ async function main() {
       ["bafar", "gcc"],
       ["gcc", "gav"],
       ["cadu", "inmobilia"],
+      // Las tres desarrolladoras se cruzan entre ellas a propósito: O'Donnell,
+      // CADU e Inmobilia tienen áreas con el MISMO nombre ("Desarrollo y
+      // Construcción", "Comercialización"). Si algún día un perfil se colgara
+      // del tenant equivocado, el nombre del área no delataría nada — la fuga
+      // se vería como datos plausibles. Aquí sí salta.
+      ["odonnell", "cadu"],
+      ["odonnell", "inmobilia"],
+      // Y las dos financieras entre sí, por la misma razón: Fondo de Fondos y
+      // Afirme comparten "Cumplimiento" y "Administración y Finanzas".
+      ["fondo-de-fondos", "afirme"],
     ]) {
       const cuenta = cuentaDe(slug, "cliente");
       if (!cuenta?.password) {

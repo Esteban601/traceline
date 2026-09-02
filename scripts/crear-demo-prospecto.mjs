@@ -316,6 +316,135 @@ const PROSPECTOS = [
       { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
     ],
   },
+  {
+    slug: "planigrupo",
+    nombre: "Planigrupo",
+    prefijo: "PLG",
+    logo: "planigrupo.png",
+    areas: [
+      "Operación de Centros Comerciales",
+      "Desarrollo y Construcción",
+      "Comercialización",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Operación de Centros Comerciales",
+      Finanzas: "Administración y Finanzas",
+      // No hay área de sostenibilidad en el catálogo: el expediente del Consejo
+      // y el plan de transición los arma la dirección corporativa, que es la
+      // que reporta al órgano de gobierno.
+      "Gobierno Corporativo": "Administración y Finanzas",
+      Dirección: "Administración y Finanzas",
+    },
+    // Mismo criterio que GAV, que también opera plazas: la huella de la
+    // operación —energía y GEI de los centros— es de quien los opera, pero el
+    // riesgo físico y lo que se invierte en el inmueble son de quien lo levanta.
+    mueve: [
+      { re: /Riesgos físicos climáticos/i, area: "Desarrollo y Construcción" },
+      { re: /Inversiones y gastos ambientales/i, area: "Desarrollo y Construcción" },
+      { re: /Categoría 2-Bienes de capital/i, area: "Desarrollo y Construcción" },
+      // Lo que se coloca: el arrendamiento del local y su uso son del área que
+      // comercializa el metro cuadrado.
+      { re: /productos\/servicios sostenibles/i, area: "Comercialización" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
+    ],
+  },
+  {
+    slug: "frisa",
+    nombre: "Grupo Frisa",
+    prefijo: "FRS",
+    logo: "frisa.png",
+    areas: [
+      "Desarrollo y Construcción",
+      "Operación y Mantenimiento",
+      "Comercialización",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Operación y Mantenimiento",
+      Finanzas: "Administración y Finanzas",
+      // Sin área de sostenibilidad en el catálogo: el expediente del Consejo y
+      // el plan de transición los arma la dirección corporativa.
+      "Gobierno Corporativo": "Administración y Finanzas",
+      Dirección: "Administración y Finanzas",
+    },
+    // Mismo criterio que CADU y O'Donnell: en una desarrolladora la inversión
+    // ambiental es la obra, y el riesgo físico y los bienes de capital son de
+    // quien construye; la energía del inmueble ya entregado es de quien lo
+    // opera y lo mantiene.
+    mueve: [
+      { re: /Riesgos físicos climáticos/i, area: "Desarrollo y Construcción" },
+      { re: /Inversiones y gastos ambientales/i, area: "Desarrollo y Construcción" },
+      { re: /Categoría 2-Bienes de capital/i, area: "Desarrollo y Construcción" },
+      // Lo entregado en uso y el ingreso sostenible son de quien lo coloca.
+      { re: /productos\/servicios sostenibles/i, area: "Comercialización" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
+    ],
+  },
+  {
+    slug: "fondo-de-fondos",
+    nombre: "Fondo de Fondos",
+    prefijo: "FDF",
+    logo: "fondo-de-fondos.png",
+    areas: [
+      "Inversiones y Riesgos",
+      "Administración de Portafolios",
+      "Cumplimiento",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Administración de Portafolios",
+      Finanzas: "Administración y Finanzas",
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Inversiones y Riesgos",
+    },
+    // Es el caso extremo del criterio financiero de TRATON y Afirme: en una
+    // administradora de fondos de capital la huella de la oficina es ruido y la
+    // Categoría 15 no es una categoría más — es la materia del negocio.
+    mueve: [
+      { re: /Categoría 15-Inversiones/i, area: "Inversiones y Riesgos" },
+      { re: /Efectos financieros de riesgos climáticos/i, area: "Inversiones y Riesgos" },
+      { re: /Riesgos físicos climáticos/i, area: "Inversiones y Riesgos" },
+      { re: /Política de derechos humanos/i, area: "Cumplimiento" },
+    ],
+  },
+  {
+    slug: "odonnell",
+    nombre: "O'Donnell",
+    prefijo: "ODN",
+    logo: "odonnell.png",
+    areas: [
+      "Desarrollo y Construcción",
+      "Operación de Parques",
+      "Comercialización",
+      "Capital Humano",
+      "Administración y Finanzas",
+    ],
+    mapa: {
+      RH: "Capital Humano",
+      Operaciones: "Operación de Parques",
+      Finanzas: "Administración y Finanzas",
+      "Gobierno Corporativo": "Administración y Finanzas",
+      Dirección: "Administración y Finanzas",
+    },
+    // Mismo criterio que CADU: en una desarrolladora la inversión ambiental es
+    // la obra, y el riesgo físico y los bienes de capital son de quien levanta
+    // la nave; la energía del parque ya operando es de quien lo administra.
+    mueve: [
+      { re: /Riesgos físicos climáticos/i, area: "Desarrollo y Construcción" },
+      { re: /Inversiones y gastos ambientales/i, area: "Desarrollo y Construcción" },
+      { re: /Categoría 2-Bienes de capital/i, area: "Desarrollo y Construcción" },
+      // La nave arrendada en uso y el ingreso sostenible son de quien la coloca.
+      { re: /productos\/servicios sostenibles/i, area: "Comercialización" },
+      { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };

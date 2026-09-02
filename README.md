@@ -29,7 +29,7 @@ emisoras BMV (IRStrat / Vert).
   valida, gestiona usuarios y áreas y genera su Excel— con la **regla dura de
   origen** (cada lado valida lo suyo) y el **toggle de carga por IRStrat** por
   cliente. Ver más abajo.
-- ✅ **Mockups comerciales para prospectos**: ocho emisoras de demostración con el
+- ✅ **Mockups comerciales para prospectos**: doce emisoras de demostración con el
   nombre y el logo reales del prospecto y datos ilustrativos, montadas por
   `scripts/crear-demo-prospecto.mjs` sobre la maquinaria que ya existía. Ver
   [Mockups comerciales](#mockups-comerciales-tenants-de-demostración-para-prospectos).
@@ -1680,7 +1680,7 @@ node scripts/crear-demo-prospecto.mjs --rehacer       # borra y reconstruye
 node scripts/crear-demo-prospecto.mjs --limpiar       # solo borra
 ```
 
-### Los ocho montados
+### Los doce montados
 
 | Emisora | slug · folio | Giro y criterio de materialidad |
 |---|---|---|
@@ -1692,6 +1692,10 @@ node scripts/crear-demo-prospecto.mjs --limpiar       # solo borra
 | Grupo Bafar | `bafar` · BFR | Agroindustria. Riesgo físico, capex ambiental y Bienes de capital → Producción y Plantas; el Alcance 3 lo domina lo que se compra y la cadena de frío → Cadena de Suministro y Logística; uso de los productos vendidos → Comercial |
 | GCC | `gcc` · GCC | Cementera. El giro de mayor intensidad de carbono del portafolio: GEI, energía, riesgo físico y capex ambiental → Operaciones y Plantas —que es donde caen sus validadas—; agua y residuos → Técnica y Medio Ambiente; efectos financieros → Administración y Finanzas |
 | CADU Inmobiliaria | `cadu` · CADU | Vivienda. Riesgo físico, capex ambiental y Bienes de capital → Desarrollo y Construcción; uso de los productos vendidos —la casa habitada— e ingresos sostenibles → Comercialización; el expediente del Consejo y el plan de transición → Diseño y Urbanismo, que es donde se decide la sostenibilidad de un conjunto |
+| Planigrupo | `planigrupo` · PLG | Centros comerciales. Criterio de GAV: la energía y los GEI de los centros son de quien los opera; el riesgo físico, el capex y los Bienes de capital, de quien los levanta → Desarrollo y Construcción |
+| Grupo Frisa | `frisa` · FRS | Desarrolladora inmobiliaria. Patrón CADU/O'Donnell: riesgo físico, capex y Bienes de capital → Desarrollo y Construcción; la energía del inmueble entregado → Operación y Mantenimiento; uso de los productos vendidos → Comercialización |
+| Fondo de Fondos | `fondo-de-fondos` · FDF | Administradora de fondos de capital. El criterio financiero de TRATON llevado al extremo: la Categoría 15-Inversiones no es una categoría más, es la materia del negocio → Inversiones y Riesgos, junto con los efectos financieros del clima |
+| O'Donnell | `odonnell` · ODN | Naves industriales. Mismo criterio que CADU: riesgo físico, capex y Bienes de capital → Desarrollo y Construcción; la energía del parque en operación → Operación de Parques |
 
 Agregar uno más es una entrada en el arreglo `PROSPECTOS` y su PNG en
 `logos-demo/`; nada más.
@@ -1845,7 +1849,7 @@ terceros, no activos del producto). Dos detalles del manejo:
 pnpm e2e:demo-prospectos
 ```
 
-Comprueba los ocho: `es_demo`, logo que se descarga, franja en portal **y** panel,
+Comprueba los doce: `es_demo`, logo que se descarga, franja en portal **y** panel,
 pie [DEMO] y las tres celdas GEI con su número, aislamiento por RLS con las
 sesiones reales (el usuario de uno no ve nada del otro ni de Grupo Carso, tampoco
 pidiendo por id), que **Grupo Carso y Empresa Demo siguen intactos** —el Excel de
