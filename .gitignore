@@ -32,8 +32,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-# ...pero sí versionamos la plantilla de ejemplo
+# ...pero sí versionamos las plantillas de ejemplo. Van SIN valores: el patrón
+# `.env*` de arriba las atraparía, y una plantilla que nadie puede versionar no
+# sirve de nada. Cualquier archivo nuevo con valores reales (.env.local y sus
+# variantes) sigue ignorado por no estar en esta lista.
 !.env.example
+!.env.local.example
 
 # Supabase (CLI + Docker local)
 # Se VERSIONAN: supabase/config.toml, supabase/migrations/**, supabase/seed.sql
