@@ -445,6 +445,49 @@ const PROSPECTOS = [
       { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
     ],
   },
+  {
+    slug: "clepsa",
+    nombre: "Libramiento Elevado de Puebla (CLEPSA)",
+    prefijo: "LEP",
+    logo: "clepsa.png",
+    // Seis áreas, no cinco: una concesionaria de peaje separa quien cobra y
+    // opera de quien conserva la estructura, y la seguridad vial es una función
+    // con nombre propio. El script no impone un número — genera un usuario por
+    // área—, así que este prospecto trae ocho cuentas en vez de siete.
+    areas: [
+      "Operación y Peaje",
+      "Conservación y Mantenimiento",
+      "Seguridad Vial",
+      "Recursos Humanos",
+      "Finanzas",
+      "Cumplimiento",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operación y Peaje",
+      Finanzas: "Finanzas",
+      // En una concesionaria el expediente del Consejo y el plan de transición
+      // los lleva Cumplimiento: es el área que responde ante el concedente y
+      // ante el grupo, y la que ya vive de acreditar obligaciones.
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Cumplimiento",
+    },
+    mueve: [
+      // Lo que cierra una autopista elevada —derrumbe, inundación, viento— es
+      // materia de seguridad vial antes que de reporte ambiental. Es además la
+      // única entrega de la escena que le da movimiento a esa área: la plantilla
+      // no trae ninguna solicitud de siniestralidad.
+      { re: /Riesgos físicos climáticos/i, area: "Seguridad Vial" },
+      // La estructura y su huella operativa son de quien la conserva: el diésel
+      // de la maquinaria, el capex ambiental, el agua, los residuos de obra y
+      // los bienes de capital del propio viaducto.
+      { re: /Consumo de combustibles fósiles/i, area: "Conservación y Mantenimiento" },
+      { re: /Inversiones y gastos ambientales/i, area: "Conservación y Mantenimiento" },
+      { re: /Categoría 2-Bienes de capital/i, area: "Conservación y Mantenimiento" },
+      { re: /Consumo de agua/i, area: "Conservación y Mantenimiento" },
+      { re: /disposición de residuos/i, area: "Conservación y Mantenimiento" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
