@@ -488,6 +488,45 @@ const PROSPECTOS = [
       { re: /disposición de residuos/i, area: "Conservación y Mantenimiento" },
     ],
   },
+  {
+    slug: "banco-base",
+    nombre: "Banco Base",
+    prefijo: "BASE",
+    logo: "banco-base.png",
+    areas: [
+      "Operaciones y Administración",
+      "Crédito y Banca",
+      "Riesgos",
+      "Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operaciones y Administración",
+      Finanzas: "Finanzas",
+      // En un grupo financiero el expediente del Consejo lo arma Cumplimiento:
+      // es quien ya responde ante el regulador y lleva el registro formal.
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Cumplimiento",
+    },
+    // Mismo criterio que TRATON, Afirme y Fondo de Fondos: en banca lo material
+    // no es la huella de las sucursales, es la cartera y el balance.
+    mueve: [
+      // Riesgos es la segunda línea de defensa: le toca el riesgo físico y todo
+      // lo prospectivo —el plan de transición y los escenarios—, que la
+      // plantilla pide por Dirección. Sin esto el área se quedaría con una sola
+      // solicitud y en el mockup se leería como un área de adorno.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos" },
+      { re: /Plan de transición climática/i, area: "Riesgos" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos" },
+      // La Categoría 15 es la cartera: la huella del banco es a quién le presta,
+      // no su consumo eléctrico. Va con el área que origina el crédito, junto
+      // con el ingreso de productos sostenibles que ella misma coloca.
+      { re: /productos\/servicios sostenibles/i, area: "Crédito y Banca" },
+      { re: /Categoría 15-Inversiones/i, area: "Crédito y Banca" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
