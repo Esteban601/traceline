@@ -31,7 +31,7 @@ const GRUPOS: NavGrupo[] = [
     ],
   },
   {
-    titulo: "Taxonomía",
+    titulo: "Taxonomía S1 / S2",
     items: [
       { href: "/admin/cobertura", label: "Cobertura", key: "cobertura", icono: "cobertura" },
       { href: "/admin/registros", label: "Clima", key: "registros", icono: "registros" },

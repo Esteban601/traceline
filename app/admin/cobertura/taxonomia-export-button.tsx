@@ -73,7 +73,7 @@ export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null 
           <path d="M14 4v5h5M8 13h8M8 17h5" />
         </svg>
       )}
-      {cargando ? "Generando…" : "Generar Excel de taxonomía"}
+      {cargando ? "Generando…" : "Excel de taxonomía"}
     </Button>
   );
 }
