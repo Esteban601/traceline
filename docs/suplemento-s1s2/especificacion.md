@@ -1,6 +1,6 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.2** · 10 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.3** · 10 de septiembre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
 
 **Cambios respecto a 0.1** (tras revisión contra el código):
@@ -144,6 +144,46 @@ segundo reporte del tenant demo con datos del ejercicio anterior. Los bloques S1
 
 ---
 
+### 3.2 Adjuntos como insumo
+
+Cada sección del Perfil del emisor (§4) admite archivos de respaldo: PDF, DOCX, XLSX, PNG y JPG. En Fase A
+(paso A3) **se guardan, se descargan y se quitan; el generador no los abre**. Lo que sigue es cómo se
+convierten en insumo, y bajo qué reglas.
+
+**(a) Alimentan a los bloques T→E en A5.** Un bloque T→E parte de texto que el emisor ya escribió; el adjunto
+es de dónde sale ese texto cuando no está en el formulario. Dos tratamientos, según el archivo:
+
+- **Texto ya redactado** (una carta, una descripción del modelo de negocio en un DOCX): se **normaliza y se
+  traduce, sin resumir**. El emisor escribió lo que quería decir; acortarlo es editorializar sobre un texto
+  que va firmado.
+- **Documentos largos** (una política de riesgos de 40 páginas, un acta): se **derivan** con **cita de adjunto
+  y página**. La cita no es cortesía: es lo que permite que un revisor abra el archivo y compruebe la frase.
+
+En los dos casos rige la regla del generador: **nada que no esté en el archivo**. Un adjunto no autoriza a
+inferir; si el dato no está, el bloque lleva su `[Pendiente: …]` como si no hubiera adjunto.
+
+**(b) Paso nuevo A10 — pre-carga asistida.** Después de A8. Los emisores llegan con documentos de análisis de
+riesgos y estudios de materialidad cuya estructura **varía por consultor**: cada despacho usa su plantilla, sus
+nombres de columna y su escala. Transcribirlos a mano es el trabajo que hoy hace que estos campos se queden
+vacíos.
+
+A10 extrae de esos documentos hacia un **esquema fijo** — `nombre`, `tipo`, `horizonte`, `probabilidad`,
+`impacto`, `descripcion` — y devuelve, por cada campo, la **página de origen** y un **nivel de confianza**. Con
+eso propone registros de clima y campos del Perfil, y **no inserta nada**: el resultado se revisa **fila por
+fila** y se acepta o se descarta una a una. La revisión humana no es una salvaguarda opcional del paso; es el
+paso.
+
+**(c) Requisito técnico.** La extracción necesita texto:
+
+- **DOCX y XLSX se convierten a texto en el servidor.** No hay forma de mandarlos al modelo tal cual.
+- **PDF se manda nativo**, que conserva la paginación — y sin paginación no hay cita de página, que es el
+  requisito de (a) y de (b).
+- **Caché obligatorio en la porción del archivo.** Un estudio de materialidad son decenas de miles de tokens y
+  se consulta varias veces: una por bloque que lo cite, más cada reintento de la revisión fila por fila. Sin
+  caché, el mismo documento se paga entero cada vez.
+
+---
+
 ## 4. Perfil del emisor (nuevo)
 
 Se captura una vez por emisora y persiste entre ejercicios. Lo que cambia por ejercicio vive en `reportes`.
@@ -167,6 +207,10 @@ Se captura una vez por emisora y persiste entre ejercicios. Lo que cambia por ej
 | actualizado_por, actualizado_en | uuid, timestamptz | auditoría |
 
 **Columnas nuevas en `reportes`**: `anio_adopcion` (int), `alivios` (jsonb: {E4, E5, C3, C4, C5} booleanos).
+
+**Adjuntos por sección** (`perfil_emisor_adjuntos`): cada una de las nueve secciones admite uno o más archivos
+(PDF, DOCX, XLSX, PNG, JPG, hasta 20 MB) en `documentos/{tenant_id}/perfil/{seccion}/`. En Fase A solo se
+guardan y se descargan; su uso como insumo es §3.2.
 
 **Quién captura**: el admin del cliente desde el portal y el staff de IRStrat desde el panel interno, sobre el
 mismo formulario. Cada guardado registra quién y cuándo. Las listas (hitos, cadena de valor) se editan como
@@ -280,6 +324,7 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 | A7 | Glosario ES↔EN y versión en inglés | A6 |
 | A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 |
 | A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 |
+| A10 | Pre-carga asistida desde documentos de análisis de riesgos y estudios de materialidad: extracción a esquema fijo con página de origen y confianza por campo, y revisión fila por fila antes de insertar (§3.2b) | A8 |
 
 Todo en `dev/ajustes-sep26` contra `traceline-dev`. Nada toca staging hasta que Manuel vea A8.
 

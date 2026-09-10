@@ -78,6 +78,7 @@ export type SeccionPanel =
   | "registros"
   | "objetivos"
   | "cuestionarios"
+  | "perfil"
   | "reportes"
   | "plantillas"
   | "clientes"
@@ -96,6 +97,10 @@ export const SECCIONES_ADMIN_CLIENTE: readonly SeccionPanel[] = [
   "matriz",
   "cobertura",
   "bitacora",
+  // El perfil del emisor es de la emisora, no de la firma: quien mejor puede
+  // redactar su carta de la Dirección y su modelo de negocio es ella. IRStrat
+  // entra al mismo formulario con selector de emisora.
+  "perfil",
   "usuarios",
 ] as const;
 
