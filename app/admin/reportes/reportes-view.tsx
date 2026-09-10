@@ -6,7 +6,8 @@ import { Chip } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { fmtDiaLargo } from "@/lib/fechas";
-import { congelarReporte, type CongelarState } from "./actions";
+import { congelarReporte, guardarRegimen, type CongelarState, type RegimenState } from "./actions";
+import { ALIVIOS, REGIMEN_LABEL, regimenDe, type Alivios } from "@/lib/perfil-emisor";
 
 export type ReporteFila = {
   id: string;
@@ -17,6 +18,8 @@ export type ReporteFila = {
   tenantNombre: string;
   solicitudes: number;
   solicitudesCongeladas: number;
+  anioAdopcion: number | null;
+  alivios: Alivios;
 };
 
 function limpiar(nombre: string): string {
@@ -33,6 +36,9 @@ export function ReportesView({
   esAdmin: boolean;
 }) {
   const [aCongelar, setACongelar] = useState<ReporteFila | null>(null);
+  // Qué reporte tiene abierta su configuración de régimen. Uno a la vez: son
+  // cinco casillas y un año, y verlas repetidas en toda la lista es ruido.
+  const [configAbierta, setConfigAbierta] = useState<string | null>(null);
 
   if (reportes.length === 0) {
     return (
@@ -62,6 +68,9 @@ export function ReportesView({
                 ) : (
                   <Chip tono="verde">Activo</Chip>
                 )}
+                <Chip tono={r.anioAdopcion == null ? "ambar" : "azul"}>
+                  {REGIMEN_LABEL[regimenDe(r.ejercicio, r.anioAdopcion)]}
+                </Chip>
               </div>
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
                 <span>{limpiar(r.tenantNombre)}</span>
@@ -84,6 +93,21 @@ export function ReportesView({
             )}
             {r.estado === "activo" && !esAdmin && (
               <span className="text-xs text-muted">Congelar requiere rol admin</span>
+            )}
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setConfigAbierta((a) => (a === r.id ? null : r.id))}
+              aria-expanded={configAbierta === r.id}
+            >
+              {configAbierta === r.id ? "Cerrar régimen" : "Régimen S1 / S2"}
+            </Button>
+
+            {configAbierta === r.id && (
+              <div className="w-full border-t border-line pt-4">
+                <RegimenForm reporte={r} />
+              </div>
             )}
           </li>
         ))}
@@ -184,5 +208,90 @@ function CongelarDialog({
         </div>
       </div>
     </div>
+  );
+}
+
+const regimenInicial: RegimenState = { ok: false, error: null, mensaje: null };
+
+/**
+ * Régimen del ejercicio. El año de adopción y los alivios deciden la forma de
+ * medio suplemento (§3.1), así que la pantalla muestra el resultado calculado en
+ * cuanto se escribe el año: sin eso, quien lo captura no tiene forma de saber si
+ * acertó hasta ver el documento.
+ */
+function RegimenForm({ reporte }: { reporte: ReporteFila }) {
+  const [state, dispatch, pending] = useActionState(guardarRegimen, regimenInicial);
+  const [anio, setAnio] = useState<string>(
+    reporte.anioAdopcion == null ? "" : String(reporte.anioAdopcion)
+  );
+  const regimen = regimenDe(reporte.ejercicio, anio === "" ? null : Number(anio));
+
+  return (
+    <form action={dispatch} className="space-y-4">
+      <input type="hidden" name="reporte_id" value={reporte.id} />
+
+      <div className="flex flex-wrap items-end gap-4">
+        <div>
+          <label
+            className="block text-xs font-medium uppercase tracking-wide text-muted"
+            htmlFor={`adopcion-${reporte.id}`}
+          >
+            Año de adopción NIIF
+          </label>
+          <input
+            id={`adopcion-${reporte.id}`}
+            name="anio_adopcion"
+            inputMode="numeric"
+            value={anio}
+            onChange={(e) => setAnio(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="2025"
+            className="mt-2 h-11 w-32 rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 focus:border-teal/50 focus:bg-surface"
+          />
+        </div>
+        <div className="pb-1">
+          <span className="block text-xs font-medium uppercase tracking-wide text-muted">
+            Régimen de este ejercicio ({reporte.ejercicio})
+          </span>
+          <span className="mt-2 inline-block font-medium text-ink">
+            {REGIMEN_LABEL[regimen]}
+          </span>
+        </div>
+      </div>
+
+      <fieldset>
+        <legend className="text-xs font-medium uppercase tracking-wide text-muted">
+          Alivios transitorios adoptados
+        </legend>
+        <div className="mt-2 space-y-2">
+          {ALIVIOS.map((a) => (
+            <label
+              key={a.clave}
+              className="flex cursor-pointer gap-3 rounded-xl border border-line bg-crema/30 p-3 transition hover:border-teal/40"
+            >
+              <input
+                type="checkbox"
+                name={`alivio_${a.clave}`}
+                defaultChecked={reporte.alivios[a.clave] === true}
+                className="mt-0.5 size-4 shrink-0 accent-teal"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink">{a.titulo}</span>
+                <span className="block text-xs text-muted">{a.ayuda}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="flex items-center gap-3">
+        <Button type="submit" size="sm" loading={pending}>
+          Guardar régimen
+        </Button>
+        {state.error && <span className="text-sm text-rojo">{state.error}</span>}
+        {state.ok && state.mensaje && (
+          <span className="text-sm text-teal">{state.mensaje}</span>
+        )}
+      </div>
+    </form>
   );
 }

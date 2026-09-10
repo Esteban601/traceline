@@ -92,3 +92,69 @@ export async function congelarReporte(
   revalidatePath("/portal");
   return { ok: true, error: null, mensaje: "Reporte congelado. Quedó en solo-lectura." };
 }
+
+// =============================================================================
+// Régimen del ejercicio: año de adopción y alivios transitorios.
+//
+// De estos dos campos depende la FORMA de medio suplemento (§3.1): si lleva
+// comparativos, si incluye Alcance 3, si los bloques de S1 general aplican. Por
+// eso vive junto al reporte y no en el perfil del emisor: el alivio se toma un
+// año y se deja de tomar al siguiente.
+// =============================================================================
+
+export type RegimenState = { ok: boolean; error?: string | null; mensaje?: string | null };
+
+const CLAVES_ALIVIO = ["E4", "E5", "C3", "C4", "C5"] as const;
+
+export async function guardarRegimen(
+  _prev: RegimenState,
+  fd: FormData
+): Promise<RegimenState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+
+  const reporteId = String(fd.get("reporte_id") ?? "").trim();
+  if (!reporteId) return { ok: false, error: "Falta el reporte." };
+
+  const crudo = String(fd.get("anio_adopcion") ?? "").trim();
+  let anio: number | null = null;
+  if (crudo !== "") {
+    const n = Number(crudo);
+    // Un año fuera de rango es casi siempre un dedazo (202 en vez de 2025), y
+    // dejaría el régimen calculado al revés sin que nadie lo note.
+    if (!Number.isInteger(n) || n < 2020 || n > 2100) {
+      return { ok: false, error: "El año de adopción debe estar entre 2020 y 2100." };
+    }
+    anio = n;
+  }
+
+  const alivios: Record<string, boolean> = {};
+  for (const c of CLAVES_ALIVIO) if (fd.get(`alivio_${c}`) === "on") alivios[c] = true;
+
+  const db = await createClient();
+  const { error } = await db
+    .from("reportes")
+    .update({ anio_adopcion: anio, alivios })
+    .eq("id", reporteId);
+  if (error) return { ok: false, error: "No se pudo guardar el régimen." };
+
+  const { data: rep } = await db
+    .from("reportes")
+    .select("tenant_id")
+    .eq("id", reporteId)
+    .single();
+
+  await logEvento(db, {
+    tenantId: rep?.tenant_id ?? null,
+    usuarioId: perfil.id,
+    accion: "reporte_regimen_actualizado",
+    entidad: "reportes",
+    entidadId: reporteId,
+    detalle: { anio_adopcion: anio, alivios: Object.keys(alivios) },
+  });
+
+  revalidatePath("/admin/reportes");
+  return { ok: true, error: null, mensaje: "Régimen actualizado." };
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { leerAlivios } from "@/lib/perfil-emisor";
 import { requiereStaff } from "@/lib/data";
 import { ReportesView, type ReporteFila } from "./reportes-view";
 
@@ -15,7 +16,7 @@ export default async function ReportesPage() {
   const [{ data: reportes }, { data: tenants }, { data: sols }] = await Promise.all([
     db
       .from("reportes")
-      .select("id, nombre, ejercicio, estado, fecha_congelamiento, tenant_id")
+      .select("id, nombre, ejercicio, estado, fecha_congelamiento, tenant_id, anio_adopcion, alivios")
       .order("ejercicio", { ascending: false }),
     db.from("tenants").select("id, nombre"),
     db.from("solicitudes").select("reporte_id, estado"),
@@ -41,6 +42,8 @@ export default async function ReportesPage() {
       estado: "activo" | "congelado";
       fecha_congelamiento: string | null;
       tenant_id: string;
+      anio_adopcion: number | null;
+      alivios: unknown;
     }[]
   ).map((r) => ({
     id: r.id,
@@ -51,6 +54,8 @@ export default async function ReportesPage() {
     tenantNombre: nombreTenant.get(r.tenant_id) ?? "—",
     solicitudes: conteo.get(r.id) ?? 0,
     solicitudesCongeladas: congeladas.get(r.id) ?? 0,
+    anioAdopcion: r.anio_adopcion,
+    alivios: leerAlivios(r.alivios),
   }));
 
   const esAdmin = perfil.rol === "admin";
