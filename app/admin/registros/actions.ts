@@ -44,6 +44,30 @@ function numero(fd: FormData, k: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Priorización: probabilidad × impacto = severidad, o la severidad capturada a
+ * secas. §5 admite las dos formas porque no todos los clientes entregan los dos
+ * factores; el que solo da el puntaje no debe verse obligado a inventarlos.
+ *
+ * `nivel` NO se calcula aquí: depende de la matriz del perfil del emisor, que es
+ * de la emisora y puede cambiar. Se resuelve al pintar, contra la matriz vigente.
+ */
+function priorizacion(fd: FormData): {
+  probabilidad: number | null;
+  impacto: number | null;
+  severidad: number | null;
+} {
+  const probabilidad = numero(fd, "probabilidad");
+  const impacto = numero(fd, "impacto");
+  const capturada = numero(fd, "severidad");
+  return {
+    probabilidad,
+    impacto,
+    severidad:
+      probabilidad != null && impacto != null ? probabilidad * impacto : capturada,
+  };
+}
+
 /** tenant del reporte, para la bitácora. */
 async function tenantDeReporte(
   db: Awaited<ReturnType<typeof createClient>>,
@@ -97,6 +121,7 @@ export async function crearRegistro(
       nombre,
       descripcion: texto(fd, "descripcion"),
       horizontes: horizontes(fd),
+      ...priorizacion(fd),
       orden,
     })
     .select("id")
@@ -147,6 +172,7 @@ export async function editarRegistro(
       nombre,
       descripcion: texto(fd, "descripcion"),
       horizontes: horizontes(fd),
+      ...priorizacion(fd),
     })
     .eq("id", registroId);
   if (error) return { ok: false, error: "No se pudo guardar el registro." };

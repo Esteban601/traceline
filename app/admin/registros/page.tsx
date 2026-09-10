@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { requiereStaff } from "@/lib/data";
+import { leerMatriz, type MatrizRiesgos } from "@/lib/perfil-emisor";
+import { limpiarNombreTenant } from "@/lib/tenants";
 import {
   RegistrosView,
   type RegistroFila,
@@ -24,7 +26,7 @@ export default async function RegistrosPage() {
   const [{ data: reportes }, { data: regs }, { data: vals }] = await Promise.all([
     db
       .from("reportes")
-      .select("id, nombre, ejercicio, estado")
+      .select("id, nombre, ejercicio, estado, tenant_id")
       .order("ejercicio", { ascending: false }),
     db
       .from("registros_clima")
@@ -68,6 +70,40 @@ export default async function RegistrosPage() {
     valoresPorReg.set(v.registro_id, arr);
   }
 
+  // Matriz de priorización POR EMISORA. El nivel de un registro se resuelve
+  // registro → reporte → tenant → perfil_emisor.matriz_riesgos: en esta pantalla
+  // conviven registros de varias emisoras y cada una tiene su propia escala, así
+  // que una matriz global daría el nivel equivocado a todas menos a una.
+  const tenantDeReporte = new Map<string, string>(
+    (reportes ?? []).map((r) => [r.id, r.tenant_id])
+  );
+  const tenantIds = [...new Set([...tenantDeReporte.values()])];
+
+  const [{ data: perfiles }, { data: tenantsRows }] = await Promise.all([
+    tenantIds.length
+      ? db.from("perfil_emisor").select("tenant_id, matriz_riesgos").in("tenant_id", tenantIds)
+      : Promise.resolve({ data: [] as { tenant_id: string; matriz_riesgos: unknown }[] }),
+    tenantIds.length
+      ? db.from("tenants").select("id, nombre").in("id", tenantIds)
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+  ]);
+
+  const matrizPorTenant = new Map<string, MatrizRiesgos | null>(
+    (perfiles ?? []).map((x) => [x.tenant_id, leerMatriz(x.matriz_riesgos)])
+  );
+  const nombrePorTenant = new Map<string, string>(
+    (tenantsRows ?? []).map((t) => [t.id, limpiarNombreTenant(t.nombre)])
+  );
+
+  /** Matriz y nombre de emisora que le tocan a un registro, por su reporte. */
+  const contextoDe = (reporteId: string) => {
+    const tid = tenantDeReporte.get(reporteId);
+    return {
+      matriz: tid ? matrizPorTenant.get(tid) ?? null : null,
+      emisora: tid ? nombrePorTenant.get(tid) ?? null : null,
+    };
+  };
+
   const registros: RegistroFila[] = (
     (regs ?? []) as {
       id: string;
@@ -78,6 +114,9 @@ export default async function RegistrosPage() {
       horizontes: string[] | null;
       orden: number;
       activo: boolean;
+      probabilidad: number | null;
+      impacto: number | null;
+      severidad: number | null;
     }[]
   ).map((r) => ({
     id: r.id,
@@ -86,6 +125,10 @@ export default async function RegistrosPage() {
     nombre: r.nombre,
     descripcion: r.descripcion,
     horizontes: r.horizontes ?? [],
+    probabilidad: r.probabilidad,
+    impacto: r.impacto,
+    severidad: r.severidad,
+    ...contextoDe(r.reporte_id),
     orden: r.orden,
     activo: r.activo,
     valores: valoresPorReg.get(r.id) ?? [],

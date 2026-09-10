@@ -9,6 +9,13 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { fmtFecha } from "@/lib/fechas";
+import Link from "next/link";
+import {
+  matrizVacia,
+  nivelDeSeveridad,
+  severidadEfectiva,
+  type MatrizRiesgos,
+} from "@/lib/perfil-emisor";
 import {
   crearRegistro,
   editarRegistro,
@@ -36,6 +43,12 @@ export type RegistroFila = {
   nombre: string;
   descripcion: string | null;
   horizontes: string[];
+  probabilidad: number | null;
+  impacto: number | null;
+  severidad: number | null;
+  /** Matriz de la emisora de ESTE registro. null = no la ha definido. */
+  matriz: MatrizRiesgos | null;
+  emisora: string | null;
   orden: number;
   activo: boolean;
   valores: ValorFila[]; // historial desc por fecha
@@ -123,6 +136,8 @@ export function RegistrosView({
 
   return (
     <div className="space-y-8">
+      <AvisoSinMatriz registros={registros} />
+
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display text-xl font-semibold text-ink">
@@ -140,7 +155,7 @@ export function RegistrosView({
           </p>
         ) : (
           abrirAlta && (
-            <CrearRegistroForm reportes={reportes} onDone={() => setAbrirAlta(false)} />
+            <CrearRegistroForm reportes={reportes} registros={registros} onDone={() => setAbrirAlta(false)} />
           )
         )}
       </section>
@@ -183,9 +198,12 @@ export function RegistrosView({
 // -----------------------------------------------------------------------------
 function CrearRegistroForm({
   reportes,
+  registros,
   onDone,
 }: {
   reportes: ReporteOpcion[];
+  /** Para deducir la matriz del reporte elegido, sin otra consulta. */
+  registros: RegistroFila[];
   onDone: () => void;
 }) {
   const toast = useToast();
@@ -195,6 +213,13 @@ function CrearRegistroForm({
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [horizontes, setHorizontes] = useState<string[]>([]);
+  const [prob, setProb] = useState("");
+  const [imp, setImp] = useState("");
+  const [sev, setSev] = useState("");
+  // Matriz de la emisora del reporte elegido: se deduce de cualquier registro
+  // suyo ya cargado. Si el reporte aún no tiene registros, no hay de dónde, y la
+  // priorización se captura igual — el nivel se resuelve al guardar y recargar.
+  const matriz = registros.find((r) => r.reporteId === reporteId)?.matriz ?? null;
 
   useEffect(() => {
     if (state.ok) {
@@ -202,6 +227,9 @@ function CrearRegistroForm({
       setNombre("");
       setDescripcion("");
       setHorizontes([]);
+      setProb("");
+      setImp("");
+      setSev("");
       onDone();
     } else if (state.error) {
       toast.error(state.error);
@@ -219,6 +247,9 @@ function CrearRegistroForm({
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
     horizontes.forEach((h) => fd.append("horizontes", h));
+    fd.set("probabilidad", prob);
+    fd.set("impacto", imp);
+    fd.set("severidad", sev);
     startTransition(() => dispatch(fd));
   };
 
@@ -300,6 +331,15 @@ function CrearRegistroForm({
         </span>
         <CheckboxHorizontes value={horizontes} onChange={setHorizontes} />
       </div>
+      <Priorizacion
+        prob={prob}
+        imp={imp}
+        sev={sev}
+        setProb={setProb}
+        setImp={setImp}
+        setSev={setSev}
+        matriz={matriz}
+      />
       <div className="flex justify-end gap-2.5 border-t border-line pt-6">
         <button
           type="button"
@@ -361,6 +401,7 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
           {registro.descripcion && (
             <p className="mt-1 max-w-2xl text-sm text-muted">{registro.descripcion}</p>
           )}
+          <Severidad registro={registro} />
           {registro.horizontes.length > 0 && (
             <p className="mt-1 text-xs text-muted">
               Horizontes: {registro.horizontes.join(" · ")}
@@ -734,5 +775,163 @@ function CapturarValoresForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Priorización
+// -----------------------------------------------------------------------------
+
+/**
+ * Captura de probabilidad, impacto y severidad.
+ *
+ * Con los dos factores, la severidad es su producto y el campo se muestra en
+ * solo lectura: dejar escribir un total que no cuadra con sus partes es invitar
+ * a que la tabla de priorización del suplemento se contradiga sola. Sin ellos,
+ * se captura el puntaje a mano, que es como lo entregan varios clientes.
+ */
+function Priorizacion({
+  prob,
+  imp,
+  sev,
+  setProb,
+  setImp,
+  setSev,
+  matriz,
+}: {
+  prob: string;
+  imp: string;
+  sev: string;
+  setProb: (v: string) => void;
+  setImp: (v: string) => void;
+  setSev: (v: string) => void;
+  matriz: MatrizRiesgos | null;
+}) {
+  const p = prob === "" ? null : Number(prob);
+  const i = imp === "" ? null : Number(imp);
+  const calculada = p != null && i != null;
+  const efectiva = severidadEfectiva(p, i, sev === "" ? null : Number(sev));
+  const nivel = nivelDeSeveridad(efectiva, matriz);
+
+  return (
+    <div className="rounded-xl border border-line bg-crema/30 p-4">
+      <span className={labelCls}>
+        Priorización <span className="font-normal text-muted">· opcional</span>
+      </span>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="block">
+          <span className="block text-xs text-muted">Probabilidad</span>
+          <input
+            inputMode="decimal"
+            value={prob}
+            onChange={(e) => setProb(e.target.value.replace(/[^0-9.]/g, ""))}
+            className="mt-1 h-11 w-24 rounded-xl border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-teal/50"
+          />
+        </label>
+        <span className="pb-3 text-muted">×</span>
+        <label className="block">
+          <span className="block text-xs text-muted">Impacto</span>
+          <input
+            inputMode="decimal"
+            value={imp}
+            onChange={(e) => setImp(e.target.value.replace(/[^0-9.]/g, ""))}
+            className="mt-1 h-11 w-24 rounded-xl border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-teal/50"
+          />
+        </label>
+        <span className="pb-3 text-muted">=</span>
+        <label className="block">
+          <span className="block text-xs text-muted">
+            Severidad {calculada && <span className="text-teal">· calculada</span>}
+          </span>
+          <input
+            inputMode="decimal"
+            value={calculada ? String(efectiva ?? "") : sev}
+            onChange={(e) => setSev(e.target.value.replace(/[^0-9.]/g, ""))}
+            readOnly={calculada}
+            className={cn(
+              "mt-1 h-11 w-28 rounded-xl border border-line px-3 text-sm text-ink outline-none focus:border-teal/50",
+              calculada ? "bg-crema/60 text-muted" : "bg-surface"
+            )}
+          />
+        </label>
+        {efectiva != null && (
+          <div className="pb-2">
+            {nivel ? (
+              <Chip tono="ambar">{nivel}</Chip>
+            ) : (
+              <span className="text-xs text-muted">
+                {matrizVacia(matriz) ? "Sin matriz definida" : "Fuera de los rangos"}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      <p className="mt-2 text-xs text-muted">
+        Con probabilidad e impacto, la severidad se calcula sola. Si solo tienes el
+        puntaje, escríbelo directo.
+      </p>
+    </div>
+  );
+}
+
+/** Severidad y nivel de un registro ya guardado. */
+function Severidad({ registro }: { registro: RegistroFila }) {
+  const matriz = registro.matriz;
+  const efectiva = severidadEfectiva(
+    registro.probabilidad,
+    registro.impacto,
+    registro.severidad
+  );
+  // Los registros dados de alta antes de A2 no tienen priorización: no se les
+  // pinta nada, en vez de un "—" que parecería un dato ausente por descuido.
+  if (efectiva == null) return null;
+  const nivel = nivelDeSeveridad(efectiva, matriz);
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+      <span>
+        Severidad <span className="font-medium text-ink">{efectiva}</span>
+        {registro.probabilidad != null && registro.impacto != null && (
+          <span> ({registro.probabilidad} × {registro.impacto})</span>
+        )}
+      </span>
+      {nivel ? (
+        <Chip tono="ambar">{nivel}</Chip>
+      ) : (
+        <span>
+          {matrizVacia(matriz)
+            ? `sin matriz de ${registro.emisora ?? "la emisora"} para calcular el nivel`
+            : "fuera de los rangos"}
+        </span>
+      )}
+    </p>
+  );
+}
+
+/**
+ * Aviso por EMISORA sin matriz definida. Se agrupa por emisora y no por registro
+ * para no repetir la misma línea diez veces en la misma pantalla; el nivel de
+ * cada registro sí se resuelve con la matriz de la suya.
+ */
+function AvisoSinMatriz({ registros }: { registros: RegistroFila[] }) {
+  const sinMatriz = [
+    ...new Set(
+      registros
+        .filter((r) => matrizVacia(r.matriz))
+        .map((r) => r.emisora ?? "una emisora sin nombre")
+    ),
+  ];
+  if (sinMatriz.length === 0) return null;
+  return (
+    <p className="rounded-card border border-dorado/40 bg-dorado/10 px-4 py-3 text-sm text-ink">
+      <span className="font-medium">
+        Sin matriz de riesgos: {sinMatriz.join(", ")}.
+      </span>{" "}
+      La severidad se guarda, pero no se traduce a un nivel mientras no exista la
+      escala de esa emisora. Se define en{" "}
+      <Link href="/admin/perfil" className="text-teal underline-offset-2 hover:underline">
+        Perfil del emisor → Matriz de riesgos
+      </Link>
+      .
+    </p>
   );
 }
