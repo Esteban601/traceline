@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -305,6 +310,185 @@ export type Database = {
           version_taxonomia?: string
         }
         Relationships: []
+      }
+      documentos_bloques: {
+        Row: {
+          clave: string
+          costo_usd: number
+          created_at: string
+          documento_id: string
+          editado_en: string | null
+          editado_por: string | null
+          estado: string
+          fuentes: Json
+          generado_en: string
+          id: string
+          idioma: string
+          modelo: string | null
+          numero: number
+          pendientes: Json
+          prompt_version: string | null
+          seccion: string | null
+          texto: string | null
+          titulo: string
+          tokens_entrada: number
+          tokens_salida: number
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          costo_usd?: number
+          created_at?: string
+          documento_id: string
+          editado_en?: string | null
+          editado_por?: string | null
+          estado?: string
+          fuentes?: Json
+          generado_en?: string
+          id?: string
+          idioma?: string
+          modelo?: string | null
+          numero: number
+          pendientes?: Json
+          prompt_version?: string | null
+          seccion?: string | null
+          texto?: string | null
+          titulo: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          costo_usd?: number
+          created_at?: string
+          documento_id?: string
+          editado_en?: string | null
+          editado_por?: string | null
+          estado?: string
+          fuentes?: Json
+          generado_en?: string
+          id?: string
+          idioma?: string
+          modelo?: string | null
+          numero?: number
+          pendientes?: Json
+          prompt_version?: string | null
+          seccion?: string | null
+          texto?: string | null
+          titulo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_bloques_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_generados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_generados: {
+        Row: {
+          alivios: Json
+          aprobado_en: string | null
+          aprobado_por: string | null
+          archivo_path: string | null
+          costo_usd: number
+          created_at: string
+          estado: string
+          generado_por: string | null
+          id: string
+          idioma: string
+          regimen: string | null
+          reporte_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada: number
+          tokens_salida: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          alivios?: Json
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          archivo_path?: string | null
+          costo_usd?: number
+          created_at?: string
+          estado?: string
+          generado_por?: string | null
+          id?: string
+          idioma?: string
+          regimen?: string | null
+          reporte_id: string
+          tenant_id: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          alivios?: Json
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          archivo_path?: string | null
+          costo_usd?: number
+          created_at?: string
+          estado?: string
+          generado_por?: string | null
+          id?: string
+          idioma?: string
+          regimen?: string | null
+          reporte_id?: string
+          tenant_id?: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_generados_aprobado_por_fkey"
+            columns: ["aprobado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_generados_generado_por_fkey"
+            columns: ["generado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_generados_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_generados_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evidencias: {
         Row: {
@@ -641,6 +825,150 @@ export type Database = {
           },
         ]
       }
+      perfil_emisor: {
+        Row: {
+          actualizado_en: string | null
+          actualizado_por: string | null
+          cadena_valor: Json
+          carta_cargo: string | null
+          carta_firmante: string | null
+          carta_texto: string | null
+          created_at: string
+          denominacion_formal: string | null
+          entidad_que_informa: string | null
+          forma_de_referencia: string | null
+          gobierno_texto: string | null
+          hitos_corporativos: Json
+          hitos_sostenibilidad: Json
+          horizontes: Json
+          id: string
+          matriz_riesgos: Json
+          modelo_negocio: string | null
+          nombre_corto: string | null
+          organigrama_path: string | null
+          perimetro: string | null
+          proceso_materialidad: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          actualizado_por?: string | null
+          cadena_valor?: Json
+          carta_cargo?: string | null
+          carta_firmante?: string | null
+          carta_texto?: string | null
+          created_at?: string
+          denominacion_formal?: string | null
+          entidad_que_informa?: string | null
+          forma_de_referencia?: string | null
+          gobierno_texto?: string | null
+          hitos_corporativos?: Json
+          hitos_sostenibilidad?: Json
+          horizontes?: Json
+          id?: string
+          matriz_riesgos?: Json
+          modelo_negocio?: string | null
+          nombre_corto?: string | null
+          organigrama_path?: string | null
+          perimetro?: string | null
+          proceso_materialidad?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          actualizado_por?: string | null
+          cadena_valor?: Json
+          carta_cargo?: string | null
+          carta_firmante?: string | null
+          carta_texto?: string | null
+          created_at?: string
+          denominacion_formal?: string | null
+          entidad_que_informa?: string | null
+          forma_de_referencia?: string | null
+          gobierno_texto?: string | null
+          hitos_corporativos?: Json
+          hitos_sostenibilidad?: Json
+          horizontes?: Json
+          id?: string
+          matriz_riesgos?: Json
+          modelo_negocio?: string | null
+          nombre_corto?: string | null
+          organigrama_path?: string | null
+          perimetro?: string | null
+          proceso_materialidad?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_emisor_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_emisor_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perfil_emisor_adjuntos: {
+        Row: {
+          archivo_path: string
+          created_at: string
+          id: string
+          mime: string | null
+          nombre_original: string
+          seccion: string
+          subido_por: string | null
+          tamano: number | null
+          tenant_id: string
+        }
+        Insert: {
+          archivo_path: string
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nombre_original: string
+          seccion: string
+          subido_por?: string | null
+          tamano?: number | null
+          tenant_id: string
+        }
+        Update: {
+          archivo_path?: string
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nombre_original?: string
+          seccion?: string
+          subido_por?: string | null
+          tamano?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_emisor_adjuntos_subido_por_fkey"
+            columns: ["subido_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_emisor_adjuntos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles_usuario: {
         Row: {
           activo: boolean
@@ -781,9 +1109,13 @@ export type Database = {
           descripcion: string | null
           horizontes: string[]
           id: string
+          impacto: number | null
+          nivel: string | null
           nombre: string
           orden: number
+          probabilidad: number | null
           reporte_id: string
+          severidad: number | null
           tipo: string
         }
         Insert: {
@@ -792,9 +1124,13 @@ export type Database = {
           descripcion?: string | null
           horizontes?: string[]
           id?: string
+          impacto?: number | null
+          nivel?: string | null
           nombre: string
           orden?: number
+          probabilidad?: number | null
           reporte_id: string
+          severidad?: number | null
           tipo: string
         }
         Update: {
@@ -803,9 +1139,13 @@ export type Database = {
           descripcion?: string | null
           horizontes?: string[]
           id?: string
+          impacto?: number | null
+          nivel?: string | null
           nombre?: string
           orden?: number
+          probabilidad?: number | null
           reporte_id?: string
+          severidad?: number | null
           tipo?: string
         }
         Relationships: [
@@ -877,6 +1217,8 @@ export type Database = {
       }
       reportes: {
         Row: {
+          alivios: Json
+          anio_adopcion: number | null
           created_at: string
           ejercicio: number
           estado: Database["public"]["Enums"]["estado_reporte"]
@@ -886,6 +1228,8 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          alivios?: Json
+          anio_adopcion?: number | null
           created_at?: string
           ejercicio: number
           estado?: Database["public"]["Enums"]["estado_reporte"]
@@ -895,6 +1239,8 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          alivios?: Json
+          anio_adopcion?: number | null
           created_at?: string
           ejercicio?: number
           estado?: Database["public"]["Enums"]["estado_reporte"]
@@ -1091,6 +1437,7 @@ export type Database = {
           activo: boolean
           created_at: string
           es_demo: boolean
+          generaciones_mes_max: number
           id: string
           logo_url: string | null
           nombre: string
@@ -1102,6 +1449,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           es_demo?: boolean
+          generaciones_mes_max?: number
           id?: string
           logo_url?: string | null
           nombre: string
@@ -1113,6 +1461,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           es_demo?: boolean
+          generaciones_mes_max?: number
           id?: string
           logo_url?: string | null
           nombre?: string
@@ -1218,12 +1567,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1247,11 +1596,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1272,11 +1621,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1297,11 +1646,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1314,11 +1663,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1357,4 +1706,3 @@ export const Constants = {
     },
   },
 } as const
-

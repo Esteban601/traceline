@@ -62,6 +62,13 @@ export type AccionEvento =
   | "objetivo_desactivado"
   | "objetivo_reactivado"
   | "cuestionario_respondido"
+  // Perfil del emisor (Suplemento S1/S2): lo institucional que alimenta el
+  // documento. Se registra por sección para saber qué se actualizó y cuándo.
+  | "perfil_emisor_actualizado"
+  | "perfil_organigrama_subido"
+  | "perfil_adjunto_subido"
+  | "perfil_adjunto_eliminado"
+  | "reporte_regimen_actualizado"
   | "tenant_creado"
   | "tenant_desactivado"
   | "tenant_reactivado"
@@ -111,6 +118,7 @@ export async function logEvento(
       | "registros_clima"
       | "objetivos"
       | "cuestionarios_respuestas"
+      | "perfil_emisor"
       | "tenants"
       | "areas_tenant"
       | "invitaciones";
