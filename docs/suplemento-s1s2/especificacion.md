@@ -1,7 +1,15 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.4** · 10 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.5** · 11 de septiembre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.4** (tras la prueba de extremo a extremo de A4 sobre el bloque 29):
+- Orquestación asíncrona: la ruta reserva el bloque y responde; la generación corre en `after()`. Los tres
+  textos de la primera versión tardaron 20–40 s, y el router de Heroku corta a los 30.
+- Modelo por TIPO de bloque, no uno solo para todo.
+- Cinco reglas nuevas de prompt (§6). Ninguno de los tres textos de la primera versión era publicable.
+- Tabla de precios verificada, con fecha.
+- Dos migraciones más en §5.
 
 **Cambios respecto a 0.3** (tras construir el semáforo de A3b y cruzarlo con los datos reales):
 - Los bloques 6, 10, 22, 23, 27 y 28 dejan de citar `cuestionarios_respuestas`: no existe hoja narrativa que los
@@ -241,6 +249,8 @@ filas, no como JSON.
 | Tabla `perfil_emisor` | §4 | CREATE TABLE + RLS por tenant |
 | Tabla `documentos_generados` | Versiones, estado, idioma, auditoría, costo total | CREATE TABLE + RLS |
 | Tabla `documentos_bloques` | Un renglón por bloque, versión e idioma: texto, estado, `fuentes` (ids), pendientes, tokens, costo, modelo, `prompt_version`, editado_por | CREATE TABLE + RLS |
+| `documentos_bloques.tokens_entrada_cache_escritura`, `.tokens_entrada_cache_lectura`, `.duracion_ms` | Un solo `tokens_entrada` no permite reconstruir el costo: escritura de caché, lectura y entrada sin cachear se cobran a precios distintos. `duracion_ms` es lo que decide si un bloque cabe en los 30 s del router | ADD COLUMN (`20260913120000`, **aplicada en dev**) |
+| `documentos_bloques.estado` amplía su CHECK a `('borrador','generando','error','en_revision','aprobado')` | La orquestación asíncrona necesita `generando`; un fallo guardado como `borrador` sin texto es indistinguible de un bloque que nadie generó | DROP + ADD CONSTRAINT (`20260914120000`, **pendiente de aprobación**) |
 | Bucket `documentos` (privado) | Word y organigrama, ruta `{tenant_id}/…` | Storage + políticas |
 | `tenants.generaciones_mes_max` (int, default 10) | Salvaguarda contra uso accidental o abusivo del botón; no es tope de presupuesto | ADD COLUMN |
 
@@ -266,21 +276,80 @@ exista en `datapoints_taxonomia`; si no, el servidor lo reporta.
 `reporte_id` y se valida que el reporte pertenezca al tenant de la sesión antes de armar cualquier prompt.
 Prueba obligatoria: generación simultánea con dos tenants y verificación de que ningún id cruza.
 
-**Orquestación.** El router de Heroku corta a los 30 s. Cada bloque es `POST /api/suplemento/{documento}/bloque/{n}`;
-el cliente encadena las llamadas con progreso y cada resultado se persiste al llegar. Cada llamada usa streaming
-del SDK para no chocar con el límite en bloques largos. Si el navegador se cierra, lo generado queda.
+**Orquestación (medida en A4, no estimada).** Las cinco corridas del bloque 29 tardaron entre 20 y 59 segundos.
+El router de Heroku corta a los 30, así que **esperar la generación dentro de la petición no es viable**. El flujo es:
 
-**Prompt por bloque.** Diseñado para caché: primero lo estable (rol, reglas, glosario, preferencias del tenant,
-texto de los requisitos NIIF del bloque) con marca de caché; después lo volátil (datos del bloque en JSON con
-ids, ejemplo de estilo anonimizado, instrucción de extensión). Salida **estructurada con esquema**:
-`{texto, fuentes_usadas[], pendientes[]}`. El servidor rechaza cualquier respuesta que cite un id que no se le
-entregó.
+1. `POST /api/suplemento/{documento}/bloque/{n}` reserva el bloque en estado **`generando`** y responde **202 de
+   inmediato**, sin esperar al modelo.
+2. La generación corre en `after()` —después de enviada la respuesta— y persiste el bloque al terminar.
+3. El cliente consulta `GET` de la misma ruta **cada 2 s** hasta que el estado deje de ser `generando`.
+4. Un bloque en `generando` **más de 3 minutos** lo pasa a `error` con motivo `tiempo excedido` la propia
+   consulta, y queda reintentable: si el dyno se reinició a media generación, nadie más va a cerrarlo.
 
-**Modelo.** Por defecto el modelo de mayor capacidad disponible en la Consola; se compara con el intermedio en
-A4 sobre los mismos bloques del tenant demo y se elige por calidad de redacción normativa. No hay tope de
-presupuesto por documento (decisión §8.4), pero el costo se registra por bloque y por documento. Orden de
-magnitud sin caché: 300 k tokens de entrada y 30 k de salida por suplemento en español; con caché del bloque
-estable, sustancialmente menos.
+Una segunda petición sobre un bloque que ya se está generando responde 409: dos generaciones simultáneas del
+mismo bloque se pisan y se pagan las dos. Si el navegador se cierra, lo generado queda.
+
+**Prompt por bloque.** Diseñado para caché: primero lo estable —rol, reglas, ejemplo de estilo, índice de los 40
+bloques, preferencias del emisor y los requisitos NIIF del bloque— con marca de caché; después lo volátil
+—fronteras del bloque, tabla ya armada, datos en JSON con ids, régimen e instrucción de extensión—. Salida
+**estructurada con esquema**: `{texto, fuentes_usadas[], pendientes[], notas_revision[]}`.
+
+**Las cinco reglas, escritas después de leer los tres primeros textos.** Ninguno era publicable:
+
+1. **Voz del emisor.** `texto` es la revelación de la emisora, lista para publicarse. Prohibido dentro de él:
+   *solicitud, evidencia, expediente, entregado, recibido, validado, IRStrat, plataforma, bloque, datapoint*,
+   ids y uuids, y toda narración de cómo se recabó el dato. Un inversionista que lee «el inventario fue
+   entregado y validado» está leyendo nuestra cocina, no su información a revelar. Única excepción, para el
+   revisor: `[Pendiente: <qué falta> — <solicitud o campo>]`, con formato uniforme. **El servidor rechaza y
+   reintenta** si aparece vocabulario prohibido fuera del marcador.
+2. **Fronteras del bloque.** La capa estable lleva el índice completo de los 40 bloques con una línea de qué
+   cubre cada uno; la volátil dice qué cubre este y qué cubren los contiguos, para no repetirlo. El bloque 29 no
+   explica los alivios (bloque 3) ni el método de medición ni C5 (bloque 30). Las fronteras viven en una tabla
+   explícita, `lib/suplemento/fronteras.ts`: dónde se corta entre «qué emitimos» y «cómo lo medimos» es una
+   decisión editorial, no se deduce del título.
+3. **Tabla primero.** En bloques `Tabla + D→T` la tabla la arma el CÓDIGO desde los datos verificados; el modelo
+   la recibe ya construida y redacta la prosa que la introduce y comenta. Una cifra que pasa por el modelo puede
+   salir redondeada o «corregida». Máximo una mención de cada cifra en prosa, y solo si aporta algo que la tabla
+   no dice. Longitud objetivo en la instrucción volátil: para el bloque 29, de 120 a 250 palabras.
+4. **Decisiones del emisor.** Campo `notas_revision[]`, que **no se publica**. Ahí van los juicios que el
+   redactor no debe resolver: datos disponibles que un alivio exime (el Alcance 3 bajo C4), inconsistencias
+   entre lo pedido y lo entregado, revelaciones voluntarias posibles. El texto no incluye esos datos; la nota se
+   los ofrece al revisor.
+5. **Denominación exacta.** `forma_de_referencia` y `denominacion_formal` se copian carácter por carácter,
+   incluido el artículo en minúscula.
+
+La capa estable lleva además un **ejemplo de estilo**: el bloque equivalente de un informe real, con el nombre
+de la emisora sustituido por «la Compañía» y las cifras por marcadores.
+
+El servidor rechaza cualquier respuesta que cite un id que no se le entregó, que use vocabulario de proceso
+interno, o cuyos marcadores no lleven el formato pedido. Reintenta **una** vez explicando el error concreto: un
+reintento que solo dice «hubo un error» repite el mismo fallo.
+
+**Modelo, por TIPO de bloque** (`lib/suplemento/modelos.ts`, configurable). La comparación de A4 sobre el mismo
+bloque 29 con los mismos datos:
+
+| Tipo de bloque | Modelo | Por qué |
+|---|---|---|
+| `D→T`, `T→E` y sus combinaciones | `claude-fable-5-1` | Hay que decidir qué dice una cifra, qué se calla por un alivio y dónde falta un dato. Sonnet 5 fue correcto pero no detectó que el Alcance 2 llegó sin desagregar entre ubicación y mercado, y metió los ids de las fuentes dentro de la prosa. |
+| `Plantilla`, `Tabla` | `claude-sonnet-5` | Redactar sobre un guion fijo, frases que introducen una tabla que armó el código, normalización de estilo. Sin juicio que tomar, y seis veces más barato. |
+
+**Precios verificados el 11 de septiembre de 2026** contra `platform.claude.com/docs/en/about-claude/pricing`.
+La constante lleva la fecha para que se note cuándo dejó de ser cierta. Dólares por millón de tokens:
+
+| Modelo | Entrada | Escritura de caché (5 min) | Lectura de caché | Salida |
+|---|---:|---:|---:|---:|
+| `claude-fable-5-1` | $10 | $12.50 | **$0.25** (0.025x, no 0.1x) | $50 |
+| `claude-opus-5` | $5 | $6.25 | $0.50 | $25 |
+| `claude-sonnet-5` | $2 | $2.50 | $0.20 | $10 |
+| `claude-haiku-4-5` | $1 | $1.25 | $0.10 | $5 |
+
+No hay tope de presupuesto por documento (decisión §8.4), pero el costo se registra por bloque con su desglose
+—entrada sin cachear, escritura de caché y lectura de caché se cobran a precios distintos— y se acumula por
+documento. **Los tokens de salida incluyen el razonamiento**, que en Fable 5.1 está siempre activo: el bloque 29
+generó 1 245 caracteres de texto con 4 666 tokens de salida facturados.
+
+Medido en A4 sobre el bloque 29 con el prompt v2: **$0.31 en frío y $0.20 con el caché caliente**. La capa
+estable son 3 906 tokens y se reutiliza en los cuarenta bloques.
 
 **Word.** Librería `docx` en `dependencies`. Portada, índice, secciones, encabezados con referencia NIIF (según
 preferencia del tenant), tablas, notas al pie con la fuente de cada cifra, anexo de trazabilidad
