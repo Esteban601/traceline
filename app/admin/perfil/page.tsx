@@ -31,7 +31,7 @@ export const metadata: Metadata = { title: "Perfil del emisor" };
 export default async function PerfilEmisorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tenant?: string }>;
+  searchParams: Promise<{ tenant?: string; seccion?: string }>;
 }) {
   const perfil = await getPerfilActual();
   if (!perfil) redirect("/login");
@@ -43,7 +43,7 @@ export default async function PerfilEmisorPage({
   }
 
   const db = await createClient();
-  const { tenant: tenantParam } = await searchParams;
+  const { tenant: tenantParam, seccion: seccionParam } = await searchParams;
 
   // Emisoras entre las que se puede elegir. Para el administrador del cliente es
   // siempre una: la suya, tomada de la sesión y no del parámetro.
@@ -161,6 +161,7 @@ export default async function PerfilEmisorPage({
         organigramaUrl={organigramaUrl}
         adjuntos={adjuntos}
         puedeElegirEmisora={staff}
+        seccionInicial={seccionParam ?? null}
       />
     </div>
   );

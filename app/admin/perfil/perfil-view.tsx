@@ -223,6 +223,7 @@ export function PerfilView({
   organigramaUrl,
   adjuntos,
   puedeElegirEmisora,
+  seccionInicial,
 }: {
   tenantId: string;
   tenantNombre: string;
@@ -230,12 +231,21 @@ export function PerfilView({
   organigramaUrl: string | null;
   adjuntos: Adjunto[];
   puedeElegirEmisora: boolean;
+  /** Sección que llega abierta. La usa el semáforo del suplemento para traer al
+   *  usuario justo al campo que le falta, en vez de dejarlo buscándolo. */
+  seccionInicial?: string | null;
 }) {
-  const [abierta, setAbierta] = useState<string | null>("identidad");
+  const [abierta, setAbierta] = useState<string | null>(seccionInicial ?? "identidad");
   const alternar = (k: string) => setAbierta((a) => (a === k ? null : k));
 
   const p = perfil;
   const uid = useId();
+
+  // Una sección con documentos de origen ya tiene información, aunque no tenga
+  // un solo campo escrito: de ahí saldrá su texto. Marcarla "Vacía" empujaría a
+  // transcribir a mano lo que el archivo ya dice, que es lo contrario de lo que
+  // esta pantalla busca.
+  const hayDocs = (seccion: string) => adjuntos.some((a) => a.seccion === seccion);
 
   // Estado local de las listas editables.
   const [hitosCorp, setHitosCorp] = useState<Hito[]>(p?.hitos_corporativos ?? []);
@@ -312,98 +322,100 @@ export function PerfilView({
       <Seccion
         titulo="Identidad"
         ayuda="Cómo se llama la entidad y qué comprende lo que informa."
-        completa={!!p?.denominacion_formal}
+        completa={!!p?.denominacion_formal || hayDocs("identidad")}
         abierta={abierta === "identidad"}
         onToggle={() => alternar("identidad")}
         reciente={recientes["identidad"] ?? null}
       >
-        <form action={aIdent}>
-          {oculto}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={LABEL} htmlFor={`${uid}-df`}>
-                Denominación formal
-              </label>
-              <input
-                id={`${uid}-df`}
-                name="denominacion_formal"
-                defaultValue={p?.denominacion_formal ?? ""}
-                placeholder="Nombre legal completo, como aparece en el acta"
-                className={cn(INPUT, "mt-2")}
-              />
-              <p className="mt-1.5 text-xs text-muted">El nombre con el que la entidad está inscrita. Ejemplo: “Empresa Demo, S.A.B. de C.V.”.</p>
+        <Adjuntos tenantId={tenantId} seccion="identidad" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aIdent}>
+            {oculto}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-df`}>
+                  Denominación formal
+                </label>
+                <input
+                  id={`${uid}-df`}
+                  name="denominacion_formal"
+                  defaultValue={p?.denominacion_formal ?? ""}
+                  placeholder="Nombre legal completo, como aparece en el acta"
+                  className={cn(INPUT, "mt-2")}
+                />
+                <p className="mt-1.5 text-xs text-muted">El nombre con el que la entidad está inscrita. Ejemplo: “Empresa Demo, S.A.B. de C.V.”.</p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-nc`}>
+                  Nombre corto
+                </label>
+                <input
+                  id={`${uid}-nc`}
+                  name="nombre_corto"
+                  defaultValue={p?.nombre_corto ?? ""}
+                  placeholder="Como se le conoce"
+                  className={cn(INPUT, "mt-2")}
+                />
+                <p className="mt-1.5 text-xs text-muted">El que se usa en el día a día y en los encabezados del documento.</p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-fr`}>
+                  Forma de referencia en el texto
+                </label>
+                <input
+                  id={`${uid}-fr`}
+                  name="forma_de_referencia"
+                  defaultValue={p?.forma_de_referencia ?? ""}
+                  placeholder="la Compañía · la Emisora · el Grupo"
+                  className={cn(INPUT, "mt-2")}
+                />
+                <p className="mt-1.5 text-xs text-muted">
+                  Con esto se refiere a ustedes el documento generado.
+                </p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-ei`}>
+                  Entidad que informa
+                </label>
+                <input
+                  id={`${uid}-ei`}
+                  name="entidad_que_informa"
+                  defaultValue={p?.entidad_que_informa ?? ""}
+                  placeholder="Controladora y subsidiarias, o la sociedad que reporta"
+                  className={cn(INPUT, "mt-2")}
+                />
+                <p className="mt-1.5 text-xs text-muted">La entidad cuya información se revela: la controladora sola, o el grupo consolidado.</p>
+              </div>
             </div>
-            <div>
-              <label className={LABEL} htmlFor={`${uid}-nc`}>
-                Nombre corto
+            <div className="mt-4">
+              <label className={LABEL} htmlFor={`${uid}-pe`}>
+                Perímetro del informe
               </label>
-              <input
-                id={`${uid}-nc`}
-                name="nombre_corto"
-                defaultValue={p?.nombre_corto ?? ""}
-                placeholder="Como se le conoce"
-                className={cn(INPUT, "mt-2")}
-              />
-              <p className="mt-1.5 text-xs text-muted">El que se usa en el día a día y en los encabezados del documento.</p>
-            </div>
-            <div>
-              <label className={LABEL} htmlFor={`${uid}-fr`}>
-                Forma de referencia en el texto
-              </label>
-              <input
-                id={`${uid}-fr`}
-                name="forma_de_referencia"
-                defaultValue={p?.forma_de_referencia ?? ""}
-                placeholder="la Compañía · la Emisora · el Grupo"
-                className={cn(INPUT, "mt-2")}
+              <textarea
+                id={`${uid}-pe`}
+                name="perimetro"
+                rows={3}
+                defaultValue={p?.perimetro ?? ""}
+                placeholder="Qué queda dentro y qué fuera de la información reportada."
+                className={cn(AREA, "mt-2")}
               />
               <p className="mt-1.5 text-xs text-muted">
-                Con esto se refiere a ustedes el documento generado.
+                Qué entidades, operaciones o ubicaciones cubre este informe y cuáles se
+                excluyen. Ejemplo: los desarrollos en coinversión se excluyen de las métricas
+                de exposición.
               </p>
             </div>
-            <div>
-              <label className={LABEL} htmlFor={`${uid}-ei`}>
-                Entidad que informa
-              </label>
-              <input
-                id={`${uid}-ei`}
-                name="entidad_que_informa"
-                defaultValue={p?.entidad_que_informa ?? ""}
-                placeholder="Controladora y subsidiarias, o la sociedad que reporta"
-                className={cn(INPUT, "mt-2")}
-              />
-              <p className="mt-1.5 text-xs text-muted">La entidad cuya información se revela: la controladora sola, o el grupo consolidado.</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className={LABEL} htmlFor={`${uid}-pe`}>
-              Perímetro del informe
-            </label>
-            <textarea
-              id={`${uid}-pe`}
-              name="perimetro"
-              rows={3}
-              defaultValue={p?.perimetro ?? ""}
-              placeholder="Qué queda dentro y qué fuera de la información reportada."
-              className={cn(AREA, "mt-2")}
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Qué entidades, operaciones o ubicaciones cubre este informe y cuáles se
-              excluyen. Ejemplo: los desarrollos en coinversión se excluyen de las métricas
-              de exposición.
-            </p>
-          </div>
-          {guardar()}
-          <Aviso state={sIdent} seccion="identidad" />
-        </form>
-        <Adjuntos tenantId={tenantId} seccion="identidad" adjuntos={adjuntos} />
+            {guardar()}
+            <Aviso state={sIdent} seccion="identidad" />
+          </form>
+        </CamposManuales>
       </Seccion>
 
       {/* 2 · MATRIZ DE RIESGOS -------------------------------------------- */}
       <Seccion
         titulo="Matriz de riesgos"
         ayuda="La escala con la que se prioriza. Sin ella, los registros de clima no muestran nivel."
-        completa={!!p?.matriz_riesgos?.niveles?.length}
+        completa={!!p?.matriz_riesgos?.niveles?.length || hayDocs("matriz")}
         abierta={abierta === "matriz"}
         onToggle={() => alternar("matriz")}
         reciente={recientes["matriz"] ?? null}
@@ -510,14 +522,14 @@ export function PerfilView({
           {guardar()}
           <Aviso state={sMatriz} seccion="matriz" />
         </form>
-        <Adjuntos tenantId={tenantId} seccion="matriz" adjuntos={adjuntos} />
+        <Adjuntos tenantId={tenantId} seccion="matriz" adjuntos={adjuntos} variante="opcional" />
       </Seccion>
 
       {/* 3 · HORIZONTES ---------------------------------------------------- */}
       <Seccion
         titulo="Horizontes temporales"
         ayuda="NIIF S2 10 pide la definición de cada plazo y por qué se eligió."
-        completa={hz.some((h) => h.definicion)}
+        completa={hz.some((h) => h.definicion) || hayDocs("horizontes")}
         abierta={abierta === "horizontes"}
         onToggle={() => alternar("horizontes")}
         reciente={recientes["horizontes"] ?? null}
@@ -565,70 +577,72 @@ export function PerfilView({
           {guardar()}
           <Aviso state={sHoriz} seccion="horizontes" />
         </form>
-        <Adjuntos tenantId={tenantId} seccion="horizontes" adjuntos={adjuntos} />
+        <Adjuntos tenantId={tenantId} seccion="horizontes" adjuntos={adjuntos} variante="opcional" />
       </Seccion>
 
       {/* 4 · CARTA --------------------------------------------------------- */}
       <Seccion
         titulo="Carta de la Dirección"
         ayuda="Abre el suplemento. El generador corrige estilo; no agrega hechos."
-        completa={!!p?.carta_texto}
+        completa={!!p?.carta_texto || hayDocs("carta")}
         abierta={abierta === "carta"}
         onToggle={() => alternar("carta")}
         reciente={recientes["carta"] ?? null}
       >
-        <form action={aCarta}>
-          {oculto}
-          <div>
-            <label className={LABEL} htmlFor={`${uid}-ct`}>
-              Texto
-            </label>
-            <textarea
-              id={`${uid}-ct`}
-              name="carta_texto"
-              rows={10}
-              defaultValue={p?.carta_texto ?? ""}
-              placeholder="Mensaje de la Dirección sobre el ejercicio y su enfoque de sostenibilidad."
-              className={cn(AREA, "mt-2")}
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Escríbela como quiere que aparezca. El generador corrige estilo y traduce; no
-              agrega hechos ni cifras que no estén aquí.
-            </p>
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Adjuntos tenantId={tenantId} seccion="carta" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aCarta}>
+            {oculto}
             <div>
-              <label className={LABEL} htmlFor={`${uid}-cf`}>
-                Firmante
+              <label className={LABEL} htmlFor={`${uid}-ct`}>
+                Texto
               </label>
-              <input
-                id={`${uid}-cf`}
-                name="carta_firmante"
-                defaultValue={p?.carta_firmante ?? ""}
-                className={cn(INPUT, "mt-2")}
-              />
-              <p className="mt-1.5 text-xs text-muted">Nombre de quien firma la carta.</p>
-            </div>
-            <div>
-              <label className={LABEL} htmlFor={`${uid}-cc`}>
-                Cargo
-              </label>
-              <input
-                id={`${uid}-cc`}
-                name="carta_cargo"
-                defaultValue={p?.carta_cargo ?? ""}
-                placeholder="Director General"
-                className={cn(INPUT, "mt-2")}
+              <textarea
+                id={`${uid}-ct`}
+                name="carta_texto"
+                rows={10}
+                defaultValue={p?.carta_texto ?? ""}
+                placeholder="Mensaje de la Dirección sobre el ejercicio y su enfoque de sostenibilidad."
+                className={cn(AREA, "mt-2")}
               />
               <p className="mt-1.5 text-xs text-muted">
-                Cargo tal como debe imprimirse bajo la firma.
+                Escríbela como quiere que aparezca. El generador corrige estilo y traduce; no
+                agrega hechos ni cifras que no estén aquí.
               </p>
             </div>
-          </div>
-          {guardar()}
-          <Aviso state={sCarta} seccion="carta" />
-        </form>
-        <Adjuntos tenantId={tenantId} seccion="carta" adjuntos={adjuntos} />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-cf`}>
+                  Firmante
+                </label>
+                <input
+                  id={`${uid}-cf`}
+                  name="carta_firmante"
+                  defaultValue={p?.carta_firmante ?? ""}
+                  className={cn(INPUT, "mt-2")}
+                />
+                <p className="mt-1.5 text-xs text-muted">Nombre de quien firma la carta.</p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-cc`}>
+                  Cargo
+                </label>
+                <input
+                  id={`${uid}-cc`}
+                  name="carta_cargo"
+                  defaultValue={p?.carta_cargo ?? ""}
+                  placeholder="Director General"
+                  className={cn(INPUT, "mt-2")}
+                />
+                <p className="mt-1.5 text-xs text-muted">
+                  Cargo tal como debe imprimirse bajo la firma.
+                </p>
+              </div>
+            </div>
+            {guardar()}
+            <Aviso state={sCarta} seccion="carta" />
+          </form>
+        </CamposManuales>
       </Seccion>
 
       {/* 5 y 6 · HITOS ----------------------------------------------------- */}
@@ -660,52 +674,173 @@ export function PerfilView({
           key={s.k}
           titulo={s.titulo}
           ayuda={s.ayuda}
-          completa={s.completa}
+          completa={s.completa || hayDocs(s.k)}
           abierta={abierta === s.k}
           onToggle={() => alternar(s.k)}
           reciente={recientes[s.k] ?? null}
         >
-          <form action={s.action}>
+          <Adjuntos tenantId={tenantId} seccion={s.k} adjuntos={adjuntos} variante="origen" />
+          <CamposManuales>
+            <form action={s.action}>
+              {oculto}
+              {s.filas.length === 0 && (
+                <p className="text-sm text-muted">Sin hitos. Agrega el primero.</p>
+              )}
+              <div className="space-y-2">
+                {s.filas.map((h, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[6rem_1fr_2rem_2rem_2rem] items-center gap-2"
+                  >
+                    <input
+                      name="anio"
+                      value={h.anio}
+                      onChange={(e) =>
+                        s.set((v) =>
+                          v.map((x, j) => (j === i ? { ...x, anio: e.target.value } : x))
+                        )
+                      }
+                      placeholder="Año"
+                      className={cn(INPUT_CAMPO, "w-full")}
+                    />
+                    <input
+                      name="texto"
+                      value={h.texto}
+                      onChange={(e) =>
+                        s.set((v) =>
+                          v.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x))
+                        )
+                      }
+                      placeholder="Qué pasó"
+                      className={cn(INPUT_CAMPO, "w-full")}
+                    />
+                    <BotonFila
+                      titulo="Subir"
+                      onClick={() =>
+                        s.set((v) => {
+                          if (i === 0) return v;
+                          const c = [...v];
+                          [c[i - 1], c[i]] = [c[i], c[i - 1]];
+                          return c;
+                        })
+                      }
+                    >
+                      ↑
+                    </BotonFila>
+                    <BotonFila
+                      titulo="Bajar"
+                      onClick={() =>
+                        s.set((v) => {
+                          if (i === v.length - 1) return v;
+                          const c = [...v];
+                          [c[i + 1], c[i]] = [c[i], c[i + 1]];
+                          return c;
+                        })
+                      }
+                    >
+                      ↓
+                    </BotonFila>
+                    <BotonFila
+                      titulo="Quitar"
+                      onClick={() => s.set((v) => v.filter((_, j) => j !== i))}
+                    >
+                      ×
+                    </BotonFila>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => s.set((v) => [...v, { anio: "", texto: "" }])}
+                >
+                  Agregar hito
+                </Button>
+              </div>
+              {guardar()}
+              <Aviso state={s.state} seccion={s.k} />
+            </form>
+          </CamposManuales>
+      </Seccion>
+      ))}
+
+      {/* 7 · MODELO DE NEGOCIO Y CADENA DE VALOR ---------------------------- */}
+      <Seccion
+        titulo="Modelo de negocio y cadena de valor"
+        ayuda="Qué hace la entidad y por qué etapas pasa lo que hace."
+        completa={!!p?.modelo_negocio || cadena.length > 0 || hayDocs("modelo")}
+        abierta={abierta === "modelo"}
+        onToggle={() => alternar("modelo")}
+        reciente={recientes["modelo"] ?? null}
+      >
+        <Adjuntos tenantId={tenantId} seccion="modelo" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aModelo}>
             {oculto}
-            {s.filas.length === 0 && (
-              <p className="text-sm text-muted">Sin hitos. Agrega el primero.</p>
+            <div>
+              <label className={LABEL} htmlFor={`${uid}-mn`}>
+                Modelo de negocio
+              </label>
+              <textarea
+                id={`${uid}-mn`}
+                name="modelo_negocio"
+                rows={6}
+                defaultValue={p?.modelo_negocio ?? ""}
+                placeholder="Cómo genera valor la entidad."
+                className={cn(AREA, "mt-2")}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                A qué se dedica, con qué activos y para quién. Es la base del bloque sobre
+                efectos del clima en el modelo de negocio.
+              </p>
+            </div>
+
+            <p className={cn(LABEL, "mt-5")}>Cadena de valor</p>
+            <p className="mt-1 text-xs text-muted">
+              Las etapas por las que pasa lo que la entidad produce o presta, de principio a
+              fin. Se usan para situar dónde ocurre cada riesgo.
+            </p>
+            {cadena.length === 0 && (
+              <p className="mt-2 text-sm text-muted">Sin etapas. Agrega la primera.</p>
             )}
-            <div className="space-y-2">
-              {s.filas.map((h, i) => (
+            <div className="mt-2 space-y-2">
+              {cadena.map((c, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-[6rem_1fr_2rem_2rem_2rem] items-center gap-2"
+                  className="grid grid-cols-[12rem_1fr_2rem_2rem_2rem] items-center gap-2"
                 >
                   <input
-                    name="anio"
-                    value={h.anio}
+                    name="etapa"
+                    value={c.etapa}
                     onChange={(e) =>
-                      s.set((v) =>
-                        v.map((x, j) => (j === i ? { ...x, anio: e.target.value } : x))
+                      setCadena((v) =>
+                        v.map((x, j) => (j === i ? { ...x, etapa: e.target.value } : x))
                       )
                     }
-                    placeholder="Año"
+                    placeholder="Etapa"
                     className={cn(INPUT_CAMPO, "w-full")}
                   />
                   <input
-                    name="texto"
-                    value={h.texto}
+                    name="descripcion"
+                    value={c.descripcion}
                     onChange={(e) =>
-                      s.set((v) =>
-                        v.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x))
+                      setCadena((v) =>
+                        v.map((x, j) => (j === i ? { ...x, descripcion: e.target.value } : x))
                       )
                     }
-                    placeholder="Qué pasó"
+                    placeholder="Qué ocurre en ella"
                     className={cn(INPUT_CAMPO, "w-full")}
                   />
                   <BotonFila
                     titulo="Subir"
                     onClick={() =>
-                      s.set((v) => {
+                      setCadena((v) => {
                         if (i === 0) return v;
-                        const c = [...v];
-                        [c[i - 1], c[i]] = [c[i], c[i - 1]];
-                        return c;
+                        const x = [...v];
+                        [x[i - 1], x[i]] = [x[i], x[i - 1]];
+                        return x;
                       })
                     }
                   >
@@ -714,11 +849,11 @@ export function PerfilView({
                   <BotonFila
                     titulo="Bajar"
                     onClick={() =>
-                      s.set((v) => {
+                      setCadena((v) => {
                         if (i === v.length - 1) return v;
-                        const c = [...v];
-                        [c[i + 1], c[i]] = [c[i], c[i + 1]];
-                        return c;
+                        const x = [...v];
+                        [x[i + 1], x[i]] = [x[i], x[i + 1]];
+                        return x;
                       })
                     }
                   >
@@ -726,7 +861,7 @@ export function PerfilView({
                   </BotonFila>
                   <BotonFila
                     titulo="Quitar"
-                    onClick={() => s.set((v) => v.filter((_, j) => j !== i))}
+                    onClick={() => setCadena((v) => v.filter((_, j) => j !== i))}
                   >
                     ×
                   </BotonFila>
@@ -738,227 +873,114 @@ export function PerfilView({
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => s.set((v) => [...v, { anio: "", texto: "" }])}
+                onClick={() => setCadena((v) => [...v, { etapa: "", descripcion: "" }])}
               >
-                Agregar hito
+                Agregar etapa
               </Button>
             </div>
             {guardar()}
-            <Aviso state={s.state} seccion={s.k} />
+            <Aviso state={sModelo} seccion="modelo" />
           </form>
-          <Adjuntos tenantId={tenantId} seccion={s.k} adjuntos={adjuntos} />
-      </Seccion>
-      ))}
-
-      {/* 7 · MODELO DE NEGOCIO Y CADENA DE VALOR ---------------------------- */}
-      <Seccion
-        titulo="Modelo de negocio y cadena de valor"
-        ayuda="Qué hace la entidad y por qué etapas pasa lo que hace."
-        completa={!!p?.modelo_negocio || cadena.length > 0}
-        abierta={abierta === "modelo"}
-        onToggle={() => alternar("modelo")}
-        reciente={recientes["modelo"] ?? null}
-      >
-        <form action={aModelo}>
-          {oculto}
-          <div>
-            <label className={LABEL} htmlFor={`${uid}-mn`}>
-              Modelo de negocio
-            </label>
-            <textarea
-              id={`${uid}-mn`}
-              name="modelo_negocio"
-              rows={6}
-              defaultValue={p?.modelo_negocio ?? ""}
-              placeholder="Cómo genera valor la entidad."
-              className={cn(AREA, "mt-2")}
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              A qué se dedica, con qué activos y para quién. Es la base del bloque sobre
-              efectos del clima en el modelo de negocio.
-            </p>
-          </div>
-
-          <p className={cn(LABEL, "mt-5")}>Cadena de valor</p>
-          <p className="mt-1 text-xs text-muted">
-            Las etapas por las que pasa lo que la entidad produce o presta, de principio a
-            fin. Se usan para situar dónde ocurre cada riesgo.
-          </p>
-          {cadena.length === 0 && (
-            <p className="mt-2 text-sm text-muted">Sin etapas. Agrega la primera.</p>
-          )}
-          <div className="mt-2 space-y-2">
-            {cadena.map((c, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[12rem_1fr_2rem_2rem_2rem] items-center gap-2"
-              >
-                <input
-                  name="etapa"
-                  value={c.etapa}
-                  onChange={(e) =>
-                    setCadena((v) =>
-                      v.map((x, j) => (j === i ? { ...x, etapa: e.target.value } : x))
-                    )
-                  }
-                  placeholder="Etapa"
-                  className={cn(INPUT_CAMPO, "w-full")}
-                />
-                <input
-                  name="descripcion"
-                  value={c.descripcion}
-                  onChange={(e) =>
-                    setCadena((v) =>
-                      v.map((x, j) => (j === i ? { ...x, descripcion: e.target.value } : x))
-                    )
-                  }
-                  placeholder="Qué ocurre en ella"
-                  className={cn(INPUT_CAMPO, "w-full")}
-                />
-                <BotonFila
-                  titulo="Subir"
-                  onClick={() =>
-                    setCadena((v) => {
-                      if (i === 0) return v;
-                      const x = [...v];
-                      [x[i - 1], x[i]] = [x[i], x[i - 1]];
-                      return x;
-                    })
-                  }
-                >
-                  ↑
-                </BotonFila>
-                <BotonFila
-                  titulo="Bajar"
-                  onClick={() =>
-                    setCadena((v) => {
-                      if (i === v.length - 1) return v;
-                      const x = [...v];
-                      [x[i + 1], x[i]] = [x[i], x[i + 1]];
-                      return x;
-                    })
-                  }
-                >
-                  ↓
-                </BotonFila>
-                <BotonFila
-                  titulo="Quitar"
-                  onClick={() => setCadena((v) => v.filter((_, j) => j !== i))}
-                >
-                  ×
-                </BotonFila>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setCadena((v) => [...v, { etapa: "", descripcion: "" }])}
-            >
-              Agregar etapa
-            </Button>
-          </div>
-          {guardar()}
-          <Aviso state={sModelo} seccion="modelo" />
-        </form>
-        <Adjuntos tenantId={tenantId} seccion="modelo" adjuntos={adjuntos} />
+        </CamposManuales>
       </Seccion>
 
       {/* 8 · GOBIERNO Y ORGANIGRAMA ---------------------------------------- */}
       <Seccion
         titulo="Gobierno corporativo"
         ayuda="Estructura de gobierno y su organigrama."
-        completa={!!p?.gobierno_texto || !!p?.organigrama_path}
+        completa={!!p?.gobierno_texto || !!p?.organigrama_path || hayDocs("gobierno")}
         abierta={abierta === "gobierno"}
         onToggle={() => alternar("gobierno")}
         reciente={recientes["gobierno"] ?? null}
       >
-        <form action={aGob}>
-          {oculto}
-          <div>
-            <label className={LABEL} htmlFor={`${uid}-gt`}>
-              Estructura de gobierno
-            </label>
-            <textarea
-              id={`${uid}-gt`}
-              name="gobierno_texto"
-              rows={6}
-              defaultValue={p?.gobierno_texto ?? ""}
-              placeholder="Órganos, comités y a quién reporta la función de sostenibilidad."
-              className={cn(AREA, "mt-2")}
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Consejo, comités y de quién depende la función de sostenibilidad. NIIF S2 6
-              pide saber quién supervisa y con qué frecuencia.
-            </p>
-          </div>
-          {guardar()}
-          <Aviso state={sGob} seccion="gobierno" />
-        </form>
-
-        <div className="mt-6 border-t border-line pt-5">
-          <p className={LABEL}>Organigrama</p>
-          {organigramaUrl ? (
-            <div className="mt-3 overflow-hidden rounded-xl border border-line bg-crema/30 p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={organigramaUrl}
-                alt="Organigrama de la entidad"
-                className="mx-auto max-h-72 w-auto object-contain"
-              />
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-muted">Sin organigrama cargado.</p>
-          )}
-          <form action={aOrg} className="mt-3 flex flex-wrap items-center gap-3">
+        <Adjuntos tenantId={tenantId} seccion="gobierno" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aGob}>
             {oculto}
-            <input
-              type="file"
-              name="organigrama"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              className="text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-line file:bg-surface file:px-3 file:py-2 file:text-sm file:text-ink"
-            />
-            <Button type="submit" size="sm" variant="secondary">
-              Subir organigrama
-            </Button>
+            <div>
+              <label className={LABEL} htmlFor={`${uid}-gt`}>
+                Estructura de gobierno
+              </label>
+              <textarea
+                id={`${uid}-gt`}
+                name="gobierno_texto"
+                rows={6}
+                defaultValue={p?.gobierno_texto ?? ""}
+                placeholder="Órganos, comités y a quién reporta la función de sostenibilidad."
+                className={cn(AREA, "mt-2")}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Consejo, comités y de quién depende la función de sostenibilidad. NIIF S2 6
+                pide saber quién supervisa y con qué frecuencia.
+              </p>
+            </div>
+            {guardar()}
+            <Aviso state={sGob} seccion="gobierno" />
           </form>
-          <p className="mt-2 text-xs text-muted">
-            PNG, JPG, WebP o SVG, hasta 5 MB. Se guarda en el almacenamiento privado de la
-            emisora; no queda accesible por URL pública.
-          </p>
-          <Aviso state={sOrg} seccion="gobierno" />
-        </div>
-        <Adjuntos tenantId={tenantId} seccion="gobierno" adjuntos={adjuntos} />
+
+          <div className="mt-6 border-t border-line pt-5">
+            <p className={LABEL}>Organigrama</p>
+            {organigramaUrl ? (
+              <div className="mt-3 overflow-hidden rounded-xl border border-line bg-crema/30 p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={organigramaUrl}
+                  alt="Organigrama de la entidad"
+                  className="mx-auto max-h-72 w-auto object-contain"
+                />
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted">Sin organigrama cargado.</p>
+            )}
+            <form action={aOrg} className="mt-3 flex flex-wrap items-center gap-3">
+              {oculto}
+              <input
+                type="file"
+                name="organigrama"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-line file:bg-surface file:px-3 file:py-2 file:text-sm file:text-ink"
+              />
+              <Button type="submit" size="sm" variant="secondary">
+                Subir organigrama
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted">
+              PNG, JPG, WebP o SVG, hasta 5 MB. Se guarda en el almacenamiento privado de la
+              emisora; no queda accesible por URL pública.
+            </p>
+            <Aviso state={sOrg} seccion="gobierno" />
+          </div>
+        </CamposManuales>
       </Seccion>
 
       {/* 9 · MATERIALIDAD --------------------------------------------------- */}
       <Seccion
         titulo="Proceso de materialidad"
         ayuda="Cómo se determinó qué temas son materiales."
-        completa={!!p?.proceso_materialidad}
+        completa={!!p?.proceso_materialidad || hayDocs("materialidad")}
         abierta={abierta === "materialidad"}
         onToggle={() => alternar("materialidad")}
         reciente={recientes["materialidad"] ?? null}
       >
-        <form action={aMat}>
-          {oculto}
-          <textarea
-            name="proceso_materialidad"
-            rows={7}
-            defaultValue={p?.proceso_materialidad ?? ""}
-            placeholder="Metodología, participantes y criterios con los que se priorizaron los temas."
-            className={AREA}
-          />
-          <p className="mt-1.5 text-xs text-muted">
-            Cómo se decidió qué temas son materiales: metodología, a quién se consultó y con
-            qué criterios se priorizaron.
-          </p>
-          {guardar()}
-          <Aviso state={sMat} seccion="materialidad" />
-        </form>
-        <Adjuntos tenantId={tenantId} seccion="materialidad" adjuntos={adjuntos} />
+        <Adjuntos tenantId={tenantId} seccion="materialidad" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aMat}>
+            {oculto}
+            <textarea
+              name="proceso_materialidad"
+              rows={7}
+              defaultValue={p?.proceso_materialidad ?? ""}
+              placeholder="Metodología, participantes y criterios con los que se priorizaron los temas."
+              className={AREA}
+            />
+            <p className="mt-1.5 text-xs text-muted">
+              Cómo se decidió qué temas son materiales: metodología, a quién se consultó y con
+              qué criterios se priorizaron.
+            </p>
+            {guardar()}
+            <Aviso state={sMat} seccion="materialidad" />
+          </form>
+        </CamposManuales>
       </Seccion>
 
       <p className="pt-2 text-xs text-muted">
@@ -983,20 +1005,57 @@ function tamano(bytes: number | null): string {
 }
 
 /**
- * Archivos de respaldo de una sección.
+ * Los campos de una sección narrativa, plegados. El documento es la fuente; esto
+ * es para completar lo que el archivo no trae o corregir lo que trae mal, así
+ * que empieza cerrado: abierto de entrada volvería a poner el formulario por
+ * delante, que es justo lo que este rediseño quita de en medio.
+ */
+function CamposManuales({ children }: { children: React.ReactNode }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <div className="mt-5">
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        aria-expanded={abierto}
+        className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-sm font-medium text-ink transition hover:text-teal"
+      >
+        <span
+          aria-hidden
+          className={cn("text-muted transition duration-150", abierto ? "rotate-90" : "rotate-0")}
+        >
+          ›
+        </span>
+        Capturar o complementar manualmente
+      </button>
+      {abierto && <div className="mt-3">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * Documentos de origen de una sección.
  *
- * En esta fase se guardan, se descargan y se quitan: el generador NO los lee. Se
- * dice en la propia pantalla para que nadie suba el estudio de materialidad
- * creyendo que con eso el bloque se escribe solo.
+ * DOS VARIANTES, y la diferencia no es estética. En las secciones NARRATIVAS el
+ * documento es la fuente: el emisor ya escribió su carta, su historia y su
+ * política de gobierno en algún archivo, y transcribirlas a un textarea es el
+ * trabajo que hace que estas secciones se queden vacías. Ahí los documentos van
+ * ARRIBA y los campos quedan plegados como complemento.
+ *
+ * En las secciones ESTRUCTURADAS (la matriz, los horizontes) no hay texto que
+ * derivar: hay cortes numéricos y tres plazos fijos que solo se pueden capturar.
+ * Ahí el documento es respaldo opcional y va debajo.
  */
 function Adjuntos({
   tenantId,
   seccion,
   adjuntos,
+  variante,
 }: {
   tenantId: string;
   seccion: string;
   adjuntos: Adjunto[];
+  variante: "origen" | "opcional";
 }) {
   const [sSubir, aSubir] = useActionState(subirAdjunto, VACIO_ADJ);
   const [sQuitar, aQuitar] = useActionState(quitarAdjunto, VACIO_ADJ);
@@ -1021,13 +1080,28 @@ function Adjuntos({
 
   const mios = adjuntos.filter((a) => a.seccion === seccion);
 
+  const esOrigen = variante === "origen";
+
   return (
-    <div className="mt-6 border-t border-line pt-5">
-      <p className={LABEL}>Archivos de respaldo</p>
-      <p className="mt-1 text-xs text-muted">
-        PDF, DOCX, XLSX, PNG o JPG, hasta 20 MB. Quedan guardados con la sección para
-        quien la revise; el generador todavía no los lee.
-      </p>
+    <div
+      className={cn(
+        esOrigen
+          ? "rounded-xl border border-teal/25 bg-teal/[0.04] p-4 sm:p-5"
+          : "mt-6 border-t border-line pt-5"
+      )}
+    >
+      <p className={LABEL}>Documentos de origen</p>
+      {esOrigen ? (
+        <p className="mt-1 text-sm leading-relaxed text-ink">
+          El texto de esta sección se derivará de los documentos al generar el suplemento;
+          puedes complementarlo o corregirlo en los campos.
+        </p>
+      ) : (
+        <p className="mt-1 text-xs text-muted">
+          Opcional: el respaldo de lo que se capturó arriba, para quien revise la sección.
+        </p>
+      )}
+      <p className="mt-1 text-xs text-muted">PDF, DOCX, XLSX, PNG o JPG, hasta 20 MB.</p>
 
       {mios.length > 0 && (
         <ul className="mt-3 space-y-2">
