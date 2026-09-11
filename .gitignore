@@ -70,3 +70,8 @@ logos-demo/
 # (scripts/crear-demo-prospecto.mjs). Cuentas @example de mockups, pero no van
 # al repo: una contraseña versionada es una contraseña publicada.
 .credenciales-demo/
+
+# Texto oficial de NIIF S1 y S2 (IFRS Foundation), en español e inglés. Material
+# con licencia: se consulta para auditar el catálogo de datapoints, no se
+# redistribuye. Versionarlo lo publicaría con el repositorio.
+normas/
