@@ -148,8 +148,13 @@ const REG_SECCIONES: RegSeccion[] = [
     cols: { nombre: "A", descripcion: "B", tipo: "C", horizonte: "D" },
   },
   // Hojas de valores (datos 2025 en C/D/E, 2024 en H/I/J).
+  // NIIF S2 29(c) son los riesgos FÍSICOS y 29(b) los de TRANSICIÓN. Las dos
+  // pestañas llevaban el código cruzado —la de físicos decía 29(b) y la de
+  // transición decía 30, que ni siquiera es una revelación sino la exención por
+  // costo desproporcionado—. El contenido de cada hoja siempre fue el correcto:
+  // lo que estaba mal era su etiqueta, y aquí se le escribe a la que toca.
   {
-    hoja: "NIIF S2 29(b)",
+    hoja: "NIIF S2 29(c)",
     tipos: ["riesgo_fisico"],
     filaInicio: 5,
     filaFin: 20,
@@ -157,7 +162,7 @@ const REG_SECCIONES: RegSeccion[] = [
     cols: { nombre: "A", horizonte: "B", v2025: G2025, v2024: G2024 },
   },
   {
-    hoja: "NIIF S2 30",
+    hoja: "NIIF S2 29(b)",
     tipos: ["riesgo_transicion"],
     filaInicio: 5,
     filaFin: 14,

@@ -219,3 +219,47 @@ presente informe», «Seleccionar el tipo de sector». Restos de la plantilla de
 
 Un cuarto patrón, menor pero repetido: cinco descripciones recortaban «situación financiera, rendimiento
 financiero y flujos de efectivo» a solo el primer término. **Corregidas las cinco.**
+
+---
+
+## El mismo cruce, propagado al Excel · 11 de septiembre de 2026
+
+La auditoría corrigió el catálogo en la base, pero el cruce 29(b)/29(c) también
+vivía en la plantilla `assets/taxonomia-base.xlsx`, que es otra copia del mismo
+origen. Corregir una no corregía la otra.
+
+### Lo que estaba mal
+
+| Dónde | Decía | Debía decir |
+|---|---|---|
+| Nombre de la hoja principal | `Fondo I` — el nombre de un cliente | `Taxonomía NIIF S1 S2` |
+| Columna D de la hoja índice | Texto congelado con los errores del catálogo, incluido un párrafo sobre peajes y tarifas de un cliente | Se escribe desde `datapoints_taxonomia` en cada export |
+| Pestaña con contenido de riesgos **físicos** | `NIIF S2 29(b)` — que es transición | `NIIF S2 29(c)` |
+| Pestaña con contenido de riesgos **de transición** | `NIIF S2 30` — que es la exención por costo desproporcionado | `NIIF S2 29(b)` |
+| Cabeceras A1 de esas dos hojas | Los mismos códigos cruzados | Corregidas |
+| Cuatro celdas de la columna B de la hoja índice | `NIIF S2 30` como código de las filas de cantidad, porcentaje y despliegue de capital de los tres bloques | `29 (b)`, `29 (c)` y `29 (d)` según el subtítulo |
+
+El contenido de las dos hojas de riesgo **siempre fue el correcto**: sus columnas
+hablaban del riesgo que les corresponde, de arriba abajo. Lo único equivocado era
+la etiqueta. Por eso no hubo cifras que mover.
+
+### Qué se hizo
+
+`scripts/preparar-plantilla-taxonomia.mjs` y `scripts/corregir-hojas-riesgo.mjs`,
+ambos idempotentes, más dos migraciones de red de seguridad para `mapeo_export`
+(`20260916120000` y `20260917120000`) que hoy afectan a cero filas: esa tabla
+solo mapea las dos hojas GEI, pero el nombre de hoja es la llave con la que el
+export busca la pestaña.
+
+Se insertaron además las dos filas que faltaban: `NIIF S1 27(b)(ii)` y
+`NIIF S2 B65 inciso (e)`, los dos códigos que la auditoría creó y que la
+plantilla no tenía. Solo con el código en la columna B; la descripción la escribe
+el export.
+
+### Lo que queda
+
+`NIIF S2 30` ya no tiene fila en la hoja índice. Es coherente: el párrafo 30 no
+es una revelación sino una instrucción de preparación —usar la información
+razonable disponible sin costo o esfuerzo desproporcionado—, así que no le
+corresponde una fila de requisito. Si se decide que debe aparecer, hay que darle
+una fila propia, no reutilizar la de otro.

@@ -136,8 +136,12 @@ async function main() {
     "NIIF S2 29(a)(i)",
     "NIIF S2 29(a)(vi)(1)",
     "NIIF S2 10",
+    // 29(c) son los riesgos FÍSICOS y 29(b) los de TRANSICIÓN. Las dos pestañas
+    // llevaban el código cruzado y se corrigieron: ya no existe una hoja «NIIF S2 30»,
+    // porque el párrafo 30 no es una revelación sino la exención por costo
+    // desproporcionado al preparar 29(b) a (d).
+    "NIIF S2 29(c)",
     "NIIF S2 29(b)",
-    "NIIF S2 30",
     "NIIF S2 29(d)",
     "NIIF S1 51",
     "NIIF S2 33",
@@ -154,8 +158,10 @@ async function main() {
   const gei1 = wb.getWorksheet("NIIF S2 29(a)(i)");
   const geiVi = wb.getWorksheet("NIIF S2 29(a)(vi)(1)");
   const s10 = wb.getWorksheet("NIIF S2 10");
-  const s29b = wb.getWorksheet("NIIF S2 29(b)");
-  const s30 = wb.getWorksheet("NIIF S2 30");
+  // Se nombran por lo que CONTIENEN, que es lo que no cambió: la hoja de riesgos
+  // físicos pasó a llamarse «NIIF S2 29(c)» y la de transición, «NIIF S2 29(b)».
+  const sFisicos = wb.getWorksheet("NIIF S2 29(c)");
+  const sTransicion = wb.getWorksheet("NIIF S2 29(b)");
   const s29d = wb.getWorksheet("NIIF S2 29(d)");
 
   console.log("\nGEI 29(a)(i) — nota por celda-año (año validado y lleno + año sin evidencia):");
@@ -221,27 +227,27 @@ async function main() {
     cellText(s10, "D4").includes("Corto plazo") && cellText(s10, "D4").includes("Mediano plazo"),
     "S2 10: D4 lista varios horizontes"
   );
-  ok(cellText(s29b, "A5").length > 0, "S2 29(b): A5 tiene riesgo físico");
+  ok(cellText(sFisicos, "A5").length > 0, "S2 29(c) [físicos]: A5 tiene riesgo físico");
   ok(
-    cellText(s29b, "B5").includes("Corto plazo") && cellText(s29b, "B5").includes("Mediano plazo"),
-    "S2 29(b): B5 lista varios horizontes"
+    cellText(sFisicos, "B5").includes("Corto plazo") && cellText(sFisicos, "B5").includes("Mediano plazo"),
+    "S2 29(c) [físicos]: B5 lista varios horizontes"
   );
-  ok(Number(cellText(s29b, "C5")) > 0, "S2 29(b): C5 (cantidad 2025) tiene número");
+  ok(Number(cellText(sFisicos, "C5")) > 0, "S2 29(c) [físicos]: C5 (cantidad 2025) tiene número");
   // Despliegue de capital en 3 sub-filas (etiqueta E + valor F), bloque del 1er registro.
   ok(
-    cellText(s29b, "E5") === "Cantidad de gasto de capital",
-    "S2 29(b): E5 = 'Cantidad de gasto de capital'"
+    cellText(sFisicos, "E5") === "Cantidad de gasto de capital",
+    "S2 29(c) [físicos]: E5 = 'Cantidad de gasto de capital'"
   );
-  ok(Number(cellText(s29b, "F5")) > 0, "S2 29(b): F5 (gasto de capital 2025) tiene número");
+  ok(Number(cellText(sFisicos, "F5")) > 0, "S2 29(c) [físicos]: F5 (gasto de capital 2025) tiene número");
   ok(
-    cellText(s29b, "E6") === "Cantidad de financiación",
-    "S2 29(b): E6 = 'Cantidad de financiación' (sub-fila 2)"
+    cellText(sFisicos, "E6") === "Cantidad de financiación",
+    "S2 29(c) [físicos]: E6 = 'Cantidad de financiación' (sub-fila 2)"
   );
   ok(
-    cellText(s29b, "E7") === "Cantidad de inversión",
-    "S2 29(b): E7 = 'Cantidad de inversión' (sub-fila 3)"
+    cellText(sFisicos, "E7") === "Cantidad de inversión",
+    "S2 29(c) [físicos]: E7 = 'Cantidad de inversión' (sub-fila 3)"
   );
-  ok(cellText(s30, "A5").length > 0, "S2 30: A5 tiene riesgo de transición");
+  ok(cellText(sTransicion, "A5").length > 0, "S2 29(b) [transición]: A5 tiene riesgo de transición");
   ok(cellText(s29d, "A5").length > 0, "S2 29(d): A5 tiene oportunidad");
 
   // Regla dura registros: la oportunidad sin valores muestra 'Sin datos del ejercicio'.

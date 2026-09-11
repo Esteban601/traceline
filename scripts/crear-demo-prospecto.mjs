@@ -622,7 +622,7 @@ const ESCENA = [
   //
   //   Composición del Consejo   → gobernanza: NIIF S2 6(a)
   //   Competencias del Consejo  → gobernanza: NIIF S1 27(a)(ii), NIIF S2 6(a)(ii)
-  //   Riesgos físicos           → estrategia: NIIF S2 10 · métricas: NIIF S2 29(b)
+  //   Riesgos físicos           → estrategia: NIIF S2 10 · métricas: NIIF S2 29(c)
   //   Política de der. humanos  → riesgos: NIIF S1 44(a)(i)a(v)  ← el ÚNICO
   //                               datapoint del pilar Riesgos con solicitud
   //
