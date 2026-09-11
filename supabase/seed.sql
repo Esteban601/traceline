@@ -125,9 +125,16 @@ insert into public.perfiles_usuario (id, tenant_id, rol, area, nombre, email) va
 -- =============================================================================
 -- 4. Reporte
 -- =============================================================================
-insert into public.reportes (id, tenant_id, nombre, ejercicio, estado)
+-- El reporte demo nace con su RÉGIMEN declarado: ejercicio 2025 = año de
+-- adopción, con los tres alivios transitorios que toma un emisor en su primer
+-- informe (C3 sin comparativos, C4 sin Alcance 3, C5 método de medición previo).
+-- Sin `anio_adopcion` el semáforo del suplemento no puede evaluar un solo bloque
+-- —no sabría si el documento lleva comparativos— y el seed dejaría la demo en una
+-- pantalla que solo dice "falta el año de adopción".
+insert into public.reportes (id, tenant_id, nombre, ejercicio, estado, anio_adopcion, alivios)
 values ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
-        '[DEMO] Informe Anual Sustentable 2025', 2025, 'activo');
+        '[DEMO] Informe Anual Sustentable 2025', 2025, 'activo', 2025,
+        '{"C3": true, "C4": true, "C5": true}'::jsonb);
 
 -- =============================================================================
 -- 5. Datapoints de taxonomía NIIF S1/S2 (91, catálogo oficial completo)
@@ -286,7 +293,14 @@ from (values
   ('c0000000-0000-0000-0000-000000000008', 'NIIF S2 29 (a)(ii)'), -- inventario GEI Alcance 2 -> medición conforme GHG Protocol
   ('c0000000-0000-0000-0000-000000000009', 'NIIF S1 46 a 50'), -- consumo de agua -> métricas de sostenibilidad S1 (no hay datapoint de agua) [DUDOSA]
   ('c0000000-0000-0000-0000-000000000010', 'NIIF S1 46 a 50'), -- residuos -> métricas de sostenibilidad S1 (no hay datapoint de residuos) [DUDOSA]
-  ('c0000000-0000-0000-0000-000000000011', 'NIIF S2 29 (b) B64 y B65 inciso (a)'), -- riesgos físicos en instalaciones -> activos vulnerables a riesgos físicos
+  -- OJO: aquí había un enlace a 'NIIF S2 29 (b) B64 y B65 inciso (a)'. Se quitó.
+  -- NIIF S2 29(b) son los riesgos de TRANSICIÓN; los físicos son 29(c). Ligar la
+  -- solicitud de riesgos físicos a un requisito de transición hacía que el
+  -- bloque 34 del suplemento (métricas de transición) se diera por cubierto con
+  -- evidencia de otra cosa. No se sustituye por 29(c): el catálogo no tiene el
+  -- inciso de "cantidad y porcentaje de activos vulnerables a riesgos físicos"
+  -- —su texto está, por error, bajo el código de 29(b)— así que hoy no hay a qué
+  -- ligarla, y decirlo vacío es más cierto que llenarlo mal.
   ('c0000000-0000-0000-0000-000000000011', 'NIIF S2 10(a), (b)y(c)'), -- riesgos físicos -> identificación de riesgos climáticos (físico/transición)
   ('c0000000-0000-0000-0000-000000000012', 'NIIF S2 29 (a)(i)'), -- consumo combustibles -> base de emisiones Alcance 1
   ('c0000000-0000-0000-0000-000000000012', 'NIIF S2 EI14 a E18'), -- consumo combustibles -> detalle Alcance 1
