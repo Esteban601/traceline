@@ -16,7 +16,8 @@
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
     "e2e:vb-area": "node scripts/e2e-vb-area.mjs",
     "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
-    "verify:export": "node scripts/verify-export.mjs"
+    "verify:export": "node scripts/verify-export.mjs",
+    "seed:catalogo": "node scripts/regenerar-seed-catalogo.mjs"
   },
   "engines": {
     "node": "22.x"
