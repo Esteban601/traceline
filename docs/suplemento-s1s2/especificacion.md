@@ -1,7 +1,12 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.3** · 10 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.4** · 10 de septiembre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.3** (tras construir el semáforo de A3b y cruzarlo con los datos reales):
+- Los bloques 6, 10, 22, 23, 27 y 28 dejan de citar `cuestionarios_respuestas`: no existe hoja narrativa que los
+  alimente. Su fuente son los datapoints de sus solicitudes, resueltos leyendo las evidencias documentales
+  (§3.2 b bis). Anexo A corregido.
 
 **Cambios respecto a 0.1** (tras revisión contra el código):
 - El Perfil del emisor tiene tabla propia por tenant; `cuestionarios_respuestas` no sirve (CHECK de hojas, una respuesta por pregunta, cascada al reporte).
@@ -73,7 +78,7 @@ construye en A2 cruzando contra los 91 códigos reales y se anexa a esta especif
 | 3 | Bases de preparación: marco y alivios transitorios | `reportes.alivios` (E4, E5, C3, C4, C5) | Plantilla condicional | Pendiente |
 | 4 | Entidad que informa, periodo y conectividad | Perfil: denominación, entidad que informa, perímetro; `reportes.ejercicio`; `solicitudes.nota_alcance` | Plantilla + T→E | Pendiente |
 | 5 | Conexiones y referencias cruzadas | Texto fijo | Plantilla | — |
-| 6 | Juicios, supuestos e incertidumbres (tabla) | Datapoint S1 74; `cuestionarios_respuestas` S2 22(b); `capturas_valor.justificacion` | D→T + Tabla | Fila pendiente |
+| 6 | Juicios, supuestos e incertidumbres (tabla) | Datapoint S1 74; `capturas_valor.justificacion` | D→T + Tabla | Fila pendiente |
 | 7 | Materialidad: contexto y proceso | Perfil: texto del proceso de materialidad | T→E | Pendiente |
 | 8 | Horizontes temporales (tabla) | Perfil: 3 horizontes con definición y justificación | Tabla | Pendiente |
 | 9 | Evaluación y priorización de riesgos | `registros_clima` con **severidad** (§5) y matriz del tenant | D→T + Tabla | Sin severidad: solo conteo por tipo |
@@ -172,6 +177,15 @@ A10 extrae de esos documentos hacia un **esquema fijo** — `nombre`, `tipo`, `h
 eso propone registros de clima y campos del Perfil, y **no inserta nada**: el resultado se revisa **fila por
 fila** y se acepta o se descarta una a una. La revisión humana no es una salvaguarda opcional del paso; es el
 paso.
+
+**(b bis) La misma tubería sirve para las evidencias de las solicitudes cualitativas.** Una solicitud
+cualitativa no entrega una cifra: entrega un documento —una política, un acta, un procedimiento— y su requisito
+NIIF se resuelve **leyendo esa evidencia**, no consultando una tabla. Por eso los bloques 6, 10, 22, 23, 27 y 28
+**no citan `cuestionarios_respuestas`**: no hay hoja narrativa que los alimente, y su fuente son los datapoints
+que sus solicitudes cubren. El generador abre esas evidencias con el mismo tratamiento de (a) —texto redactado
+se normaliza sin resumir; documento largo se deriva con cita de archivo y página— y bajo la misma regla: nada
+que no esté en el archivo. Las únicas hojas de cuestionario que existen son las tres de la plantilla oficial
+(`S2 22(b)(i)`, `S2 22(b)(ii)`, `S2 36(e)`), y alimentan solo a los bloques 26 y 40.
 
 **(c) Requisito técnico.** La extracción necesita texto:
 
@@ -347,11 +361,11 @@ Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a compr
 | 3 | Bases de preparación: marco y alivios transitorios | Plantilla | **varía** | — | `reportes` | — |
 | 4 | Entidad que informa, periodo y conectividad | Plantilla + T→E | ambos | `NIIF S2 32` | `reportes`, `solicitudes` | `denominacion_formal`, `entidad_que_informa`, `perimetro` |
 | 5 | Conexiones y referencias cruzadas | Plantilla | ambos | — | — | — |
-| 6 | Juicios, supuestos e incertidumbres | D→T + Tabla | **varía** | `NIIF S1 74` | `cuestionarios_respuestas`, `capturas_valor` | — |
+| 6 | Juicios, supuestos e incertidumbres | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
 | 7 | Materialidad: contexto y proceso | T→E | **varía** | — | — | `proceso_materialidad` |
 | 8 | Horizontes temporales | Tabla | ambos | — | — | `horizontes` |
 | 9 | Evaluación y priorización de riesgos | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
-| 10 | Resumen de efectos financieros actuales y previstos | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor`, `cuestionarios_respuestas` | — |
+| 10 | Resumen de efectos financieros actuales y previstos | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
 | 11 | Nuestra historia (línea de tiempo) | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
 | 12 | Modelo de negocio y cadena de valor | T→E | ambos | — | — | `modelo_negocio`, `cadena_valor` |
 | 13 | Efectos sobre el modelo de negocio y la cadena de valor | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |
@@ -363,13 +377,13 @@ Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a compr
 | 19 | Trayectoria en sostenibilidad y clima | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
 | 20 | Contexto estratégico | D→T | ambos | — | — | `horizontes` |
 | 21 | Riesgos climáticos prioritarios | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)`<br>`NIIF S2 10(d)` | `registros_clima` | `matriz_riesgos` |
-| 22 | Cambios en modelo de negocio y asignación de recursos | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | `cuestionarios_respuestas` | — |
-| 23 | Esfuerzos directos e indirectos de reducción y adaptación | D→T | ambos | `NIIF S2 14(a)(iii)` | `cuestionarios_respuestas` | — |
+| 22 | Cambios en modelo de negocio y asignación de recursos | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
+| 23 | Esfuerzos directos e indirectos de reducción y adaptación | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
 | 24 | Oportunidades y cómo prevé alcanzar objetivos | D→T | ambos | — | `registros_clima`, `objetivos` | — |
 | 25 | Recursos asignados y progreso de planes | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
 | 26 | Resiliencia de la estrategia y análisis de escenarios | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
-| 27 | Gestión y mitigación de riesgos y oportunidades | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | `cuestionarios_respuestas` | — |
-| 28 | Plan de transición | D→T | ambos | `NIIF S2 14(a)(iv)` | `cuestionarios_respuestas` | — |
+| 27 | Gestión y mitigación de riesgos y oportunidades | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
+| 28 | Plan de transición | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
 | 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`, `reportes` | — |
 | 30 | Método de medición, datos de entrada y C5 | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
 | 31 | Razones del enfoque y desagregación | D→T | ambos | `NIIF S2 29 (a)(iv) EI5` | — | — |

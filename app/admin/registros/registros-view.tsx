@@ -60,8 +60,6 @@ const TIPOS: { key: string; label: string; tono: Tono }[] = [
   { key: "riesgo_transicion", label: "Riesgos de transición", tono: "ambar" },
   { key: "oportunidad", label: "Oportunidades", tono: "verde" },
 ];
-const TONO_DE = new Map(TIPOS.map((t) => [t.key, t.tono]));
-const LABEL_DE = new Map(TIPOS.map((t) => [t.key, t.label]));
 const EJERCICIOS = [2025, 2024];
 
 // Horizonte temporal ahora es MULTI-ENUM (v2): un registro puede cubrir varios

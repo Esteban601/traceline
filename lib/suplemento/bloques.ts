@@ -118,7 +118,7 @@ export const BLOQUES: Bloque[] = [
     tipo: "D→T + Tabla",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S1 74"],
-    tablas: ["cuestionarios_respuestas", "capturas_valor"],
+    tablas: ["capturas_valor"],
     perfil: [],
   },
   {
@@ -162,7 +162,7 @@ export const BLOQUES: Bloque[] = [
     tipo: "D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 16(a)", "NIIF S2 16(b)", "NIIF S2 16(c)(i)(ii)", "NIIF S2 16(d)"],
-    tablas: ["capturas_valor", "cuestionarios_respuestas"],
+    tablas: ["capturas_valor"],
     perfil: [],
   },
   {
@@ -294,7 +294,7 @@ export const BLOQUES: Bloque[] = [
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(i)", "NIIF S2 14(a)(ii)"],
-    tablas: ["cuestionarios_respuestas"],
+    tablas: [],
     perfil: [],
   },
   {
@@ -305,7 +305,7 @@ export const BLOQUES: Bloque[] = [
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(iii)"],
-    tablas: ["cuestionarios_respuestas"],
+    tablas: [],
     perfil: [],
   },
   {
@@ -349,7 +349,7 @@ export const BLOQUES: Bloque[] = [
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 25 (a)(i)a(v)", "NIIF S2 25 (a)(vi)", "NIIF S2 25 (b)", "NIIF S2 25 (c)"],
-    tablas: ["cuestionarios_respuestas"],
+    tablas: [],
     perfil: [],
   },
   {
@@ -360,7 +360,7 @@ export const BLOQUES: Bloque[] = [
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(iv)"],
-    tablas: ["cuestionarios_respuestas"],
+    tablas: [],
     perfil: [],
   },
   {

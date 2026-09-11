@@ -59,6 +59,44 @@ export type MapeoRow = {
   celda_nota: string | null;
 };
 
+/**
+ * Solicitud del reporte, con lo que hace falta para juzgar si entregó. Se expone
+ * porque el suplemento razona POR SOLICITUD (¿este datapoint tiene con qué
+ * escribirse?) mientras el Excel razona por celda; los datos son los mismos.
+ */
+export type SolRow = {
+  id: string;
+  titulo: string;
+  estado: string;
+  origen: OrigenSolicitud;
+  es_cuantitativa: boolean;
+  rubro_taxonomia: string | null;
+  nota_alcance: string | null;
+};
+
+/**
+ * Veredicto de entrega de UNA solicitud para el ejercicio del reporte. Son las
+ * mismas tres causas que el Excel escribe en sus notas, juzgadas con las mismas
+ * reglas; lo único que cambia es la unidad: allá una celda-año, aquí la
+ * solicitud entera.
+ *
+ *  · "entregado"             — hay dato utilizable y validado.
+ *  · "pendiente_validacion"  — llegó algo, pero todavía no está validado.
+ *  · "sin_evidencia"         — no llegó nada de ese ejercicio.
+ *
+ * Una solicitud CUANTITATIVA entrega una captura confirmada; una cualitativa
+ * entrega una evidencia. Aplicarle a la cualitativa la regla de la captura la
+ * dejaría siempre en "sin evidencia", que es falso y haría inútil el semáforo:
+ * la mayoría de los requisitos del suplemento son cualitativos.
+ */
+export type EstadoEntrega = "entregado" | "pendiente_validacion" | "sin_evidencia";
+
+export type EntregaSolicitud = {
+  estado: EstadoEntrega;
+  /** Valor vigente del ejercicio, solo si es cuantitativa y está entregada. */
+  valor: number | null;
+};
+
 export type CapRow = {
   solicitud_id: string;
   valor: number;
@@ -203,6 +241,10 @@ export type Ensamblado = {
   conteos: ConteosEnsamblado;
   /** Última fila tocada por hoja: quien escribe la usa para colocar su pie. */
   filaMaximaPorHoja: Map<string, number>;
+  /** Solicitudes del reporte (sin declinadas ni desactivadas), como las vio la resolución. */
+  solicitudes: SolRow[];
+  /** Veredicto de entrega por solicitud para el ejercicio del reporte. */
+  entregaPorSolicitud: Map<string, EntregaSolicitud>;
   /** Crudos para los bloques de escritura posicional (4 hojas de registros, 5 de objetivos, 3 de cuestionarios). */
   registros: RegRow[];
   /** Valor vigente por (registro, ejercicio): la última fila insertada gana. */
@@ -279,6 +321,7 @@ export async function ensamblarReporte(
     { data: objetivos },
     { data: objDetalle },
     { data: cuestionarios },
+    { data: evidencias },
   ] = await Promise.all([
     supabase
       .from("mapeo_export")
@@ -289,7 +332,7 @@ export async function ensamblarReporte(
       // la celda lleva la nota de validación interna del cliente. `nota_alcance`
       // es la salvedad de perímetro de la cifra, redactada para el entregable.
       .from("solicitudes")
-      .select("id, estado, origen, rubro_taxonomia, nota_alcance")
+      .select("id, titulo, estado, origen, es_cuantitativa, rubro_taxonomia, nota_alcance")
       .eq("reporte_id", reporteId)
       // Las copias de difusión declinadas o retiradas quedan fuera del entregable
       // oficial: no son una brecha de evidencia ("falta el dato") sino un "no
@@ -336,6 +379,13 @@ export async function ensamblarReporte(
       .from("cuestionarios_respuestas")
       .select("reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas")
       .eq("reporte_id", reporteId),
+    // Qué solicitudes tienen al menos un archivo. Es lo que hace que una
+    // solicitud CUALITATIVA pueda considerarse entregada: no tiene capturas, así
+    // que su entrega es la evidencia. El Excel no lo usa; el suplemento sí.
+    supabase
+      .from("evidencias")
+      .select("solicitud_id, solicitud:solicitudes!inner(reporte_id)")
+      .eq("solicitud.reporte_id", reporteId),
   ]);
 
   if (mapErr || !mapeo) return { ok: false, causa: "mapeo_ilegible" };
@@ -350,13 +400,8 @@ export async function ensamblarReporte(
   const alcanceSol = new Map<string, string>();
   // Rubro canónico → solicitud DE ESTE REPORTE que lo alimenta.
   const solPorRubro = new Map<string, string>();
-  for (const s of (sols ?? []) as {
-    id: string;
-    estado: string;
-    origen: OrigenSolicitud;
-    rubro_taxonomia: string | null;
-    nota_alcance: string | null;
-  }[]) {
+  const solicitudes = (sols ?? []) as SolRow[];
+  for (const s of solicitudes) {
     estadoSol.set(s.id, s.estado);
     origenSol.set(s.id, s.origen);
     if (s.nota_alcance) alcanceSol.set(s.id, s.nota_alcance.trim());
@@ -384,6 +429,40 @@ export async function ensamblarReporte(
   // pendiente) vs. no hay captura de ese año (→ sin evidencia).
   const hayCapturaDe = (solId: string, ejercicio: number): boolean =>
     (capsPorSol.get(solId) ?? []).some((c) => c.periodo === String(ejercicio));
+
+  // ---------------------------------------------------------------------------
+  // Veredicto de entrega POR SOLICITUD, para el ejercicio del reporte. Mismas
+  // reglas que las celdas, distinta unidad. Se calcula aquí, y no en quien
+  // consume, para que el Excel y el suplemento no puedan discrepar sobre si una
+  // solicitud entregó.
+  // ---------------------------------------------------------------------------
+  const conEvidencia = new Set<string>();
+  for (const e of (evidencias ?? []) as { solicitud_id: string }[]) {
+    conEvidencia.add(e.solicitud_id);
+  }
+
+  const entregaPorSolicitud = new Map<string, EntregaSolicitud>();
+  for (const sol of solicitudes) {
+    const validada = sol.estado === "validado";
+    if (sol.es_cuantitativa) {
+      const valor = validada ? ultimaConfirmada(sol.id, reporte.ejercicio) : null;
+      if (valor != null) {
+        entregaPorSolicitud.set(sol.id, { estado: "entregado", valor });
+      } else {
+        entregaPorSolicitud.set(sol.id, {
+          estado: hayCapturaDe(sol.id, reporte.ejercicio) ? "pendiente_validacion" : "sin_evidencia",
+          valor: null,
+        });
+      }
+      continue;
+    }
+    // Cualitativa: entrega un archivo, no una cifra.
+    const tiene = conEvidencia.has(sol.id);
+    entregaPorSolicitud.set(sol.id, {
+      estado: !tiene ? "sin_evidencia" : validada ? "entregado" : "pendiente_validacion",
+      valor: null,
+    });
+  }
 
   // Valor vigente por (registro, ejercicio): la última fila insertada gana
   // (valores llegan asc por created_at → APPEND ONLY, corrección = fila nueva).
@@ -571,6 +650,8 @@ export async function ensamblarReporte(
     notas,
     conteos,
     filaMaximaPorHoja,
+    solicitudes,
+    entregaPorSolicitud,
     registros: (registros ?? []) as RegRow[],
     vigentePorRegistro,
     objetivos: (objetivos ?? []) as ObjRow[],

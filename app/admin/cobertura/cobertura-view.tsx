@@ -18,6 +18,7 @@ import {
 import { Anillo, AnillosStyle } from "@/components/ui/anillo";
 import { ExportButton } from "./export-button";
 import { TaxonomiaExportButton } from "./taxonomia-export-button";
+import { SuplementoButton } from "./suplemento-button";
 
 /** Estados en los que el valor de la solicitud ya entró como validado. */
 const VALIDADA: ReadonlySet<EstadoSolicitud> = new Set<EstadoSolicitud>([
@@ -181,6 +182,7 @@ export function CoberturaView({
           {selector}
           {informe}
           <TaxonomiaExportButton reporteId={reporteId} />
+          <SuplementoButton reporteId={reporteId} />
           <ExportButton tenantId={tenantId} />
         </div>
       </header>
