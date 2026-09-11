@@ -489,7 +489,11 @@ export const BLOQUES: Bloque[] = [
     titulo: "Riesgos físicos: exposición y gráfica",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
-    datapoints: ["NIIF S2 29 (c) · B65 (b)", "NIIF S2 29 (c) · B65 (c)"],
+    // 29 (c) es el requisito principal del bloque —cantidad y porcentaje de
+    // activos vulnerables a riesgos físicos— y hasta la auditoría del catálogo
+    // no tenía código: su texto estaba archivado bajo el de 29(b), que es el de
+    // transición. La especificación lo asigna aquí desde la v0.1.
+    datapoints: ["NIIF S2 29 (c)", "NIIF S2 29 (c) · B65 (b)", "NIIF S2 29 (c) · B65 (c)"],
     tablas: ["registros_clima_valores"],
     perfil: [],
   },
