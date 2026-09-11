@@ -69,6 +69,9 @@ export type AccionEvento =
   | "perfil_adjunto_subido"
   | "perfil_adjunto_eliminado"
   | "reporte_regimen_actualizado"
+  // Generador del suplemento: cada bloque generado cuesta dinero y lo escribió
+  // un modelo. Queda quién, cuándo, con qué modelo y cuánto costó.
+  | "suplemento_bloque_generado"
   | "tenant_creado"
   | "tenant_desactivado"
   | "tenant_reactivado"
@@ -119,6 +122,7 @@ export async function logEvento(
       | "objetivos"
       | "cuestionarios_respuestas"
       | "perfil_emisor"
+      | "documentos_generados"
       | "tenants"
       | "areas_tenant"
       | "invitaciones";

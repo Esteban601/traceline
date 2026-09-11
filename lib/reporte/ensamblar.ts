@@ -67,6 +67,11 @@ export type MapeoRow = {
 export type SolRow = {
   id: string;
   titulo: string;
+  /** Lo que se le pidió al cliente, en su lenguaje. El redactor lo necesita para
+   *  saber QUÉ mide una cifra; el Excel no, porque su etiqueta viene del mapeo. */
+  descripcion: string | null;
+  /** Unidad declarada al pedir el dato. Una cifra sin unidad no se puede redactar. */
+  unidad_esperada: string | null;
   estado: string;
   origen: OrigenSolicitud;
   es_cuantitativa: boolean;
@@ -332,7 +337,9 @@ export async function ensamblarReporte(
       // la celda lleva la nota de validación interna del cliente. `nota_alcance`
       // es la salvedad de perímetro de la cifra, redactada para el entregable.
       .from("solicitudes")
-      .select("id, titulo, estado, origen, es_cuantitativa, rubro_taxonomia, nota_alcance")
+      .select(
+        "id, titulo, descripcion, unidad_esperada, estado, origen, es_cuantitativa, rubro_taxonomia, nota_alcance"
+      )
       .eq("reporte_id", reporteId)
       // Las copias de difusión declinadas o retiradas quedan fuera del entregable
       // oficial: no son una brecha de evidencia ("falta el dato") sino un "no

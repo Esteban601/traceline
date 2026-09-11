@@ -317,6 +317,7 @@ export type Database = {
           costo_usd: number
           created_at: string
           documento_id: string
+          duracion_ms: number | null
           editado_en: string | null
           editado_por: string | null
           estado: string
@@ -332,6 +333,8 @@ export type Database = {
           texto: string | null
           titulo: string
           tokens_entrada: number
+          tokens_entrada_cache_escritura: number
+          tokens_entrada_cache_lectura: number
           tokens_salida: number
           updated_at: string
         }
@@ -340,6 +343,7 @@ export type Database = {
           costo_usd?: number
           created_at?: string
           documento_id: string
+          duracion_ms?: number | null
           editado_en?: string | null
           editado_por?: string | null
           estado?: string
@@ -355,6 +359,8 @@ export type Database = {
           texto?: string | null
           titulo: string
           tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
           tokens_salida?: number
           updated_at?: string
         }
@@ -363,6 +369,7 @@ export type Database = {
           costo_usd?: number
           created_at?: string
           documento_id?: string
+          duracion_ms?: number | null
           editado_en?: string | null
           editado_por?: string | null
           estado?: string
@@ -378,6 +385,8 @@ export type Database = {
           texto?: string | null
           titulo?: string
           tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
           tokens_salida?: number
           updated_at?: string
         }
