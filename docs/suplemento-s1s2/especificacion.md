@@ -1,7 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.5** · 11 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.6** · 11 de septiembre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.5** (al cerrar A4):
+- Esfuerzo de razonamiento configurable por tipo de bloque, con todo en `high` (§6).
+- A1 a A4 marcados como completos, con fecha (§9).
 
 **Cambios respecto a 0.4** (tras la prueba de extremo a extremo de A4 sobre el bloque 29):
 - Orquestación asíncrona: la ruta reserva el bloque y responde; la generación corre en `after()`. Los tres
@@ -348,8 +352,27 @@ No hay tope de presupuesto por documento (decisión §8.4), pero el costo se reg
 documento. **Los tokens de salida incluyen el razonamiento**, que en Fable 5.1 está siempre activo: el bloque 29
 generó 1 245 caracteres de texto con 4 666 tokens de salida facturados.
 
-Medido en A4 sobre el bloque 29 con el prompt v2: **$0.31 en frío y $0.20 con el caché caliente**. La capa
-estable son 3 906 tokens y se reutiliza en los cuarenta bloques.
+Medido en A4 sobre el bloque 29 con el prompt v3: **$0.13 con el caché caliente**, 26.9 s de llamada y 32.7 s
+de reloj de punta a punta. La capa estable son 4 213 tokens y se reutiliza en los cuarenta bloques.
+
+**Esfuerzo de razonamiento, configurable por tipo de bloque** (`ESFUERZO_POR_TIPO` en `modelos.ts`).
+Verificado el 11 de septiembre de 2026 contra `platform.claude.com/docs/en/build-with-claude/effort`:
+`output_config.effort` acepta cinco niveles —`low`, `medium`, `high`, `xhigh`, `max`—, el valor por defecto de
+Fable 5.1 es `high`, y pasar `"high"` explícitamente es idéntico a omitirlo. El esfuerzo afecta a **todos** los
+tokens de salida, incluido el razonamiento, que es donde está el costo: en A4 el bloque 29 gastó 2 038 tokens de
+salida para 1 245 caracteres de texto.
+
+**Hoy están los nueve tipos en `high`.** La tabla existe para poder medir un barrido de esfuerzo sobre los
+mismos bloques, no para adivinar ahora cuál conviene; bajar a `medium` los bloques de plantilla es la primera
+prueba que vale la pena. Antes de moverlos, dos cosas:
+
+- **Variar el esfuerzo invalida el caché de prompt.** Los cuarenta bloques comparten prefijo —reglas, ejemplo de
+  estilo, índice, emisora— y ese prefijo se cachea *entre* bloques. Con dos niveles de esfuerzo, cada uno
+  mantiene su propia copia: se paga la escritura dos veces por documento, no cuarenta. Es asumible, pero hay que
+  contarlo en la comparación o el barrido dirá que el nivel barato sale caro.
+- Existe un cambio de esfuerzo **por mensaje** que sí conserva el caché (beta
+  `mid-conversation-output-config-2026-07-01`), pero sirve para variar el nivel dentro de una conversación.
+  Aquí cada bloque es una llamada de un solo turno, así que no aplica.
 
 **Word.** Librería `docx` en `dependencies`. Portada, índice, secciones, encabezados con referencia NIIF (según
 preferencia del tenant), tablas, notas al pie con la fuente de cada cifra, anexo de trazabilidad
@@ -396,18 +419,18 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 
 ## 9. Orden de construcción
 
-| Paso | Contenido | Dependencias |
-|---|---|---|
-| A1 | Renombres (botón, menú). Extraer `lib/reporte/ensamblar.ts` del export; el Excel lo consume; prueba celda por celda con `verify:export` | Ninguna |
-| A2 | Migraciones aditivas (§5) en dev. Mapeo `lib/suplemento/bloques.ts` cruzado contra los 91 códigos reales, con validación en arranque. Anexar el mapeo a esta especificación | A1 |
-| A3 | Formulario del Perfil del emisor (portal y panel) y captura de severidad en registros de clima. Semáforo de completitud, sin IA | A2 |
-| A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola |
-| A5 | Los 40 bloques en régimen primer año, orquestación, persistencia, vista de revisión, bloqueo de aprobación con pendientes | A4 |
-| A6 | Word con estilos, marca de agua y anexo de trazabilidad | A5 |
-| A7 | Glosario ES↔EN y versión en inglés | A6 |
-| A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 |
-| A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 |
-| A10 | Pre-carga asistida desde documentos de análisis de riesgos y estudios de materialidad: extracción a esquema fijo con página de origen y confianza por campo, y revisión fila por fila antes de insertar (§3.2b) | A8 |
+| Paso | Contenido | Dependencias | Estado |
+|---|---|---|---|
+| ✅ A1 | Renombres (botón, menú). Extraer `lib/reporte/ensamblar.ts` del export; el Excel lo consume; prueba celda por celda con `verify:export` | Ninguna | **Completo · 10 sep 2026** |
+| ✅ A2 | Migraciones aditivas (§5) en dev. Mapeo `lib/suplemento/bloques.ts` cruzado contra los 91 códigos reales, con validación en arranque. Anexar el mapeo a esta especificación | A1 | **Completo · 10 sep 2026** |
+| ✅ A3 | Formulario del Perfil del emisor (portal y panel) y captura de severidad en registros de clima. Semáforo de completitud, sin IA | A2 | **Completo · 11 sep 2026** |
+| ✅ A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola | **Completo · 11 sep 2026** |
+| A5 | Los 40 bloques en régimen primer año, orquestación, persistencia, vista de revisión, bloqueo de aprobación con pendientes | A4 | Pendiente |
+| A6 | Word con estilos, marca de agua y anexo de trazabilidad | A5 | Pendiente |
+| A7 | Glosario ES↔EN y versión en inglés | A6 | Pendiente |
+| A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 | Pendiente |
+| A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 | Pendiente |
+| A10 | Pre-carga asistida desde documentos de análisis de riesgos y estudios de materialidad: extracción a esquema fijo con página de origen y confianza por campo, y revisión fila por fila antes de insertar (§3.2b) | A8 | Pendiente |
 
 Todo en `dev/ajustes-sep26` contra `traceline-dev`. Nada toca staging hasta que Manuel vea A8.
 
