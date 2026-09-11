@@ -75,3 +75,8 @@ logos-demo/
 # con licencia: se consulta para auditar el catálogo de datapoints, no se
 # redistribuye. Versionarlo lo publicaría con el repositorio.
 normas/
+
+# Informes de referencia de terceros (CADU y los que vengan): material con
+# licencia que se consulta para calibrar el estilo del generador, no se
+# redistribuye. Misma razón que normas/.
+referencia/
