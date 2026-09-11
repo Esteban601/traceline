@@ -18,6 +18,8 @@
 // `perfil` o `tablas`.
 // =============================================================================
 
+import type { Alivios, ClaveAlivio } from "@/lib/perfil-emisor";
+
 /** Cómo se produce el texto del bloque. */
 export type TipoBloque =
   | "D→T"
@@ -53,6 +55,57 @@ export type Bloque = {
   /** Campos de perfil_emisor que lo alimentan. */
   perfil: string[];
 };
+
+// -----------------------------------------------------------------------------
+// QUÉ DEJA DE SER EXIGIBLE CUANDO UN ALIVIO ESTÁ ACTIVO.
+//
+// Es GLOBAL y no por bloque porque el alivio lo es: C4 exime el Alcance 3 en
+// todo el documento, no solo donde se enumeran las emisiones. Antes de esto, el
+// bloque 29 recibía el requisito de desagregación de Alcance 3 y lo marcaba como
+// pendiente, cuando bajo C4 sencillamente no aplica: el revisor veía un hueco
+// donde no lo había, y la tabla incluía una fila que la emisora había decidido
+// no revelar.
+//
+// `prefijosRubro` es lo que filtra los DATOS, no solo los requisitos: una
+// solicitud de Alcance 3 puede estar ligada además a un datapoint que sí aplica
+// —el total de emisiones brutas—, así que excluir por código no basta para que
+// su cifra no aparezca en la tabla.
+// -----------------------------------------------------------------------------
+export const CONDICIONADOS_POR_ALIVIO: Partial<
+  Record<ClaveAlivio, { datapoints: string[]; prefijosRubro: string[] }>
+> = {
+  // C4 — el primer ejercicio no revela emisiones de Alcance 3, ni su total, ni
+  // sus categorías, ni la desagregación por gases de ninguna de ellas.
+  C4: {
+    datapoints: [
+      "NIIF S2 EI19 a EI24",
+      "NIIF S2 29 (a)(vi)(1)",
+      "NIIF S2 29 (a)(vi)(1) EI12",
+      "NIIF S2 29 (a)(vi)(2)",
+    ],
+    prefijosRubro: ["gei_alcance_3", "gei_a3_"],
+  },
+};
+
+/** Códigos que un conjunto de alivios vigentes deja fuera. */
+export function datapointsExentos(alivios: Alivios): Set<string> {
+  const fuera = new Set<string>();
+  for (const [clave, reglas] of Object.entries(CONDICIONADOS_POR_ALIVIO)) {
+    if (!alivios[clave as ClaveAlivio]) continue;
+    for (const d of reglas.datapoints) fuera.add(d);
+  }
+  return fuera;
+}
+
+/** ¿El dato de este rubro se calla por algún alivio vigente? */
+export function rubroExento(rubro: string | null, alivios: Alivios): boolean {
+  if (!rubro) return false;
+  for (const [clave, reglas] of Object.entries(CONDICIONADOS_POR_ALIVIO)) {
+    if (!alivios[clave as ClaveAlivio]) continue;
+    if (reglas.prefijosRubro.some((p) => rubro.startsWith(p))) return true;
+  }
+  return false;
+}
 
 export const BLOQUES: Bloque[] = [
   {

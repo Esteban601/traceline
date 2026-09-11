@@ -6,7 +6,7 @@ import {
   type EstadoEntrega,
   type ReporteEnsamblado,
 } from "@/lib/reporte/ensamblar";
-import { BLOQUES, type Bloque } from "@/lib/suplemento/bloques";
+import { BLOQUES, datapointsExentos, type Bloque } from "@/lib/suplemento/bloques";
 import {
   leerAlivios,
   regimenDe,
@@ -88,6 +88,19 @@ export type BloqueEvaluado = Pick<
   faltantes: Faltante[];
   cumplidos: number;
   exigidos: number;
+  /**
+   * Requisitos que un alivio vigente deja fuera este ejercicio. No son huecos:
+   * la norma no los exige ahora. Se listan para que el semáforo pueda decir
+   * "no aplica por C4" en vez de callarlos.
+   */
+  noAplican: string[];
+  /**
+   * Ids de las solicitudes del reporte que cubren algún datapoint de este
+   * bloque, hayan entregado o no. Es el puente datapoint → solicitud que ya se
+   * resolvió aquí; el generador lo necesita para saber QUÉ cifras puede citar y
+   * volver a derivarlo por su cuenta sería reimplementar este módulo mal.
+   */
+  solicitudes: string[];
 };
 
 export type ResumenCompletitud = {
@@ -274,6 +287,11 @@ export async function evaluarCompletitud(
   // que ya es exigible.
   const aliviosVigentes: Alivios = regimen === "primer_anio" ? alivios : {};
 
+  // Requisitos que un alivio vigente deja fuera. No son huecos: el bloque no
+  // tiene que cubrirlos este ejercicio, así que ni se cuentan como exigidos ni
+  // se le entregan al generador.
+  const exentos = datapointsExentos(aliviosVigentes);
+
   const idPorCodigo = new Map<string, string>();
   for (const d of catalogo ?? []) idPorCodigo.set(d.codigo, d.id);
 
@@ -314,6 +332,8 @@ export async function evaluarCompletitud(
 
   const bloques: BloqueEvaluado[] = BLOQUES.map((b) => {
     const faltantes: Faltante[] = [];
+    const solicitudesDelBloque = new Set<string>();
+    const noAplican: string[] = [];
     let exigidos = 0;
     let cumplidos = 0;
 
@@ -333,6 +353,8 @@ export async function evaluarCompletitud(
         faltantes: [],
         cumplidos: 0,
         exigidos: 0,
+        noAplican: [],
+        solicitudes: [],
       };
     }
 
@@ -341,6 +363,11 @@ export async function evaluarCompletitud(
       // Con el alivio E5 el primer ejercicio informa SOLO clima: los requisitos
       // de S1 general no son exigibles todavía, así que no cuentan como huecos.
       if (aliviosVigentes.E5 && codigo.startsWith("NIIF S1")) continue;
+      // Ídem para lo que otro alivio exime —el Alcance 3 bajo C4—.
+      if (exentos.has(codigo)) {
+        noAplican.push(codigo);
+        continue;
+      }
       exigidos++;
 
       const dpId = idPorCodigo.get(codigo);
@@ -355,6 +382,7 @@ export async function evaluarCompletitud(
       }
 
       const sols = solsPorDatapoint.get(dpId) ?? [];
+      for (const s of sols) solicitudesDelBloque.add(s);
       if (sols.length === 0) {
         faltantes.push({
           causa: "sin_solicitud",
@@ -583,6 +611,8 @@ export async function evaluarCompletitud(
         faltantes: [],
         cumplidos: 0,
         exigidos: 0,
+        noAplican,
+        solicitudes: [...solicitudesDelBloque],
       };
     }
 
@@ -613,6 +643,8 @@ export async function evaluarCompletitud(
       faltantes,
       cumplidos,
       exigidos,
+      noAplican,
+      solicitudes: [...solicitudesDelBloque],
     };
   });
 
