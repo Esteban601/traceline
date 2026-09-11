@@ -8,6 +8,7 @@ import { limpiarNombreTenant } from "@/lib/tenants";
 import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { REGIMEN_LABEL, ALIVIOS } from "@/lib/perfil-emisor";
 import { SuplementoView } from "./suplemento-view";
+import { GenerarPrueba } from "./generar-prueba";
 
 export const metadata: Metadata = { title: "Suplemento S1 y S2" };
 
@@ -70,8 +71,18 @@ export default async function SuplementoPage({
 
   const aliviosActivos = ALIVIOS.filter((a) => res.alivios[a.clave]).map((a) => a.titulo);
 
+  // El botón de prueba gasta dinero real en cada clic. Dos condiciones, y la
+  // segunda es explícita a propósito: que NEXT_PUBLIC_STAGING no valga "true"
+  // dice "no me indexes", no "aquí se puede gastar en llamadas al modelo".
+  const conBotonDePrueba = esStaff(perfil) && process.env.SUPLEMENTO_PRUEBA === "1";
+
   return (
     <Marco>
+      {conBotonDePrueba && (
+        <div className="mb-6">
+          <GenerarPrueba reporteId={reporteId} />
+        </div>
+      )}
       <SuplementoView
         nombreReporte={res.reporte.nombre}
         ejercicio={res.reporte.ejercicio}
