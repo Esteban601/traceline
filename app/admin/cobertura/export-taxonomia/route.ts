@@ -26,6 +26,66 @@ const PLANTILLA = path.join(process.cwd(), "assets", "taxonomia-base.xlsx");
 const GOLD = "FF8A6D1B";
 
 const NOTA_SIN_DATOS = "Sin datos del ejercicio";
+
+/**
+ * Hoja principal del libro: el índice de los requisitos NIIF. Se llamaba
+ * «Fondo I» —el nombre de un cliente— en una plantilla que es de la firma.
+ */
+const HOJA_TAXONOMIA = "Taxonomía NIIF S1 S2";
+
+/**
+ * LA COLUMNA D LA ESCRIBE EL EXPORT, NO LA PLANTILLA.
+ *
+ * Venía congelada en el .xlsx, cargada del mismo origen que el catálogo y con
+ * los mismos errores —incluido un párrafo sobre peajes de un cliente concreto en
+ * la fila de NIIF S1 35(c)(i)(ii)—. Corregir el catálogo en la base no corregía
+ * el libro: eran dos copias del mismo texto y solo se arreglaba una.
+ *
+ * Ahora la descripción sale de `datapoints_taxonomia` por código EXACTO, leído
+ * de la columna B de cada fila.
+ *
+ * SOLO LA PRIMERA FILA DE CADA CÓDIGO. La hoja es más fina que el catálogo: 87
+ * códigos ocupan 221 filas porque debajo del requisito vienen preguntas de
+ * captura ("No ¿Por qué?", "Si ¿Cómo se integran…?"). Esas son contenido propio
+ * de la plantilla y se dejan intactas; escribirles la descripción del catálogo
+ * las borraría y dejaría cuatro filas repitiendo el mismo texto.
+ */
+function escribirRequisitos(
+  ws: ExcelJS.Worksheet,
+  descripciones: Map<string, string>
+): { escritas: number; sinCatalogo: { fila: number; codigo: string }[] } {
+  const norm = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object" && v !== null && "richText" in v) {
+      return (v as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("").replace(/\s+/g, " ").trim();
+    }
+    return String(v).replace(/\s+/g, " ").trim();
+  };
+
+  const vistos = new Set<string>();
+  const sinCatalogo: { fila: number; codigo: string }[] = [];
+  let escritas = 0;
+
+  ws.eachRow((_fila, nf) => {
+    if (nf === 1) return;
+    const codigo = norm(ws.getCell(`B${nf}`).value);
+    if (!codigo) return;
+    if (vistos.has(codigo)) return;
+    vistos.add(codigo);
+
+    const d = descripciones.get(codigo);
+    if (d === undefined) {
+      // Se reporta en vez de dejar la celda con el texto viejo: una fila que el
+      // catálogo no reconoce es un desajuste que hay que ver, no que disimular.
+      sinCatalogo.push({ fila: nf, codigo });
+      return;
+    }
+    ws.getCell(`D${nf}`).value = d;
+    escritas++;
+  });
+
+  return { escritas, sinCatalogo };
+}
 const TIPO_LABEL: Record<string, string> = {
   riesgo_fisico: "Físico",
   riesgo_transicion: "Transición",
@@ -570,6 +630,22 @@ export async function GET(request: Request) {
   // resolución de dato: es layout del Excel. El número de registros y de
   // objetivos es variable y se escribe en slots correlativos de cada hoja, así
   // que estas tres funciones necesitan la `Worksheet` y el orden de las filas.
+  // Índice de requisitos: la columna D sale del catálogo, no de la plantilla.
+  const hojaIndice = wb.getWorksheet(HOJA_TAXONOMIA);
+  const requisitos = hojaIndice
+    ? escribirRequisitos(hojaIndice, ens.descripcionesDatapoint)
+    : { escritas: 0, sinCatalogo: [] as { fila: number; codigo: string }[] };
+  if (!hojaIndice) {
+    console.warn(`[export] la plantilla no trae la hoja «${HOJA_TAXONOMIA}».`);
+  }
+  for (const h of requisitos.sinCatalogo) {
+    // Una fila que el catálogo no reconoce queda VACÍA y se dice en el log. Es
+    // preferible a dejarla con el texto viejo, que es lo que se está corrigiendo.
+    console.warn(
+      `[export] ${HOJA_TAXONOMIA} fila ${h.fila}: el código «${h.codigo}» no está en datapoints_taxonomia.`
+    );
+  }
+
   const registrosEscritos = escribirRegistros(
     wb,
     ens.registros,
@@ -627,7 +703,8 @@ export async function GET(request: Request) {
       `validacion_interna=${validacionesInternas} alcance=${alcancesDeclarados} ` +
       `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
-      `cuestionarios=${cuestionariosEscritos} archivo=${filename}`
+      `cuestionarios=${cuestionariosEscritos} requisitos=${requisitos.escritas} ` +
+      `requisitos_sin_catalogo=${requisitos.sinCatalogo.length} archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {

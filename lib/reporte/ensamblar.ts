@@ -246,6 +246,12 @@ export type Ensamblado = {
   conteos: ConteosEnsamblado;
   /** Última fila tocada por hoja: quien escribe la usa para colocar su pie. */
   filaMaximaPorHoja: Map<string, number>;
+  /**
+   * Descripción oficial de cada datapoint, por código EXACTO. La hoja principal
+   * del Excel la escribe desde aquí en vez de llevarla congelada en la plantilla:
+   * cuando se corrige el catálogo, el libro sale corregido sin tocar el .xlsx.
+   */
+  descripcionesDatapoint: Map<string, string>;
   /** Solicitudes del reporte (sin declinadas ni desactivadas), como las vio la resolución. */
   solicitudes: SolRow[];
   /** Veredicto de entrega por solicitud para el ejercicio del reporte. */
@@ -327,6 +333,7 @@ export async function ensamblarReporte(
     { data: objDetalle },
     { data: cuestionarios },
     { data: evidencias },
+    { data: catalogo },
   ] = await Promise.all([
     supabase
       .from("mapeo_export")
@@ -393,6 +400,8 @@ export async function ensamblarReporte(
       .from("evidencias")
       .select("solicitud_id, solicitud:solicitudes!inner(reporte_id)")
       .eq("solicitud.reporte_id", reporteId),
+    // El catálogo entero: es global, no del reporte, y son 98 filas cortas.
+    supabase.from("datapoints_taxonomia").select("codigo, descripcion").eq("activo", true),
   ]);
 
   if (mapErr || !mapeo) return { ok: false, causa: "mapeo_ilegible" };
@@ -657,6 +666,12 @@ export async function ensamblarReporte(
     notas,
     conteos,
     filaMaximaPorHoja,
+    descripcionesDatapoint: new Map(
+      ((catalogo ?? []) as { codigo: string; descripcion: string }[]).map((d) => [
+        d.codigo.trim(),
+        d.descripcion,
+      ])
+    ),
     solicitudes,
     entregaPorSolicitud,
     registros: (registros ?? []) as RegRow[],
