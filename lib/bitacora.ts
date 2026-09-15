@@ -72,6 +72,8 @@ export type AccionEvento =
   // Generador del suplemento: cada bloque generado cuesta dinero y lo escribió
   // un modelo. Queda quién, cuándo, con qué modelo y cuánto costó.
   | "suplemento_bloque_generado"
+  | "suplemento_documento_abierto"
+  | "suplemento_documento_estado"
   | "tenant_creado"
   | "tenant_desactivado"
   | "tenant_reactivado"

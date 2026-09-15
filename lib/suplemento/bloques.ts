@@ -71,6 +71,27 @@ export type Bloque = {
 // —el total de emisiones brutas—, así que excluir por código no basta para que
 // su cifra no aparezca en la tabla.
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// CUANDO UN REQUISITO NO SALE DE UNA SOLICITUD SINO DEL PERFIL.
+//
+// Algunos requisitos de la norma los contesta un campo institucional que ya se
+// captura una sola vez y se conserva entre ejercicios. NIIF S2 10(d) —sobre qué
+// horizontes de corto, mediano y largo plazo se evaluaron los efectos, y por qué
+// esos— es exactamente el contenido de `perfil.horizontes`, capturado en el
+// bloque 8. Pedirlo además como solicitud le exigía a la emisora entregar dos
+// veces lo mismo, y el bloque 21 abría un pendiente por un dato que el documento
+// ya trae escrito unas páginas antes.
+//
+// Con la fuente alternativa presente el requisito cuenta como CUBIERTO y el
+// bloque remite al que lo desarrolla, en vez de repetirlo.
+// -----------------------------------------------------------------------------
+export const FUENTES_ALTERNATIVAS: Record<
+  string,
+  { campos: string[]; remitirA: number }
+> = {
+  "NIIF S2 10(d)": { campos: ["horizontes"], remitirA: 8 },
+};
+
 export const CONDICIONADOS_POR_ALIVIO: Partial<
   Record<ClaveAlivio, { datapoints: string[]; prefijosRubro: string[] }>
 > = {

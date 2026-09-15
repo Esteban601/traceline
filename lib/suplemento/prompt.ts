@@ -29,7 +29,7 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "a4-v3-2026-09-11";
+export const PROMPT_VERSION = "a5a-v1-2026-09-11";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -175,6 +175,10 @@ Donde falte un dato, escribe exactamente:
 \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`
 
 Con la raya larga. Ese marcador es para el revisor interno y se retira antes de aprobar el documento; es el único lugar donde puedes nombrar una solicitud o un campo. Fuera de él, el texto no admite ese vocabulario.
+
+**El marcador OCUPA EL LUGAR DEL DATO. No lo anuncies.** Nunca escribas una frase que prometa algo que luego resulta ser un marcador: nada de «la calificación asignada se presenta a continuación» seguido de un pendiente, ni «el detalle se describe más adelante» si ese detalle falta. Si el dato no está, la oración lo dice en el sitio donde iría el dato y no promete nada alrededor. Un borrador que anuncia una tabla inexistente, publicado sin revisar, miente.
+
+**Y VA INTEGRADO EN LA ORACIÓN donde falta el dato, nunca agrupado al final.** Mal: tres párrafos de texto y luego tres marcadores seguidos. Bien: «Las emisiones de Alcance 2 ascendieron a [Pendiente: cifra de Alcance 2 — solicitud Inventario GEI Alcance 2] toneladas métricas equivalentes de CO2.» El revisor tiene que ver el hueco donde está, no en una lista al cierre.
 
 # Las demás reglas
 

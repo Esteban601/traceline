@@ -117,6 +117,13 @@ export type RegRow = {
   nombre: string;
   descripcion: string | null;
   horizontes: string[] | null;
+  /** Priorización: los dos factores, el puntaje y el nivel que la emisora declaró.
+   *  El Excel no los usa —sus hojas de valores son cantidades y capital— pero la
+   *  tabla de priorización del suplemento se arma con ellos. */
+  probabilidad: number | null;
+  impacto: number | null;
+  severidad: number | null;
+  nivel: string | null;
   orden: number;
 };
 
@@ -364,7 +371,9 @@ export async function ensamblarReporte(
       .order("created_at", { ascending: true }),
     supabase
       .from("registros_clima")
-      .select("id, reporte_id, tipo, nombre, descripcion, horizontes, orden")
+      .select(
+        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, orden"
+      )
       .eq("reporte_id", reporteId)
       .eq("activo", true)
       .order("orden", { ascending: true }),

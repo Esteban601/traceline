@@ -33,6 +33,10 @@ import {
   type RequisitoNiif,
 } from "@/lib/suplemento/prompt";
 import { fronteraDe } from "@/lib/suplemento/fronteras";
+import { TABLAS } from "@/lib/suplemento/tablas";
+import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
+import { PLANTILLAS } from "@/lib/suplemento/plantillas";
+import { ETIQUETA_CAMPO, SECCION_DE_CAMPO } from "@/lib/suplemento/completitud";
 
 // =============================================================================
 // GENERACIÓN DE UN BLOQUE DEL SUPLEMENTO.
@@ -70,8 +74,12 @@ export type MotivoFallo =
   | "reporte_ilegible"
   | "fuentes_invalidas"
   | "voz_incorrecta"
+  | "pendiente_adjunto"
+  | "no_aplica"
   | "respuesta_ilegible"
-  | "api_error";
+  | "api_error"
+  | "corte_tiempo"
+  | "sin_saldo";
 
 export type ResultadoGeneracion =
   | {
@@ -90,6 +98,10 @@ export type ResultadoGeneracion =
       /** Cuántos intentos hicieron falta. 2 = el primero fue rechazado. */
       intentos: number;
       correccionesGrafia: number;
+      /** Por dónde se produjo: plantilla, perfil o datos. */
+      via: Via;
+      /** false cuando el bloque se resolvió sin llamar al modelo. */
+      conModelo: boolean;
       bloque: BloqueEvaluado;
     }
   | { ok: false; motivo: MotivoFallo; detalle: string };
@@ -104,70 +116,10 @@ export type OpcionesGeneracion = {
   sinPersistir?: boolean;
 };
 
-/**
- * Longitud objetivo. Con tabla el texto es MÁS CORTO, no más largo: la tabla ya
- * dice las cifras y la prosa solo la introduce y comenta. En A4 los tres textos
- * sin esta restricción salieron a 2 300–3 000 caracteres repitiendo en prosa
- * cada número de la tabla.
- */
-const EXTENSION: Record<number, string> = {
-  29:
-    "Entre 120 y 250 palabras. La tabla ya da las cifras: tu prosa la introduce, dice qué comprende cada alcance y comenta lo que la tabla no puede decir. No repitas los números.\n\n" +
-    "Si la emisora adoptó la medida transitoria C4, incluye UNA oración que declare que se acoge a la facilidad del párrafo C4 del Apéndice C de la NIIF S2, que la exime de revelar sus emisiones de Alcance 3, y diga la consecuencia: las cifras de emisiones brutas absolutas corresponden a los Alcances 1 y 2. Una oración, como en el ejemplo.\n\n" +
-    "No expliques los demás alivios ni el método de medición: son de otros bloques.",
-};
 
-function extensionDe(bloque: Bloque, conTabla: boolean): string {
-  const propia = EXTENSION[bloque.numero];
-  if (propia) return propia;
-  return conTabla
-    ? "Entre 120 y 250 palabras. La tabla ya da las cifras: introdúcela y comenta lo que no puede decir, sin repetir los números."
-    : "Entre 250 y 450 palabras. Un párrafo de encuadre y luego el detalle.";
-}
-
-/**
- * LA TABLA LA ARMA EL CÓDIGO, NO EL MODELO.
- *
- * Una cifra que pasa por el modelo puede salir distinta —redondeada, traducida
- * de unidad, "corregida"—. Las que van en tabla se escriben desde los datos
- * verificados y el modelo las recibe ya compuestas, para redactar alrededor.
- * Es la misma razón por la que el Excel no le pregunta a nadie cuánto vale una
- * celda.
- */
-function armarTabla(
-  bloque: Bloque,
-  ens: Ensamblado,
-  evaluado: BloqueEvaluado,
-  aliviosVigentes: Alivios
-): string | null {
-  if (!bloque.tipo.includes("Tabla")) return null;
-
-  const filas = evaluado.solicitudes
-    .map((id) => ens.solicitudes.find((s) => s.id === id))
-    // Un dato que un alivio exime NO entra en la tabla. Bajo C4 la emisora
-    // decidió no revelar el Alcance 3: que su cifra apareciera igual, por venir
-    // ligada de paso a un requisito que sí aplica, contradecía esa decisión en
-    // el mismo documento que la declara.
-    .filter((s): s is SolRow => !!s && s.es_cuantitativa && !rubroExento(s.rubro_taxonomia, aliviosVigentes))
-    .map((s) => ({ s, e: ens.entregaPorSolicitud.get(s.id) }))
-    .filter((x) => x.e?.estado === "entregado" && x.e.valor != null);
-
-  if (filas.length === 0) return null;
-
-  const num = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 });
-  const cuerpo = filas.map(
-    ({ s, e }) =>
-      `| ${s.titulo} | ${num.format(e!.valor!)} | ${s.unidad_esperada ?? "—"} | ${ens.reporte.ejercicio} |`
-  );
-
-  return [
-    `**Tabla ${bloque.numero}. ${bloque.titulo}**`,
-    "",
-    "| Concepto | Valor | Unidad | Ejercicio |",
-    "|---|---:|---|---:|",
-    ...cuerpo,
-  ].join("\n");
-}
+/** Corte de la llamada al modelo. Por debajo del vencimiento de 3 minutos del
+ *  bloque, para que el error llegue antes que el síntoma. */
+const LIMITE_LLAMADA_MS = 150_000;
 
 export async function generarBloque(
   supabase: Cliente,
@@ -253,18 +205,59 @@ export async function generarBloque(
   );
 
   const { fuentes, datos } = armarDatos(bloque, ens, evaluado, perfil, requisitos);
-  const idsValidos = new Set(fuentes.map((f) => f.id));
 
-  // --- 3. Prompt ------------------------------------------------------------
-  // El modelo lo decide el TIPO de bloque: razonar sale caro y redactar sobre un
-  // guion fijo no lo necesita (ver MODELO_POR_TIPO).
-  const modelo = opciones.modelo ?? modeloDeTipo(bloque.tipo);
-  const tabla = armarTabla(bloque, ens, evaluado, vigentes);
+  // --- 3. ¿Hace falta el modelo? --------------------------------------------
+  const via = viaDe(bloque.numero);
   const prefs = {
     denominacionFormal: (perfil?.denominacion_formal as string | null) ?? null,
     nombreCorto: (perfil?.nombre_corto as string | null) ?? null,
     formaDeReferencia: (perfil?.forma_de_referencia as string | null) ?? null,
   };
+
+  // Un bloque que el régimen excluye no se genera: se marca y ya. Gastar una
+  // llamada en redactar algo que no va al documento es tirar el dinero.
+  if (evaluado.estado === "no_aplica") {
+    if (!opciones.sinPersistir) {
+      await persistirEstado(supabase, documentoId, bloque, doc.idioma, "no_aplica", [
+        { campo: "regimen", motivo: evaluado.motivoNoAplica ?? "El régimen excluye este bloque." },
+      ]);
+    }
+    return { ok: false, motivo: "no_aplica", detalle: evaluado.motivoNoAplica ?? "El régimen excluye este bloque." };
+  }
+
+  if (via === "plantilla") {
+    return await resolverPlantilla(supabase, documentoId, bloque, doc.idioma, {
+      prefs,
+      ejercicio: ens.reporte.ejercicio,
+      regimen,
+      anioAdopcion: rep.anio_adopcion,
+      alivios,
+      nombreReporte: ens.reporte.nombre,
+      sinPersistir: !!opciones.sinPersistir,
+      evaluado,
+    });
+  }
+
+  if (via === "perfil") {
+    const { data: adj } = await supabase
+      .from("perfil_emisor_adjuntos")
+      .select("seccion")
+      .eq("tenant_id", doc.tenant_id);
+    const espera = esperaAdjunto(bloque, perfil, new Set((adj ?? []).map((a) => a.seccion)));
+    if (espera) {
+      if (!opciones.sinPersistir) {
+        await persistirEstado(supabase, documentoId, bloque, doc.idioma, "pendiente_adjunto", espera);
+      }
+      return { ok: false, motivo: "pendiente_adjunto", detalle: espera.map((e) => e.motivo).join(" ") };
+    }
+  }
+
+  // --- 4. Prompt ------------------------------------------------------------
+  const modelo = opciones.modelo ?? modeloDeTipo(bloque.tipo);
+  const constructor = TABLAS[bloque.numero];
+  const tabla = constructor ? constructor({ ens, evaluado, perfil, alivios: vigentes, fuentes }) : null;
+  // Después de la tabla: lo que ella cite también es fuente válida.
+  const idsValidos = new Set(fuentes.map((f) => f.id));
   const estables = capaEstable(bloque, prefs, requisitos);
 
   const volatil = capaVolatil({
@@ -277,7 +270,7 @@ export async function generarBloque(
     datos,
     tabla,
     fronteras: fronteraDe(bloque.numero),
-    extension: opciones.extension ?? extensionDe(bloque, tabla != null),
+    extension: opciones.extension ?? extensionDeBloque(bloque.numero),
   });
 
   // La marca de caché va en el ÚLTIMO bloque estable: el caché cubre todo el
@@ -298,8 +291,17 @@ export async function generarBloque(
 
   for (let intento = 1; intento <= 2; intento++) {
     let respuesta: Anthropic.Message;
+    // RELOJ PROPIO. El `timeout` del SDK cubre el establecimiento de la
+    // respuesta, no la duración del stream: el bloque 21 tardó 305 s con un
+    // `timeout` de 150 s y no abortó nunca. El AbortController mide tiempo de
+    // pared sobre el consumo completo del stream, que es lo que realmente se
+    // nos va de las manos. Va FUERA del try porque el catch tiene que poder
+    // preguntarle si el fallo fue suyo.
+    const reloj = new AbortController();
+    const alarma = setTimeout(() => reloj.abort(), LIMITE_LLAMADA_MS);
     try {
-      const stream = client.messages.stream({
+      const stream = client.messages.stream(
+        {
         model: modelo,
         max_tokens: 16000,
         system,
@@ -311,14 +313,45 @@ export async function generarBloque(
           effort: opciones.esfuerzo ?? esfuerzoDeTipo(bloque.tipo),
           format: { type: "json_schema", schema: ESQUEMA_SALIDA },
         },
-      });
+        },
+        // LÍMITE DURO. Sin él, un stream que se atasca deja la petición colgada
+        // para siempre: el bloque se queda en 'generando', el cliente consulta
+        // hasta que el vencimiento de tres minutos lo marca «tiempo excedido», y
+        // la tarea sigue viva en el servidor consumiendo una conexión. Se corta
+        // por debajo de ese vencimiento para que el fallo llegue con su motivo
+        // en vez de con el síntoma.
+        // maxRetries en 0: el SDK reintenta ANTES de rendirse, así que con 1 el
+        // corte efectivo eran 300 s, por encima del vencimiento del bloque. El
+        // reintento que sí queremos es el nuestro, que además explica el error.
+        { timeout: LIMITE_LLAMADA_MS, maxRetries: 0, signal: reloj.signal }
+      );
+      // finalMessage() consume el stream entero, así que el aborto lo alcanza a
+      // mitad de camino y no solo en la cabecera.
       respuesta = await stream.finalMessage();
     } catch (e) {
-      return {
-        ok: false,
-        motivo: "api_error",
-        detalle: e instanceof Error ? e.message : String(e),
-      };
+      const detalle = e instanceof Error ? e.message : String(e);
+      // CORTE POR TIEMPO. No es un fallo del prompt ni del API: el bloque
+      // sencillamente no cupo en la ventana. Vuelve a la cola y cuenta un
+      // intento; al segundo corte sí es error, porque entonces ya no es mala
+      // suerte.
+      if (reloj.signal.aborted) {
+        return {
+          ok: false,
+          motivo: "corte_tiempo",
+          detalle: `corte por tiempo (${LIMITE_LLAMADA_MS / 1000} s)`,
+        };
+      }
+      // SALDO AGOTADO ES DEFINITIVO. No es un fallo del bloque ni del prompt: no
+      // hay reintento que lo arregle, y seguir con los otros treinta y nueve
+      // produce treinta y nueve errores idénticos que tapan la causa. Se
+      // distingue para que quien orquesta pueda parar y dejar el resto EN COLA,
+      // que es donde debe esperar a que haya saldo.
+      if (/credit balance is too low/i.test(detalle)) {
+        return { ok: false, motivo: "sin_saldo", detalle };
+      }
+      return { ok: false, motivo: "api_error", detalle };
+    } finally {
+      clearTimeout(alarma);
     }
 
     // El uso se ACUMULA entre intentos: el reintento también se paga.
@@ -443,6 +476,8 @@ export async function generarBloque(
     intentos: mensajes.length > 1 ? 2 : 1,
     /** Cuántas grafías de la denominación hubo que corregir tras recibir el texto. */
     correccionesGrafia: normalizado.cambios,
+    via,
+    conModelo: true,
     bloque: evaluado,
   };
 }
@@ -649,6 +684,14 @@ function armarDatos(
           detalle: f.detalle,
         })),
       },
+      // Requisitos que ya contesta otro bloque del documento. No se repiten: se
+      // remite. Un suplemento que define los horizontes dos veces con palabras
+      // distintas es un suplemento que se contradice a sí mismo.
+      remitir_a_otro_bloque: evaluado.remisiones.map((r) => ({
+        requisito: r.codigo,
+        bloque: r.bloque,
+        instruccion: `Este requisito se desarrolla en el bloque ${r.bloque}. NO lo repitas: remite ahí en una frase.`,
+      })),
       datapoints,
       solicitudes,
       registros_clima: registros,
@@ -681,6 +724,149 @@ function sinIds<T extends Record<string, unknown>>(o: T): Record<string, unknown
 }
 
 // -----------------------------------------------------------------------------
+// Las dos vías que NO llaman al modelo
+// -----------------------------------------------------------------------------
+
+/**
+ * Bloque de plantilla: texto fijo con variables del reporte y del emisor.
+ *
+ * No pasa por el modelo. Su contenido no depende de la evidencia del cliente, y
+ * una llamada para rellenar tres huecos es gasto y riesgo —un modelo puede
+ * reescribir la frase que la firma acordó— sin ganancia. Cuesta cero.
+ */
+async function resolverPlantilla(
+  supabase: Cliente,
+  documentoId: string,
+  bloque: Bloque,
+  idioma: string,
+  c: {
+    prefs: { denominacionFormal: string | null; nombreCorto: string | null; formaDeReferencia: string | null };
+    ejercicio: number;
+    regimen: Regimen;
+    anioAdopcion: number | null;
+    alivios: Alivios;
+    nombreReporte: string;
+    sinPersistir: boolean;
+    evaluado: BloqueEvaluado;
+  }
+): Promise<ResultadoGeneracion> {
+  const armar = PLANTILLAS[bloque.numero];
+  if (!armar) {
+    return { ok: false, motivo: "bloque_no_existe", detalle: `El bloque ${bloque.numero} no tiene plantilla.` };
+  }
+  const r = armar({
+    denominacionFormal: c.prefs.denominacionFormal ?? "",
+    formaDeReferencia: c.prefs.formaDeReferencia ?? "la Entidad",
+    ejercicio: c.ejercicio,
+    regimen: c.regimen,
+    anioAdopcion: c.anioAdopcion,
+    alivios: c.alivios,
+    nombreReporte: c.nombreReporte,
+  });
+
+  const uso: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
+  if (!c.sinPersistir) {
+    await persistirBloque(supabase, documentoId, bloque, idioma, {
+      texto: r.texto,
+      fuentes: [
+        { tipo: "reporte", id: "plantilla", detalle: "Texto de plantilla con variables del reporte y del emisor" },
+      ],
+      pendientes: r.pendientes.map((x) => ({ campo: "bloque", motivo: x })),
+      notasRevision: [],
+      tabla: null,
+      modelo: MODELO_POR_DEFECTO,
+      uso,
+      costo: 0,
+      duracionMs: 0,
+    });
+  }
+  return {
+    ok: true,
+    texto: r.texto,
+    fuentesUsadas: ["plantilla"],
+    pendientes: r.pendientes,
+    notasRevision: [],
+    tabla: null,
+    modelo: MODELO_POR_DEFECTO,
+    uso,
+    costo: 0,
+    duracionMs: 0,
+    intentos: 0,
+    correccionesGrafia: 0,
+    via: "plantilla",
+    conModelo: false,
+    bloque: c.evaluado,
+  };
+}
+
+/**
+ * ¿Este bloque del Perfil espera a que el generador sepa leer adjuntos?
+ *
+ * Solo si TODOS sus campos están vacíos y alguno tiene archivo en su sección. Si
+ * hay al menos un campo con texto, el bloque se redacta con lo que hay y el
+ * resto va como pendiente: media revelación es mejor que ninguna, y el revisor
+ * ve qué falta.
+ */
+function esperaAdjunto(
+  bloque: Bloque,
+  perfil: Record<string, unknown> | null,
+  seccionesConAdjunto: Set<string>
+): { campo: string; motivo: string }[] | null {
+  if (bloque.perfil.length === 0) return null;
+  const conTexto = (v: unknown) =>
+    typeof v === "string" ? v.trim().length > 0 : Array.isArray(v) ? v.length > 0 : v != null;
+
+  const vacios = bloque.perfil.filter((campo) => !conTexto(perfil?.[campo]));
+  if (vacios.length < bloque.perfil.length) return null;
+
+  const conArchivo = vacios.filter((campo) => seccionesConAdjunto.has(SECCION_DE_CAMPO[campo] ?? ""));
+  if (conArchivo.length === 0) return null;
+
+  return conArchivo.map((campo) => ({
+    campo,
+    motivo: `${ETIQUETA_CAMPO[campo] ?? campo}: vacío en el Perfil, pero su sección tiene un documento del que se derivará en A5b.`,
+  }));
+}
+
+/** Guarda un bloque que no produce texto: no aplica, o espera un adjunto. */
+async function persistirEstado(
+  supabase: Cliente,
+  documentoId: string,
+  bloque: Bloque,
+  idioma: string,
+  estado: "no_aplica" | "pendiente_adjunto",
+  pendientes: { campo: string; motivo: string }[]
+): Promise<void> {
+  await supabase.from("documentos_bloques").upsert(
+    {
+      documento_id: documentoId,
+      numero: bloque.numero,
+      clave: bloque.clave,
+      titulo: bloque.titulo,
+      seccion: bloque.seccion,
+      idioma,
+      estado,
+      texto: null,
+      fuentes: [],
+      pendientes,
+      modelo: null,
+      // Nulo a propósito: aquí no corrió ningún prompt. `prompt_version` dice
+      // con qué versión se escribió el texto guardado, y no hay texto.
+      prompt_version: null,
+      tokens_entrada: 0,
+      tokens_entrada_cache_escritura: 0,
+      tokens_entrada_cache_lectura: 0,
+      tokens_salida: 0,
+      costo_usd: 0,
+      duracion_ms: 0,
+      generado_en: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "documento_id,numero" }
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Persistencia. Un bloque por documento (UNIQUE documento_id, numero):
 // regenerar REEMPLAZA, no acumula, que es lo que dice el esquema.
 // -----------------------------------------------------------------------------
@@ -708,6 +894,9 @@ async function persistirBloque(
       seccion: bloque.seccion,
       idioma,
       estado: "borrador",
+      // Salió bien: la racha de cortes se acaba aquí. Si el bloque vuelve a
+      // generarse mañana, empieza con sus dos intentos enteros.
+      intentos: 0,
       // La tabla la armó el código y va DELANTE del texto en el documento: se
       // guarda junto, para que el bloque persistido sea lo que se va a publicar
       // y no una mitad que hay que recomponer al exportar.

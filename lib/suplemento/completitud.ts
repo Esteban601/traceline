@@ -6,7 +6,12 @@ import {
   type EstadoEntrega,
   type ReporteEnsamblado,
 } from "@/lib/reporte/ensamblar";
-import { BLOQUES, datapointsExentos, type Bloque } from "@/lib/suplemento/bloques";
+import {
+  BLOQUES,
+  datapointsExentos,
+  FUENTES_ALTERNATIVAS,
+  type Bloque,
+} from "@/lib/suplemento/bloques";
 import {
   leerAlivios,
   regimenDe,
@@ -94,6 +99,12 @@ export type BloqueEvaluado = Pick<
    * "no aplica por C4" en vez de callarlos.
    */
   noAplican: string[];
+  /**
+   * Requisitos que quedaron cubiertos por un campo del perfil en vez de por una
+   * solicitud, con el bloque que los desarrolla. El generador los usa para
+   * REMITIR ahí en lugar de repetir el contenido o abrir un pendiente falso.
+   */
+  remisiones: { codigo: string; bloque: number }[];
   /**
    * Ids de las solicitudes del reporte que cubren algún datapoint de este
    * bloque, hayan entregado o no. Es el puente datapoint → solicitud que ya se
@@ -183,7 +194,7 @@ const OCHO_ATRIBUTOS: { campo: string; etiqueta: string }[] = [
 ];
 
 /** Campo del perfil → sección del formulario, que es donde se adjunta el respaldo. */
-const SECCION_DE_CAMPO: Record<string, string> = {
+export const SECCION_DE_CAMPO: Record<string, string> = {
   denominacion_formal: "identidad",
   nombre_corto: "identidad",
   forma_de_referencia: "identidad",
@@ -203,7 +214,7 @@ const SECCION_DE_CAMPO: Record<string, string> = {
   proceso_materialidad: "materialidad",
 };
 
-const ETIQUETA_CAMPO: Record<string, string> = {
+export const ETIQUETA_CAMPO: Record<string, string> = {
   denominacion_formal: "Denominación formal",
   nombre_corto: "Nombre corto",
   forma_de_referencia: "Forma de referencia",
@@ -334,6 +345,7 @@ export async function evaluarCompletitud(
     const faltantes: Faltante[] = [];
     const solicitudesDelBloque = new Set<string>();
     const noAplican: string[] = [];
+    const remisiones: { codigo: string; bloque: number }[] = [];
     let exigidos = 0;
     let cumplidos = 0;
 
@@ -354,6 +366,7 @@ export async function evaluarCompletitud(
         cumplidos: 0,
         exigidos: 0,
         noAplican: [],
+        remisiones: [],
         solicitudes: [],
       };
     }
@@ -369,6 +382,23 @@ export async function evaluarCompletitud(
         continue;
       }
       exigidos++;
+
+      // Fuente alternativa: el requisito lo contesta un campo del perfil, no una
+      // solicitud. Si ese campo tiene contenido, está cubierto y el bloque remite
+      // al que lo desarrolla; si está vacío, sigue el camino normal y el hueco
+      // aparece donde corresponde.
+      const alterna = FUENTES_ALTERNATIVAS[codigo];
+      if (alterna) {
+        const lleno = alterna.campos.some((campo) => {
+          const valor = (perfil as Record<string, unknown> | null)?.[campo];
+          return CAMPOS_LISTA.has(campo) ? listaConContenido(valor) : conTexto(valor);
+        });
+        if (lleno) {
+          cumplidos++;
+          remisiones.push({ codigo, bloque: alterna.remitirA });
+          continue;
+        }
+      }
 
       const dpId = idPorCodigo.get(codigo);
       if (!dpId) {
@@ -612,6 +642,7 @@ export async function evaluarCompletitud(
         cumplidos: 0,
         exigidos: 0,
         noAplican,
+        remisiones,
         solicitudes: [...solicitudesDelBloque],
       };
     }
@@ -644,6 +675,7 @@ export async function evaluarCompletitud(
       cumplidos,
       exigidos,
       noAplican,
+      remisiones,
       solicitudes: [...solicitudesDelBloque],
     };
   });
