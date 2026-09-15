@@ -6,7 +6,7 @@ ficticio que reemplaza el giro industrial del seed. Semáforo: 36 completos, 3 d
 
 Régimen primer_anio, alivios {"C3":true,"C4":true,"C5":true,"E4":true,"E5":true}. Documento versión 1, estado `borrador`.
 
-**Totales:** $7.1851 · 261,953 tokens de entrada · 96,375 de salida.
+**Totales:** $7.1983 · 261,652 tokens de entrada · 96,700 de salida.
 
 | # | Bloque | Vía | Estado | Caracteres | Costo | Duración | tok/s | Pend. | Notas |
 |---:|---|---|---|---:|---:|---:|---:|---:|---:|
@@ -39,7 +39,7 @@ Régimen primer_anio, alivios {"C3":true,"C4":true,"C5":true,"E4":true,"E5":true
 | 27 | Gestión y mitigación de riesgos y oportunidades | datos | `borrador` | 2,358 | $0.2327 | 38,560 ms | 78.2 | 0 | 5 |
 | 28 | Plan de transición | datos | `borrador` | 2,116 | $0.2232 | 41,009 ms | 72.9 | 0 | 5 |
 | 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | datos | `borrador` | 2,037 | $0.1484 | 33,405 ms | 71.4 | 0 | 4 |
-| 30 | Método de medición, datos de entrada y C5 | datos | `borrador` | 1,946 | $0.2516 | 43,540 ms | 75.7 | 0 | 7 |
+| 30 | Método de medición, datos de entrada y C5 | datos | `borrador` | 2,234 | $0.2648 | 47,775 ms | 75.8 | 0 | 7 |
 | 31 | Razones del enfoque y desagregación | datos | `borrador` | 2,178 | $0.1925 | 37,063 ms | 64.5 | 0 | 5 |
 | 32 | Alcance 2 por ubicación e instrumentos contractuales | datos | `borrador` | 1,945 | $0.1804 | 31,348 ms | 64.7 | 0 | 6 |
 | 33 | Emisiones financiadas | datos | `no_aplica` | 0 | $0.0000 | 0 ms | — | 0 | 0 |

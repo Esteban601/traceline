@@ -360,9 +360,9 @@ de riego tecnificado como producto de adaptación para acreditados agropecuarios
 
 ### Métricas (S2 29)
 
-**29(a)(ii)–(iii) Método de medición.** Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI con
-factores de emisión de la SEMARNAT y del Registro Nacional de Emisiones para electricidad, con enfoque de control
-operacional. Datos de entrada: litros de combustible de flota y plantas de emergencia (488,000 litros de gasolina y
+**29(a)(ii)–(iii) Método de medición.** Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con
+factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado
+por la Comisión Reguladora de Energía (CRE) para electricidad, con enfoque de control operacional. Datos de entrada: litros de combustible de flota y plantas de emergencia (488,000 litros de gasolina y
 diésel en 2025; la solicitud de combustibles se liga a este requisito); kWh facturados por sucursal. El método, los
 factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al
 Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta
@@ -481,6 +481,8 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
 
 - v1 (15 sep 2026): versión inicial.
 - v2 (15 sep 2026): SSP5-8.5 en lugar de RCP 8.5; añadidos 16(c)(i)(ii), 16(d), 30 y 32; nota sobre E5.
+- v4 (15 sep 2026): el factor de emisión eléctrico es el del Sistema Eléctrico Nacional publicado por la CRE, no del
+  Registro Nacional de Emisiones.
 - v3 (15 sep 2026): se retira C5 del régimen; se cierran los 8 pendientes de la primera generación: compensaciones
   en 6(a)(iv), esfuerzos indirectos previstos en 14(a)(iii), dotación de recursos 14(b), escenarios y oportunidades
   en 25(b), "sin cambios" y razones del enfoque en 29(a)(ii)–(iv); 22(a)(iii) ampliado a los tres horizontes y a
