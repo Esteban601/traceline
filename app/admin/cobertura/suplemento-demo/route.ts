@@ -3,6 +3,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
+import JSZip from "jszip";
+import { limpiarNombreTenant } from "@/lib/tenants";
 import { logEvento } from "@/lib/bitacora";
 
 export const runtime = "nodejs";
@@ -39,6 +41,29 @@ const ARCHIVOS = {
 type Formato = keyof typeof ARCHIVOS;
 
 const esFormato = (v: string | null): v is Formato => v === "docx" || v === "pdf";
+
+/** Las dos formas del nombre que trae el documento de muestra. */
+const NOMBRE_LARGO = "Empresa Demo, S.A.B. de C.V.";
+const NOMBRE_CORTO = "Empresa Demo";
+
+/**
+ * Las dos formas, en UNA alternancia y con la larga primero: así la barrida
+ * única prefiere siempre el nombre completo sobre el corto que contiene.
+ */
+const RE_NOMBRES = new RegExp(
+  [NOMBRE_LARGO, NOMBRE_CORTO].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+  "g"
+);
+
+/** El nombre entra en un XML: un `&` o un `<` sin escapar rompen el .docx. */
+function escaparXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
 /** Sin acentos, sin espacios: el nombre viaja en una cabecera HTTP. */
 function normalizar(s: string): string {
@@ -105,6 +130,8 @@ export async function GET(req: Request) {
 
   const archivo = ARCHIVOS[formato];
   let contenido: Buffer;
+  /** Nombres que la sustitución no encontró; se reportan en la bitácora. */
+  let sinSustituir: string[] = [];
   try {
     contenido = await fs.readFile(
       path.join(process.cwd(), "assets", "vitrina", archivo.ruta)
@@ -118,6 +145,62 @@ export async function GET(req: Request) {
     );
   }
 
+  // --- Sustitución de nombre, SOLO en el Word -------------------------------
+  // VITRINA, Y SE VA. El documento de muestra está redactado para «Empresa
+  // Demo»; al enseñárselo a otra emisora, verlo con el nombre de la demo lo
+  // vuelve un ejemplo ajeno. Se reemplaza al servirlo, sin tocar el archivo en
+  // disco, para que sustituir el definitivo siga siendo copiar encima.
+  //
+  // ESTO DESAPARECE cuando la emisora genere su propio Suplemento: entonces el
+  // documento llevará su denominación formal desde el Perfil del emisor, y
+  // reescribir nombres al vuelo pasará de ser un apaño útil a ser una mentira.
+  // En staging no hay `perfil_emisor`, y por eso el nombre sale de `tenants`.
+  //
+  // El PDF se sirve tal cual: sustituir texto dentro de un PDF exige
+  // re-tipografiar la línea, y un renglón descuadrado en el documento que se usa
+  // para vender es peor que un nombre genérico.
+  if (formato === "docx") {
+    const destino = limpiarNombreTenant(tenant.nombre);
+    try {
+      const zip = await JSZip.loadAsync(contenido);
+      const parte = zip.file("word/document.xml");
+      if (parte) {
+        const xml = await parte.async("string");
+        // UN SOLO PASE, con la forma larga primero en la alternancia.
+        //
+        // Dos pases encadenados se muerden la cola cuando el nombre de destino
+        // contiene al de origen: «Empresa Demo, S.A.B. de C.V.» → «Empresa Demo
+        // SAB» y el segundo pase encuentra «Empresa Demo» DENTRO de lo que
+        // acababa de escribir, y deja «Empresa Demo SAB SAB». Con una sola
+        // barrida el texto ya sustituido no se vuelve a mirar.
+        const salida = xml.replace(RE_NOMBRES, () => escaparXml(destino));
+
+        // ¿Quedó alguna aparición sin tocar? No se busca en la salida —ahí el
+        // nombre nuevo puede contener al viejo y daría un falso positivo—, sino
+        // comparando el ORIGINAL en crudo con el original sin etiquetas. Si el
+        // texto plano tiene más apariciones que el XML, alguna está partida
+        // entre dos runs, que es como Word guarda una frase editada a media
+        // palabra. No se intenta recomponer —reordenar runs rompe el formato—:
+        // se avisa, para que quien prepare el definitivo lo escriba de una vez.
+        const plano = xml.replace(/<[^>]*>/g, "");
+        for (const n of [NOMBRE_LARGO, NOMBRE_CORTO]) {
+          const enCrudo = xml.split(n).length - 1;
+          const enPlano = plano.split(n).length - 1;
+          if (enPlano > enCrudo) sinSustituir.push(n);
+        }
+        if (salida !== xml) {
+          zip.file("word/document.xml", salida);
+          contenido = await zip.generateAsync({ type: "nodebuffer" });
+        }
+      }
+    } catch (e) {
+      // Que la sustitución falle no debe dejar sin documento a quien lo pidió:
+      // se sirve el original y queda dicho en el log.
+      console.error("[vitrina] no se pudo sustituir el nombre en el Word:", e);
+      sinSustituir = [NOMBRE_LARGO, NOMBRE_CORTO];
+    }
+  }
+
   const nombre = `Suplemento_S1S2_${normalizar(tenant.slug ?? tenant.nombre)}_${reporte.ejercicio}.${archivo.ext}`;
 
   await logEvento(db, {
@@ -126,7 +209,15 @@ export async function GET(req: Request) {
     accion: "suplemento_demo_descargado",
     entidad: "reportes",
     entidadId: reporte.id,
-    detalle: { formato, ejercicio: reporte.ejercicio, archivo: nombre },
+    detalle: {
+      formato,
+      ejercicio: reporte.ejercicio,
+      archivo: nombre,
+      // Qué nombre se puso y si algo quedó sin sustituir: es lo que delata un
+      // documento de muestra mal preparado antes de que lo vea un cliente.
+      nombre_sustituido: formato === "docx" ? limpiarNombreTenant(tenant.nombre) : null,
+      sin_sustituir: sinSustituir.length ? sinSustituir : null,
+    },
   });
 
   return new NextResponse(new Uint8Array(contenido), {
