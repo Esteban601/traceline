@@ -1,7 +1,15 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.6** · 11 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.7** · 15 de septiembre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.6** (al cerrar A5a, con el documento de 40 bloques corrido de extremo a extremo):
+- El generador se reparte en tres vías según de dónde sale el texto —plantilla, perfil, datos— y once bloques
+  llevan tabla armada por código antes de llamar al modelo (§6).
+- Cola explícita, reclamo atómico y corte por tiempo con reloj propio (§6). Tres migraciones nuevas (§5).
+- Dos reglas más de prompt: el marcador de pendiente no se anuncia y va integrado en su oración.
+- `NIIF S2 10(d)` se cubre desde `perfil.horizontes`; el bloque 21 remite al 8 en vez de repetirlo.
+- A5a marcado como completo, con fecha, y A5b acotado (§9).
 
 **Cambios respecto a 0.5** (al cerrar A4):
 - Esfuerzo de razonamiento configurable por tipo de bloque, con todo en `high` (§6).
@@ -254,9 +262,13 @@ filas, no como JSON.
 | Tabla `documentos_generados` | Versiones, estado, idioma, auditoría, costo total | CREATE TABLE + RLS |
 | Tabla `documentos_bloques` | Un renglón por bloque, versión e idioma: texto, estado, `fuentes` (ids), pendientes, tokens, costo, modelo, `prompt_version`, editado_por | CREATE TABLE + RLS |
 | `documentos_bloques.tokens_entrada_cache_escritura`, `.tokens_entrada_cache_lectura`, `.duracion_ms` | Un solo `tokens_entrada` no permite reconstruir el costo: escritura de caché, lectura y entrada sin cachear se cobran a precios distintos. `duracion_ms` es lo que decide si un bloque cabe en los 30 s del router | ADD COLUMN (`20260913120000`, **aplicada en dev**) |
-| `documentos_bloques.estado` amplía su CHECK a `('borrador','generando','error','en_revision','aprobado')` | La orquestación asíncrona necesita `generando`; un fallo guardado como `borrador` sin texto es indistinguible de un bloque que nadie generó | DROP + ADD CONSTRAINT (`20260914120000`, **pendiente de aprobación**) |
+| `documentos_bloques.estado` amplía su CHECK a `('borrador','generando','error','en_revision','aprobado')` | La orquestación asíncrona necesita `generando`; un fallo guardado como `borrador` sin texto es indistinguible de un bloque que nadie generó | DROP + ADD CONSTRAINT (`20260914120000`, **aplicada en dev**) |
 | Bucket `documentos` (privado) | Word y organigrama, ruta `{tenant_id}/…` | Storage + políticas |
 | `tenants.generaciones_mes_max` (int, default 10) | Salvaguarda contra uso accidental o abusivo del botón; no es tope de presupuesto | ADD COLUMN |
+| `documentos_bloques.estado` suma `'no_aplica'` y `'pendiente_adjunto'` | Un bloque que el régimen excluye y otro que espera un adjunto no son errores ni borradores vacíos: sin estado propio, el revisor los perseguía como fallos | DROP + ADD CONSTRAINT (`20260918120000`, **aplicada en dev**) |
+| `documentos_bloques.estado` suma `'en_cola'`, y `documentos_bloques.reclamado_en` (timestamptz, nullable) | Insertar los 40 bloques como `generando` hacía que todos los POST recibieran 409 y que los últimos de la cola vencieran esperando turno. `en_cola` dice que nadie lo ha tomado; `reclamado_en` es desde cuándo corre el vencimiento y lo que hace atómico el reclamo | DROP + ADD CONSTRAINT + ADD COLUMN (`20260919120000`, **aplicada en dev**) |
+| `documentos_bloques.intentos` (smallint, default 0) | Cuenta los cortes por tiempo de la tanda actual. Sin memoria del intento, un bloque que siempre excede la ventana se reencola para siempre; al segundo corte pasa a `error` | ADD COLUMN (`20260920120000`, **aplicada en dev**) |
+| `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | **Pendiente para A5b.** El bloque 21 hoy solo puede producir la tabla resumen: le falta con qué escribir el párrafo por riesgo que CADU pone en pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Capturables en `/admin/registros` | ADD COLUMN |
 
 Todas aditivas. Nada de lo que hoy usan staging ni los 16 tenants cambia de forma.
 
@@ -293,6 +305,57 @@ El router de Heroku corta a los 30, así que **esperar la generación dentro de 
 Una segunda petición sobre un bloque que ya se está generando responde 409: dos generaciones simultáneas del
 mismo bloque se pisan y se pagan las dos. Si el navegador se cierra, lo generado queda.
 
+**Cola explícita y reclamo atómico (A5a).** Los 40 bloques no se insertan en `generando` sino en **`en_cola`**,
+con `reclamado_en` nulo. La diferencia no es cosmética: insertarlos como `generando` hacía que los cuarenta POST
+del orquestador recibieran 409, que no se generara nada, y que a los tres minutos la consulta marcara «tiempo
+excedido» a trece bloques que nadie había tocado. `en_cola` significa que nadie lo ha tomado; `reclamado_en` es
+desde cuándo corre el vencimiento.
+
+El reclamo es **un solo `UPDATE … RETURNING`**, no un lee-y-luego-escribe:
+
+```sql
+update documentos_bloques set estado='generando', reclamado_en=now()
+ where documento_id=$1 and numero=$2
+   and (estado <> 'generando' or reclamado_en is null or reclamado_en < now() - interval '3 minutes')
+returning numero;
+```
+
+Cero filas devueltas significa que otra petición lo tiene, y ese POST no genera. Verificado con dos POST
+simultáneos al mismo bloque: un 202, un 409, una fila, y **un solo cargo de tokens** —comprobado por la fila del
+bloque y por la bitácora, que registra una entrada por generación consumada—.
+
+**Corte por tiempo con reloj propio.** El `timeout` del SDK cubre el establecimiento de la respuesta, no la
+duración del stream: un bloque tardó 305 s con un `timeout` de 150 s y no abortó nunca. El corte real es un
+`AbortController` con `setTimeout` de 150 s cuyo `signal` se pasa a la petición, de modo que el aborto alcanza
+al stream a mitad de camino. Va por debajo del vencimiento de 3 minutos para que el fallo llegue con su motivo
+en vez de con el síntoma, y `maxRetries` queda en 0 porque el reintento del SDK convertía el corte efectivo en
+300 s.
+
+Al cortar, el bloque **vuelve a `en_cola`** y suma un `intentos`; el orquestador lo reintenta una vez; al segundo
+corte pasa a `error`. Un bloque lento no es un bloque roto, pero uno que nunca cabe en la ventana no puede
+reencolarse para siempre. `intentos` vuelve a 0 al acertar, al encolar desde `/generar`, y cuando alguien pulsa
+«Regenerar» en la vista de revisión —que manda `{ reiniciarIntentos: true }`, porque empezar de nuevo a mano no
+es el segundo intento de la tanda anterior—. La velocidad en tokens por segundo se **deriva** de
+`tokens_salida / duracion_ms` y se muestra por bloque: es lo que distingue un bloque largo de uno lento, y la
+mediana de 78.6 tok/s del documento demo hizo evidente que el de 11.6 era carga del API.
+
+**Saldo agotado es definitivo y no es un fallo del bloque.** Un `credit balance is too low` no se arregla
+reintentando, y seguir con los otros treinta y nueve produce treinta y nueve errores idénticos que tapan la
+causa. Tiene motivo propio, `sin_saldo`, y devuelve el bloque a `en_cola` —no a `error`—: el estado dice la
+verdad, que espera turno, y el motivo dice por qué. Marcarlo error mandaba a alguien a buscar un problema en el
+prompt que no existía.
+
+**Tres vías, no una.** No todos los bloques salen del modelo. `lib/suplemento/vias.ts` los reparte:
+*plantilla* (2, 3, 5, 14) es texto fijo con variables y **no llama al modelo** —cuestan $0 y tardan 0 ms—;
+*perfil* (1, 4, 7, 11, 12, 18, 19) redacta desde `perfil_emisor`; *datos* (los 29 restantes) sale de la
+evidencia, y once de ellos llevan **tabla armada por código** antes de la llamada (`lib/suplemento/tablas.ts`).
+
+**Fuentes alternativas.** Un requisito puede contestarlo un campo institucional en vez de una solicitud:
+`NIIF S2 10(d)` —qué horizontes se evaluaron y por qué esos— es exactamente `perfil.horizontes`, capturado en el
+bloque 8. Con el campo lleno el requisito cuenta como cubierto y el bloque **remite** al que lo desarrolla. Antes
+de esto, el bloque 21 abría un pendiente por un dato que el documento ya trae escrito unas páginas antes, y se
+le exigía a la emisora entregar dos veces lo mismo.
+
 **Prompt por bloque.** Diseñado para caché: primero lo estable —rol, reglas, ejemplo de estilo, índice de los 40
 bloques, preferencias del emisor y los requisitos NIIF del bloque— con marca de caché; después lo volátil
 —fronteras del bloque, tabla ya armada, datos en JSON con ids, régimen e instrucción de extensión—. Salida
@@ -321,6 +384,17 @@ bloques, preferencias del emisor y los requisitos NIIF del bloque— con marca d
    los ofrece al revisor.
 5. **Denominación exacta.** `forma_de_referencia` y `denominacion_formal` se copian carácter por carácter,
    incluido el artículo en minúscula.
+
+**Dos reglas más, escritas al leer el bloque 21 de la primera corrida completa (A5a).** El marcador de pendiente
+ya existía; lo que faltaba era cómo se coloca:
+
+6. **El marcador ocupa el lugar del dato y no se anuncia.** Prohibido escribir una frase que prometa algo que
+   luego resulta ser un marcador —«la calificación asignada se presenta a continuación» seguido de un
+   pendiente—. Si el dato no está, la oración lo dice donde iría el dato y no promete nada alrededor. Un
+   borrador que anuncia una tabla inexistente, publicado sin revisar, miente.
+7. **Va integrado en su oración, nunca agrupado al final.** Mal: tres párrafos de texto y luego tres marcadores
+   seguidos. Bien: «Las emisiones de Alcance 2 ascendieron a [Pendiente: …] toneladas métricas equivalentes de
+   CO2.» El revisor tiene que ver el hueco donde está, no en una lista al cierre.
 
 La capa estable lleva además un **ejemplo de estilo**: el bloque equivalente de un informe real, con el nombre
 de la emisora sustituido por «la Compañía» y las cifras por marcadores.
@@ -425,8 +499,9 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 | ✅ A2 | Migraciones aditivas (§5) en dev. Mapeo `lib/suplemento/bloques.ts` cruzado contra los 91 códigos reales, con validación en arranque. Anexar el mapeo a esta especificación | A1 | **Completo · 10 sep 2026** |
 | ✅ A3 | Formulario del Perfil del emisor (portal y panel) y captura de severidad en registros de clima. Semáforo de completitud, sin IA | A2 | **Completo · 11 sep 2026** |
 | ✅ A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola | **Completo · 11 sep 2026** |
-| A5 | Los 40 bloques en régimen primer año, orquestación, persistencia, vista de revisión, bloqueo de aprobación con pendientes | A4 | Pendiente |
-| A6 | Word con estilos, marca de agua y anexo de trazabilidad | A5 | Pendiente |
+| ✅ A5a | Los 40 bloques en régimen primer año por vía (plantilla, perfil, datos) con once tablas armadas por código; `POST /generar` con cola explícita, reclamo atómico, concurrencia 3 y corte por tiempo; vista de revisión con edición en línea, regeneración por bloque y aprobación bloqueada con pendientes; botón del semáforo para staff. Documento demo completo: 39 borradores + 1 no aplica, $7.5579, 27.7 min de cómputo | A4 | **Completo · 15 sep 2026** |
+| A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar—; (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
+| A6 | Word con estilos, marca de agua y anexo de trazabilidad | A5b | Pendiente |
 | A7 | Glosario ES↔EN y versión en inglés | A6 | Pendiente |
 | A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 | Pendiente |
 | A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 | Pendiente |
