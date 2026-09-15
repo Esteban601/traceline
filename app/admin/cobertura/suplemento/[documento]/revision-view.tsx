@@ -148,6 +148,10 @@ export function RevisionView(p: {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+          {/* Desde borrador: el Word es como se lee el documento de corrido, y
+              exigir la aprobación para verlo obligaría a aprobar antes de
+              revisar. Mientras no esté aprobado sale con marca de agua. */}
+          <DescargarWord documentoId={p.documentoId} estado={p.estado} />
           {p.estado === "borrador" && (
             <form action={aEstado}>
               <input type="hidden" name="documento_id" value={p.documentoId} />
@@ -213,6 +217,60 @@ export function RevisionView(p: {
         </section>
       ))}
     </div>
+  );
+}
+
+/**
+ * "Descargar Word". Va por fetch y no por un <a href> porque la ruta puede
+ * responder 422 —documento sin bloques— o 500, y un enlace directo entregaría
+ * un archivo de cero bytes con extensión .docx en vez de decir qué pasó.
+ */
+function DescargarWord({ documentoId, estado }: { documentoId: string; estado: string }) {
+  const [bajando, setBajando] = useState(false);
+  const toast = useToast();
+
+  async function descargar() {
+    setBajando(true);
+    try {
+      const res = await fetch(`/api/suplemento/${documentoId}/word`);
+      if (!res.ok) {
+        const cuerpo = await res.json().catch(() => null);
+        throw new Error(cuerpo?.error ?? `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition");
+      const m = cd ? /filename="?([^"]+)"?/i.exec(cd) : null;
+      const nombre = m ? m[1] : "suplemento.docx";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`${nombre} descargado.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo generar el Word.");
+    } finally {
+      setBajando(false);
+    }
+  }
+
+  return (
+    <Button
+      onClick={descargar}
+      loading={bajando}
+      variant="secondary"
+      size="sm"
+      title={
+        estado === "aprobado"
+          ? "Descargar el documento en Word"
+          : "Descargar el documento en Word, con marca de agua de borrador"
+      }
+    >
+      Descargar Word
+    </Button>
   );
 }
 

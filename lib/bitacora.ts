@@ -62,6 +62,8 @@ export type AccionEvento =
   | "objetivo_desactivado"
   | "objetivo_reactivado"
   | "cuestionario_respondido"
+  // Descarga del Suplemento NIIF S1/S2 como documento de Word.
+  | "suplemento_word_descargado"
   // Perfil del emisor (Suplemento S1/S2): lo institucional que alimenta el
   // documento. Se registra por sección para saber qué se actualizó y cuándo.
   | "perfil_emisor_actualizado"
