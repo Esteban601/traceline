@@ -18,7 +18,8 @@
     "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
     "verify:export": "node scripts/verify-export.mjs",
     "seed:catalogo": "node scripts/regenerar-seed-catalogo.mjs",
-    "plantilla:preparar": "node scripts/preparar-plantilla-taxonomia.mjs"
+    "plantilla:preparar": "node scripts/preparar-plantilla-taxonomia.mjs",
+    "verify:word": "node scripts/verify-docx.mjs"
   },
   "engines": {
     "node": "22.x"
@@ -43,8 +44,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.20",
+    "jszip": "^3.10.2",
     "pdf-lib": "^1.17.1",
     "playwright": "^1.61.1",
+    "sax": "^1.6.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

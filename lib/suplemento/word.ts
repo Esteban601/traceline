@@ -7,7 +7,6 @@ import {
   Footer,
   Header,
   HeadingLevel,
-  ImportedXmlComponent,
   PageBreak,
   PageNumber,
   Packer,
@@ -148,24 +147,35 @@ function runs(texto: string): TextRun[] {
 // -----------------------------------------------------------------------------
 // Marca de agua
 //
-// Word la dibuja con VML dentro del encabezado; la librería no tiene un
-// componente para esto, así que se inyecta el XML. Va en el encabezado de la
-// sección para que se repita en TODAS las páginas: una marca en la portada y en
-// ninguna otra no sirve de nada cuando alguien imprime la página 12.
+// SIN VML. La primera versión dibujaba la marca como una forma VML rotada dentro
+// del encabezado, que es como Word las hace nativamente. El archivo resultante
+// abría en Vista Previa y en Quick Look, pero **Microsoft Word se negaba a
+// abrirlo**: el VML que escribimos a mano no pasaba su validación, y un
+// entregable que no abre en Word no es un entregable.
+//
+// Ahora es un párrafo de texto corriente en el encabezado: grande, gris claro,
+// centrado y espaciado. OOXML puro, sin una sola etiqueta que Word tenga que
+// interpretar de más.
+//
+// Lo que se pierde: no va rotada ni por detrás del texto, sino en la banda
+// superior de cada página. Lo que se gana: el archivo abre. Para una marca
+// diagonal detrás del cuerpo haría falta una imagen anclada con
+// `behindDocument`, que es el camino si algún día la banda no basta.
 // -----------------------------------------------------------------------------
 function marcaDeAgua(): Paragraph {
-  const xml = `<w:p>
-    <w:r>
-      <w:pict>
-        <v:shape id="marcaAgua" o:spid="_x0000_s2049" type="#_x0000_t136"
-          style="position:absolute;margin-left:0;margin-top:0;width:520pt;height:60pt;rotation:315;z-index:-251654144;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin"
-          fillcolor="#d8d2c4" stroked="f">
-          <v:textpath style="font-family:&quot;Helvetica&quot;;font-size:28pt;v-text-kern:t" string="${MARCA_AGUA}"/>
-        </v:shape>
-      </w:pict>
-    </w:r>
-  </w:p>`;
-  return ImportedXmlComponent.fromXmlString(xml) as unknown as Paragraph;
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 0 },
+    children: [
+      new TextRun({
+        text: MARCA_AGUA,
+        bold: true,
+        size: 36,
+        color: "D8D2C4",
+        characterSpacing: 40,
+      }),
+    ],
+  });
 }
 
 // -----------------------------------------------------------------------------
