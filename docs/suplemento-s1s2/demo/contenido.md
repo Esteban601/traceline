@@ -24,7 +24,7 @@ Reglas de carga (para el script):
 | nombre_corto | Empresa Demo |
 | forma_de_referencia | la Compañía |
 | entidad_que_informa | Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V. |
-| perimetro | El informe cubre la totalidad de las operaciones consolidadas en México: 118 sucursales bancarias, tres centros operativos (Monterrey, Ciudad de México y Mérida) y el corporativo. Las métricas de emisiones comprenden las operaciones propias (Alcances 1 y 2). Las emisiones financiadas y las métricas de cartera se presentan como exposición cualitativa; su cuantificación se difiere conforme al alivio C4 del primer año. Las participaciones minoritarias no consolidadas se excluyen. |
+| perimetro | El informe cubre la totalidad de las operaciones consolidadas en México: 118 sucursales bancarias, tres centros operativos (Monterrey, Ciudad de México y Mérida) y el corporativo. Las métricas de emisiones comprenden las operaciones propias (Alcances 1 y 2). Las emisiones financiadas se difieren conforme al alivio C4 del primer año. Las métricas de cartera se presentan como composición por sector económico, proporción de cartera sostenible y exposición cualitativa a riesgos climáticos; su cuantificación en términos de emisiones se incorporará en ejercicios subsecuentes. Las participaciones minoritarias no consolidadas se excluyen. |
 | carta_firmante | Andrés Villaseñor Ruiz |
 | carta_cargo | Director General |
 | matriz_riesgos | escala_max 25; niveles: Bajo 0–5, Medio 6–12, Alto 13–19, Crítico 20–25 |
@@ -397,9 +397,17 @@ C4, no por esta exención.
 
 **32 Métricas basadas en la industria.** La Compañía pertenece al sector de bancos comerciales conforme a la
 clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la
-incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. En 2025
-revela la composición de la cartera por sector económico y la proporción de cartera sostenible; la revelación
-completa de las métricas industriales se incorporará en ejercicios subsecuentes.
+incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. Al 31 de
+diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, con la siguiente composición por
+sector económico: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960
+millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible
+de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090
+millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La revelación completa de las
+métricas industriales se incorporará en ejercicios subsecuentes.
+
+Capturas confirmadas para esta solicitud (MDP, ejercicio 2025): cartera total 86,400; empresarial 44,930;
+hipotecario 18,140; consumo 12,960; agropecuario 10,370; cartera sostenible 6,910; sectores intensivos en carbono
+8,090.
 
 ### Requisitos generales (S1) que aplican al primer año
 
@@ -481,6 +489,8 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
 
 - v1 (15 sep 2026): versión inicial.
 - v2 (15 sep 2026): SSP5-8.5 en lugar de RCP 8.5; añadidos 16(c)(i)(ii), 16(d), 30 y 32; nota sobre E5.
+- v5 (15 sep 2026): perímetro reescrito para no contradecir a S2 32 (las métricas de cartera sí se revelan como
+  composición y proporción); S2 32 con cifras de composición de cartera y capturas confirmadas.
 - v4 (15 sep 2026): el factor de emisión eléctrico es el del Sistema Eléctrico Nacional publicado por la CRE, no del
   Registro Nacional de Emisiones.
 - v3 (15 sep 2026): se retira C5 del régimen; se cierran los 8 pendientes de la primera generación: compensaciones

@@ -5,12 +5,12 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 2,167 caracteres |
-| Costo | $0.2988 |
-| Duración | 46,067 ms |
-| Velocidad | 72.5 tok/s |
-| Tokens | 12,009 entrada · 3,339 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 2,114 caracteres |
+| Costo | $0.2785 |
+| Duración | 39,867 ms |
+| Velocidad | 73.1 tok/s |
+| Tokens | 12,070 entrada · 2,916 salida |
 
 ---
 
@@ -24,11 +24,11 @@
 | Cartera sostenible | — | — | — | Falso |
 | Medición de emisiones financiadas | — | Alcance 3 | — | Falso |
 
-Empresa Demo, S.A.B. de C.V. mantiene un único objetivo de emisiones de gases de efecto invernadero, correspondiente a la reducción de sus emisiones de Alcances 1 y 2. Los otros dos objetivos que se muestran en la tabla, relativos a la cartera sostenible y a la cobertura de medición de emisiones financiadas, no constituyen objetivos de emisiones de gases de efecto invernadero, por lo que los atributos de gases cubiertos y carácter bruto o neto no les resultan aplicables. El de medición de emisiones financiadas se refiere a la proporción de la cartera empresarial cuyas emisiones de Alcance 3 se miden, y no a una meta de reducción de dichas emisiones.
+Empresa Demo, S.A.B. de C.V. presenta en la tabla anterior los atributos de sus objetivos relacionados con el clima en lo que respecta a los gases y alcances que cubren, su carácter bruto o neto y el enfoque empleado para determinarlos. De los tres objetivos, únicamente el de reducción de emisiones de Alcances 1 y 2 constituye un objetivo de emisiones de gases de efecto invernadero. Dicho objetivo se expresa en términos de emisiones brutas, por lo que no existe un objetivo neto ni un objetivo bruto asociado que deba revelarse por separado, y no fue obtenido mediante un enfoque de descarbonización sectorial. Cubre el dióxido de carbono, el metano y el óxido nitroso correspondientes a las emisiones de Alcance 1 y Alcance 2 de toda la Compañía.
 
-El objetivo de reducción de Alcances 1 y 2 se formula en términos de emisiones brutas absolutas, por lo que la Compañía no tiene un objetivo neto y no procede revelar por separado un objetivo bruto asociado. Cubre los gases señalados en la tabla y aplica a toda la Compañía. El objetivo no se derivó de un enfoque de descarbonización sectorial; se estableció como una reducción absoluta respecto del periodo base 2025, consistente con la trayectoria del Acuerdo de París, y no cuenta con validación de la iniciativa Science Based Targets.
+Los objetivos de cartera sostenible y de medición de emisiones financiadas no son objetivos de emisiones de gases de efecto invernadero: el primero se refiere a la composición de la cartera y el segundo a la cobertura de medición de las emisiones de Alcance 3 asociadas a la cartera empresarial, sin fijar una meta de reducción de dichas emisiones. Por ello, los atributos relativos a gases cubiertos y carácter bruto o neto no les resultan aplicables.
 
-La Compañía no prevé el uso de créditos de carbono para compensar emisiones en el cumplimiento de sus objetivos. La reducción de Alcances 1 y 2 se alcanzará mediante eficiencia energética, generación solar distribuida y renovación de flota, sin compensaciones. En consecuencia, no procede revelar el grado de dependencia de créditos de carbono, el esquema de verificación o certificación de terceros al que estarían sujetos, su tipo ni otros factores relativos a su credibilidad e integridad.
+La Compañía no prevé el uso de créditos de carbono para compensar emisiones en el cumplimiento de sus objetivos. El objetivo de reducción de Alcances 1 y 2 se alcanzará mediante eficiencia energética y generación distribuida, sin compensaciones, de modo que no procede revelar información sobre esquemas de verificación de terceros, tipo de crédito ni otros factores relativos a la credibilidad e integridad de créditos de carbono.
 
 ## Fuentes
 
@@ -47,10 +47,9 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- La tabla incluye los tres objetivos climáticos, pero solo el de Reducción de emisiones de Alcances 1 y 2 es un objetivo de emisiones de GEI conforme a S2 36. Los objetivos de Cartera sostenible y Medición de emisiones financiadas aparecen con guiones en casi todas las columnas; el revisor puede valorar si conviene restringir la tabla a objetivos de emisiones de GEI o mantener el texto aclaratorio que se incluye.
-- El objetivo de Medición de emisiones financiadas muestra 'Alcance 3' en la columna de alcances cubiertos, aunque es un objetivo de cobertura de medición y no de reducción. Puede leerse como un objetivo de emisiones de Alcance 3 mientras la Compañía se acoge al alivio C4 (sin Alcance 3). Se aclaró en el texto; el revisor decide si se ajusta la tabla.
-- La columna 'Enfoque de descarbonización' muestra el valor 'Falso'; para publicación conviene sustituirlo por 'No' o 'No aplicado'.
-- Los datos de medios de cumplimiento difieren ligeramente entre fuentes: la solicitud de créditos de carbono menciona 'eficiencia energética y generación distribuida', mientras que la descripción del objetivo añade 'renovación de flota'. Se usó la versión del objetivo por ser más completa; verificar consistencia con el bloque 28 (Plan de transición).
-- Los datos de línea base 2025 (Alcance 1: 1,240 tCO2e; Alcance 2: 3,860 tCO2e), el hito intermedio de 12% al 2027, el periodo de aplicación 2026-2030 y la meta de 30% al 2030 existen pero corresponden a los bloques 38 (atributos por objetivo), 39 (resultados) y 29 (emisiones); no se repitieron aquí para evitar duplicación.
-- Las respuestas del cuestionario S2 22(b)(i) y 22(b)(ii) incluidas en las fuentes corresponden al análisis de escenarios (bloque 26) y no se usaron en este bloque.
+- La tabla armada por el sistema incluye los objetivos 'Cartera sostenible' y 'Medición de emisiones financiadas' en una tabla titulada de objetivos de emisiones GEI, con el campo 'Enfoque de descarbonización = Falso' aunque no son objetivos de emisiones. Valorar si conviene retirarlos de la tabla o cambiar el título a 'Objetivos relacionados con el clima' para no confundir al lector; el texto los aclara como no aplicables.
+- El objetivo de medición de emisiones financiadas referencia Alcance 3 mientras la emisora adopta el alivio NIIF S2 C4 (sin Alcance 3). No hay contradicción normativa (es cobertura de medición, no cifra de emisiones), pero conviene verificar consistencia con los bloques 29 y 33.
+- Los datos de la solicitud de plan de transición y del objetivo incluyen atributos adicionales (absoluto, periodo base 2025, periodo 2026-2030, hito 12% al 2027, consistencia con Acuerdo de París, no validado por SBTi, resultados de línea base 1,240 tCO2e Alcance 1 y 3,860 tCO2e Alcance 2). Se omitieron aquí por corresponder a los bloques 38 y 39; verificar que allí se cubran.
+- El objetivo describe como medios 'eficiencia energética, generación solar distribuida y renovación de flota', mientras la solicitud de créditos de carbono y el cuestionario S2 36(e) mencionan solo eficiencia energética y generación distribuida. Se usó la formulación de la fuente de créditos; inconsistencia menor a confirmar con la emisora.
+- La respuesta a cuestionario S2 36(e) pregunta 2 es 'No aplica', consistente con la ausencia de créditos; no hay dato faltante para S2 36(e)(i)-(iv).
 

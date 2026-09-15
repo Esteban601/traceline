@@ -5,24 +5,24 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 2,208 caracteres |
-| Costo | $0.1399 |
-| Duración | 32,130 ms |
-| Velocidad | 77.9 tok/s |
-| Tokens | 5,807 entrada · 2,504 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 1,973 caracteres |
+| Costo | $0.1716 |
+| Duración | 39,418 ms |
+| Velocidad | 79.7 tok/s |
+| Tokens | 5,867 entrada · 3,143 salida |
 
 ---
 
 ## Texto
 
-Empresa Demo, S.A.B. de C.V. determina la información sobre riesgos y oportunidades relacionados con el clima que revela en este informe con base en el criterio de materialidad financiera de la NIIF S1. Bajo ese criterio, la Compañía considera material la información cuya omisión, inexactitud u ocultamiento podría razonablemente esperarse que influya en las decisiones de los usuarios de los informes financieros con propósito general. En el ejercicio 2025, primer periodo de aplicación de las Normas NIIF S1 y S2, la evaluación de materialidad se acotó a los riesgos y oportunidades relacionados con el clima.
+Empresa Demo, S.A.B. de C.V. determina la información a revelar sobre riesgos y oportunidades relacionados con el clima aplicando el criterio de materialidad financiera de la NIIF S1. Bajo ese criterio, la Compañía considera material la información sobre aquellos riesgos y oportunidades cuyo efecto pueda razonablemente preverse sobre su situación financiera, rendimiento financiero y flujos de efectivo, así como sobre su acceso a financiamiento y su costo de capital, y que por ello pueda influir en las decisiones de los usuarios de los informes financieros con propósito general.
 
-Durante 2025 la Compañía evaluó dichos riesgos y oportunidades considerando el efecto que razonablemente podría esperarse de ellos sobre su situación financiera, rendimiento financiero y flujos de efectivo, así como sobre su acceso a financiamiento y su costo de capital. El ejercicio combinó tres fuentes de información. La primera fue un análisis de exposición física de la red de sucursales y de los colaterales que respaldan la cartera, elaborado con datos del Atlas Nacional de Riesgos del Centro Nacional de Prevención de Desastres (CENAPRED). La segunda fue un análisis de sensibilidad de la cartera por sector económico ante la introducción de un precio al carbono y ante cambios regulatorios asociados a la transición climática. La tercera consistió en entrevistas con las direcciones de Riesgos, Crédito, Tesorería y Finanzas, orientadas a contrastar los resultados de los análisis anteriores con el conocimiento operativo de cada área.
+Durante 2025 la Compañía llevó a cabo una evaluación de sus riesgos y oportunidades relacionados con el clima orientada a identificar aquellos que reúnen esa condición. La evaluación combinó tres fuentes de análisis. La primera fue el análisis de exposición física de la red de sucursales y de los colaterales, realizado con datos del Atlas Nacional de Riesgos del Centro Nacional de Prevención de Desastres (CENAPRED). La segunda fue el análisis de sensibilidad de la cartera por sector económico ante la introducción de un precio al carbono y ante cambios regulatorios asociados a la transición climática. La tercera consistió en entrevistas con las direcciones de Riesgos, Crédito, Tesorería y Finanzas, áreas que participan en la gestión de los riesgos evaluados.
 
-Como apoyo metodológico para estructurar la identificación y la valoración de los riesgos, la Compañía utilizó los marcos COSO (2017) e ISO 31000. Estos marcos no sustituyeron el análisis de materialidad requerido por la NIIF S1, que se realizó con el criterio de materialidad financiera antes descrito y determinó qué riesgos y oportunidades relacionados con el clima se consideran relevantes para los usuarios de este informe.
+Como apoyo metodológico para la identificación y evaluación de riesgos, la Compañía utilizó el marco COSO (2017) y la norma ISO 31000. Estos marcos sirvieron de referencia para estructurar el proceso, sin sustituir el análisis de materialidad requerido por la NIIF S1 ni el juicio de la Compañía sobre qué información resulta relevante para los usuarios de sus informes.
 
-Los riesgos y oportunidades identificados como materiales a partir de este proceso, su priorización y sus efectos sobre la Compañía se describen en las secciones de estrategia y de gestión de riesgos de este informe.
+Los riesgos y oportunidades relacionados con el clima que la Compañía identificó como materiales mediante este proceso, su priorización y sus efectos financieros actuales y previstos se describen en las secciones correspondientes de este informe.
 
 ## Fuentes
 
@@ -35,9 +35,9 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- El perfil dice «desempeño financiero» y «efecto razonablemente previsible»; en el texto se usó la terminología de la traducción oficial («rendimiento financiero», «razonablemente podría esperarse»). Confirmar con la emisora que el cambio de vocabulario no altera lo que quiso afirmar.
-- El perfil no indica umbrales cuantitativos ni criterios de corte usados para decidir qué riesgo se considera material, ni la periodicidad con que se revisará la evaluación. No se afirmó nada al respecto. Si la emisora cuenta con ellos, sería una revelación voluntaria que fortalecería este bloque; de lo contrario, considerar si el revisor quiere solicitarlos.
-- El perfil no menciona la participación del órgano de gobierno ni la aprobación del resultado de la evaluación de materialidad. No se mencionó en el texto para no invadir los bloques 15 a 17; verificar que allí quede cubierto.
-- Se acotó la evaluación al clima sin citar el párrafo E5 de la NIIF S1, que corresponde al bloque 3. Verificar que el bloque 3 lo declare expresamente.
-- La frase de cierre remite a las secciones de estrategia y gestión de riesgos (bloques 9, 21 y 27) sin nombrar resultados concretos; confirmar que esos bloques efectivamente presentan los riesgos priorizados para que la remisión no quede vacía.
+- El perfil describe el proceso pero no indica umbrales cuantitativos ni criterios de corte para calificar un riesgo u oportunidad como material; si la emisora los tiene, sería una revelación voluntaria útil para este bloque.
+- No se dispone de información sobre la frecuencia con que se reevalúa la materialidad ni sobre si el proceso fue aprobado o supervisado por el órgano de gobierno; la parte de supervisión corresponde a los bloques 15 y 16, verificar consistencia.
+- El perfil menciona 'acceso a financiamiento y costo de capital' como efectos considerados; se incluyó junto con la terminología oficial de 'situación financiera, rendimiento financiero y flujos de efectivo'. Confirmar que la redacción de horizontes temporales (bloque 8) y de efectos financieros (bloque 10) use los mismos conceptos.
+- El texto del perfil (red de sucursales, colaterales, cartera por sector económico) describe una entidad financiera; verificar que coincida con el modelo de negocio del bloque 12 y con la aplicación de C4 respecto a emisiones financiadas (bloques 29 y 33).
+- No se agregó referencia al alivio E5 (solo clima) en este bloque para no invadir el bloque 3; el texto se acotó a riesgos y oportunidades relacionados con el clima sin mencionar otros temas de sostenibilidad.
 

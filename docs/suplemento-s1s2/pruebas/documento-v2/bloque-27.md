@@ -6,25 +6,25 @@
 |---|---|
 | Modelo | `claude-fable-5-1` |
 | Versión de prompt | `a5b-v2-2026-09-15` |
-| Longitud | 2,358 caracteres |
-| Costo | $0.2327 |
-| Duración | 38,560 ms |
-| Velocidad | 78.2 tok/s |
-| Tokens | 6,974 entrada · 3,014 salida |
+| Longitud | 2,335 caracteres |
+| Costo | $0.2177 |
+| Duración | 35,069 ms |
+| Velocidad | 77.4 tok/s |
+| Tokens | 6,974 entrada · 2,715 salida |
 
 ---
 
 ## Texto
 
-Empresa Demo, S.A.B. de C.V. gestiona los riesgos y oportunidades relacionados con el clima mediante procesos que forman parte de su sistema corporativo de gestión de riesgos. La identificación, evaluación, priorización y supervisión de estos riesgos y oportunidades se realiza con los mismos criterios y en las mismas instancias que se aplican a los riesgos de crédito, de mercado y operacional, de modo que la información resultante se incorpora al mapa corporativo de riesgos y a las decisiones que de él se derivan.
+Empresa Demo, S.A.B. de C.V. gestiona los riesgos y oportunidades relacionados con el clima mediante procesos que forman parte de su marco general de administración de riesgos. La identificación, evaluación, priorización y seguimiento de estos riesgos y oportunidades se realiza con los mismos criterios y herramientas que la Compañía aplica a los riesgos de crédito, de mercado y operacional, de modo que la información resultante se incorpora al mapa corporativo de riesgos y se reporta a través de los órganos ya establecidos para ese fin.
 
-La identificación de los riesgos relacionados con el clima se apoya en dos análisis complementarios: un análisis de exposición física, elaborado a partir de la información del Centro Nacional de Prevención de Desastres (CENAPRED), y un análisis de exposición sectorial basado en la intensidad de carbono de las actividades financiadas. Los riesgos identificados se evalúan con la matriz corporativa de probabilidad e impacto, que asigna a cada una de estas dos dimensiones una calificación en una escala de 1 a 5 y produce un nivel de severidad de 0 a 25. La priorización se lleva a cabo en el Comité de Riesgos, y los riesgos priorizados se integran al mapa corporativo de riesgos. El seguimiento de los riesgos relacionados con el clima se realiza con periodicidad trimestral.
+Los riesgos relacionados con el clima se identifican a partir de dos análisis complementarios: un análisis de exposición física, basado en la información del Centro Nacional de Prevención de Desastres (CENAPRED), y un análisis de exposición sectorial, basado en la intensidad de carbono de los sectores en los que opera la cartera. Los riesgos identificados se evalúan con la matriz corporativa de probabilidad e impacto, que asigna a cada factor una calificación de 1 a 5 y produce un nivel de severidad de 0 a 25. Con base en esa evaluación, el Comité de Riesgos prioriza los riesgos y los integra al mapa corporativo de riesgos. El seguimiento de los riesgos priorizados se realiza con periodicidad trimestral.
 
-Durante el ejercicio 2025 la Compañía no modificó estos procesos respecto del periodo anterior, salvo por la incorporación del análisis de exposición física de los colaterales.
+Durante el ejercicio 2025 la Compañía no modificó los procesos descritos respecto del periodo anterior, salvo por la incorporación del análisis de exposición física de los colaterales que respaldan su cartera.
 
-Los mismos procesos de identificación, evaluación, priorización y seguimiento se aplican a las oportunidades relacionadas con el clima. Adicionalmente, la Compañía utiliza el análisis de escenarios relacionados con el clima para fundamentar la identificación de oportunidades. El escenario de transición ordenada, al mostrar un crecimiento de la demanda de financiamiento verde y un menor costo de fondeo, fundamentó la meta de cartera sostenible y el producto de vivienda eficiente. El escenario de altas emisiones fundamentó la línea de riego tecnificado, concebida como producto de adaptación para los acreditados agropecuarios.
+Los mismos procesos se aplican a la identificación, evaluación, priorización y seguimiento de las oportunidades relacionadas con el clima. Adicionalmente, la Compañía utiliza el análisis de escenarios relacionados con el clima para fundamentar la identificación de oportunidades. El escenario de transición ordenada, al mostrar un crecimiento de la demanda de financiamiento verde y un menor costo de fondeo, fundamentó la meta de cartera sostenible y el producto de vivienda eficiente. El escenario de altas emisiones fundamentó la línea de riego tecnificado, concebida como producto de adaptación para los acreditados del sector agropecuario.
 
-De esta manera, los procesos relativos a los riesgos y oportunidades relacionados con el clima se integran en el proceso global de gestión de riesgos de la Compañía y alimentan la información que dicho proceso genera para los órganos de decisión.
+De esta forma, los procesos relativos al clima no operan de manera separada, sino que están integrados en el proceso global de gestión de riesgos de la Compañía e informan las decisiones que se adoptan en dicho proceso.
 
 ## Fuentes
 
@@ -37,9 +37,8 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- La solicitud sol:907e4cd7 describe el uso del análisis de escenarios (transición ordenada y altas emisiones) para identificar oportunidades; se incluyó solo en la medida que exige NIIF S2 25(b). El detalle de los escenarios (supuestos, horizontes, resultados de resiliencia) corresponde al bloque 26 y la descripción de la meta de cartera sostenible, el producto de vivienda eficiente y la línea de riego tecnificado corresponden a los bloques 24, 36 y 38: verificar que no se dupliquen.
-- El cambio de procesos declarado (incorporación del análisis de exposición física de colaterales) se afirma respecto del periodo anterior aunque 2025 es el primer año de adopción; el alivio NIIF S2 C3 exime de comparativos pero no del requisito 25(a)(vi), por lo que se mantuvo la afirmación. Confirmar con la emisora que el cambio se refiere efectivamente al ejercicio 2024 como base de comparación.
-- La solicitud no precisa si el cambio de procesos (colaterales) aplica también a la identificación de oportunidades; el texto lo presenta como cambio en el proceso de riesgos, conforme a la redacción recibida.
-- La solicitud no indica qué órgano recibe la información del monitoreo trimestral ni la frecuencia con que el Comité de Riesgos reporta al Consejo; ese vínculo se cubre en los bloques 15 y 17. Si la emisora dispone del dato, podría revelarse voluntariamente aquí para reforzar NIIF S2 25(c).
-- La cita al CENAPRED se expandió como Centro Nacional de Prevención de Desastres; confirmar que la emisora acepta la denominación completa.
+- La solicitud describe procesos propios de una entidad financiera (cartera, colaterales, acreditados, costo de fondeo, riesgo de crédito y de mercado). Verificar que el perfil de la emisora en los demás bloques sea consistente con esa naturaleza; el perfil_emisor entregado venía vacío.
+- Los escenarios mencionados (transición ordenada y altas emisiones) y las oportunidades derivadas (meta de cartera sostenible, producto de vivienda eficiente, línea de riego tecnificado) deben coincidir en denominación y alcance con lo que se redacte en los bloques 24, 26, 36 y 38 para evitar inconsistencias entre secciones.
+- La afirmación sobre 'no hubo cambios respecto del periodo anterior' se refiere a los procesos internos de la emisora previos a 2025, no a un informe NIIF S2 anterior, dado que 2025 es el primer año de adopción. Confirmar con el cliente que la comparación es válida para publicarse en esos términos.
+- La matriz de probabilidad e impacto (escala 1-5, severidad 0-25) se incluyó en el texto como detalle metodológico; si el cliente prefiere no revelar la escala interna, puede retirarse sin afectar la cobertura del requisito 25(a).
 

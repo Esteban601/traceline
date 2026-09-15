@@ -5,12 +5,12 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 2,750 caracteres |
-| Costo | $0.2681 |
-| Duración | 44,382 ms |
-| Velocidad | 71.8 tok/s |
-| Tokens | 9,728 entrada · 3,187 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 2,884 caracteres |
+| Costo | $0.4218 |
+| Duración | 67,220 ms |
+| Velocidad | 72.1 tok/s |
+| Tokens | 21,311 entrada · 4,848 salida |
 
 ---
 
@@ -24,11 +24,11 @@
 | Cartera sostenible | Verdadero | Conciliación semestral del saldo etiquetado con la Dirección de Crédito. | Saldo y porcentaje de cartera sostenible. | Revisión semestral por el Comité de Sostenibilidad y Riesgos Climáticos. | 2025: 8.0% de la cartera total (6,910 MDP). |
 | Medición de emisiones financiadas | Falso | Depuración de datos de acreditados por la Dirección de Riesgos. | Porcentaje de cartera empresarial cubierta y calidad de datos PCAF. | Revisión anual por el Comité de Sostenibilidad y Riesgos Climáticos. | 2025: 42% de la cartera empresarial, calidad de datos 4-5. |
 
-Empresa Demo, S.A.B. de C.V. establece sus objetivos relacionados con el clima tomando como periodo base el ejercicio 2025 y asigna al Comité de Sostenibilidad y Riesgos Climáticos la responsabilidad de revisarlos: con frecuencia anual los objetivos de reducción de emisiones de Alcances 1 y 2 y de medición de emisiones financiadas, y con frecuencia semestral el objetivo de cartera sostenible. La tabla anterior presenta, para cada objetivo, el proceso de revisión, las métricas con las que se supervisa el progreso, la periodicidad de las revisiones y los resultados del periodo.
+Empresa Demo, S.A.B. de C.V. establece sus objetivos relacionados con el clima tomando el ejercicio 2025 como periodo base y los somete a la revisión del Comité de Sostenibilidad y Riesgos Climáticos con la periodicidad que se indica en la tabla anterior: anual para el objetivo de reducción de emisiones de Alcances 1 y 2 y para el de medición de emisiones financiadas, y semestral para el de cartera sostenible. La supervisión del progreso descansa en las métricas de seguimiento señaladas para cada objetivo, que se alimentan de los procesos de revisión operativa a cargo de las direcciones responsables de cada materia.
 
-El objetivo de reducción de emisiones de Alcances 1 y 2 es consistente con la trayectoria del Acuerdo de París y no cuenta con validación de la iniciativa Science Based Targets. El objetivo de cartera sostenible se alinea con la Taxonomía Sostenible de México y la etiqueta de la cartera cuenta con una opinión de segunda parte del marco de bonos verdes. El objetivo de medición de emisiones financiadas se apoya en la metodología del Partnership for Carbon Accounting Financials (PCAF) y no cuenta con validación por tercero.
+El objetivo de reducción de emisiones de Alcances 1 y 2 es consistente con la trayectoria del Acuerdo de París y no cuenta con la aprobación de la iniciativa Science Based Targets. El objetivo de cartera sostenible se alinea con la Taxonomía Sostenible de México y su etiqueta cuenta con una opinión de segunda parte emitida bajo el marco de bonos verdes. El objetivo de medición de emisiones financiadas sigue la metodología del Partnership for Carbon Accounting Financials (PCAF) y no ha sido verificado por un tercero independiente.
 
-Los resultados de 2025 corresponden al primer ejercicio de referencia y constituyen la línea base a partir de la cual la Compañía medirá el avance de cada objetivo. Dado que se trata del primer periodo sobre el que se informa y que la Compañía aplica la medida transitoria del párrafo C3 de la NIIF S2, no se presenta información comparativa ni un análisis de tendencias o cambios en los resultados; dicho análisis se incorporará a partir del ejercicio siguiente, cuando exista un periodo previo contra el cual contrastar el progreso alcanzado.
+Los resultados de 2025 corresponden al primer ejercicio de referencia de los tres objetivos, de modo que las cifras presentadas constituyen la línea base a partir de la cual la Compañía medirá su avance en los periodos subsecuentes. Al tratarse del primer periodo anual de aplicación de la NIIF S2, la Compañía se acoge a la facilidad transitoria del párrafo C3 del Apéndice C y no presenta información comparativa; en consecuencia, en este ejercicio no procede un análisis de tendencias o de cambios en los resultados, el cual se incorporará en periodos subsecuentes, una vez que exista un periodo previo con el que contrastar.
 
 ## Fuentes
 
@@ -45,9 +45,10 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- La columna 'Validación por tercero' de la tabla marca Verdadero para el objetivo de cartera sostenible, pero la solicitud sol:b9615fff describe una opinión de segunda parte sobre la etiqueta / marco de bonos verdes, no una validación del objetivo (la meta de 20% al 2028) como tal. Conviene confirmar con la emisora qué exactamente fue validado para evitar que el lector interprete que la meta está verificada externamente.
-- El objetivo de medición de emisiones financiadas tiene 'alcances_cubiertos: Alcance 3'. La emisora aplica el alivio C4 (sin Alcance 3) en 2025; el resultado reportado (42% de cobertura, calidad PCAF 4-5) es de cobertura de medición y no una cifra de emisiones, por lo que no contradice el alivio, pero el revisor debe verificar coherencia con los bloques 29 y 33 para que no se revele una cifra de emisiones financiadas por otra vía.
-- El análisis de tendencias (NIIF S2 35) se reporta como no aplicable por ser el primer ejercicio y por el alivio C3. El requisito queda cubierto declarando la ausencia de comparativo; se dejó una frase con el párrafo C3 como consecuencia sobre este bloque. Verificar que no duplique lo dicho en el bloque 3.
-- La tabla incluye el saldo de cartera sostenible (6,910 MDP) que no aparece en el texto de la solicitud sol:f6d1f457 (solo el 8.0%); proviene del detalle del objetivo obj:014b1a2e. Confirmar que la unidad MDP (millones de pesos) es la que la emisora quiere publicar.
-- Los hitos intermedios (12% al 2027 en emisiones; 12% en 2026 en cartera; 60% en 2026 en cobertura PCAF) están disponibles en los datos de objetivos y podrían mencionarse como referencia de supervisión del progreso, pero se omitieron aquí para no invadir el bloque 38 (atributos por objetivo). Revelación voluntaria posible si el revisor lo prefiere en este bloque.
+- Posible inconsistencia: la tabla marca 'Validación por tercero: Verdadero' para el objetivo de cartera sostenible, pero la solicitud sol:b9615fff describe una opinión de segunda parte sobre la etiqueta del marco de bonos verdes, no una validación del objetivo (la meta de 20% al 2028) como tal. Conviene confirmar con la emisora qué se validó exactamente; en el texto se redactó conforme a la solicitud (opinión de segunda parte de la etiqueta).
+- Se sustituyó el vocabulario 'validado/validación' por 'aprobación de la iniciativa Science Based Targets' y 'verificado por un tercero independiente'. El revisor puede confirmar que la emisora acepta esa formulación; la fuente dice literalmente 'no validado por SBTi'.
+- El análisis de tendencias (NIIF S2 35) se declara no aplicable por ser el primer ejercicio y se invoca el alivio C3 (sin comparativos). Verificar que el bloque 3 (Bases de preparación) también declare C3 para que no haya contradicción, y que el bloque 29 no incluya comparativos.
+- El objetivo de medición de emisiones financiadas tiene 'alcances_cubiertos: Alcance 3' mientras la emisora se acoge al alivio C4 (sin Alcance 3). No es contradictorio revelar un objetivo de cobertura de medición sin revelar las emisiones en sí, pero el revisor podría considerar una frase de conexión en el bloque 33 (Emisiones financiadas) o 40.
+- Revelación voluntaria posible: los hitos intermedios de cada objetivo (12% al 2027 para Alcances 1 y 2; 12% en 2026 para cartera sostenible; 60% en 2026 para emisiones financiadas) no se incluyeron aquí porque corresponden a los atributos por objetivo del bloque 38; confirmar que ese bloque los presente.
+- El resultado de cartera sostenible incluye el saldo en MDP (6,910 MDP) en la tabla; la métrica declarada del objetivo es porcentaje. No hay inconsistencia, pero el revisor puede confirmar si el saldo debe conectarse con la cifra de cartera total reportada en los estados financieros (bloque 5, conectividad).
 

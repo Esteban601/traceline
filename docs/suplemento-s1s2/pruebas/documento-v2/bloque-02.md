@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
+| Versión de prompt | `a5b-v2-2026-09-15` |
 | Longitud | 527 caracteres |
 | Costo | $0.0000 |
 | Duración | 0 ms |

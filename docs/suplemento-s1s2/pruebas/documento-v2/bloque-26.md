@@ -5,28 +5,26 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 2,818 caracteres |
-| Costo | $0.3010 |
-| Duración | 43,214 ms |
-| Velocidad | 82.9 tok/s |
-| Tokens | 10,931 entrada · 3,582 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 2,843 caracteres |
+| Costo | $0.4376 |
+| Duración | 68,415 ms |
+| Velocidad | 92.1 tok/s |
+| Tokens | 10,991 entrada · 6,299 salida |
 
 ---
 
 ## Texto
 
-Empresa Demo, S.A.B. de C.V. evaluó la resiliencia de su estrategia y de su modelo de negocio frente a los riesgos y oportunidades relacionados con el clima mediante un análisis de escenarios llevado a cabo en el segundo semestre de 2025, dentro del ejercicio sobre el que se informa, con actualización anual prevista.
+Empresa Demo, S.A.B. de C.V. evaluó la resiliencia de su estrategia y de su modelo de negocio mediante un análisis de escenarios relacionados con el clima llevado a cabo en el segundo semestre del ejercicio 2025, con actualización anual prevista. El análisis consideró dos escenarios de fase IV: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), tomados de NGFS fase IV e IPCC AR6. El rango es diverso, abarca riesgos físicos y riesgos de transición relacionados con el clima e incluye un escenario alineado con el último acuerdo internacional sobre cambio climático; ambos se consideran relevantes por representar el rango plausible de trayectorias regulatorias y físicas de los mercados en los que opera la Compañía. El método fue cualitativo, apoyado en la sensibilidad de la cartera por sector y en la exposición física por código postal, y se aplicó a los horizontes de corto plazo (2026), mediano plazo (2030) y largo plazo (2040) sobre la red de sucursales y las carteras empresarial, agropecuaria e hipotecaria.
 
-El análisis consideró dos escenarios de la fase IV de la NGFS y del Sexto Informe de Evaluación del IPCC (AR6): uno de transición ordenada (NGFS Net Zero 2050), alineado con el último acuerdo internacional sobre cambio climático, y otro de altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies). El rango se considera diverso, pues representa las trayectorias regulatorias y físicas plausibles para los mercados en los que opera la Compañía, y abarca tanto riesgos de transición como riesgos físicos relacionados con el clima. Los escenarios se aplicaron a los horizontes de corto plazo (2026), mediano plazo (2030) y largo plazo (2040) sobre la red de sucursales y las carteras empresarial, agropecuaria e hipotecaria, con un método cualitativo apoyado en la sensibilidad de la cartera por sector y en la exposición física por código postal.
+Los supuestos clave del análisis fueron un precio al carbono con introducción gradual desde 2027 y de 500 pesos por tonelada en 2030 en el escenario de transición ordenada; un crecimiento del PIB de 2% anual con inflación convergiendo a 3%; un incremento de 15% en la frecuencia de ciclones de categoría 3 o mayor en el Golfo y el Caribe al 2040 y una reducción de 10% en la disponibilidad hídrica en el Bajío al 2035; y 40% de generación limpia en la matriz nacional al 2030 en el escenario de transición ordenada.
 
-Los supuestos clave fueron: un precio al carbono con introducción gradual desde 2027 que alcanza 500 pesos por tonelada en 2030 en el escenario de transición ordenada; crecimiento del PIB de 2% anual con inflación convergiendo a 3%; un incremento de 15% en la frecuencia de ciclones de categoría 3 o mayor en el Golfo y el Caribe al 2040; una reducción de 10% en la disponibilidad hídrica en el Bajío al 2035; y 40% de generación limpia en la matriz nacional al 2030 en el escenario de transición ordenada.
-
-Bajo el escenario de transición ordenada, el modelo de negocio se beneficia del crecimiento de la cartera sostenible y de un menor costo de fondeo; el principal ajuste requerido es la reducción gradual de la exposición a sectores intensivos. Bajo el escenario de altas emisiones, los riesgos físicos sobre la red del sureste y la cartera agropecuaria exigirían mayores reservas, seguros y reestructuras, con un efecto acotado sobre el capital regulatorio.
+Bajo el escenario de transición ordenada, el modelo de negocio se beneficia del crecimiento de la cartera sostenible y del menor costo de fondeo, y el principal ajuste que la Compañía necesitaría es la reducción gradual de su exposición a sectores intensivos. Bajo el escenario de altas emisiones, los riesgos físicos sobre la red del sureste y la cartera agropecuaria exigirían mayores reservas, seguros y reestructuras, con un efecto acotado sobre el capital regulatorio.
 
 Las áreas significativas de incertidumbre consideradas en la evaluación son la calidad de los datos de emisiones financiadas, la evolución de la Taxonomía Sostenible de México y de la regulación de la CNBV, la frecuencia e intensidad de ciclones en el Golfo y el Caribe, y el comportamiento de los precios agrícolas ante sequías prolongadas.
 
-La Compañía cuenta con capital por encima de los mínimos regulatorios, liquidez suficiente y una cartera con vida promedio corta en el segmento empresarial (2.8 años), lo que le permite reorientar la originación en horizontes de mediano plazo. Las inversiones planeadas en eficiencia y en productos sostenibles refuerzan esa capacidad de ajuste.
+En cuanto a su capacidad de ajustar la estrategia y el modelo de negocio a corto, mediano y largo plazo, la Compañía mantiene capital por encima de los mínimos regulatorios, liquidez suficiente y una cartera de vida promedio corta en el segmento empresarial (2.8 años), lo que le permite reorientar la originación en horizontes de mediano plazo. Las inversiones planeadas en eficiencia y en productos sostenibles refuerzan esa capacidad.
 
 ## Fuentes
 
@@ -46,6 +44,7 @@ La Compañía cuenta con capital por encima de los mínimos regulatorios, liquid
 - `cue:S2 22(b)(ii):2` — Cuestionario S2 22(b)(ii), pregunta 2
 - `cue:S2 22(b)(ii):3` — Cuestionario S2 22(b)(ii), pregunta 3
 - `cue:S2 22(b)(ii):4` — Cuestionario S2 22(b)(ii), pregunta 4
+- `reporte:20000000-0000-0000-0000-000000000001` — Reporte [DEMO] Informe Anual Sustentable 2025, ejercicio 2025
 
 ## Pendientes
 
@@ -53,9 +52,10 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- Los cuestionarios cue:S2 36(e):1 y cue:S2 36(e):2 (uso de créditos de carbono en los objetivos) corresponden al bloque 38/40 de objetivos, no a resiliencia; no se usaron en este bloque para evitar duplicidad.
-- NIIF S2 22(a)(iii) pide capacidad de ajuste a corto, medio y largo plazo y menciona explícitamente la capacidad de redistribuir, reutilizar, mejorar o desmantelar activos. La solicitud sol:cc4736ed solo aborda el mediano plazo (vida promedio de cartera 2.8 años) y no habla de activos físicos (p. ej. la red de sucursales del sureste). Se redactó con lo recibido; considerar si la emisora quiere ampliar.
-- La solicitud sol:c0000000-...-020 y sol:8b265bfd repiten el periodo del análisis (segundo semestre de 2025); consistente entre sí y con cue:S2 22(b)(i):1.
-- Las implicaciones del escenario de altas emisiones (mayores reservas, seguros, reestructuras, efecto acotado sobre capital regulatorio) se enuncian de forma cualitativa; no hay cifras de sensibilidad. Verificar coherencia con los bloques 10 (efectos financieros) y 35 (riesgos físicos).
-- La evolución de la Taxonomía Sostenible de México y de la regulación CNBV aparece como área de incertidumbre; conviene cotejar con la redacción del bloque 34 (riesgos de transición) para no contradecir.
+- Los cuestionarios cue:S2 36(e):1 y cue:S2 36(e):2 (uso de créditos de carbono en objetivos) llegaron adjuntos a este bloque pero corresponden al requisito S2 36(e), que se cubre en los bloques 38/40 de objetivos climáticos; no se usaron aquí para evitar duplicidad.
+- El análisis es cualitativo: no hay cuantificación de efectos financieros por escenario (montos de reservas, capital o pérdida esperada). El texto dice 'efecto acotado sobre el capital regulatorio' tal como lo entregó la emisora; el revisor debe confirmar que esa afirmación sea consistente con lo que se revela en el bloque 10 (efectos financieros) y que la emisora acepte publicarla sin cifra de respaldo.
+- Los horizontes 2026/2030/2040 deben coincidir con las definiciones de corto, mediano y largo plazo que se revelen en el bloque 8; verificar consistencia.
+- La descripción de sol:c0000000-...020 y de sol:8b265bfd-... repite el mismo enunciado sobre el periodo del análisis (segundo semestre de 2025, actualización anual); son consistentes entre sí y con cue:S2 22(b)(i):1.
+- La frase 'sectores intensivos' se mantuvo literal de la fuente; conviene que la emisora precise si se refiere a sectores intensivos en emisiones de GEI.
+- 'CNBV' y 'PIB' se dejaron como siglas; el revisor puede preferir la forma desarrollada la primera vez que aparezcan en el documento, según el criterio editorial del informe.
 

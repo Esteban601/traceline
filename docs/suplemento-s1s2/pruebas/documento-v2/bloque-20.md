@@ -5,26 +5,24 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 2,156 caracteres |
-| Costo | $0.1709 |
-| Duración | 41,396 ms |
-| Velocidad | 75.9 tok/s |
-| Tokens | 5,724 entrada · 3,141 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 2,307 caracteres |
+| Costo | $0.1394 |
+| Duración | 35,520 ms |
+| Velocidad | 70.8 tok/s |
+| Tokens | 5,784 entrada · 2,514 salida |
 
 ---
 
 ## Texto
 
-Empresa Demo, S.A.B. de C.V. presenta su contexto estratégico frente a los riesgos y oportunidades relacionados con el clima tomando como punto de partida los horizontes temporales sobre los cuales planea, presupuesta y administra su cartera. Durante el ejercicio 2025, primer periodo de aplicación de las Normas NIIF S1 y S2, la Compañía acota la información a revelar a los riesgos y oportunidades relacionados con el clima y la vincula con los procesos de planeación que ya rigen su operación, de modo que los efectos sobre la situación financiera, el rendimiento financiero y los flujos de efectivo se lean en los mismos plazos en que la Compañía toma sus decisiones.
+Empresa Demo, S.A.B. de C.V. presenta en esta sección el contexto estratégico en el que identifica, evalúa y administra los riesgos y oportunidades relacionados con el clima durante el ejercicio 2025, primer periodo anual en el que aplica las Normas NIIF S1 y S2. La información se limita a los riesgos y oportunidades relacionados con el clima y se presenta sin cifras comparativas de periodos anteriores.
 
-En el corto plazo, el contexto estratégico está determinado por el ciclo presupuestal anual, la administración de la liquidez y las contingencias operativas de la red de sucursales. En ese horizonte, los riesgos relacionados con el clima que la Compañía considera son aquellos con capacidad de afectar la continuidad operativa de las sucursales y las decisiones presupuestales del ejercicio en curso.
+El contexto estratégico de la Compañía se articula a partir de la naturaleza y la duración de sus actividades. Por una parte, la operación de su red de sucursales genera necesidades de liquidez y contingencias operativas que se administran dentro del ciclo presupuestal anual. Por otra, la cartera comercial y de arrendamiento tiene una vida promedio que coincide con el horizonte de su plan estratégico. Finalmente, la cartera hipotecaria y la infraestructura propia tienen una vida que se extiende más allá de ese plan y que queda expuesta a las trayectorias regulatorias y físicas del clima.
 
-En el mediano plazo, el contexto lo definen la vida promedio de la cartera comercial y de arrendamiento y el horizonte del plan estratégico. En este periodo coinciden el plan estratégico de la Compañía y el vencimiento de dichas carteras, por lo que constituye el horizonte de referencia para la consideración de los riesgos y oportunidades relacionados con el clima en la estrategia.
+Sobre esa base, la Compañía sitúa los efectos del clima en su estrategia en tres horizontes. En el corto plazo, que abarca hasta un año, los riesgos y oportunidades relacionados con el clima se consideran en función de la liquidez y de las contingencias operativas de la red de sucursales. En el mediano plazo, de más de un año y hasta cinco años, se consideran en relación con la vida promedio de la cartera comercial y de arrendamiento y con el horizonte del plan estratégico. En el largo plazo, de más de cinco años, se consideran en relación con la vida de la cartera hipotecaria, con la resiliencia de la infraestructura propia y con las trayectorias regulatorias y físicas del clima.
 
-En el largo plazo, el contexto está dado por la vida de la cartera hipotecaria, la resiliencia de la infraestructura propia y las trayectorias regulatorias y físicas del clima. En este horizonte la Compañía sitúa los desarrollos regulatorios y físicos cuyo curso excede el plan estratégico vigente y alcanza la duración de la cartera hipotecaria y de la infraestructura desde la que opera.
-
-La identificación de los riesgos climáticos prioritarios, la descripción de los efectos actuales y previstos sobre la situación financiera, el rendimiento financiero y los flujos de efectivo, y el análisis de la resiliencia de la estrategia se presentan en las secciones correspondientes de este informe.
+Esta correspondencia entre la duración de los activos y de los compromisos de la Compañía y los plazos en que se manifiestan los efectos del clima permite vincular los riesgos y oportunidades relacionados con el clima con las decisiones de planeación, de asignación de recursos y de administración de cartera que la Compañía adopta en cada horizonte. Constituye, asimismo, el punto de partida para la identificación de los riesgos climáticos prioritarios, la evaluación de la resiliencia de la estrategia y la definición de objetivos climáticos que se presentan en las secciones correspondientes de este informe.
 
 ## Fuentes
 
@@ -37,8 +35,7 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- El bloque se redactó únicamente a partir de perfil:horizontes; no hay datapoints, solicitudes ni registros_clima asignados. El estado marca 1/1 cumplido, pero el contexto estratégico queda anclado exclusivamente en los horizontes temporales, sin descripción de sector, geografía o líneas de negocio. Verificar que el bloque 12 (Modelo de negocio y cadena de valor) cubra esa descripción para evitar que el contexto estratégico quede sin ancla operativa.
-- Riesgo de traslape con el bloque 8 (Horizontes temporales): aquí se usan los horizontes como marco del contexto estratégico y se omiten deliberadamente las definiciones numéricas de plazo (hasta 1 año, 1 a 5 años, más de 5 años) para no duplicar. Si el bloque 8 no las enuncia, considerar reintroducirlas aquí o allá, no en ambos.
-- Las justificaciones de los horizontes revelan un perfil de institución financiera (red de sucursales, cartera comercial, de arrendamiento e hipotecaria). El texto refleja esos elementos tal como aparecen en el perfil sin calificar a la Compañía como banco o entidad financiera; confirmar con el revisor la denominación sectorial correcta antes de publicar.
-- Revelación voluntaria posible: si la emisora cuenta con una descripción de su posicionamiento estratégico frente al clima (por ejemplo, prioridades del plan estratégico vigente o segmentos de cartera con mayor sensibilidad climática), este bloque sería el lugar natural para incorporarla; no se incluyó por no existir en los datos entregados.
+- El bloque se marcó completo (1/1) pero la única fuente sustantiva es perfil:horizontes; no se entregó descripción del plan estratégico, ejes de negocio, sector ni posicionamiento. El texto se construyó exclusivamente a partir de las justificaciones de los horizontes (red de sucursales, cartera comercial y de arrendamiento, cartera hipotecaria, infraestructura propia). Si la emisora dispone de una descripción del plan estratégico o de su contexto competitivo y regulatorio, podría incorporarse como revelación voluntaria.
+- Riesgo de traslape con el bloque 8 (Horizontes temporales): aquí los horizontes se usan como encuadre estratégico y se repiten sus definiciones (hasta 1 año / 1 a 5 años / más de 5 años). El revisor puede decidir recortar las definiciones en este bloque si el bloque 8 ya las presenta íntegras.
+- La mención de que la información se presenta sin comparativos (C3) y limitada al clima (E5) se hizo en una sola frase de encuadre; el detalle del régimen corresponde al bloque 3. Verificar que no se perciba como redundante.
 

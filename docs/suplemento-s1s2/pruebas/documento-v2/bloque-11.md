@@ -5,24 +5,22 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 1,829 caracteres |
-| Costo | $0.1489 |
-| Duración | 36,366 ms |
-| Velocidad | 73.8 tok/s |
-| Tokens | 5,812 entrada · 2,683 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 1,832 caracteres |
+| Costo | $0.1233 |
+| Duración | 31,502 ms |
+| Velocidad | 69.0 tok/s |
+| Tokens | 5,872 entrada · 2,175 salida |
 
 ---
 
 ## Texto
 
-Empresa Demo, S.A.B. de C.V. presenta a continuación los hitos que han marcado su trayectoria corporativa desde su origen hasta el ejercicio sobre el que se informa. Esta línea de tiempo tiene por objeto ofrecer a los usuarios de los informes financieros con propósito general el contexto histórico necesario para comprender la evolución del grupo, la ampliación de su presencia geográfica y las etapas de su acceso a los mercados de valores, elementos que sirven de antecedente para la descripción del modelo de negocio, de la cadena de valor y de la estrategia que se presentan en otras secciones de este informe.
+Empresa Demo, S.A.B. de C.V. presenta a continuación los principales hitos de su trayectoria corporativa, con el propósito de ofrecer a los usuarios de los informes financieros con propósito general el contexto histórico en el que se inscriben las operaciones sobre las que se informa en el ejercicio 2025. La secuencia abarca desde la constitución de la entidad de origen del grupo hasta la configuración más reciente de su red de sucursales y del tamaño de su cartera, y permite situar en el tiempo la evolución de la Compañía como institución financiera que cotiza en el mercado de valores mexicano.
 
-El origen del grupo se sitúa en 1996, año en que se constituyó Arrendadora Demo en Monterrey. En 2004, la Compañía obtuvo la licencia de banca múltiple y Banco Demo inició operaciones. En 2009, las acciones de la Compañía fueron listadas en la Bolsa Mexicana de Valores, con lo que se incorporó al mercado accionario mexicano.
+En 1996 se constituyó Arrendadora Demo en Monterrey, entidad que representa el origen del grupo. En 2004 la Compañía obtuvo la licencia de banca múltiple, con lo cual Banco Demo inició operaciones. En 2009 las acciones de la Compañía fueron listadas en la Bolsa Mexicana de Valores, hecho que marcó su incorporación al mercado público de capitales. En 2014 se llevó a cabo la expansión al sureste del país, con la apertura del centro operativo de Mérida y de 30 sucursales. En 2019 la Compañía realizó su primera emisión de certificados bursátiles de largo plazo, con la que amplió sus fuentes de financiamiento en el mercado de deuda. En 2023 la cartera total superó los 80,000 millones de pesos y la red de atención alcanzó 118 sucursales en 22 estados de la República Mexicana.
 
-En 2014, la Compañía llevó a cabo su expansión hacia el sureste del país mediante la apertura del centro operativo de Mérida y de 30 sucursales. En 2019 realizó su primera emisión de certificados bursátiles de largo plazo, ampliando sus fuentes de financiamiento en el mercado de deuda. En 2023, la cartera total superó los 80,000 millones de pesos y la red de atención alcanzó 118 sucursales distribuidas en 22 estados de la República Mexicana.
-
-La trayectoria descrita constituye el antecedente sobre el cual la Compañía presenta, en este primer ejercicio de aplicación de las Normas NIIF S1 y S2, la información a revelar relativa a los riesgos y oportunidades relacionados con el clima correspondiente al ejercicio 2025. Los hitos específicos de la Compañía en materia de sostenibilidad y clima se describen en la sección dedicada a dicha trayectoria dentro de este mismo informe.
+Esta línea de tiempo describe la conformación de la entidad que informa y la extensión geográfica de su operación, elementos que sirven de referencia para la lectura de la información relacionada con el clima contenida en este informe. La descripción del modelo de negocio y de la cadena de valor, así como la trayectoria de la Compañía en materia de sostenibilidad y clima, se presentan en las secciones correspondientes de este mismo documento.
 
 ## Fuentes
 
@@ -35,8 +33,8 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- El bloque está tipificado como 'Tabla + T→E', pero no se entregó una tabla ya armada; solo la lista de seis hitos del perfil. El texto se redactó en prosa cronológica. Si el diseño del informe contempla una tabla o gráfica de línea de tiempo, conviene armarla a partir de perfil:hitos_corporativos y entonces podría recortarse la repetición de años y cifras en la prosa.
-- Los hitos del perfil terminan en 2023; no hay ningún hito para 2024 ni para 2025, ejercicio sobre el que se informa. La emisora podría valorar añadir de forma voluntaria un hito 2025 (por ejemplo, la adopción de las Normas NIIF S1 y S2 o algún acontecimiento corporativo relevante del ejercicio). No se marcó como pendiente porque el perfil se reporta completo.
-- El perfil no explicita la relación jurídica entre Arrendadora Demo, Banco Demo y Empresa Demo, S.A.B. de C.V. (estructura de tenedora/subsidiarias). El texto se limitó a lo que dice el perfil ('origen del grupo') sin inferir la estructura corporativa; la relación formal debería quedar descrita en el bloque 4 (entidad que informa) o 18 (estructura de gobierno corporativo).
-- Las frases 'con lo que se incorporó al mercado accionario mexicano' y 'ampliando sus fuentes de financiamiento en el mercado de deuda' son glosas descriptivas del hecho registrado (listado en BMV y emisión de certificados bursátiles), no datos adicionales; el revisor puede suprimirlas si prefiere una redacción estrictamente literal al perfil.
+- El campo perfil:hitos_corporativos termina en 2023; no hay hitos para 2024 ni para el ejercicio 2025 sobre el que se informa. Confirmar con la emisora si desea agregar un hito reciente (p. ej., adopción de NIIF S1/S2 en 2025) para que la línea de tiempo llegue al periodo reportado.
+- La línea de tiempo no incluye hitos de sostenibilidad o clima (primer inventario GEI, adhesión a iniciativas, creación de comité, etc.). Se dejó fuera para no invadir el bloque 19 (Trayectoria en sostenibilidad y clima); verificar que ese bloque cuente con datos para cubrirlo.
+- El bloque es de tipo 'Tabla + T→E' pero no se entregó tabla armada; se redactó únicamente en prosa cronológica conforme a la regla de sin markdown. Si el diseño editorial contempla una tabla o gráfica de línea de tiempo, las cifras y años están listos en perfil:hitos_corporativos.
+- Los hitos mencionan las razones sociales 'Arrendadora Demo' y 'Banco Demo', que no coinciden con la denominación formal 'Empresa Demo, S.A.B. de C.V.'. Se reprodujeron tal cual por ser nombres históricos de entidades del grupo; confirmar que la emisora acepta esa referencia.
 

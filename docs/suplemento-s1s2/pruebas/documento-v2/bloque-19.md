@@ -5,26 +5,24 @@
 | | |
 |---|---|
 | Modelo | `claude-fable-5-1` |
-| Versión de prompt | `a5b-v1-2026-09-15` |
-| Longitud | 2,014 caracteres |
-| Costo | $0.1775 |
-| Duración | 44,829 ms |
-| Velocidad | 72.4 tok/s |
-| Tokens | 5,853 entrada · 3,247 salida |
+| Versión de prompt | `a5b-v2-2026-09-15` |
+| Longitud | 1,964 caracteres |
+| Costo | $0.1268 |
+| Duración | 33,028 ms |
+| Velocidad | 67.8 tok/s |
+| Tokens | 5,913 entrada · 2,238 salida |
 
 ---
 
 ## Texto
 
-Empresa Demo, S.A.B. de C.V. ha desarrollado su trayectoria en materia de sostenibilidad y clima a lo largo de un periodo que abarca de 2017 a 2025. Esa trayectoria constituye el punto de partida desde el cual la Compañía adopta las Normas NIIF S1 y S2 en el ejercicio 2025 y da contexto a la información sobre gobernanza, estrategia, gestión de riesgos y métricas relacionadas con el clima que se presenta en las secciones siguientes de este informe.
+Empresa Demo, S.A.B. de C.V. ha incorporado de manera progresiva la gestión de los asuntos de sostenibilidad y, en particular, de los riesgos y oportunidades relacionados con el clima, a lo largo de un recorrido que inició con la publicación de información no financiera y que ha derivado en la creación de estructuras de gobierno, políticas y ejercicios de medición específicos. La presente revelación bajo las Normas NIIF S1 y S2 correspondiente al ejercicio 2025 se apoya en esa trayectoria, que se resume a continuación en orden cronológico.
 
-En 2017 la Compañía publicó su primer Informe Anual de Sustentabilidad elaborado bajo el marco GRI, con lo que inició la práctica de informar periódicamente sobre su desempeño en materia de sostenibilidad. En 2019 se adhirió al Pacto Global de las Naciones Unidas.
+En 2017 la Compañía publicó su primer Informe Anual de Sustentabilidad conforme a los estándares GRI, con lo que estableció una práctica periódica de reporte de información no financiera. En 2019 se adhirió al Pacto Global de las Naciones Unidas. En 2021 realizó la emisión del primer bono verde del grupo, por un monto de 2,000 millones de pesos, cuyos recursos se destinaron a financiar proyectos de eficiencia energética en pequeñas y medianas empresas.
 
-En 2021 el grupo realizó la emisión de su primer bono verde, por un monto de 2,000 millones de pesos, destinado a financiar proyectos de eficiencia energética en pequeñas y medianas empresas. En 2022 la Compañía elaboró su primer inventario de emisiones de gases de efecto invernadero de Alcance 1 y Alcance 2 verificado por un tercero, con lo que estableció una base medida para el seguimiento de sus emisiones operativas.
+En 2022 la Compañía elaboró su primer inventario de emisiones de gases de efecto invernadero de Alcance 1 y Alcance 2, el cual fue verificado por un tercero independiente. En 2024 el Consejo de Administración aprobó la Política de Financiamiento Sostenible y la Compañía obtuvo el distintivo de Empresa Socialmente Responsable.
 
-En 2024 el Consejo aprobó la Política de Financiamiento Sostenible y la Compañía obtuvo el distintivo ESR. En 2025 se creó el Comité de Sostenibilidad y Riesgos Climáticos y se llevó a cabo la primera evaluación de riesgos físicos de la cartera.
-
-Estos hitos describen una secuencia que va de la publicación de información sobre sostenibilidad y la adhesión a compromisos internacionales, pasando por la incorporación de instrumentos de financiamiento verde y la medición verificada de emisiones, hasta la formalización de una política aprobada por el Consejo, de un órgano específico para los asuntos climáticos y de una primera evaluación de riesgos físicos en la cartera. La adopción de las Normas NIIF S1 y S2 en el ejercicio 2025 se inscribe en esa secuencia y constituye el paso más reciente de la Compañía en la revelación de información relacionada con el clima.
+En 2025, ejercicio sobre el que se informa, la Compañía constituyó el Comité de Sostenibilidad y Riesgos Climáticos y llevó a cabo la primera evaluación de riesgos físicos relacionados con el clima sobre su cartera. Estos dos hitos constituyen la base institucional y analítica sobre la cual se presenta, por primera vez, la información relacionada con el clima conforme a las Normas NIIF S1 y S2. La descripción de las funciones del Comité, del método de medición de las emisiones y de los resultados de la evaluación de riesgos físicos se desarrolla en las secciones de gobernanza, métricas y gestión de riesgos de este informe.
 
 ## Fuentes
 
@@ -37,9 +35,10 @@ _Ninguno._
 
 ## Notas para el revisor — no se publican
 
-- El bloque es de tipo Tabla + T→E, pero no se entregó una tabla armada; los hitos se redactaron en prosa cronológica. Si el diseño del informe contempla una línea de tiempo o tabla de hitos, los seis registros de perfil:hitos_sostenibilidad están listos para volcarse tal cual (año + texto).
-- Tres hitos no son específicamente climáticos (2017 informe GRI, 2019 Pacto Global, 2024 distintivo ESR). Bajo el alivio NIIF S1 E5 (solo clima el primer año) podrían omitirse; se conservaron porque el bloque se titula «Trayectoria en sostenibilidad y clima» y porque describen la trayectoria general sin entrar en métricas de otros temas. El revisor decide si se recortan a los hitos estrictamente climáticos (2021, 2022, 2025).
-- El hito de 2021 dice «del grupo» y no «de la Compañía»; se respetó la redacción. Conviene confirmar con el emisor si el bono verde lo emitió la entidad que informa o una entidad del grupo, por consistencia con el bloque 4 (entidad que informa).
-- El hito de 2022 menciona un inventario de Alcances 1 y 2 verificado por tercero. No hay dato del verificador ni de los años posteriores; verificar coherencia con lo que se diga en los bloques 29 y 30 (emisiones y método de medición, alivio C5) para que la trayectoria no sugiera una verificación continua que no esté sustentada.
-- El hito de 2025 (Comité de Sostenibilidad y Riesgos Climáticos) y el de 2024 (Política aprobada por el Consejo) deben coincidir con la estructura de gobierno descrita en los bloques 15 a 18. Se escribió «el Consejo» sin expandir a «Consejo de Administración» porque el dato no lo especifica.
+- El bloque es de tipo Tabla + texto; la prosa narra los seis hitos de perfil:hitos_sostenibilidad en orden cronológico. Si la plataforma renderiza la línea de tiempo como tabla o gráfica, el revisor puede recortar el detalle en prosa para no duplicar.
+- Tres hitos (Informe GRI 2017, Pacto Global 2019, distintivo ESR 2024) no son específicamente climáticos. Se incluyen porque el bloque es 'trayectoria en sostenibilidad y clima', pero el revisor debe confirmar que su mención es compatible con el alcance solo-clima del alivio NIIF S1 E5; pueden eliminarse sin afectar la integridad del bloque.
+- El distintivo ESR se desarrolló como 'Empresa Socialmente Responsable' para el lector; el perfil solo dice 'distintivo ESR'. Confirmar que la denominación es la que la emisora quiere usar.
+- La creación del Comité de Sostenibilidad y Riesgos Climáticos (2025) toca los bloques 15 a 18 (gobernanza); el inventario verificado de 2022 toca el bloque 30 (método de medición); el bono verde de 2,000 millones de pesos toca los bloques 22 y 25 (asignación de recursos). Aquí solo se enuncian como hitos; verificar consistencia con lo que digan esos bloques (montos, año, nombre del comité).
+- La remisión final a otras secciones es genérica (sin numerar bloques). Si el informe usa referencias cruzadas explícitas, ajustar en coordinación con el bloque 5.
+- El hito 2017 se refiere al 'Informe Anual de Sustentabilidad' mientras el reporte actual se denomina 'Informe Anual Sustentable'. No se homologó el nombre; confirmar si la emisora prefiere unificar.
 

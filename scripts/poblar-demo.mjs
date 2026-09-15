@@ -169,7 +169,7 @@ const PERFIL = {
   entidad_que_informa:
     "Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V.",
   perimetro:
-    "El informe cubre la totalidad de las operaciones consolidadas en México: 118 sucursales bancarias, tres centros operativos (Monterrey, Ciudad de México y Mérida) y el corporativo. Las métricas de emisiones comprenden las operaciones propias (Alcances 1 y 2). Las emisiones financiadas y las métricas de cartera se presentan como exposición cualitativa; su cuantificación se difiere conforme al alivio C4 del primer año. Las participaciones minoritarias no consolidadas se excluyen.",
+    "El informe cubre la totalidad de las operaciones consolidadas en México: 118 sucursales bancarias, tres centros operativos (Monterrey, Ciudad de México y Mérida) y el corporativo. Las métricas de emisiones comprenden las operaciones propias (Alcances 1 y 2). Las emisiones financiadas se difieren conforme al alivio C4 del primer año. Las métricas de cartera se presentan como composición por sector económico, proporción de cartera sostenible y exposición cualitativa a riesgos climáticos; su cuantificación en términos de emisiones se incorporará en ejercicios subsecuentes. Las participaciones minoritarias no consolidadas se excluyen.",
   carta_firmante: "Andrés Villaseñor Ruiz",
   carta_cargo: "Director General",
   carta_texto: [
@@ -716,7 +716,26 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 32"],
     area: "Sostenibilidad",
     texto:
-      "La Compañía pertenece al sector de bancos comerciales conforme a la clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. En 2025 revela la composición de la cartera por sector económico y la proporción de cartera sostenible; la revelación completa de las métricas industriales se incorporará en ejercicios subsecuentes.",
+      "La Compañía pertenece al sector de bancos comerciales conforme a la clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. Al 31 de diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, con la siguiente composición por sector económico: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960 millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090 millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La revelación completa de las métricas industriales se incorporará en ejercicios subsecuentes.",
+    // Las siete cifras van además como capturas confirmadas. El modelo NO las ve
+    // por ahí —`entregaPorSolicitud` colapsa cada solicitud a UN valor, el
+    // último confirmado— y por eso van también en la descripción, que es lo que
+    // el prompt lee. Las capturas son para el expediente y la pantalla.
+    //
+    // «Cartera total» va AL FINAL a propósito: siendo el último confirmado, es
+    // el que el ensamblador muestra cuando solo cabe un número, y es el que
+    // representa la solicitud. Si el orden fuera el del documento, el valor
+    // visible sería «sectores intensivos», que no resume nada.
+    capturas: [
+      { etiqueta: "Crédito empresarial", valor: 44930 },
+      { etiqueta: "Hipotecario", valor: 18140 },
+      { etiqueta: "Consumo", valor: 12960 },
+      { etiqueta: "Agropecuario", valor: 10370 },
+      { etiqueta: "Cartera sostenible", valor: 6910 },
+      { etiqueta: "Sectores intensivos en carbono", valor: 8090 },
+      { etiqueta: "Cartera de crédito total", valor: 86400 },
+    ],
+    unidad: "MDP",
   },
   {
     titulo: "Concentración de los riesgos de transición en el modelo de negocio",
@@ -1154,7 +1173,7 @@ async function evidenciaDe(solicitudId, titulo, codigos, texto) {
  * validada y con visto bueno. El orden importa — el trigger de evidencias mueve
  * el estado a 'recibido', así que 'validado' se escribe DESPUÉS de subirla.
  */
-async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, valor, unidad, descripcion }) {
+async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, valor, unidad, descripcion, capturas }) {
   const previa = ok(
     "solicitud?",
     await db.from("solicitudes").select("id, estado").eq("reporte_id", REPORTE).eq("titulo", titulo).maybeSingle()
@@ -1249,6 +1268,48 @@ async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, v
         })
       );
     }
+  }
+
+  // Capturas MÚLTIPLES: una solicitud que resume varias cifras del mismo
+  // ejercicio —la composición de la cartera por sector— las guarda todas, cada
+  // una etiquetada en `justificacion`, que es el único campo libre que tiene la
+  // captura. El ensamblador solo mostrará la última confirmada; las demás
+  // quedan para el expediente y la pantalla.
+  if (capturas?.length) {
+    const ev = ok(
+      "evidencia id",
+      await db.from("evidencias").select("id, nombre_original").eq("solicitud_id", id).order("version", { ascending: false })
+    );
+    const mia = ev.find((e) => e.nombre_original.includes(MARCA)) ?? ev[0];
+    if (!mia) throw new Error(`${titulo}: no hay evidencia a la que colgar las capturas.`);
+    const previas = ok(
+      "capturas",
+      await db.from("capturas_valor").select("valor, justificacion, periodo, confirmado").eq("solicitud_id", id)
+    );
+    for (const c of capturas) {
+      const ya = previas.some(
+        (p) => p.periodo === String(EJERCICIO) && p.confirmado && Number(p.valor) === c.valor && p.justificacion === c.etiqueta
+      );
+      if (ya) continue;
+      ok(
+        "captura múltiple",
+        await db.from("capturas_valor").insert({
+          solicitud_id: id,
+          evidencia_id: mia.id,
+          valor: c.valor,
+          unidad,
+          periodo: String(EJERCICIO),
+          justificacion: c.etiqueta,
+          capturado_por: USUARIO_CLIENTE,
+          confirmado: true,
+        })
+      );
+    }
+    // Con capturas, la solicitud es cuantitativa como cualquier otra.
+    ok(
+      "naturaleza",
+      await db.from("solicitudes").update({ es_cuantitativa: true, unidad_esperada: unidad }).eq("id", id)
+    );
   }
 
   ok(
