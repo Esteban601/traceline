@@ -50,13 +50,30 @@ export async function guardarTexto(_p: EstadoAccion, fd: FormData): Promise<Esta
     return ERR("El documento está aprobado; para cambiarlo hay que abrir una versión nueva.");
   }
 
-  // UN GUARDADO POR EDICIÓN. Si el texto es idéntico al que ya está, no se
-  // escribe ni se registra: el 15 de septiembre de 2026 tres clics impacientes
-  // sobre «Guardar» dejaron tres entradas de bitácora a un segundo de distancia,
-  // con el mismo conteo de caracteres, y una auditoría que sugiere tres
-  // decisiones donde hubo una. El botón ahora se deshabilita mientras va en
-  // vuelo; esta comprobación es la red por debajo, porque el botón es del
-  // navegador y la bitácora es del servidor.
+  // UN GUARDADO POR EDICIÓN, Y SOLO SI HUBO EDICIÓN.
+  //
+  // El 15 de septiembre de 2026 tres clics sobre «Guardar» dejaron tres entradas
+  // de bitácora a un segundo de distancia, con el mismo conteo de caracteres.
+  // No eran tres decisiones: no era ninguna. El texto nunca cambió, y aun así el
+  // bloque quedó marcado como «editado» y la auditoría registró tres ediciones
+  // humanas que no existieron.
+  //
+  // La comparación es sobre el texto NORMALIZADO, y normalizar aquí son DOS
+  // cosas, no una:
+  //
+  //   1. Saltos de línea a \n. Un `<textarea>` se envía con CRLF —lo manda el
+  //      estándar de formularios— y la base guarda LF. Esa diferencia es
+  //      INTERNA, no de los extremos, así que recortar no la toca: abrir el
+  //      editor y pulsar «Guardar» sin escribir una letra producía un texto
+  //      "distinto" del guardado, con un carácter de más por cada salto de
+  //      línea. Es la causa real de los tres guardados fantasma del bloque 4.
+  //   2. Recorte de espacios al principio y al final, para que un espacio suelto
+  //      o un salto sobrante tampoco cuenten como edición.
+  //
+  // Lo que se guarda es lo normalizado, para que el mismo no-cambio no vuelva a
+  // pasar la comparación la próxima vez.
+  const normalizado = texto.replace(/\r\n/g, "\n").trim();
+
   const { data: previo } = await a.db
     .from("documentos_bloques")
     .select("texto")
@@ -64,14 +81,14 @@ export async function guardarTexto(_p: EstadoAccion, fd: FormData): Promise<Esta
     .eq("numero", numero)
     .maybeSingle();
 
-  if (previo && previo.texto === texto) {
+  if (previo && (previo.texto ?? "").replace(/\r\n/g, "\n").trim() === normalizado) {
     return OK("Sin cambios que guardar.");
   }
 
   const { error } = await a.db
     .from("documentos_bloques")
     .update({
-      texto,
+      texto: normalizado,
       editado_por: a.perfil.id,
       editado_en: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -94,7 +111,7 @@ export async function guardarTexto(_p: EstadoAccion, fd: FormData): Promise<Esta
       entidadId: documentoId,
       detalle: {
         bloque: numero,
-        caracteres: texto.length,
+        caracteres: normalizado.length,
         caracteres_antes: previo?.texto?.length ?? null,
       },
     });
