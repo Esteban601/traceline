@@ -429,10 +429,11 @@ const CIFRAS_NUEVAS = [
     // El título es EXACTAMENTE el del seed. `solicitudCompleta` empareja por
     // título, así que uno más descriptivo —por correcto que fuera— creaba una
     // solicitud nueva y dejaba la vieja abierta pidiendo un dato ya entregado.
+    // Lo detectó el generador en una nota del bloque 30.
     titulo: "Consumo de combustibles fósiles 2025",
     // Ligada a 29 (a)(iii): el dato de entrada del cálculo ES parte del enfoque
     // de medición. Sin este mapeo el bloque 30 pedía un volumen de combustible
-    // que ya estaba capturado y confirmado.
+    // que ya estaba capturado y confirmado, y abría un pendiente falso.
     codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     valor: 488000,
@@ -555,7 +556,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 6 (a)(iv)"],
     area: "Dirección General",
     texto:
-      "El Consejo considera los riesgos climáticos en la aprobación del plan estratégico, del presupuesto anual, de los límites de concentración sectorial de la cartera y de las emisiones de deuda. Desde 2025, toda propuesta de crédito superior a 150 millones de pesos en sectores intensivos en carbono incluye una evaluación de riesgo de transición.",
+      "El Consejo considera los riesgos climáticos en la aprobación del plan estratégico, del presupuesto anual, de los límites de concentración sectorial de la cartera y de las emisiones de deuda. Desde 2025, toda propuesta de crédito superior a 150 millones de pesos en sectores intensivos en carbono incluye una evaluación de riesgo de transición. Al aprobar los límites de concentración en sectores intensivos y la línea de financiamiento para riego tecnificado, el Consejo consideró explícitamente las compensaciones entre el menor crecimiento de corto plazo en esos sectores y la reducción del riesgo de crédito y de transición en el mediano plazo; en ambos casos privilegió la resiliencia de la cartera sobre el volumen inmediato, con seguimiento semestral del efecto en margen.",
   },
   {
     titulo: "Supervisión de objetivos climáticos y su vínculo con la remuneración",
@@ -583,14 +584,14 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 14(a)(i)", "NIIF S2 14(a)(ii)", "NIIF S2 14(b)"],
     area: "Sostenibilidad",
     texto:
-      "En 2025 la Compañía aprobó límites de concentración para sectores intensivos en carbono, creó una unidad de financiamiento sostenible dentro de la Dirección de Crédito (seis personas) y destinó 31 millones de pesos a eficiencia energética en la red. Los esfuerzos directos de reducción y adaptación comprenden el programa de eficiencia energética 2025-2027, la generación solar distribuida en 40 sucursales y la renovación gradual de la flota.",
+      "En 2025 la Compañía aprobó límites de concentración para sectores intensivos en carbono, creó una unidad de financiamiento sostenible dentro de la Dirección de Crédito (seis personas) y destinó 31 millones de pesos a eficiencia energética en la red. Los esfuerzos directos de reducción y adaptación comprenden el programa de eficiencia energética 2025-2027, la generación solar distribuida en 40 sucursales y la renovación gradual de la flota. Para periodos subsecuentes, el plan 2026-2027 asigna 61 millones de pesos adicionales al programa de eficiencia de la red, con los que se completan los 92 millones del programa; 12 millones a la medición PCAF y a sistemas de datos climáticos; y cuatro plazas nuevas en la unidad de financiamiento sostenible. Los recursos se aprueban en el presupuesto anual y su ejecución la revisa el Comité de Sostenibilidad y Riesgos Climáticos cada trimestre.",
   },
   {
     titulo: "Esfuerzos indirectos de reducción y adaptación a través de la cartera",
     codigos: ["NIIF S2 14(a)(iii)"],
     area: "Sostenibilidad",
     texto:
-      "Los esfuerzos indirectos se ejercen a través de la cartera: productos de crédito para eficiencia energética y riego tecnificado, y acompañamiento a acreditados de sectores intensivos en la formulación de sus planes de transición.",
+      "Los esfuerzos indirectos se ejercen a través de la cartera: productos de crédito para eficiencia energética y riego tecnificado, y acompañamiento a acreditados de sectores intensivos en la formulación de sus planes de transición. Los esfuerzos indirectos previstos para 2026 y 2027 son ampliar la línea de riego tecnificado a 1,200 millones de pesos, lanzar un producto de crédito para vivienda con certificación de eficiencia energética, extender el acompañamiento en planes de transición al 100% de los acreditados con exposición superior a 150 millones de pesos en sectores intensivos, e incorporar criterios climáticos en la evaluación de los veinte principales proveedores.",
   },
   {
     titulo: "Progreso de los planes climáticos 2025",
@@ -630,21 +631,21 @@ const NARRATIVAS = [
     ],
     area: "Riesgos",
     texto:
-      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 0-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El monitoreo es trimestral. No hubo cambios en los procesos respecto del periodo anterior salvo la incorporación del análisis de exposición física de colaterales. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima.",
+      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 0-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El monitoreo es trimestral. No hubo cambios en los procesos respecto del periodo anterior salvo la incorporación del análisis de exposición física de colaterales. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios.",
   },
   {
     titulo: "Enfoque de medición de emisiones y datos de entrada",
     codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     texto:
-      "Las emisiones de Alcances 1 y 2 se calculan conforme al GHG Protocol con factores de emisión de la SEMARNAT y del Registro Nacional de Emisiones para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia y los kWh facturados por sucursal.",
+      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI con factores de emisión de la SEMARNAT y del Registro Nacional de Emisiones para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
   },
   {
     titulo: "Enfoque de consolidación y desagregación de Alcances 1 y 2",
     codigos: ["NIIF S2 29 (a)(iv) EI5"],
     area: "Administración y Operaciones",
     texto:
-      "El grupo consolida las emisiones de sus tres subsidiarias —Banco Demo, Arrendadora Demo y Factoraje Demo— bajo el enfoque de control operacional. No hay participadas excluidas con emisiones relevantes, por lo que la desagregación por entidad no revela diferencias materiales.",
+      "El grupo consolida las emisiones de sus tres subsidiarias —Banco Demo, Arrendadora Demo y Factoraje Demo— bajo el enfoque de control operacional. Se eligió ese enfoque porque la Compañía controla las decisiones operativas de sus subsidiarias y de la totalidad de las sucursales, propias y arrendadas; el enfoque de participación en el capital habría excluido las sucursales arrendadas, donde ocurre la mayor parte del consumo eléctrico, y el de control financiero coincide en este caso con el operacional. No existen participadas fuera de la consolidación con emisiones relevantes, por lo que la desagregación por entidad no revela diferencias materiales.",
   },
   {
     titulo: "Alcance 2 por ubicación e instrumentos contractuales",
@@ -971,8 +972,8 @@ async function regimen() {
         anio_adopcion: 2025,
         // C5 NO. Es la medida transitoria para quien mide con un método distinto
         // del Protocolo GEI, y la Compañía mide con el Protocolo desde 2022: no
-        // hay nada que eximir. Declararlo igual habría hecho que el bloque 3 lo
-        // listara entre los adoptados y que el 30 explicara un alivio que no usa.
+        // hay nada que eximir. Declararlo igual habría hecho que el bloque 30
+        // explicara un alivio que no usa.
         alivios: { C3: true, C4: true, E4: true, E5: true },
       })
       .eq("id", REPORTE)

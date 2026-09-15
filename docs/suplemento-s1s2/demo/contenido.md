@@ -123,7 +123,8 @@ Banca, Finanzas, Recursos Humanos, Administración y Operaciones. Puede generars
 
 ## 2. Régimen del reporte
 
-anio_adopcion 2025 · alivios: C3 sí, C4 sí, C5 sí, E4 sí, E5 sí (primer año "primero clima").
+anio_adopcion 2025 · alivios: C3 sí, C4 sí, E4 sí, E5 sí (primer año "primero clima"). **C5 no se adopta**: la
+Compañía mide conforme al Protocolo GEI desde 2022, así que la medida transitoria de método distinto no le aplica.
 
 Nota: E5 no excluye los requisitos de NIIF S1; los acota al clima. Solo C4 deja bloques en no aplica.
 
@@ -259,7 +260,11 @@ abril y octubre, y de inmediato ante eventos climáticos con impacto material en
 **6(a)(iv) Consideración en la estrategia y transacciones importantes.** El Consejo considera los riesgos
 climáticos en la aprobación del plan estratégico, del presupuesto anual, de los límites de concentración
 sectorial de la cartera y de las emisiones de deuda. Desde 2025, toda propuesta de crédito superior a 150 millones
-de pesos en sectores intensivos en carbono incluye una evaluación de riesgo de transición.
+de pesos en sectores intensivos en carbono incluye una evaluación de riesgo de transición. Al aprobar los límites de concentración
+en sectores intensivos y la línea de financiamiento para riego tecnificado, el Consejo consideró explícitamente las
+compensaciones entre el menor crecimiento de corto plazo en esos sectores y la reducción del riesgo de crédito y de
+transición en el mediano plazo; en ambos casos privilegió la resiliencia de la cartera sobre el volumen inmediato,
+con seguimiento semestral del efecto en margen.
 
 **6(a)(v) Objetivos y remuneración.** El Consejo aprueba los objetivos climáticos y da seguimiento a su avance en
 la sesión de octubre. Las métricas climáticas no forman parte de la remuneración variable en 2025; el Comité de
@@ -286,7 +291,17 @@ Dirección de Crédito (seis personas) y destinó 31 millones de pesos a eficien
 
 **14(a)(iii) Esfuerzos de mitigación y adaptación.** Directos: programa de eficiencia energética 2025–2027,
 generación solar distribuida en 40 sucursales, renovación gradual de la flota. Indirectos: productos de crédito
-para eficiencia energética y riego tecnificado, acompañamiento a acreditados en sectores intensivos.
+para eficiencia energética y riego tecnificado, acompañamiento a acreditados en sectores intensivos. Esfuerzos indirectos
+previstos para 2026 y 2027: ampliar la línea de riego tecnificado a 1,200 millones de pesos, lanzar un producto de
+crédito para vivienda con certificación de eficiencia energética, extender el acompañamiento en planes de transición
+al 100% de los acreditados con exposición superior a 150 millones de pesos en sectores intensivos, e incorporar
+criterios climáticos en la evaluación de los veinte principales proveedores.
+
+**14(b) Recursos asignados y dotación futura.** El plan 2026–2027 asigna 61 millones de pesos adicionales al
+programa de eficiencia de la red (para completar los 92 millones del programa), 12 millones a la medición PCAF y a
+sistemas de datos climáticos, y cuatro plazas nuevas en la unidad de financiamiento sostenible. Los recursos se
+aprueban en el presupuesto anual y su ejecución la revisa el Comité de Sostenibilidad y Riesgos Climáticos cada
+trimestre.
 
 **14(a)(iv) Plan de transición.** El plan 2025–2030 establece: reducción de 30% de las emisiones de Alcances 1 y
 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones
@@ -308,9 +323,13 @@ un efecto acotado sobre el capital regulatorio.
 Sostenible y de la regulación de la CNBV, la frecuencia e intensidad de ciclones en el Golfo y el Caribe, y el
 comportamiento de los precios agrícolas ante sequías prolongadas.
 
-**22(a)(iii) Capacidad de adaptación.** La Compañía cuenta con capital por encima de los mínimos regulatorios,
-liquidez suficiente y una cartera de vida promedio corta en el segmento empresarial (2.8 años), lo que permite
-reorientar la originación en horizontes de mediano plazo. Las inversiones planeadas en eficiencia y en productos
+**22(a)(iii) Capacidad de adaptación.** En el corto plazo, la Compañía cuenta con capital por encima de los
+mínimos regulatorios, liquidez suficiente y planes de continuidad que permiten absorber eventos climáticos agudos en
+la red sin afectar el servicio. En el mediano plazo, la vida promedio corta de la cartera empresarial (2.8 años)
+permite reorientar la originación hacia sectores y activos de menor exposición. En el largo plazo, la Compañía puede
+reubicar o cerrar sucursales en zonas de alta exposición (14 de las 31 del sureste son arrendadas, con contratos
+menores a cinco años), reasignar el gasto de capital de la red y ajustar la composición de la cartera hipotecaria y
+agropecuaria conforme evolucione la exposición física. Las inversiones planeadas en eficiencia y en productos
 sostenibles refuerzan esa capacidad.
 
 **16(c)(i)(ii) Cambios previstos en la situación financiera.** La Compañía prevé que la reconfiguración gradual de
@@ -334,17 +353,26 @@ cuantificable en 2025.
 (escala 1–5, severidad 0–25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos
 con los mismos criterios que los riesgos de crédito, mercado y operacional. El monitoreo es trimestral. No hubo
 cambios en los procesos respecto del periodo anterior salvo la incorporación del análisis de exposición física
-de colaterales.
+de colaterales. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de
+transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar
+crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea
+de riego tecnificado como producto de adaptación para acreditados agropecuarios.
 
 ### Métricas (S2 29)
 
-**29(a)(ii)–(iii) Método de medición.** Las emisiones de Alcances 1 y 2 se calculan conforme al GHG Protocol con
+**29(a)(ii)–(iii) Método de medición.** Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI con
 factores de emisión de la SEMARNAT y del Registro Nacional de Emisiones para electricidad, con enfoque de control
-operacional. Datos de entrada: litros de combustible de flota y plantas de emergencia; kWh facturados por
-sucursal.
+operacional. Datos de entrada: litros de combustible de flota y plantas de emergencia (488,000 litros de gasolina y
+diésel en 2025; la solicitud de combustibles se liga a este requisito); kWh facturados por sucursal. El método, los
+factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al
+Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta
+información comparativa.
 
 **29(a)(iv) Enfoque y desagregación.** El grupo consolida las emisiones de sus tres subsidiarias bajo control
-operacional. No hay participadas excluidas con emisiones relevantes.
+operacional. Se eligió ese enfoque porque la Compañía controla las decisiones operativas de sus subsidiarias y de la
+totalidad de las sucursales, propias y arrendadas; el enfoque de participación en el capital habría excluido las
+sucursales arrendadas, donde ocurre la mayor parte del consumo eléctrico, y el de control financiero coincide en
+este caso con el operacional. No existen participadas fuera de la consolidación con emisiones relevantes.
 
 **29(a)(v) Alcance 2 por ubicación e instrumentos contractuales.** Las emisiones de Alcance 2 se reportan con el
 método basado en la ubicación. La electricidad se adquiere a la CFE bajo contratos estándar; la Compañía no
@@ -388,7 +416,7 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
 
 ### S2 22(b)(i) — análisis de escenarios (8 preguntas, en orden del catálogo)
 1. Cuándo se realizó: segundo semestre de 2025, con actualización anual prevista.
-2. Escenarios: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), fase IV.
+2. Escenarios: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC RCP 8.5 / NGFS Current Policies), fase IV.
 3. Rango diverso de escenarios: Verdadero.
 4. Fuente: NGFS fase IV e IPCC AR6.
 5. Escenario alineado con el último acuerdo internacional: Verdadero (Net Zero 2050).
@@ -446,3 +474,14 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
   notas de revisión si existe. Omitirlo por completo es aceptable.
 - Después de cargar: evaluarCompletitud del reporte demo debería dejar cero bloques "sin evidencia"; los que
   queden en pendientes se reportan con su causa.
+
+---
+
+## 9. Registro de cambios del contenido
+
+- v1 (15 sep 2026): versión inicial.
+- v2 (15 sep 2026): SSP5-8.5 en lugar de RCP 8.5; añadidos 16(c)(i)(ii), 16(d), 30 y 32; nota sobre E5.
+- v3 (15 sep 2026): se retira C5 del régimen; se cierran los 8 pendientes de la primera generación: compensaciones
+  en 6(a)(iv), esfuerzos indirectos previstos en 14(a)(iii), dotación de recursos 14(b), escenarios y oportunidades
+  en 25(b), "sin cambios" y razones del enfoque en 29(a)(ii)–(iv); 22(a)(iii) ampliado a los tres horizontes y a
+  activos físicos; la solicitud de combustibles se liga a 29(a)(iii).
