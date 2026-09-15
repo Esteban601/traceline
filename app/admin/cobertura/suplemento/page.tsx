@@ -96,6 +96,7 @@ export default async function SuplementoPage({
         bloques={res.bloques}
         resumen={res.resumen}
         reporteId={reporteId}
+        puedeGenerar={esStaff(perfil)}
       />
     </Marco>
   );

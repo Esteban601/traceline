@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { Tono } from "@/lib/estados";
+import { GenerarDocumento } from "./generar-documento";
 import type {
   BloqueEvaluado,
   EstadoBloque,
@@ -75,6 +76,7 @@ export function SuplementoView({
   bloques,
   resumen,
   reporteId,
+  puedeGenerar,
 }: {
   nombreReporte: string;
   ejercicio: number;
@@ -86,6 +88,8 @@ export function SuplementoView({
   bloques: BloqueEvaluado[];
   resumen: ResumenCompletitud;
   reporteId: string;
+  /** Solo el staff genera el documento en A5a; el admin del cliente en A8. */
+  puedeGenerar: boolean;
 }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const alternar = (clave: string) =>
@@ -167,10 +171,18 @@ export function SuplementoView({
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          <Button disabled title="Disponible en la siguiente fase">
-            Generar suplemento
-          </Button>
-          <span className="text-sm text-muted">Disponible en la siguiente fase.</span>
+          {puedeGenerar ? (
+            <GenerarDocumento reporteId={reporteId} />
+          ) : (
+            <>
+              <Button disabled title="Disponible para el equipo de IRStrat">
+                Generar suplemento
+              </Button>
+              <span className="text-sm text-muted">
+                La generación del documento la hace el equipo de IRStrat.
+              </span>
+            </>
+          )}
         </div>
       </Card>
 
