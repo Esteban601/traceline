@@ -399,7 +399,9 @@ export async function generarBloque(
     }
     if (marcadores.length) {
       reproches.push(
-        `Estos marcadores no llevan el formato pedido \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`, con raya larga: ${marcadores.join(" ")}.`
+        `Estos marcadores no llevan el formato pedido \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`: ${marcadores.join(" | ")}.\n` +
+          `El formato es exacto: corchetes al principio y al final, la palabra Pendiente seguida de dos puntos, y raya larga (—) entre qué falta y de dónde sale. ` +
+          `Un "Pendiente:" sin corchetes NO es un marcador: el revisor lo retira buscando los corchetes, y sin ellos la frase se publica tal cual.`
       );
     }
 

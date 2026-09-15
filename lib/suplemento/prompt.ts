@@ -29,7 +29,7 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "a5b-v1-2026-09-15";
+export const PROMPT_VERSION = "a5b-v2-2026-09-15";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -147,11 +147,29 @@ export function normalizarDenominacion(
   return { texto: out, cambios };
 }
 
-/** ¿Los marcadores llevan el formato pedido? `[Pendiente: qué — dónde]`. */
+/**
+ * ¿Los marcadores llevan el formato pedido? `[Pendiente: qué — dónde]`.
+ *
+ * Dos fallos distintos, los dos de formato:
+ *
+ * 1. Un marcador con corchetes pero sin la raya larga, que rompe la separación
+ *    entre «qué falta» y «de dónde sale».
+ * 2. Un «Pendiente:» SUELTO, sin corchetes. Este es el peor de los dos y es el
+ *    que el bloque 31 produjo: sin corchetes, el retiro del marcador antes de
+ *    aprobar —que busca `[Pendiente: …]`— no lo encuentra, y la frase se publica
+ *    tal cual, diciéndole al inversionista que a la emisora le falta un dato.
+ *    Un marcador que no se puede retirar automáticamente es peor que no tenerlo.
+ */
 export function marcadoresMalFormados(texto: string): string[] {
   const malos: string[] = [];
   for (const m of texto.match(RE_PENDIENTE) ?? []) {
     if (!m.includes("—")) malos.push(m);
+  }
+  // Lo que queda tras quitar los marcadores bien formados no debería contener
+  // la palabra: si aparece, es un «Pendiente:» sin corchetes.
+  const sinMarcadores = texto.replace(RE_PENDIENTE, " ");
+  for (const m of sinMarcadores.match(/Pendiente\s*:[^.\n]{0,80}/gi) ?? []) {
+    malos.push(m.trim());
   }
   return malos;
 }
@@ -174,7 +192,7 @@ Donde falte un dato, escribe exactamente:
 
 \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`
 
-Con la raya larga. Ese marcador es para el revisor interno y se retira antes de aprobar el documento; es el único lugar donde puedes nombrar una solicitud o un campo. Fuera de él, el texto no admite ese vocabulario.
+Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes no es un marcador y el servidor lo rechaza: el revisor los retira buscando los corchetes, y sin ellos la frase se publicaría tal cual. Ese marcador es para el revisor interno y se retira antes de aprobar el documento; es el único lugar donde puedes nombrar una solicitud o un campo. Fuera de él, el texto no admite ese vocabulario.
 
 **El marcador OCUPA EL LUGAR DEL DATO. No lo anuncies.** Nunca escribas una frase que prometa algo que luego resulta ser un marcador: nada de «la calificación asignada se presenta a continuación» seguido de un pendiente, ni «el detalle se describe más adelante» si ese detalle falta. Si el dato no está, la oración lo dice en el sitio donde iría el dato y no promete nada alrededor. Un borrador que anuncia una tabla inexistente, publicado sin revisar, miente.
 
