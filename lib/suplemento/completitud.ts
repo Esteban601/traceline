@@ -373,9 +373,12 @@ export async function evaluarCompletitud(
 
     // -- Datapoints ----------------------------------------------------------
     for (const codigo of b.datapoints) {
-      // Con el alivio E5 el primer ejercicio informa SOLO clima: los requisitos
-      // de S1 general no son exigibles todavía, así que no cuentan como huecos.
-      if (aliviosVigentes.E5 && codigo.startsWith("NIIF S1")) continue;
+      // E5 NO EXCLUYE REQUISITOS DE S1. Antes esta línea los saltaba, y estaba
+      // mal: el alivio acota el ALCANCE del informe a clima, no deroga la NIIF
+      // S1, que sigue aplicando en lo pertinente a ese alcance. Saltarlos dejaba
+      // el semáforo en verde sobre requisitos que nadie había cubierto, y a los
+      // bloques de gobernanza y juicios sin fuente. E5 viaja al prompt como
+      // bandera de alcance —ver `banderaAlcanceE5()`—, no como exención.
       // Ídem para lo que otro alivio exime —el Alcance 3 bajo C4—.
       if (exentos.has(codigo)) {
         noAplican.push(codigo);
@@ -616,36 +619,11 @@ export async function evaluarCompletitud(
     }
 
     // -- Estado --------------------------------------------------------------
-    // E5 dejó al bloque sin un solo requisito exigible: todo lo que pedía era de
-    // S1 general y este ejercicio informa solo clima. La especificación es
-    // explícita en que eso se MARCA "no aplicable en este ejercicio" y no se
-    // omite en silencio; decir "completo" sería peor todavía, porque sugiere que
-    // hay con qué escribirlo.
-    const vaciadoPorE5 =
-      aliviosVigentes.E5 === true &&
-      exigidos === 0 &&
-      b.datapoints.length > 0 &&
-      b.datapoints.every((c) => c.startsWith("NIIF S1"));
+    // SOLO C4 APAGA BLOQUES. E5 ya no deja ningún bloque en 'no_aplica': acotar
+    // el informe a clima no convierte los requisitos de S1 en inaplicables, los
+    // acota. Un bloque de gobernanza o de juicios sigue siendo exigible y su
+    // hueco sigue siendo un hueco.
 
-    if (vaciadoPorE5) {
-      return {
-        clave: b.clave,
-        numero: b.numero,
-        seccion: b.seccion,
-        titulo: b.titulo,
-        tipo: b.tipo,
-        regimen: b.regimen,
-        estado: "no_aplica",
-        referencias: b.datapoints,
-        motivoNoAplica: "Alivio E5: el primer ejercicio informa solo sobre clima.",
-        faltantes: [],
-        cumplidos: 0,
-        exigidos: 0,
-        noAplican,
-        remisiones,
-        solicitudes: [...solicitudesDelBloque],
-      };
-    }
 
     // Un bloque sin un solo requisito es de PLANTILLA: su texto no sale de la
     // evidencia sino de una redacción fija (la presentación del informe, las
@@ -711,10 +689,10 @@ function excluidoPorRegimen(b: Bloque, regimen: Regimen, alivios: Alivios): stri
     return "Alivio C4: las emisiones de Alcance 3 no se revelan en el primer ejercicio.";
   }
 
-  // E5 no se resuelve aquí. Excluye DATAPOINTS de S1 general, no bloques: si al
-  // quitarlos el bloque se queda sin nada exigible, quien evalúa lo marca "no
-  // aplica" al final, que es cuando ya se sabe. Adelantarlo aquí obligaría a
-  // repetir el conteo de fuentes en dos sitios.
+  // E5 NO APAGA NINGÚN BLOQUE. Acota el ALCANCE del informe a clima; la NIIF S1
+  // sigue aplicando en lo pertinente a ese alcance, así que sus requisitos se
+  // siguen exigiendo y sus huecos se siguen viendo. Lo que E5 sí hace es viajar
+  // al prompt como instrucción de alcance: ver `banderaAlcanceE5()`.
   return null;
 }
 

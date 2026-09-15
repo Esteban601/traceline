@@ -10,6 +10,7 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 - Dos reglas más de prompt: el marcador de pendiente no se anuncia y va integrado en su oración.
 - `NIIF S2 10(d)` se cubre desde `perfil.horizontes`; el bloque 21 remite al 8 en vez de repetirlo.
 - A5a marcado como completo, con fecha, y A5b acotado (§9).
+- **E5 es alcance, no exención**: solo C4 apaga bloques (§6). Migración `20260921120000` (§5).
 
 **Cambios respecto a 0.5** (al cerrar A4):
 - Esfuerzo de razonamiento configurable por tipo de bloque, con todo en `high` (§6).
@@ -268,7 +269,7 @@ filas, no como JSON.
 | `documentos_bloques.estado` suma `'no_aplica'` y `'pendiente_adjunto'` | Un bloque que el régimen excluye y otro que espera un adjunto no son errores ni borradores vacíos: sin estado propio, el revisor los perseguía como fallos | DROP + ADD CONSTRAINT (`20260918120000`, **aplicada en dev**) |
 | `documentos_bloques.estado` suma `'en_cola'`, y `documentos_bloques.reclamado_en` (timestamptz, nullable) | Insertar los 40 bloques como `generando` hacía que todos los POST recibieran 409 y que los últimos de la cola vencieran esperando turno. `en_cola` dice que nadie lo ha tomado; `reclamado_en` es desde cuándo corre el vencimiento y lo que hace atómico el reclamo | DROP + ADD CONSTRAINT + ADD COLUMN (`20260919120000`, **aplicada en dev**) |
 | `documentos_bloques.intentos` (smallint, default 0) | Cuenta los cortes por tiempo de la tanda actual. Sin memoria del intento, un bloque que siempre excede la ventana se reencola para siempre; al segundo corte pasa a `error` | ADD COLUMN (`20260920120000`, **aplicada en dev**) |
-| `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | **Pendiente para A5b.** El bloque 21 hoy solo puede producir la tabla resumen: le falta con qué escribir el párrafo por riesgo que CADU pone en pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Capturables en `/admin/registros` | ADD COLUMN |
+| `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | El bloque 21 solo podía producir la tabla resumen: le faltaba con qué escribir el párrafo por riesgo de CADU pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Se capturan en `/admin/registros` | ADD COLUMN (`20260921120000`, **aplicada en dev**) |
 
 Todas aditivas. Nada de lo que hoy usan staging ni los 16 tenants cambia de forma.
 
@@ -349,6 +350,15 @@ prompt que no existía.
 *plantilla* (2, 3, 5, 14) es texto fijo con variables y **no llama al modelo** —cuestan $0 y tardan 0 ms—;
 *perfil* (1, 4, 7, 11, 12, 18, 19) redacta desde `perfil_emisor`; *datos* (los 29 restantes) sale de la
 evidencia, y once de ellos llevan **tabla armada por código** antes de la llamada (`lib/suplemento/tablas.ts`).
+
+**E5 ES ALCANCE, NO EXENCIÓN.** El alivio NIIF S1 E5 permite que el primer informe se limite a los riesgos y
+oportunidades relacionados con el clima. Eso **no deroga la NIIF S1** ni convierte sus requisitos en inaplicables:
+S1 sigue aplicando *en lo pertinente* a ese alcance. Hasta el 15 de septiembre de 2026 el evaluador lo trataba como
+exención —saltaba todo datapoint `NIIF S1` y ponía en `no_aplica` los bloques cuyos requisitos eran todos de S1—, y
+eso hacía dos daños: pintaba de verde requisitos que nadie había cubierto, y dejaba sin fuente a los bloques de
+gobernanza y de juicios, que son precisamente requisitos de S1 que el clima necesita. Corregido: **solo C4 apaga
+bloques**. E5 viaja al prompt como bandera de alcance en la capa volátil (`banderaAlcanceE5()`), con la instrucción
+de acotar los requisitos generales de S1 al clima en vez de omitirlos.
 
 **Fuentes alternativas.** Un requisito puede contestarlo un campo institucional en vez de una solicitud:
 `NIIF S2 10(d)` —qué horizontes se evaluaron y por qué esos— es exactamente `perfil.horizontes`, capturado en el

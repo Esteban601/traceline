@@ -29,7 +29,7 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "a5a-v1-2026-09-11";
+export const PROMPT_VERSION = "a5b-v1-2026-09-15";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -324,6 +324,28 @@ export type DatosVolatiles = {
   extension: string;
 };
 
+/**
+ * E5 como BANDERA DE ALCANCE, no como exención.
+ *
+ * El alivio permite que el primer informe se limite a clima. Eso NO deroga la
+ * NIIF S1 ni convierte sus requisitos en inaplicables: siguen aplicando en lo
+ * pertinente a ese alcance. Tratarlo como exención —que es lo que hacía el
+ * evaluador— ponía bloques enteros en "no aplica" y dejaba sin fuente a los de
+ * gobernanza y juicios, que son justamente requisitos de S1 que el clima
+ * necesita. Lo que el modelo tiene que saber es dónde está el borde del informe,
+ * y eso se dice, no se resta.
+ */
+export function banderaAlcanceE5(aliviosActivos: string[]): string | null {
+  const tieneE5 = aliviosActivos.some((a) => /\bE5\b/.test(a));
+  if (!tieneE5) return null;
+  return [
+    "# Alcance de este informe",
+    "",
+    "Este informe se limita a los riesgos y oportunidades relacionados con el CLIMA (alivio NIIF S1 E5, primer ejercicio). Los requisitos de la NIIF S1 siguen aplicando: acótalos a ese alcance, no los omitas. Cuando un requisito general de S1 —gobernanza, juicios, materialidad, conectividad— pida algo que en esta emisora abarca más que el clima, responde por la parte climática y no menciones los demás temas de sostenibilidad.",
+    "",
+  ].join("\n");
+}
+
 export function capaVolatil(v: DatosVolatiles): string {
   const alivios = v.aliviosActivos.length
     ? v.aliviosActivos.map((a) => `- ${a}`).join("\n")
@@ -354,6 +376,9 @@ export function capaVolatil(v: DatosVolatiles): string {
     alivios,
     "",
   ];
+
+  const alcance = banderaAlcanceE5(v.aliviosActivos);
+  if (alcance) partes.push(alcance);
 
   if (v.tabla) {
     partes.push(

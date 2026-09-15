@@ -82,6 +82,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   if (ultimo && ultimo.estado !== "aprobado") {
     documentoId = ultimo.id;
     version = ultimo.version;
+    // REFRESCAR EL RÉGIMEN CONGELADO. Congelar significa "esto es lo que regía
+    // cuando se escribieron estos bloques", y aquí se van a reescribir los
+    // cuarenta. Fijarlo solo al crear la fila hacía que un documento regenerado
+    // después de cambiar los alivios del reporte declarara un régimen que no es
+    // el que usó: el generador lee los alivios del REPORTE, así que la copia
+    // congelada era la única que mentía.
+    await db
+      .from("documentos_generados")
+      .update({ regimen, alivios: rep.alivios ?? {} })
+      .eq("id", documentoId);
   } else {
     version = (ultimo?.version ?? 0) + 1;
     const { data: nuevo, error } = await db
