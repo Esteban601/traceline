@@ -6,14 +6,14 @@ ficticio que reemplaza el giro industrial del seed. Semáforo: 36 completos, 3 d
 
 Régimen primer_anio, alivios {"C3":true,"C4":true,"E4":true,"E5":true}. Documento versión 1, estado `en_revision`.
 
-**Totales:** $7.8888 · 286,956 tokens de entrada · 103,992 de salida.
+**Totales:** $7.8720 · 287,122 tokens de entrada · 103,622 de salida.
 
 | # | Bloque | Vía | Estado | Caracteres | Costo | Duración | tok/s | Pend. | Notas |
 |---:|---|---|---|---:|---:|---:|---:|---:|---:|
 | 1 | Carta de la Dirección | perfil | `borrador` | 1,778 | $0.1841 | 32,575 ms | 68.9 | 0 | 5 |
 | 2 | Presentación del informe (adopción, CNBV) | plantilla | `borrador` | 527 | $0.0000 | 0 ms | — | 0 | 0 |
 | 3 | Bases de preparación: marco y alivios transitorios | plantilla | `borrador` | 587 | $0.0000 | 0 ms | — | 0 | 0 |
-| 4 | Entidad que informa, periodo y conectividad | perfil | `borrador` | 2,411 | $0.2243 | 39,309 ms | 73.4 | 0 | 6 |
+| 4 | Entidad que informa, periodo y conectividad | perfil | `borrador` | 2,243 | $0.2075 | 36,223 ms | 69.4 | 0 | 5 |
 | 5 | Conexiones y referencias cruzadas | plantilla | `borrador` | 463 | $0.0000 | 0 ms | — | 0 | 0 |
 | 6 | Juicios, supuestos e incertidumbres | datos | `borrador` | 1,597 | $0.2117 | 37,403 ms | 74.2 | 0 | 5 |
 | 7 | Materialidad: contexto y proceso | perfil | `borrador` | 1,973 | $0.1716 | 39,418 ms | 79.7 | 0 | 5 |

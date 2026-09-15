@@ -402,8 +402,12 @@ diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pe
 sector económico: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960
 millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible
 de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090
-millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La revelación completa de las
-métricas industriales se incorporará en ejercicios subsecuentes.
+millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La Compañía consideró la
+aplicabilidad de las métricas del sector de bancos comerciales conforme al juicio previsto en NIIF S2 párrafo 32 y
+revela las que resultan aplicables a su modelo de negocio y para las que dispone de información fiable: composición
+de la cartera por sector económico, proporción de cartera sostenible y exposición a sectores intensivos en carbono.
+Las métricas restantes del sector se evaluarán conforme la Compañía disponga de información con la calidad
+requerida, y esa evaluación se documenta como juicio significativo en las bases de preparación.
 
 Capturas confirmadas para esta solicitud (MDP, ejercicio 2025): cartera total 86,400; empresarial 44,930;
 hipotecario 18,140; consumo 12,960; agropecuario 10,370; cartera sostenible 6,910; sectores intensivos en carbono
@@ -489,6 +493,8 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
 
 - v1 (15 sep 2026): versión inicial.
 - v2 (15 sep 2026): SSP5-8.5 en lugar de RCP 8.5; añadidos 16(c)(i)(ii), 16(d), 30 y 32; nota sobre E5.
+- v6 (15 sep 2026): S2 32 deja de remitir a "ejercicios subsecuentes" (no hay alivio que lo ampare) y declara el
+  juicio de aplicabilidad de métricas industriales.
 - v5 (15 sep 2026): perímetro reescrito para no contradecir a S2 32 (las métricas de cartera sí se revelan como
   composición y proporción); S2 32 con cifras de composición de cartera y capturas confirmadas.
 - v4 (15 sep 2026): el factor de emisión eléctrico es el del Sistema Eléctrico Nacional publicado por la CRE, no del
