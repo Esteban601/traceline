@@ -325,10 +325,12 @@ export type Database = {
           generado_en: string
           id: string
           idioma: string
+          intentos: number
           modelo: string | null
           numero: number
           pendientes: Json
           prompt_version: string | null
+          reclamado_en: string | null
           seccion: string | null
           texto: string | null
           titulo: string
@@ -351,10 +353,12 @@ export type Database = {
           generado_en?: string
           id?: string
           idioma?: string
+          intentos?: number
           modelo?: string | null
           numero: number
           pendientes?: Json
           prompt_version?: string | null
+          reclamado_en?: string | null
           seccion?: string | null
           texto?: string | null
           titulo: string
@@ -377,10 +381,12 @@ export type Database = {
           generado_en?: string
           id?: string
           idioma?: string
+          intentos?: number
           modelo?: string | null
           numero?: number
           pendientes?: Json
           prompt_version?: string | null
+          reclamado_en?: string | null
           seccion?: string | null
           texto?: string | null
           titulo?: string
