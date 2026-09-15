@@ -426,8 +426,14 @@ const CIFRAS = [
 // Cifras que no tenían solicitud y se crean como cuantitativas nuevas.
 const CIFRAS_NUEVAS = [
   {
-    titulo: "Consumo de combustibles fósiles 2025 (flota y plantas de emergencia)",
-    codigos: [],
+    // El título es EXACTAMENTE el del seed. `solicitudCompleta` empareja por
+    // título, así que uno más descriptivo —por correcto que fuera— creaba una
+    // solicitud nueva y dejaba la vieja abierta pidiendo un dato ya entregado.
+    titulo: "Consumo de combustibles fósiles 2025",
+    // Ligada a 29 (a)(iii): el dato de entrada del cálculo ES parte del enfoque
+    // de medición. Sin este mapeo el bloque 30 pedía un volumen de combustible
+    // que ya estaba capturado y confirmado.
+    codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     valor: 488000,
     unidad: "litros",
@@ -963,11 +969,15 @@ async function regimen() {
       .from("reportes")
       .update({
         anio_adopcion: 2025,
-        alivios: { C3: true, C4: true, C5: true, E4: true, E5: true },
+        // C5 NO. Es la medida transitoria para quien mide con un método distinto
+        // del Protocolo GEI, y la Compañía mide con el Protocolo desde 2022: no
+        // hay nada que eximir. Declararlo igual habría hecho que el bloque 3 lo
+        // listara entre los adoptados y que el 30 explicara un alivio que no usa.
+        alivios: { C3: true, C4: true, E4: true, E5: true },
       })
       .eq("id", REPORTE)
   );
-  log("  régimen · anio_adopcion 2025 · alivios C3 C4 C5 E4 E5");
+  log("  régimen · anio_adopcion 2025 · alivios C3 C4 E4 E5 (C5 no aplica: mide con Protocolo GEI)");
 }
 
 // --- 3. Áreas ----------------------------------------------------------------
