@@ -22,6 +22,7 @@
 // =============================================================================
 
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 // -----------------------------------------------------------------------------
@@ -638,7 +639,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     texto:
-      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI con factores de emisión de la SEMARNAT y del Registro Nacional de Emisiones para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
+      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
   },
   {
     titulo: "Enfoque de consolidación y desagregación de Alcances 1 y 2",
@@ -1104,17 +1105,27 @@ async function ligar(solicitudId, codigos) {
   }
 }
 
-/** Sube el PDF de evidencia si esta solicitud no tiene ya el de este script. */
+/**
+ * Sube el PDF de evidencia si esta solicitud no tiene ya uno con ESTE texto.
+ *
+ * El nombre lleva un hash corto del contenido. Cuando el texto del documento
+ * cambia —el factor eléctrico pasó del RENE a la CRE—, el hash cambia y entra
+ * una VERSIÓN NUEVA, que es como el esquema entiende una corrección: las
+ * evidencias son append only y el trigger asigna la versión. Antes bastaba con
+ * que existiera cualquier evidencia de este script para no volver a subir, y el
+ * PDF se quedaba contradiciendo a la descripción que sí se actualizaba.
+ */
 async function evidenciaDe(solicitudId, titulo, codigos, texto) {
+  const huella = createHash("sha256").update(texto).digest("hex").slice(0, 8);
   const previas = ok(
     "evidencias",
     await db.from("evidencias").select("id, nombre_original").eq("solicitud_id", solicitudId)
   );
-  if (previas.some((e) => e.nombre_original.includes(MARCA))) return false;
+  if (previas.some((e) => e.nombre_original.includes(`${MARCA}-${huella}`))) return false;
 
   const encabezado = `Empresa Demo · Evidencia de demostración${codigos.length ? ` · ${codigos.join(" · ")}` : ""}`;
   const pdf = pdfDeTexto(titulo, encabezado, texto);
-  const nombre = `${slugArchivo(titulo)}-${MARCA}.pdf`;
+  const nombre = `${slugArchivo(titulo)}-${MARCA}-${huella}.pdf`;
   const ruta = `${TENANT}/${solicitudId}/${nombre}`;
 
   const { error: errSub } = await db.storage
@@ -1206,6 +1217,7 @@ async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, v
       await db.from("evidencias").select("id, nombre_original").eq("solicitud_id", id).order("version", { ascending: false })
     );
     const mia = ev.find((e) => e.nombre_original.includes(MARCA)) ?? ev[0];
+    if (!mia) throw new Error(`${titulo}: no hay evidencia a la que colgar la captura.`);
     const caps = ok(
       "capturas",
       await db.from("capturas_valor").select("valor, confirmado, periodo").eq("solicitud_id", id).order("created_at")
