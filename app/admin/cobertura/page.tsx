@@ -7,6 +7,7 @@ import { ParamSelect } from "@/components/ui/param-select";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { CoberturaView } from "./cobertura-view";
 import { InformeButton } from "./informe-button";
+import { SuplementoButton } from "./suplemento-button";
 
 export const metadata: Metadata = { title: "Cobertura de taxonomía" };
 
@@ -47,6 +48,19 @@ export default async function CoberturaPage({
   const variosClientes =
     new Set(datos.reportesVisibles.map((r) => r.tenant_id)).size > 1;
 
+  // El reporte elegido, entero: el botón del Suplemento necesita su ejercicio y
+  // `datos.reporteSel` es solo el id.
+  const reporteSel =
+    datos.reportesVisibles.find((r) => r.id === datos.reporteSel) ?? null;
+
+  // La emisora sale DEL REPORTE, no del selector de cliente. El staff puede
+  // tener elegido un reporte sin haber elegido emisora —ahí `tenantActivo` es
+  // nulo y el botón no aparecía—, y de todos modos es el reporte el que manda:
+  // es lo mismo que resuelve la ruta de descarga antes de servir el archivo.
+  const tenantDelReporte = reporteSel
+    ? (datos.tenants.find((t) => t.id === reporteSel.tenant_id) ?? null)
+    : null;
+
   return (
     <CoberturaView
       datapoints={datos.filas}
@@ -82,6 +96,17 @@ export default async function CoberturaPage({
       }
       informe={
         <InformeButton tenantId={datos.tenantSel} reporteId={datos.reporteSel} />
+      }
+      // Solo para emisoras de demostración, y solo con un reporte elegido: el
+      // Suplemento es de un ejercicio concreto y sin reporte no hay año que
+      // poner en el título del diálogo.
+      suplemento={
+        tenantDelReporte?.es_demo && reporteSel ? (
+          <SuplementoButton
+            reporteId={reporteSel.id}
+            ejercicio={reporteSel.ejercicio}
+          />
+        ) : null
       }
     />
   );

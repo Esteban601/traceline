@@ -62,6 +62,8 @@ export type AccionEvento =
   | "objetivo_desactivado"
   | "objetivo_reactivado"
   | "cuestionario_respondido"
+  // Descarga del Suplemento de vitrina del tenant de demostración.
+  | "suplemento_demo_descargado"
   | "tenant_creado"
   | "tenant_desactivado"
   | "tenant_reactivado"

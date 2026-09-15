@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /**
- * "Exportar PDF" — abre el informe de cobertura maquetado para impresión, que se
+ * "PDF de cobertura" — abre el informe de cobertura maquetado para impresión, que se
  * manda a imprimir solo al cargar (`?imprimir=1`).
  *
  * Es un enlace y no un botón con `window.open`: un clic del usuario sobre un
@@ -26,7 +26,10 @@ export function InformeButton({
       href={`/admin/cobertura/informe?${params.toString()}`}
       target="_blank"
       rel="noopener"
-      className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-ink transition duration-150 hover:border-teal/40 hover:text-teal"
+      // Mismas medidas que `Button variant="secondary" size="md"`: los tres
+      // botones claros de esta fila tienen que leerse como uno solo repetido, y
+      // un alto distinto los delata antes que el color.
+      className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink transition duration-150 ease-out hover:border-teal/40 hover:text-teal"
     >
       <svg
         aria-hidden
@@ -42,7 +45,7 @@ export function InformeButton({
         <path d="M6 18H4a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2" />
         <rect x="6" y="14" width="12" height="7" rx="1" />
       </svg>
-      Exportar PDF
+      PDF de cobertura
     </Link>
   );
 }

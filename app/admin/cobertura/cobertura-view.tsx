@@ -58,6 +58,7 @@ export function CoberturaView({
   reporteId = null,
   soyStaff = true,
   informe,
+  suplemento,
 }: {
   datapoints: DatapointCobertura[];
   /** Selectores de cliente y reporte, inyectados desde el servidor. */
@@ -69,8 +70,15 @@ export function CoberturaView({
   reporteId?: string | null;
   /** false = administrador del cliente: es SU cobertura, no la de la firma. */
   soyStaff?: boolean;
-  /** Botón "Exportar PDF" (abre el informe para imprimir), inyectado desde el servidor. */
+  /** Botón "PDF de cobertura" (abre el informe para imprimir), inyectado desde el servidor. */
   informe?: React.ReactNode;
+  /**
+   * Botón "Suplemento S1 y S2", inyectado desde el servidor. Llega ya resuelto
+   * —o no llega— porque quién puede verlo depende de `tenants.es_demo`, que es
+   * un dato del servidor: decidirlo aquí obligaría a mandar la bandera al
+   * cliente para pintar un botón que la mayoría no debe ver.
+   */
+  suplemento?: React.ReactNode;
 }) {
   // La extensión GRI se aparta ANTES de cualquier cálculo: los KPIs, los anillos
   // y el universo son de la norma NIIF. Si los 4 datapoints GRI entraran al
@@ -181,6 +189,7 @@ export function CoberturaView({
           {selector}
           {informe}
           <TaxonomiaExportButton reporteId={reporteId} />
+          {suplemento}
           <ExportButton tenantId={tenantId} />
         </div>
       </header>
