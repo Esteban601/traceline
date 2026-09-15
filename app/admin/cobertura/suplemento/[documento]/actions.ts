@@ -50,6 +50,24 @@ export async function guardarTexto(_p: EstadoAccion, fd: FormData): Promise<Esta
     return ERR("El documento está aprobado; para cambiarlo hay que abrir una versión nueva.");
   }
 
+  // UN GUARDADO POR EDICIÓN. Si el texto es idéntico al que ya está, no se
+  // escribe ni se registra: el 15 de septiembre de 2026 tres clics impacientes
+  // sobre «Guardar» dejaron tres entradas de bitácora a un segundo de distancia,
+  // con el mismo conteo de caracteres, y una auditoría que sugiere tres
+  // decisiones donde hubo una. El botón ahora se deshabilita mientras va en
+  // vuelo; esta comprobación es la red por debajo, porque el botón es del
+  // navegador y la bitácora es del servidor.
+  const { data: previo } = await a.db
+    .from("documentos_bloques")
+    .select("texto")
+    .eq("documento_id", documentoId)
+    .eq("numero", numero)
+    .maybeSingle();
+
+  if (previo && previo.texto === texto) {
+    return OK("Sin cambios que guardar.");
+  }
+
   const { error } = await a.db
     .from("documentos_bloques")
     .update({
@@ -67,10 +85,18 @@ export async function guardarTexto(_p: EstadoAccion, fd: FormData): Promise<Esta
     await logEvento(a.db, {
       tenantId: a.doc.tenant_id,
       usuarioId: a.perfil.id,
-      accion: "suplemento_bloque_generado",
+      // ACCIÓN PROPIA. Editar a mano no es generar: iba bajo
+      // `suplemento_bloque_generado` con un `detalle.accion` que lo desmentía,
+      // y cualquiera que filtrara la bitácora por generaciones contaba ediciones
+      // como si fueran corridas del modelo.
+      accion: "suplemento_bloque_editado",
       entidad: "documentos_generados",
       entidadId: documentoId,
-      detalle: { bloque: numero, accion: "texto_editado", caracteres: texto.length },
+      detalle: {
+        bloque: numero,
+        caracteres: texto.length,
+        caracteres_antes: previo?.texto?.length ?? null,
+      },
     });
   });
 

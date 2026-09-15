@@ -286,7 +286,10 @@ function BloqueCard({
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
-  const [sTexto, aTexto] = useActionState(guardarTexto, VACIO);
+  // `guardando` deshabilita el botón mientras la acción va en vuelo. Sin esto,
+  // un clic impaciente de más dispara otra acción de servidor: es lo que dejó
+  // tres entradas de bitácora para una sola edición del bloque 4.
+  const [sTexto, aTexto, guardando] = useActionState(guardarTexto, VACIO);
   const toast = useToast();
 
   useEffect(() => {
@@ -368,8 +371,16 @@ function BloqueCard({
                   className="w-full rounded-xl border border-line bg-surface px-4 py-3 font-mono text-xs leading-relaxed text-ink"
                 />
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm">Guardar</Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setEditando(false)}>
+                  <Button type="submit" size="sm" loading={guardando}>
+                    Guardar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditando(false)}
+                    disabled={guardando}
+                  >
                     Cancelar
                   </Button>
                 </div>
