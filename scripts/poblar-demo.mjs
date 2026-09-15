@@ -1199,11 +1199,23 @@ async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, v
     // También la descripción: las solicitudes que ya existían del giro industrial
     // conservaban su texto viejo, y era ese —no el del documento— el que llegaba
     // al modelo.
+    // También la naturaleza y la unidad. El script declara `cuantitativa` y una
+    // unidad, pero eso solo se aplicaba AL INSERTAR: una solicitud del seed dada
+    // de alta como cualitativa se quedaba así aunque después recibiera una
+    // captura numérica confirmada, y el valor existía sin que nada lo tratara
+    // como valor. Es el caso de los combustibles: 488,000 litros capturados en
+    // una solicitud que el esquema seguía considerando narrativa.
     ok(
       "solicitud update",
       await db
         .from("solicitudes")
-        .update({ area_asignada: area, desactivada: false, descripcion: descripcion ?? texto })
+        .update({
+          area_asignada: area,
+          desactivada: false,
+          descripcion: descripcion ?? texto,
+          es_cuantitativa: !!cuantitativa,
+          unidad_esperada: cuantitativa ? unidad : null,
+        })
         .eq("id", id)
     );
   }
