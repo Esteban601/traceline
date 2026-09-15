@@ -166,8 +166,10 @@ async function main() {
 
   console.log("\nGEI 29(a)(i) — nota por celda-año (año validado y lleno + año sin evidencia):");
   ok(cellText(gei1, "A3") === "Alcance 1", "A3 = 'Alcance 1'");
-  // Alcance 1: 2025 VALIDADO y lleno (400,000), 2024 SIN captura → celda vacía.
-  ok(Number(cellText(gei1, "C3")) === 400000, "C3 (Alcance 1, 2025 validado) = 400000");
+  // Alcance 1: 2025 VALIDADO y lleno, 2024 SIN captura → celda vacía. La cifra
+  // cambió de 400,000 a 1,240 al pasar el demo de industrial a grupo financiero
+  // (scripts/poblar-demo.mjs): son 118 sucursales y una flota, no una planta.
+  ok(Number(cellText(gei1, "C3")) === 1240, "C3 (Alcance 1, 2025 validado) = 1240");
   ok(cellText(gei1, "D3") === "", "D3 (Alcance 1, 2024 sin captura) VACÍA");
   ok(
     cellText(gei1, "E3") === "Sin evidencia (2024)",
@@ -252,11 +254,15 @@ async function main() {
 
   // Regla dura registros: la oportunidad sin valores muestra 'Sin datos del ejercicio'.
   // Con bloques de 3 filas, la brecha va en la fila de inicio del bloque (col C).
+  // El demo financiero da valores 2025 a las DOS oportunidades, así que ya no hay
+  // registro con la brecha. El assert se invierte: lo que hay que comprobar
+  // ahora es que ninguna fila la muestre, porque una brecha aquí significaría
+  // que se perdieron valores que sí están capturados.
   let sinDatos = false;
   for (let r = 5; r <= 20; r++) {
     if (cellText(s29d, `C${r}`) === "Sin datos del ejercicio") sinDatos = true;
   }
-  ok(sinDatos, "S2 29(d): al menos un registro con 'Sin datos del ejercicio'");
+  ok(!sinDatos, "S2 29(d): ningún registro con 'Sin datos del ejercicio' (las dos oportunidades tienen 2025)");
 
   // ---------------------------------------------------------------------------
   // Objetivos (Sprint 3) — 5 hojas: S1 51 + S2 33/34/35/36(a)-(d).
@@ -266,7 +272,6 @@ async function main() {
   const s34 = wb.getWorksheet("NIIF S2 34");
   const s35 = wb.getWorksheet("NIIF S2 35");
   const s36 = wb.getWorksheet("NIIF S2 36(a)-(d)");
-  const NOTA_SEC = "Sección pendiente en plataforma";
 
   console.log("\nObjetivos — S2 33 (definición climática, tipos oficiales):");
   ok(cellText(s33, "A3").length > 0, "S2 33: A3 tiene un objetivo climático");
@@ -275,7 +280,9 @@ async function main() {
     "S2 33: B3 (tipo) = 'Objetivo de emisiones de gases de efecto invernadero'"
   );
   ok(cellText(s33, "I3") === "Absoluto", "S2 33: I3 (tipo de objetivo) = 'Absoluto'");
-  ok(cellText(s33, "I4") === "De intensidad", "S2 33: I4 (tipo de objetivo) = 'De intensidad'");
+  // El objetivo de intensidad del demo industrial desapareció: el grupo financiero
+  // tiene tres objetivos y el segundo es la cartera sostenible, que es relativo.
+  ok(cellText(s33, "I4") === "Relativo", "S2 33: I4 (tipo de objetivo) = 'Relativo'");
 
   console.log("\nObjetivos — trazabilidad + tipos oficiales S2 34/36:");
   const a3 = cellText(s33, "A3");
@@ -286,7 +293,12 @@ async function main() {
       cellText(s36, "A3") === a3,
     "el objetivo de la fila 3 es el mismo en S2 33/34/35/36"
   );
-  ok(cellText(s34, "B3") === "Verdadero", "S2 34: B3 (validación por tercero) = 'Verdadero' (booleano)");
+  // La fila 3 es ahora el objetivo de reducción de emisiones, sin validación de
+  // tercero; el que sí la tiene —cartera sostenible, con opinión de segunda
+  // parte— es la fila 4. Se comprueban los dos para que el booleano siga
+  // probándose en sus dos valores.
+  ok(cellText(s34, "B3") === "Falso", "S2 34: B3 (validación por tercero) = 'Falso' (booleano)");
+  ok(cellText(s34, "B4") === "Verdadero", "S2 34: B4 (validación por tercero) = 'Verdadero' (booleano)");
   ok(cellText(s35, "B3").length > 0, "S2 35: B3 (resultados) del objetivo completo lleno");
   ok(
     cellText(s36, "B3").includes("Dióxido de carbono (CO2)"),
@@ -299,11 +311,18 @@ async function main() {
   );
   ok(cellText(s36, "E3") === "Falso", "S2 36: E3 (enfoque descarbonización) = 'Falso' (booleano)");
 
-  console.log("\nObjetivos — brecha 'Sección pendiente' (objetivo climático incompleto):");
-  // El objetivo sin ficha (energía renovable, fila 5) marca la brecha en cada hoja hermana.
-  ok(cellText(s34, "F5") === NOTA_SEC, "S2 34: F5 = 'Sección pendiente en plataforma'");
-  ok(cellText(s35, "D5") === NOTA_SEC, "S2 35: D5 = 'Sección pendiente en plataforma'");
-  ok(cellText(s36, "F5") === NOTA_SEC, "S2 36: F5 = 'Sección pendiente en plataforma'");
+  console.log("\nObjetivos — la fila 5 ya no existe (el demo financiero tiene tres):");
+  // El objetivo sin ficha que marcaba la brecha (energía renovable, fila 5) era
+  // del demo industrial. El grupo financiero tiene TRES objetivos y los tres
+  // llevan ficha completa, así que la fila 5 queda vacía.
+  //
+  // CON ESTO EL FIXTURE DEJA DE EJERCITAR la nota 'Sección pendiente en
+  // plataforma': ningún objetivo del demo financiero la produce. Queda anotado
+  // aquí para que no se descubra el día que se rompa. Lo que sí se comprueba es
+  // que las filas sobrantes queden VACÍAS y no con contenido inventado.
+  ok(cellText(s34, "F5") === "", "S2 34: F5 vacía (no hay cuarto objetivo)");
+  ok(cellText(s35, "D5") === "", "S2 35: D5 vacía (no hay cuarto objetivo)");
+  ok(cellText(s36, "F5") === "", "S2 36: F5 vacía (no hay cuarto objetivo)");
 
   console.log("\nObjetivos — S1 51 (secciones Riesgos / Oportunidades):");
   ok(cellText(s51, "A4").length > 0, "S1 51: A4 tiene un objetivo en la sección Riesgos");
