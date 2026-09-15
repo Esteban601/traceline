@@ -36,14 +36,9 @@ const esperaMarca = process.argv.includes("--esperar-marca");
 const esperaSinMarca = process.argv.includes("--sin-marca");
 
 let fallos = 0;
-let avisos = 0;
 const ok = (cond, etq) => {
   console.log(`  ${cond ? "✓" : "✗"} ${etq}`);
   if (!cond) fallos++;
-};
-const aviso = (etq) => {
-  console.log(`  ! ${etq}`);
-  avisos++;
 };
 
 /** Parseo estricto: el parser lanza al primer XML mal formado. */
@@ -157,10 +152,7 @@ if (esperaMarca || esperaSinMarca) {
 }
 
 // --- Veredicto ---------------------------------------------------------------
-console.log(
-  `\n${fallos === 0 ? "✅ ESTRUCTURA VÁLIDA" : `❌ ${fallos} problema(s)`}` +
-    (avisos ? ` · ${avisos} aviso(s)` : "")
-);
+console.log(`\n${fallos === 0 ? "✅ ESTRUCTURA VÁLIDA" : `❌ ${fallos} problema(s)`}`);
 if (fallos === 0) {
   console.log("   (estructura y coherencia interna; que Word lo abra solo lo prueba Word)");
 }
