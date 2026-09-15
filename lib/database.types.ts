@@ -1120,46 +1120,55 @@ export type Database = {
       registros_clima: {
         Row: {
           activo: boolean
+          concentracion: string | null
           created_at: string
           descripcion: string | null
           horizontes: string[]
           id: string
           impacto: number | null
+          impactos_potenciales: string | null
           nivel: string | null
           nombre: string
           orden: number
           probabilidad: number | null
           reporte_id: string
+          respuesta: string | null
           severidad: number | null
           tipo: string
         }
         Insert: {
           activo?: boolean
+          concentracion?: string | null
           created_at?: string
           descripcion?: string | null
           horizontes?: string[]
           id?: string
           impacto?: number | null
+          impactos_potenciales?: string | null
           nivel?: string | null
           nombre: string
           orden?: number
           probabilidad?: number | null
           reporte_id: string
+          respuesta?: string | null
           severidad?: number | null
           tipo: string
         }
         Update: {
           activo?: boolean
+          concentracion?: string | null
           created_at?: string
           descripcion?: string | null
           horizontes?: string[]
           id?: string
           impacto?: number | null
+          impactos_potenciales?: string | null
           nivel?: string | null
           nombre?: string
           orden?: number
           probabilidad?: number | null
           reporte_id?: string
+          respuesta?: string | null
           severidad?: number | null
           tipo?: string
         }

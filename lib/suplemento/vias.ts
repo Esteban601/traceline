@@ -34,7 +34,10 @@ export function viaDe(numero: number): Via {
 
 /** Longitud objetivo por bloque. Con tabla, el texto es más corto. */
 const EXTENSION: Record<number, string> = {
-  21: "Entre 150 y 300 palabras. La tabla ya lista los riesgos: la prosa explica cómo se identificaron, qué significan los horizontes y qué distingue a los de mayor nivel. No repitas la tabla fila por fila.",
+  // El párrafo por riesgo es lo que separa una tabla comentada de una revelación
+  // (CADU pp. 23-24). Solo se pide cuando el registro trae con qué escribirlo:
+  // `se_concentra_en`, `impactos_potenciales` y `respuesta_de_la_emisora`.
+  21: "Entre 300 y 500 palabras. Abre con un párrafo breve que diga cuántos riesgos se priorizaron y cómo se clasifican, y sigue con UN PÁRRAFO POR RIESGO que use, de ese registro, `se_concentra_en`, `impactos_potenciales` y `respuesta_de_la_emisora`: dónde pega, qué provocaría y qué hace la Compañía al respecto. No repitas la descripción que ya está en la tabla ni vuelvas a listar sus horizontes. Si un registro no trae esos tres campos, no le dediques párrafo.",
   26: "Entre 250 y 400 palabras. Es el bloque de resiliencia y análisis de escenarios: describe la evaluación, sus áreas de incertidumbre y la capacidad de ajuste, y por separado cómo y cuándo se hizo el análisis, con sus escenarios y supuestos.",
   29: "Entre 120 y 250 palabras. La tabla ya da las cifras: tu prosa la introduce, dice qué comprende cada alcance y comenta lo que la tabla no puede decir. No repitas los números.",
 };

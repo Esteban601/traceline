@@ -124,6 +124,11 @@ export type RegRow = {
   impacto: number | null;
   severidad: number | null;
   nivel: string | null;
+  /** Los tres campos del párrafo por riesgo. El Excel tampoco los usa: son del
+   *  suplemento, que sin ellos solo alcanza a producir la fila de la tabla. */
+  concentracion: string | null;
+  impactos_potenciales: string | null;
+  respuesta: string | null;
   orden: number;
 };
 
@@ -372,7 +377,7 @@ export async function ensamblarReporte(
     supabase
       .from("registros_clima")
       .select(
-        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, orden"
+        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, concentracion, impactos_potenciales, respuesta, orden"
       )
       .eq("reporte_id", reporteId)
       .eq("activo", true)

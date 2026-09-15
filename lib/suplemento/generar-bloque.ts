@@ -625,6 +625,13 @@ function armarDatos(
           tipo: r.tipo,
           descripcion: r.descripcion,
           horizontes: r.horizontes,
+          // Los tres campos del párrafo por riesgo. Sin ellos el bloque 21 solo
+          // podía producir la fila de la tabla y repetir la descripción con
+          // otras palabras; con ellos contesta dónde pega, qué provoca y qué se
+          // hace, que es lo que CADU escribe en pp. 23-24.
+          se_concentra_en: r.concentracion,
+          impactos_potenciales: r.impactos_potenciales,
+          respuesta_de_la_emisora: r.respuesta,
           metricas_del_ejercicio: v
             ? {
                 cantidad_activos: v.cantidad_activos,

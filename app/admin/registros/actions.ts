@@ -45,6 +45,25 @@ function numero(fd: FormData, k: string): number | null {
 }
 
 /**
+ * Los tres campos narrativos del registro. La descripción dice QUÉ es el riesgo;
+ * estos tres dicen dónde pega, qué provoca y qué se hace al respecto, que es lo
+ * que el Suplemento necesita para escribir el párrafo por riesgo en vez de solo
+ * la fila de la tabla. Los tres son opcionales: un registro recién dado de alta
+ * sigue siendo válido con el nombre y el tipo.
+ */
+function narrativa(fd: FormData): {
+  concentracion: string | null;
+  impactos_potenciales: string | null;
+  respuesta: string | null;
+} {
+  return {
+    concentracion: texto(fd, "concentracion"),
+    impactos_potenciales: texto(fd, "impactos_potenciales"),
+    respuesta: texto(fd, "respuesta"),
+  };
+}
+
+/**
  * Priorización: probabilidad × impacto = severidad, o la severidad capturada a
  * secas. §5 admite las dos formas porque no todos los clientes entregan los dos
  * factores; el que solo da el puntaje no debe verse obligado a inventarlos.
@@ -120,6 +139,7 @@ export async function crearRegistro(
       tipo,
       nombre,
       descripcion: texto(fd, "descripcion"),
+      ...narrativa(fd),
       horizontes: horizontes(fd),
       ...priorizacion(fd),
       orden,
@@ -171,6 +191,7 @@ export async function editarRegistro(
     .update({
       nombre,
       descripcion: texto(fd, "descripcion"),
+      ...narrativa(fd),
       horizontes: horizontes(fd),
       ...priorizacion(fd),
     })

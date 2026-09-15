@@ -30,7 +30,7 @@ export default async function RegistrosPage() {
       .order("ejercicio", { ascending: false }),
     db
       .from("registros_clima")
-      .select("id, reporte_id, tipo, nombre, descripcion, horizontes, orden, activo")
+      .select("id, reporte_id, tipo, nombre, descripcion, concentracion, impactos_potenciales, respuesta, horizontes, orden, activo")
       .order("orden", { ascending: true }),
     db
       .from("registros_clima_valores")
@@ -111,6 +111,9 @@ export default async function RegistrosPage() {
       tipo: string;
       nombre: string;
       descripcion: string | null;
+      concentracion: string | null;
+      impactos_potenciales: string | null;
+      respuesta: string | null;
       horizontes: string[] | null;
       orden: number;
       activo: boolean;
@@ -124,6 +127,9 @@ export default async function RegistrosPage() {
     tipo: r.tipo,
     nombre: r.nombre,
     descripcion: r.descripcion,
+    concentracion: r.concentracion,
+    impactosPotenciales: r.impactos_potenciales,
+    respuesta: r.respuesta,
     horizontes: r.horizontes ?? [],
     probabilidad: r.probabilidad,
     impacto: r.impacto,

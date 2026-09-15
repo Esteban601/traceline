@@ -42,6 +42,9 @@ export type RegistroFila = {
   tipo: string;
   nombre: string;
   descripcion: string | null;
+  concentracion: string | null;
+  impactosPotenciales: string | null;
+  respuesta: string | null;
   horizontes: string[];
   probabilidad: number | null;
   impacto: number | null;
@@ -210,6 +213,9 @@ function CrearRegistroForm({
   const [tipo, setTipo] = useState("riesgo_fisico");
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [concentracion, setConcentracion] = useState("");
+  const [impactos, setImpactos] = useState("");
+  const [respuesta, setRespuesta] = useState("");
   const [horizontes, setHorizontes] = useState<string[]>([]);
   const [prob, setProb] = useState("");
   const [imp, setImp] = useState("");
@@ -244,6 +250,9 @@ function CrearRegistroForm({
     fd.set("tipo", tipo);
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
+    fd.set("concentracion", concentracion);
+    fd.set("impactos_potenciales", impactos);
+    fd.set("respuesta", respuesta);
     horizontes.forEach((h) => fd.append("horizontes", h));
     fd.set("probabilidad", prob);
     fd.set("impacto", imp);
@@ -323,6 +332,44 @@ function CrearRegistroForm({
           className={areaCls}
         />
       </div>
+      {/* Los tres campos del párrafo por riesgo. Van juntos y después de la
+          descripción porque contestan, en ese orden, las tres preguntas que el
+          Suplemento hace de cada riesgo: dónde pega, qué provoca, qué hacemos. */}
+      <div className="grid gap-4 rounded-xl border border-line/70 bg-crema/30 p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">
+          Para el párrafo del Suplemento <span className="font-normal normal-case">· opcional</span>
+        </p>
+        <div>
+          <label className={labelCls}>Dónde se concentra la exposición</label>
+          <textarea
+            value={concentracion}
+            onChange={(e) => setConcentracion(e.target.value)}
+            rows={2}
+            placeholder="Etapa de la cadena de valor, cartera o geografía…"
+            className={areaCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Impactos potenciales</label>
+          <textarea
+            value={impactos}
+            onChange={(e) => setImpactos(e.target.value)}
+            rows={2}
+            placeholder="Efectos concretos que se prevén si ocurre…"
+            className={areaCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Respuesta de la emisora</label>
+          <textarea
+            value={respuesta}
+            onChange={(e) => setRespuesta(e.target.value)}
+            rows={2}
+            placeholder="Controles, coberturas, programas…"
+            className={areaCls}
+          />
+        </div>
+      </div>
       <div>
         <span className={labelCls}>
           Horizontes temporales <span className="font-normal text-muted">· opcional</span>
@@ -399,6 +446,7 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
           {registro.descripcion && (
             <p className="mt-1 max-w-2xl text-sm text-muted">{registro.descripcion}</p>
           )}
+          <Narrativa registro={registro} />
           <Severidad registro={registro} />
           {registro.horizontes.length > 0 && (
             <p className="mt-1 text-xs text-muted">
@@ -554,6 +602,9 @@ function EditarRegistroForm({
   const [state, dispatch, pending] = useActionState(editarRegistro, initialReg);
   const [nombre, setNombre] = useState(registro.nombre);
   const [descripcion, setDescripcion] = useState(registro.descripcion ?? "");
+  const [concentracion, setConcentracion] = useState(registro.concentracion ?? "");
+  const [impactos, setImpactos] = useState(registro.impactosPotenciales ?? "");
+  const [respuesta, setRespuesta] = useState(registro.respuesta ?? "");
   const [horizontes, setHorizontes] = useState<string[]>(registro.horizontes);
 
   useEffect(() => {
@@ -573,6 +624,9 @@ function EditarRegistroForm({
     fd.set("registro_id", registro.id);
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
+    fd.set("concentracion", concentracion);
+    fd.set("impactos_potenciales", impactos);
+    fd.set("respuesta", respuesta);
     horizontes.forEach((h) => fd.append("horizontes", h));
     startTransition(() => dispatch(fd));
   };
@@ -596,6 +650,44 @@ function EditarRegistroForm({
           rows={2}
           className={areaCls}
         />
+      </div>
+      {/* Los tres campos del párrafo por riesgo. Van juntos y después de la
+          descripción porque contestan, en ese orden, las tres preguntas que el
+          Suplemento hace de cada riesgo: dónde pega, qué provoca, qué hacemos. */}
+      <div className="grid gap-4 rounded-xl border border-line/70 bg-crema/30 p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">
+          Para el párrafo del Suplemento <span className="font-normal normal-case">· opcional</span>
+        </p>
+        <div>
+          <label className={labelCls}>Dónde se concentra la exposición</label>
+          <textarea
+            value={concentracion}
+            onChange={(e) => setConcentracion(e.target.value)}
+            rows={2}
+            placeholder="Etapa de la cadena de valor, cartera o geografía…"
+            className={areaCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Impactos potenciales</label>
+          <textarea
+            value={impactos}
+            onChange={(e) => setImpactos(e.target.value)}
+            rows={2}
+            placeholder="Efectos concretos que se prevén si ocurre…"
+            className={areaCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Respuesta de la emisora</label>
+          <textarea
+            value={respuesta}
+            onChange={(e) => setRespuesta(e.target.value)}
+            rows={2}
+            placeholder="Controles, coberturas, programas…"
+            className={areaCls}
+          />
+        </div>
       </div>
       <div>
         <span className={labelCls}>Horizontes temporales</span>
@@ -873,6 +965,30 @@ function Priorizacion({
 }
 
 /** Severidad y nivel de un registro ya guardado. */
+/**
+ * Los tres campos del párrafo por riesgo, en lectura. Se pintan con su etiqueta
+ * porque sin ella son tres párrafos indistinguibles: el valor de estos campos
+ * está en qué pregunta contesta cada uno.
+ */
+function Narrativa({ registro }: { registro: RegistroFila }) {
+  const filas = [
+    ["Se concentra en", registro.concentracion],
+    ["Impactos potenciales", registro.impactosPotenciales],
+    ["Respuesta", registro.respuesta],
+  ].filter(([, v]) => v);
+  if (filas.length === 0) return null;
+  return (
+    <dl className="mt-3 max-w-2xl space-y-1.5">
+      {filas.map(([etq, val]) => (
+        <div key={etq} className="text-sm">
+          <dt className="inline text-xs font-medium uppercase tracking-wide text-muted">{etq}: </dt>
+          <dd className="inline text-ink/80">{val}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function Severidad({ registro }: { registro: RegistroFila }) {
   const matriz = registro.matriz;
   const efectiva = severidadEfectiva(
