@@ -513,7 +513,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 22(a)(i)", "NIIF S2 22(b)(i)"],
     area: "Riesgos",
     texto:
-      "El análisis de escenarios se llevó a cabo en el segundo semestre de 2025, con actualización anual prevista. Consideró dos escenarios de fase IV: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC RCP 8.5 / NGFS Current Policies), tomados de NGFS fase IV e IPCC AR6. El rango es diverso, incluye un escenario alineado con el último acuerdo internacional sobre cambio climático, y se aplicó a los horizontes de corto (2026), mediano (2030) y largo plazo (2040) sobre la red de sucursales y la cartera empresarial, agropecuaria e hipotecaria, con un método cualitativo apoyado en sensibilidad de cartera por sector y exposición física por código postal. Bajo el escenario de transición ordenada, el modelo de negocio se beneficia del crecimiento de la cartera sostenible y del menor costo de fondeo; el principal ajuste es la reducción gradual de la exposición a sectores intensivos. Bajo el escenario de altas emisiones, los riesgos físicos sobre la red del sureste y la cartera agropecuaria exigen mayores reservas, seguros y reestructuras, con un efecto acotado sobre el capital regulatorio.",
+      "El análisis de escenarios se llevó a cabo en el segundo semestre de 2025, con actualización anual prevista. Consideró dos escenarios de fase IV: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), tomados de NGFS fase IV e IPCC AR6. El rango es diverso, incluye un escenario alineado con el último acuerdo internacional sobre cambio climático, y se aplicó a los horizontes de corto (2026), mediano (2030) y largo plazo (2040) sobre la red de sucursales y la cartera empresarial, agropecuaria e hipotecaria, con un método cualitativo apoyado en sensibilidad de cartera por sector y exposición física por código postal. Bajo el escenario de transición ordenada, el modelo de negocio se beneficia del crecimiento de la cartera sostenible y del menor costo de fondeo; el principal ajuste es la reducción gradual de la exposición a sectores intensivos. Bajo el escenario de altas emisiones, los riesgos físicos sobre la red del sureste y la cartera agropecuaria exigen mayores reservas, seguros y reestructuras, con un efecto acotado sobre el capital regulatorio.",
   },
   {
     titulo: "Plan de transición climática y objetivos de reducción",
@@ -786,7 +786,7 @@ const CUESTIONARIOS = {
     // 1 · cómo y cuándo
     "El análisis se llevó a cabo en el segundo semestre de 2025, con actualización anual prevista. El método fue un análisis cualitativo apoyado en la sensibilidad de la cartera por sector y en la exposición física por código postal.",
     // 2 · escenarios y fuentes
-    "Transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC RCP 8.5 / NGFS Current Policies), fase IV. Fuentes: NGFS fase IV e IPCC AR6.",
+    "Transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), fase IV. Fuentes: NGFS fase IV e IPCC AR6.",
     // 3 · booleano: gama diversa
     "Verdadero",
     // 4 · enum_multi: riesgos asociados (opciones oficiales)

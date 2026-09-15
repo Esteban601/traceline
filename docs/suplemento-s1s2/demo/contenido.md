@@ -388,7 +388,7 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
 
 ### S2 22(b)(i) — análisis de escenarios (8 preguntas, en orden del catálogo)
 1. Cuándo se realizó: segundo semestre de 2025, con actualización anual prevista.
-2. Escenarios: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC RCP 8.5 / NGFS Current Policies), fase IV.
+2. Escenarios: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), fase IV.
 3. Rango diverso de escenarios: Verdadero.
 4. Fuente: NGFS fase IV e IPCC AR6.
 5. Escenario alineado con el último acuerdo internacional: Verdadero (Net Zero 2050).
