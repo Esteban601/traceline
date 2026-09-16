@@ -190,7 +190,15 @@ export async function GET(req: Request) {
         }
         if (salida !== xml) {
           zip.file("word/document.xml", salida);
-          contenido = await zip.generateAsync({ type: "nodebuffer" });
+          // DEFLATE explícito: `generateAsync` guarda sin comprimir por omisión
+          // y el documento pasaba de 39 KB a 324 KB al re-empaquetarlo. Un
+          // .docx es un zip, y servir uno ocho veces más gordo por no pedir
+          // compresión es tirar ancho de banda del cliente.
+          contenido = await zip.generateAsync({
+            type: "nodebuffer",
+            compression: "DEFLATE",
+            compressionOptions: { level: 6 },
+          });
         }
       }
     } catch (e) {

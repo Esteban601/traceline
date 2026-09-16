@@ -31,9 +31,17 @@ function nombreDesde(cd: string | null, ext: string): string {
 export function SuplementoButton({
   reporteId,
   ejercicio,
+  pdfDisponible,
 }: {
   reporteId: string;
   ejercicio: number;
+  /**
+   * Si `assets/vitrina/suplemento-demo.pdf` está en el servidor. Lo decide el
+   * servidor, no este componente: un cliente no puede mirar el disco, y hacerlo
+   * con una petición de tanteo enseñaría la opción durante un instante antes de
+   * apagarla.
+   */
+  pdfDisponible: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [bajando, setBajando] = useState<Formato | null>(null);
@@ -126,9 +134,14 @@ export function SuplementoButton({
               />
               <Opcion
                 titulo="Informe con diseño (PDF)"
-                detalle="El entregable maquetado, listo para presentar."
+                detalle={
+                  pdfDisponible
+                    ? "El entregable maquetado, listo para presentar."
+                    : "Todavía no está listo; se activará en cuanto el archivo esté."
+                }
+                etiqueta={pdfDisponible ? null : "En preparación"}
                 cargando={bajando === "pdf"}
-                deshabilitado={bajando !== null}
+                deshabilitado={!pdfDisponible || bajando !== null}
                 onClick={() => descargar("pdf")}
               />
             </div>
@@ -153,12 +166,15 @@ export function SuplementoButton({
 function Opcion({
   titulo,
   detalle,
+  etiqueta,
   cargando,
   deshabilitado,
   onClick,
 }: {
   titulo: string;
   detalle: string;
+  /** Distintivo junto al título, para decir POR QUÉ está apagada la opción. */
+  etiqueta?: string | null;
   cargando: boolean;
   deshabilitado: boolean;
   onClick: () => void;
@@ -171,7 +187,14 @@ function Opcion({
       className="flex w-full items-center gap-3 rounded-xl border border-line bg-crema/40 px-4 py-3 text-left transition duration-150 hover:border-teal/40 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-55"
     >
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-ink">{titulo}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-medium text-ink">{titulo}</span>
+          {etiqueta && (
+            <span className="rounded-pill border border-line bg-surface px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
+              {etiqueta}
+            </span>
+          )}
+        </span>
         <span className="mt-0.5 block text-xs text-muted">{detalle}</span>
       </span>
       {cargando ? (

@@ -7,6 +7,8 @@ import { ParamSelect } from "@/components/ui/param-select";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { CoberturaView } from "./cobertura-view";
 import { InformeButton } from "./informe-button";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { SuplementoButton } from "./suplemento-button";
 
 export const metadata: Metadata = { title: "Cobertura de taxonomía" };
@@ -52,6 +54,16 @@ export default async function CoberturaPage({
   // `datos.reporteSel` es solo el id.
   const reporteSel =
     datos.reportesVisibles.find((r) => r.id === datos.reporteSel) ?? null;
+
+  // El informe con diseño todavía no existe como archivo. La opción se ofrece o
+  // se deshabilita según ESTÉ EL ARCHIVO, comprobado en cada petición: el día
+  // que diseño deje el PDF en assets/vitrina/ la opción se enciende sola, sin
+  // desplegar nada. Es el mismo trato que el .docx —sustituir el definitivo es
+  // copiar encima—, aplicado también a su ausencia.
+  const pdfDisponible = await fs
+    .access(path.join(process.cwd(), "assets", "vitrina", "suplemento-demo.pdf"))
+    .then(() => true)
+    .catch(() => false);
 
   // La emisora sale DEL REPORTE, no del selector de cliente. El staff puede
   // tener elegido un reporte sin haber elegido emisora —ahí `tenantActivo` es
@@ -105,6 +117,7 @@ export default async function CoberturaPage({
           <SuplementoButton
             reporteId={reporteSel.id}
             ejercicio={reporteSel.ejercicio}
+            pdfDisponible={pdfDisponible}
           />
         ) : null
       }
