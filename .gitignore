@@ -66,3 +66,15 @@ logos-demo/
 # (scripts/crear-demo-prospecto.mjs). Cuentas @example de mockups, pero no van
 # al repo: una contraseña versionada es una contraseña publicada.
 .credenciales-demo/
+
+# Archivos de vitrina: el documento de muestra NO se versiona.
+#
+# Viven en el bucket privado `vitrina` de Supabase, que es de donde los lee la
+# aplicación; `assets/vitrina/` solo es el respaldo local para desarrollar. Son
+# entregables que cambian sin relación con el código, pesan, y versionarlos
+# convierte cada actualización de diseño en un commit y un despliegue.
+#
+# El .docx sí está versionado a propósito: es el respaldo que garantiza que un
+# ambiente recién levantado tenga algo que enseñar. El PDF no, porque el
+# definitivo lo produce diseño y sube al bucket.
+assets/vitrina/suplemento-demo.pdf

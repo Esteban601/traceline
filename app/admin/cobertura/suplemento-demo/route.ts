@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import path from "node:path";
-import fs from "node:fs/promises";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import JSZip from "jszip";
+import { leerArchivoVitrina } from "@/lib/vitrina";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { logEvento } from "@/lib/bitacora";
 
@@ -129,14 +128,13 @@ export async function GET(req: Request) {
   }
 
   const archivo = ARCHIVOS[formato];
-  let contenido: Buffer;
   /** Nombres que la sustitución no encontró; se reportan en la bitácora. */
   let sinSustituir: string[] = [];
-  try {
-    contenido = await fs.readFile(
-      path.join(process.cwd(), "assets", "vitrina", archivo.ruta)
-    );
-  } catch {
+
+  // Bucket primero, repositorio después. La regla vive en lib/vitrina.ts para
+  // que esta ruta y la pantalla que ofrece la opción no puedan discrepar.
+  const leido = await leerArchivoVitrina(archivo.ruta);
+  if (!leido) {
     // Que falte el archivo de vitrina es un problema del despliegue, no de quien
     // pulsa el botón: se dice así en vez de devolver un 500 mudo.
     return NextResponse.json(
@@ -144,6 +142,7 @@ export async function GET(req: Request) {
       { status: 503 }
     );
   }
+  let contenido = leido.contenido;
 
   // --- Sustitución de nombre, SOLO en el Word -------------------------------
   // VITRINA, Y SE VA. El documento de muestra está redactado para «Empresa
@@ -225,6 +224,9 @@ export async function GET(req: Request) {
       // documento de muestra mal preparado antes de que lo vea un cliente.
       nombre_sustituido: formato === "docx" ? limpiarNombreTenant(tenant.nombre) : null,
       sin_sustituir: sinSustituir.length ? sinSustituir : null,
+      // De dónde salió el archivo. Un documento viejo del repositorio y uno
+      // recién subido al bucket producían la misma línea; ahora se distinguen.
+      origen: leido.origen,
     },
   });
 

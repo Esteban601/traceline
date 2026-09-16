@@ -7,8 +7,7 @@ import { ParamSelect } from "@/components/ui/param-select";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { CoberturaView } from "./cobertura-view";
 import { InformeButton } from "./informe-button";
-import fs from "node:fs/promises";
-import path from "node:path";
+import { existeArchivoVitrina } from "@/lib/vitrina";
 import { SuplementoButton } from "./suplemento-button";
 
 export const metadata: Metadata = { title: "Cobertura de taxonomía" };
@@ -56,14 +55,11 @@ export default async function CoberturaPage({
     datos.reportesVisibles.find((r) => r.id === datos.reporteSel) ?? null;
 
   // El informe con diseño todavía no existe como archivo. La opción se ofrece o
-  // se deshabilita según ESTÉ EL ARCHIVO, comprobado en cada petición: el día
-  // que diseño deje el PDF en assets/vitrina/ la opción se enciende sola, sin
-  // desplegar nada. Es el mismo trato que el .docx —sustituir el definitivo es
-  // copiar encima—, aplicado también a su ausencia.
-  const pdfDisponible = await fs
-    .access(path.join(process.cwd(), "assets", "vitrina", "suplemento-demo.pdf"))
-    .then(() => true)
-    .catch(() => false);
+  // se deshabilita según ESTÉ EL ARCHIVO —en el bucket `vitrina` o, si no, en
+  // assets/vitrina/—, comprobado en cada petición. El día que diseño suba el
+  // PDF por el dashboard, la opción se enciende sola: sin commit, sin build y
+  // sin reinicio.
+  const pdfDisponible = await existeArchivoVitrina("suplemento-demo.pdf");
 
   // La emisora sale DEL REPORTE, no del selector de cliente. El staff puede
   // tener elegido un reporte sin haber elegido emisora —ahí `tenantActivo` es
