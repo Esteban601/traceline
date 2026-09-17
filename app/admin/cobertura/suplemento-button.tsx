@@ -127,16 +127,22 @@ export function SuplementoButton({
             <div className="mt-5 space-y-2.5">
               <Opcion
                 titulo="Contenido en Word"
-                detalle="El documento editable, para revisar y comentar."
+                detalle="Generado a partir de la información de la plataforma, con el nombre de tu emisora."
                 cargando={bajando === "docx"}
                 deshabilitado={bajando !== null}
                 onClick={() => descargar("docx")}
               />
               <Opcion
                 titulo="Informe con diseño (PDF)"
+                // EL PDF NO SE PERSONALIZA, y el diálogo lo dice antes de que
+                // alguien lo descubra. Sustituir texto dentro de un PDF exige
+                // re-tipografiar la línea, así que se sirve tal cual: lleva el
+                // contenido de Empresa Demo para todas las emisoras. Decirlo
+                // aquí cuesta dos renglones; que un prospecto abra el informe y
+                // encuentre el nombre de otra emisora cuesta la reunión.
                 detalle={
                   pdfDisponible
-                    ? "El entregable maquetado, listo para presentar."
+                    ? "Muestra de la maquetación sobre el contenido de una emisora de ejemplo (Empresa Demo). El informe de tu emisora se producirá con su propia identidad al generar el suplemento."
                     : "Todavía no está listo; se activará en cuanto el archivo esté."
                 }
                 etiqueta={pdfDisponible ? null : "En preparación"}
