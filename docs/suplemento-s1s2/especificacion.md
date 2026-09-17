@@ -522,6 +522,76 @@ Todo en `dev/ajustes-sep26` contra `traceline-dev`. Nada toca staging hasta que 
 
 ---
 
+## 10. Despliegues
+
+### staging · release v27 · 17 de septiembre de 2026 · `c50dd83`
+
+**Qué se desplegó: la vitrina, no el generador.** Cuatro commits sobre `b71a2bf`
+(release v26), traídos por fast-forward desde `hotfix/suplemento-vitrina`, sin
+commit de merge. Nada del generador del Suplemento —ni A5a ni A6— viaja en este
+release: sigue en `dev/ajustes-sep26`.
+
+Contenido:
+
+- Los cuatro botones de Cobertura renombrados sin verbo, y «Suplemento S1 y S2»
+  en el estilo oscuro que antes tenía la matriz.
+- El botón solo aparece cuando `tenants.es_demo` es verdadero. En staging eso son
+  **15 de los 16 tenants**: la emisora de demostración y los catorce mockups de
+  prospecto. Es intencional, cada uno recibe el documento con su propio nombre.
+- Diálogo con dos opciones. El Word se sirve desde el bucket privado `vitrina`
+  de Supabase con `service_role` y, si no está ahí, desde `assets/vitrina/`.
+- Al servir el Word se sustituye «Empresa Demo, S.A.B. de C.V.» por el nombre
+  del tenant que descarga. **Es de vitrina y desaparece** cuando cada emisora
+  genere su propio documento y el nombre salga de su Perfil.
+- Cada descarga queda en la bitácora con quién, qué emisora, qué formato y de
+  dónde salió el archivo.
+
+**Cómo se enciende el PDF el jueves.** La opción «Informe con diseño (PDF)» sale
+deshabilitada con la leyenda «En preparación» porque el objeto no existe todavía.
+Para activarla basta con **subir `suplemento-demo.pdf` al bucket `vitrina` desde
+el dashboard de Supabase**: sin commit, sin despliegue y sin reinicio. La
+comprobación se hace en cada petición contra el listado del bucket. Verificado en
+dev haciendo el ciclo entero —apagada, subir, habilitada, quitar, apagada— con el
+servidor corriendo. Para apagarla otra vez, se borra el objeto.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Admin de CLEPSA: cuatro botones, diálogo, PDF en «En preparación» | ✓ |
+| Word descargado con «Libramiento Elevado de Puebla (CLEPSA)» × 36, sin rastro de «Empresa Demo» | ✓ |
+| Bitácora con `origen: bucket` | ✓ |
+| Grupo Carso (`es_demo` falso): sin botón de Suplemento | ✓ a nivel de dato y de ruta (404); no observado en pantalla, porque staging no tiene cuenta que vea ese tenant |
+| Excel de taxonomía de un mockup, intacto | ✓ 376 050 bytes |
+| Consola del navegador limpia | ✓ |
+
+Punto de reversión: `heroku releases:rollback v26`.
+
+### Conflicto pendiente para el merge de `dev/ajustes-sep26`
+
+Las dos ramas salieron de `b71a2bf` y tocan siete archivos comunes. Seis se
+resuelven leyendo el diff; el séptimo no, y conviene saberlo antes de abrirlo:
+
+**`app/admin/cobertura/suplemento-button.tsx` es un archivo distinto en cada
+rama, con el mismo nombre.** En `main` es el diálogo de descarga de la vitrina
+—cliente, con `fetch` y dos opciones—; en `dev` es un enlace al semáforo del
+Suplemento. Git lo reportará como «añadido en ambas» y quedarse con uno cualquiera
+rompe la otra función **en silencio**, porque ambos compilan. Hay que conservar
+los dos y renombrar uno; el de la vitrina, que es el temporal, debería pasar a
+`suplemento-vitrina-button.tsx`.
+
+**`app/admin/cobertura/cobertura-view.tsx`** conflictúa en el mismo sitio por
+motivos distintos: `dev` monta `<SuplementoButton reporteId={reporteId} />`
+dentro de la vista, y `main` recibe un nodo `suplemento` inyectado desde el
+servidor, porque decidir ahí quién lo ve exigiría mandar `es_demo` al cliente. La
+resolución correcta conserva el slot de `main` —que es el que respeta la
+frontera— y le pasa el enlace de `dev` cuando no sea una emisora de vitrina.
+
+Los otros cinco (`.gitignore`, `lib/bitacora.ts`, `taxonomia-export-button.tsx`,
+`package.json`, `pnpm-lock.yaml`) son adiciones en sitios distintos del archivo.
+
+---
+
 ## Anexo A: mapeo definitivo (bloque → datapoints)
 
 Generado en A2 cruzando `lib/suplemento/bloques.ts` contra los **91 códigos NIIF** de
