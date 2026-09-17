@@ -527,6 +527,48 @@ const PROSPECTOS = [
       { re: /Categoría 15-Inversiones/i, area: "Crédito y Banca" },
     ],
   },
+  {
+    slug: "montepio",
+    nombre: "Montepío Luz Saviñón",
+    prefijo: "MLS",
+    logo: "montepio.png",
+    areas: [
+      "Operación de Sucursales",
+      "Crédito Prendario y Valuación",
+      "Riesgos",
+      "Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      // La operación es la red de sucursales: es donde está el consumo, la
+      // flota de traslado de valores y las bóvedas.
+      Operaciones: "Operación de Sucursales",
+      Finanzas: "Finanzas",
+      // Institución de asistencia privada y emisora de deuda: quien responde
+      // ante la autoridad y lleva el expediente formal del Patronato es
+      // Cumplimiento, igual que en Banco Base.
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Cumplimiento",
+    },
+    // Casa de empeño: lo material no es la huella de las sucursales sino la
+    // prenda —su valuación, su custodia y su almacenamiento—, y la cartera de
+    // inversión que respalda la emisión de deuda.
+    mueve: [
+      // Riesgos es la segunda línea de defensa, como en los demás financieros:
+      // el riesgo físico sobre la red y todo lo prospectivo. Sin esto el área
+      // se quedaría con una sola solicitud y se leería como adorno.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos" },
+      { re: /Plan de transición climática/i, area: "Riesgos" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos" },
+      // El área que valúa la prenda es la que coloca el préstamo y la que
+      // conoce la cartera de inversión: el ingreso sostenible y la Categoría 15
+      // son suyos, no de Finanzas, que solo los consolida.
+      { re: /productos\/servicios sostenibles/i, area: "Crédito Prendario y Valuación" },
+      { re: /Categoría 15-Inversiones/i, area: "Crédito Prendario y Valuación" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
