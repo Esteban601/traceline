@@ -565,15 +565,45 @@ Verificación en staging tras el release:
 | Excel de taxonomía de un mockup, intacto | ✓ 376 050 bytes |
 | Consola del navegador limpia | ✓ |
 
-**Estado del PDF al 17 de septiembre de 2026, 14:20:** el objeto
-`suplemento-demo.pdf` **NO está** en el bucket `vitrina` de staging —solo el
-`.docx`, de 39 528 bytes, subido el 16 de septiembre— y la opción sigue
-apagada. Comprobado por las dos vías: listando el bucket con `service_role` y
-abriendo el diálogo en staging con la cuenta de CLEPSA. Cuando se suba, esta
-línea se actualiza con la fecha y el tamaño; hasta entonces, la vitrina ofrece
-solo el Word.
+**El PDF quedó activo el 17 de septiembre de 2026 a las 14:17**, subido al bucket
+`vitrina` de staging: 5 445 827 bytes, 21 páginas. La opción se encendió sola,
+**sin desplegar, sin reiniciar y sin commit**, que era justo lo que el diseño
+buscaba. Verificado con la cuenta de CLEPSA: opción habilitada y descarga de
+5 445 827 bytes con firma `%PDF-`, y `origen: bucket` en la bitácora.
 
 Punto de reversión: `heroku releases:rollback v26`.
+
+### staging · release v28 · 17 de septiembre de 2026 · `2bd951c`
+
+Un solo commit sobre v27, por fast-forward desde `hotfix/vitrina-textos`: el
+diálogo explica qué personaliza cada formato y qué no.
+
+**El PDF lleva el contenido de Empresa Demo para las quince emisoras, y es una
+decisión tomada, no una carencia.** El Word se sirve con el nombre de quien
+descarga; el PDF no, porque sustituir texto dentro de un PDF exige re-tipografiar
+la línea y un renglón descuadrado en el documento con el que se vende es peor que
+un nombre ajeno. Al llegar la maqueta real se comprobó que dice «Empresa Demo,
+S.A.B. de C.V.» cuarenta y una veces en el cuerpo, así que las catorce emisoras
+de vitrina reciben un Word con su nombre y un informe con diseño que no.
+
+Se decidió servirlo igual para todas y **decirlo en el diálogo**, antes de la
+descarga: decirlo cuesta dos renglones, que un prospecto abra el informe y
+encuentre el nombre de otra emisora cuesta la reunión. **No se prevé una versión
+genérica del PDF**; el informe propio de cada emisora llegará cuando genere su
+suplemento y el nombre salga de su Perfil.
+
+Los textos, tal como quedan:
+
+- **Contenido en Word** — «Generado a partir de la información de la plataforma,
+  con el nombre de tu emisora.»
+- **Informe con diseño (PDF)** — «Muestra de la maquetación sobre el contenido de
+  una emisora de ejemplo (Empresa Demo). El informe de tu emisora se producirá
+  con su propia identidad al generar el suplemento.»
+
+Verificación tras el release, con la cuenta de CLEPSA: los dos textos en
+pantalla, Word con «Libramiento Elevado de Puebla (CLEPSA)» × 36 y sin rastro de
+«Empresa Demo», PDF de 5 445 827 bytes, dos entradas de bitácora con
+`origen: bucket`, consola limpia. Punto de reversión: `heroku releases:rollback v27`.
 
 ### Conflicto pendiente para el merge de `dev/ajustes-sep26`
 
