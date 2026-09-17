@@ -80,3 +80,14 @@ normas/
 # licencia que se consulta para calibrar el estilo del generador, no se
 # redistribuye. Misma razón que normas/.
 referencia/
+
+# Archivos de vitrina en PDF: no se versionan.
+#
+# El informe con diseño vive en el bucket privado `vitrina` de Supabase, que es
+# de donde lo lee la aplicación; `assets/vitrina/` solo es el respaldo local
+# para desarrollar. Es un entregable que cambia sin relación con el código y lo
+# produce diseño: versionarlo convierte cada revisión de maqueta en un commit.
+#
+# El .docx SÍ se versiona, a propósito: es el respaldo que garantiza que un
+# ambiente recién levantado tenga algo que enseñar aunque el bucket esté vacío.
+assets/vitrina/*.pdf
