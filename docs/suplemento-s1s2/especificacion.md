@@ -565,6 +565,14 @@ Verificación en staging tras el release:
 | Excel de taxonomía de un mockup, intacto | ✓ 376 050 bytes |
 | Consola del navegador limpia | ✓ |
 
+**Estado del PDF al 17 de septiembre de 2026, 14:20:** el objeto
+`suplemento-demo.pdf` **NO está** en el bucket `vitrina` de staging —solo el
+`.docx`, de 39 528 bytes, subido el 16 de septiembre— y la opción sigue
+apagada. Comprobado por las dos vías: listando el bucket con `service_role` y
+abriendo el diálogo en staging con la cuenta de CLEPSA. Cuando se suba, esta
+línea se actualiza con la fecha y el tamaño; hasta entonces, la vitrina ofrece
+solo el Word.
+
 Punto de reversión: `heroku releases:rollback v26`.
 
 ### Conflicto pendiente para el merge de `dev/ajustes-sep26`
@@ -576,16 +584,23 @@ resuelven leyendo el diff; el séptimo no, y conviene saberlo antes de abrirlo:
 rama, con el mismo nombre.** En `main` es el diálogo de descarga de la vitrina
 —cliente, con `fetch` y dos opciones—; en `dev` es un enlace al semáforo del
 Suplemento. Git lo reportará como «añadido en ambas» y quedarse con uno cualquiera
-rompe la otra función **en silencio**, porque ambos compilan. Hay que conservar
-los dos y renombrar uno; el de la vitrina, que es el temporal, debería pasar a
-`suplemento-vitrina-button.tsx`.
+rompe la otra función **en silencio**, porque ambos compilan.
+
+> **Resolución decidida:** se conservan los dos. El de la vitrina, que es el
+> temporal, se renombra a **`suplemento-vitrina-button.tsx`** y el de `dev`
+> mantiene el nombre `suplemento-button.tsx`, porque es el que se queda. Hay que
+> actualizar el import en `page.tsx`, que en `main` apunta al de vitrina.
 
 **`app/admin/cobertura/cobertura-view.tsx`** conflictúa en el mismo sitio por
 motivos distintos: `dev` monta `<SuplementoButton reporteId={reporteId} />`
 dentro de la vista, y `main` recibe un nodo `suplemento` inyectado desde el
-servidor, porque decidir ahí quién lo ve exigiría mandar `es_demo` al cliente. La
-resolución correcta conserva el slot de `main` —que es el que respeta la
-frontera— y le pasa el enlace de `dev` cuando no sea una emisora de vitrina.
+servidor, porque decidir ahí quién lo ve exigiría mandar `es_demo` al cliente.
+
+> **Resolución decidida:** gana el **slot de `main`** —la prop `suplemento?:
+> React.ReactNode`—, que es el que respeta la frontera cliente/servidor. El
+> enlace al semáforo que `dev` monta en línea pasa a inyectarse por ese mismo
+> slot desde `page.tsx`, que es quien ya sabe si la emisora es de vitrina. Así
+> la vista no decide quién ve qué y no hace falta mandarle `es_demo` al cliente.
 
 Los otros cinco (`.gitignore`, `lib/bitacora.ts`, `taxonomia-export-button.tsx`,
 `package.json`, `pnpm-lock.yaml`) son adiciones en sitios distintos del archivo.
