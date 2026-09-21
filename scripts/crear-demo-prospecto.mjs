@@ -569,6 +569,51 @@ const PROSPECTOS = [
       { re: /Categoría 15-Inversiones/i, area: "Crédito Prendario y Valuación" },
     ],
   },
+  {
+    slug: "megacable",
+    nombre: "Megacable",
+    prefijo: "MEGA",
+    logo: "megacable.png",
+    areas: [
+      "Operación de Red",
+      "Infraestructura y Energía",
+      "Comercial y Atención a Clientes",
+      "Tecnología y Ciberseguridad",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operación de Red",
+      Finanzas: "Finanzas",
+      // En una operadora cotizada el expediente del Consejo lo arma Finanzas,
+      // que es quien ya prepara el reporte a la Bolsa. No hay un área de
+      // cumplimiento separada en este mockup.
+      "Gobierno Corporativo": "Finanzas",
+      Dirección: "Finanzas",
+    },
+    // Telecomunicaciones: lo material es la RED —su energía y su exposición
+    // física—, no el consumo de las oficinas. Las tres áreas técnicas se
+    // reparten la huella según quién opera cada cosa.
+    mueve: [
+      // Tecnología opera los centros de datos, la cabecera y los nodos: ahí
+      // está el grueso del consumo eléctrico y ahí pega el riesgo físico.
+      // Sin estas dos, el área se quedaría con la Categoría 15 y ninguna
+      // entrega, y en el mockup se leería como un área de adorno.
+      { re: /Riesgos físicos climáticos/i, area: "Tecnología y Ciberseguridad" },
+      { re: /Consumo de energía eléctrica/i, area: "Tecnología y Ciberseguridad" },
+      { re: /Categoría 15-Inversiones/i, area: "Tecnología y Ciberseguridad" },
+      // Infraestructura lleva la planta física: plantas de emergencia, flota de
+      // instalación y mantenimiento, y lo prospectivo de la red.
+      { re: /Consumo de combustibles fósiles/i, area: "Infraestructura y Energía" },
+      { re: /Consumo eléctrico corporativo/i, area: "Infraestructura y Energía" },
+      { re: /Plan de transición climática/i, area: "Infraestructura y Energía" },
+      { re: /Análisis de escenarios climáticos/i, area: "Infraestructura y Energía" },
+      // El ingreso de productos sostenibles lo coloca quien atiende al
+      // suscriptor, no quien lo consolida.
+      { re: /productos\/servicios sostenibles/i, area: "Comercial y Atención a Clientes" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
