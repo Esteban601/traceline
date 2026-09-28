@@ -8,9 +8,24 @@
 //
 // DOS PROPIEDADES QUE NO SON NEGOCIABLES:
 //
-// 1. Solo dev. Si la URL de Supabase no es la del proyecto de desarrollo, el
-//    script aborta antes de leer nada. El tenant demo existe también en staging
-//    y una corrida equivocada reescribiría el material que se enseña a clientes.
+// 1. Solo dev. Si la URL de Supabase no es la de un proyecto de desarrollo
+//    AUTORIZADO, el script aborta antes de leer nada. El tenant demo existe
+//    también en staging y una corrida equivocada reescribiría el material que se
+//    enseña a clientes.
+//
+//    La lista de refs autorizados sale de `DEV_REFS_AUTORIZADOS` en `.env.local`
+//    —refs separados por coma— y cae al de Esteban si la variable no está, para
+//    que su máquina siga funcionando sin tocar nada. Es una LISTA y no un solo
+//    ref porque cada colaborador trabaja contra su propio proyecto Supabase
+//    (CLAUDE.md §1): con un ref fijo, el script abortaba en la máquina de
+//    cualquiera que no fuera Esteban. Añadir el propio es escribir una línea en
+//    el `.env.local` de uno, que no se versiona; nadie tiene que editar este
+//    archivo para reproducir el demo.
+//
+//      DEV_REFS_AUTORIZADOS=kmjkoxecxcujxixlxwlb,elrefdequique
+//
+//    El ref de staging (`ewgnvjtjhvdltvkopptn`) se rechaza aunque alguien lo
+//    escriba en la lista: no es un descuido que la lista deba poder autorizar.
 //
 // 2. Idempotente. Todo se busca por su clave natural —el nombre del área, el
 //    título de la solicitud, (hoja, pregunta) del cuestionario— y se actualiza
@@ -28,7 +43,11 @@ import { readFileSync } from "node:fs";
 // -----------------------------------------------------------------------------
 // Barrera de ambiente
 // -----------------------------------------------------------------------------
-const DEV_REF = "kmjkoxecxcujxixlxwlb";
+/** Dev de Esteban. Es el respaldo cuando `.env.local` no trae la lista. */
+const DEV_REF_POR_DEFECTO = "kmjkoxecxcujxixlxwlb";
+
+/** Staging. Nunca autorizado, esté o no en la lista. */
+const REF_STAGING = "ewgnvjtjhvdltvkopptn";
 
 const env = Object.fromEntries(
   readFileSync(".env.local", "utf8")
@@ -37,15 +56,26 @@ const env = Object.fromEntries(
     .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()])
 );
 
+const AUTORIZADOS = (env.DEV_REFS_AUTORIZADOS ?? DEV_REF_POR_DEFECTO)
+  .split(",")
+  .map((r) => r.trim())
+  .filter(Boolean)
+  .filter((r) => r !== REF_STAGING);
+
 const URL_SB = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-if (!URL_SB.includes(DEV_REF)) {
+const refActual = (URL_SB.match(/https?:\/\/([^.]+)\./) ?? [])[1] ?? "";
+
+if (!refActual || !AUTORIZADOS.includes(refActual)) {
   console.error(
-    `\n✗ ABORTA: la URL de Supabase no es la de traceline-dev (${DEV_REF}).\n` +
-      `  Este script reescribe el tenant demo entero y solo puede correr contra dev.\n`
+    `\n✗ ABORTA: el proyecto "${refActual || "(sin ref)"}" no está entre los de desarrollo autorizados.\n` +
+      `  Autorizados ahora mismo: ${AUTORIZADOS.join(", ") || "(ninguno)"}\n` +
+      `  Este script reescribe el tenant demo entero y solo corre contra un dev propio.\n` +
+      `  Para añadir el tuyo, en tu .env.local:\n` +
+      `     DEV_REFS_AUTORIZADOS=${[...AUTORIZADOS, "tu-ref"].join(",")}\n`
   );
   process.exit(1);
 }
-console.log(`barrera: proyecto ${DEV_REF} = traceline-dev ✓\n`);
+console.log(`barrera: proyecto ${refActual} autorizado como dev ✓\n`);
 
 const db = createClient(URL_SB, env.SUPABASE_SERVICE_ROLE_KEY);
 
