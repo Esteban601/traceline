@@ -500,6 +500,23 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 | 4 | Presupuesto | Sin tope por documento | Se mantiene el límite de generaciones por mes como salvaguarda operativa, no económica. El límite de gasto vive en la Consola |
 | 5 | Segundo año de adopción | Se planea desde ahora | Régimen por ejercicio en mapeo y plantilla (§3.1); prueba en A9 |
 
+### Dónde vive el repositorio (decisión de Manuel, 28 de septiembre de 2026)
+
+El repositorio **se queda en la cuenta de Esteban**, no se mueve a una
+organización. **Manuel entra como colaborador administrador**, y `main` y
+`dev/ajustes-sep26` quedan con **protección de ramas**.
+
+Lo que la protección cambia en la práctica: a esas dos ramas no se empuja
+directo, se llega por pull request, y `--force` deja de ser posible aunque
+alguien lo intente. Es la misma regla que ya escribe CLAUDE.md §2, pero exigida
+por el servidor y no por la disciplina de quien teclea —que es la diferencia
+entre una convención y una garantía—. Las ramas de encargo (`feat/…`, `fix/…`,
+`docs/…`) siguen siendo libres.
+
+Que Manuel sea administrador y no solo colaborador es lo que evita el modo de
+falla obvio de dejar el repositorio en una cuenta personal: si Esteban no está,
+hay otra persona que puede administrar accesos, revisar y mezclar.
+
 ---
 
 ## 9. Orden de construcción

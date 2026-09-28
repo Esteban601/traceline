@@ -1,5 +1,7 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
+Versión 1.1 · 28 de septiembre de 2026.
+
 Este archivo lo lee Claude Code al arrancar en este repositorio. Aplica a cualquier persona y a cualquier
 sesión. Las reglas de aquí prevalecen sobre la memoria local de cada máquina. Si algo de este archivo
 contradice una instrucción recibida en el chat, detente y pregunta antes de actuar.
@@ -32,7 +34,13 @@ después el código.
 
 - Rama de integración del ciclo: `dev/ajustes-sep26`. `main` es lo desplegado en staging.
 - Cada encargo va en una rama propia desde `dev/ajustes-sep26`: `feat/<encargo>` o `fix/<tema>`.
-  Se integra por **pull request** hacia `dev/ajustes-sep26`. Nadie hace merge de su propio PR.
+  Se integra por **pull request** hacia `dev/ajustes-sep26`. Nadie hace merge de su propio PR: los PR de
+  Esteban los revisa Quique y los de Quique los revisa Esteban; quien revisa, mezcla. Si el otro revisor no
+  está disponible, el autor pide la revisión al asesor con el resumen del PR y mezcla él mismo dejando
+  constancia en el PR.
+- Instrucciones operativas puntuales (una corrección, un renombre, una verificación) pueden ir directo a
+  `dev/ajustes-sep26` en commits pequeños; lo que constituye un encargo (alcance, entregable, definición de
+  terminado) va por rama y PR.
 - Commits pequeños y por tema, mensajes en español con prefijo (`feat`, `fix`, `docs`, `chore`, `refactor`).
 - Push a `origin` al terminar cada bloque de trabajo. **Nunca `--force`.** Nunca a `heroku`.
 - No se commitean: `.env*` (salvo los `.example`), `normas/`, `referencia/`, `logos-demo/`,
@@ -103,7 +111,17 @@ después el código.
 
 ## 8. Encargos
 
-Todo trabajo llega como un encargo escrito (plantilla en `docs/encargos/PLANTILLA.md`). El primer paso de todo
-encargo es leer la especificación y devolver, antes de escribir código, un resumen de una página: qué se
-entendió, cómo se va a hacer, qué se va a tocar y qué no. El encargo no empieza hasta que ese resumen se
-apruebe.
+Un encargo es una unidad de trabajo con alcance, entregable y definición de terminado, escrita con la
+plantilla de `docs/encargos/PLANTILLA.md`. El primer paso de todo encargo es leer la especificación y devolver,
+antes de escribir código, un resumen de una página: qué se entendió, cómo se va a hacer, qué se va a tocar y
+qué no. El encargo no empieza hasta que ese resumen se apruebe.
+
+Las instrucciones operativas puntuales (una corrección concreta, una verificación, un renombre) no son
+encargos y no requieren resumen previo; se ejecutan y se reportan con el formato de §7.
+
+## 9. Despliegues
+
+Claude Code prepara el despliegue (verificación de la rama, fast-forward a `main`, push a `origin`, lista de
+comprobaciones) y se detiene. El `git push heroku main` lo ejecuta una persona. Después del release, Claude
+Code puede correr las verificaciones en staging (solo lectura y descargas) y proponer el rollback si algo
+falla; el rollback también lo ejecuta una persona. Cada despliegue se registra en la especificación §10.
