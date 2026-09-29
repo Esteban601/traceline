@@ -1,0 +1,21 @@
+-- =============================================================================
+-- Valor 'auditor' en el enum rol_usuario.
+--
+-- VA SOLO, como los de 'admin_cliente' y 'jefe_area': Postgres prohíbe usar un
+-- valor de enum nuevo en la misma transacción que lo crea, y la migración
+-- siguiente lo usa en funciones y políticas.
+--
+-- Qué es: el AUDITOR EXTERNO de una emisora (un despacho contratado para el
+-- aseguramiento). Lee todo el expediente de SU tenant —todas las áreas—,
+-- descarga los archivos de las solicitudes y el Excel de taxonomía, y deja
+-- comentarios en un canal propio. No sube, no valida, no observa, no elimina,
+-- no administra usuarios y no toca el suplemento.
+--
+-- Es el primer rol de la plataforma cuya definición es NEGATIVA: no se define
+-- por lo que hace sino por lo que NO puede hacer. Por eso la migración que sigue
+-- no se conforma con no darle políticas de escritura —hacerlo habría bastado en
+-- un modelo de lista blanca—, sino que le pone una barrera RESTRICTIVA sobre
+-- cada tabla. El porqué está documentado ahí.
+-- =============================================================================
+
+alter type public.rol_usuario add value if not exists 'auditor';

@@ -204,6 +204,11 @@ export const ROL_LABEL: Record<Rol, string> = {
   admin_cliente: "Administrador del cliente",
   analista: "Analista",
   admin: "Administrador",
+  // El auditor es de la organización "Cliente" por `organizacionDeRol` (tiene
+  // tenant), y su etiqueta dice "externo" porque no es de la emisora: es el
+  // despacho que la revisa. Sin esa palabra, en la bitácora se leería como un
+  // puesto interno más.
+  auditor: "Auditor externo",
 };
 
 /** Etiqueta de la organización a la que pertenece el rol. */

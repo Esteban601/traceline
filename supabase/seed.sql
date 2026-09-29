@@ -61,6 +61,7 @@ from (values
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example',    '[DEMO] Responsable Finanzas'),
   ('a0000000-0000-0000-0000-000000000005', 'admin.cliente@empresademo.example','[DEMO] Administradora del cliente'),
   ('a0000000-0000-0000-0000-000000000006', 'jefe.rh@empresademo.example',      '[DEMO] Jefa de RH'),
+  ('a0000000-0000-0000-0000-000000000007', 'auditor.externo@despacho.example', '[DEMO] Auditor externo'),
   ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example',        '[DEMO] Analista IRStrat'),
   ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example',           '[DEMO] Admin IRStrat')
 ) as u(id, email, nombre);
@@ -80,6 +81,7 @@ from (values
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000005', 'admin.cliente@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000006', 'jefe.rh@empresademo.example'),
+  ('a0000000-0000-0000-0000-000000000007', 'auditor.externo@despacho.example'),
   ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example'),
   ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example')
 ) as u(id, email);
@@ -119,6 +121,10 @@ insert into public.perfiles_usuario (id, tenant_id, rol, area, nombre, email) va
   -- sobre lo que su equipo entrega. Con área, como el responsable: sin ella no
   -- sería jefa de nada (`fn_es_jefe_de_area` devolvería false para todo).
   ('a0000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001', 'jefe_area',   'RH',          '[DEMO] Jefa de RH',                    'jefe.rh@empresademo.example'),
+  -- AUDITOR EXTERNO: lee TODO el tenant (sin área, como el admin_cliente) y no
+  -- escribe en ninguna tabla salvo comentarios_auditor. La cuenta del seed es la
+  -- que usa scripts/e2e-rol-auditor.mjs para probar esa frontera contra la base.
+  ('a0000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', 'auditor',     null,          '[DEMO] Auditor externo',                  'auditor.externo@despacho.example'),
   ('b0000000-0000-0000-0000-000000000001', null,                                   'analista',    null,          '[DEMO] Analista IRStrat',              'analista@irstrat.example'),
   ('b0000000-0000-0000-0000-000000000002', null,                                   'admin',       null,          '[DEMO] Admin IRStrat',                 'admin@irstrat.example');
 
