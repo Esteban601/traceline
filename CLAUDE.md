@@ -1,6 +1,6 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.2 · 29 de septiembre de 2026.
+Versión 1.3 · 30 de septiembre de 2026.
 
 Este archivo lo lee Claude Code al arrancar en este repositorio. Aplica a cualquier persona y a cualquier
 sesión. Las reglas de aquí prevalecen sobre la memoria local de cada máquina. Si algo de este archivo
@@ -24,8 +24,9 @@ después el código.
 - `.env.local` apunta al proyecto propio. Antes de cualquier `supabase db push` se verifica
   `supabase/.temp/project-ref`; si no es el ref propio, se aborta.
 - **Nunca `supabase db reset` contra un proyecto remoto.** Solo contra el stack local.
-- **Nada apunta a staging** salvo `.env.staging.local`, que solo existe en la máquina de Esteban, se usa en
-  subshell y únicamente para el script de prospectos.
+- **Nada apunta a staging** salvo `.env.staging.local`, que solo existe en la máquina de Esteban y se usa en
+  subshell para el script de prospectos y para los pasos del despliegue escritos en el encargo en curso
+  (p. ej. §5.2 del encargo rol auditor). Esos pasos los ejecuta Esteban en su terminal.
 - Heroku no despliega solo: solo `git push heroku main` manual, y solo Esteban lo ejecuta.
 - El demo se reproduce en cualquier proyecto dev con `supabase db push` + `seed.sql` + `scripts/poblar-demo.mjs`
   (idempotente, aborta si la URL no contiene un ref de dev autorizado).
