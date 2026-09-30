@@ -7,7 +7,7 @@ import {
   getPerfilActual,
   esStaff,
   getTenantDe,
-  puedeEntrarPanel,
+  puedeEscribirEnPanel,
   type PerfilActual,
 } from "@/lib/data";
 import { transicionValida } from "@/lib/transiciones";
@@ -55,7 +55,7 @@ async function autorizarRevision(solicitudId: string): Promise<
     }
 > {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) return { ok: false, error: NO_AUTORIZADO };
+  if (!perfil || !puedeEscribirEnPanel(perfil)) return { ok: false, error: NO_AUTORIZADO };
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
 
   const db = await createClient();
@@ -330,7 +330,7 @@ export async function subirEvidenciaPanel(
   formData: FormData
 ): Promise<CargaPanelState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: NO_AUTORIZADO };
   }
 

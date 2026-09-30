@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 import { cargarCobertura } from "@/lib/cobertura-datos";
 import { TenantSelector, type TenantOpcionSelector } from "@/components/tenant-selector";
 import { ParamSelect } from "@/components/ui/param-select";
@@ -24,6 +25,8 @@ export default async function CoberturaPage({
   // solicitudes y reportes a su tenant, y el selector de cliente no aparece
   // porque solo hay uno visible.
   const soyStaff = esStaff(perfil);
+  const soyAuditor = esAuditor(perfil);
+  await registrarActividadAuditor(perfil, { tipo: "vista_cobertura" });
 
   const { tenant: tenantParam, reporte: reporteParam } = await searchParams;
   const supabase = await createClient();
@@ -102,15 +105,37 @@ export default async function CoberturaPage({
           />
         </>
       }
+      // LAS `key` DE LOS SLOTS no son decorativas. Estos elementos los crea este
+      // componente de SERVIDOR y los renderiza CoberturaView, que es de cliente:
+      // cruzan la frontera en la carga RSC y llegan al array de hijos del cliente
+      // sin la marca de "hijos estáticos" que el compilador de JSX pone cuando el
+      // array se escribe a mano. React los trata entonces como una lista dinámica
+      // y pide key.
+      //
+      // Medido, no supuesto: un <span>x</span> creado AQUÍ y pasado por el slot
+      // dispara el aviso; el mismo <span> escrito dentro de CoberturaView, en la
+      // misma posición, no. Y el aviso existe igual en `main` —no lo trajo esta
+      // rama—: en staging no se ve porque el botón del Suplemento solo se pinta
+      // para emisoras `es_demo`, y ahí casi nunca es la que se está mirando.
       informe={
-        <InformeButton tenantId={datos.tenantSel} reporteId={datos.reporteSel} />
+        <InformeButton
+          key="informe"
+          tenantId={datos.tenantSel}
+          reporteId={datos.reporteSel}
+        />
       }
       // Solo para emisoras de demostración, y solo con un reporte elegido: el
       // Suplemento es de un ejercicio concreto y sin reporte no hay año que
       // poner en el título del diálogo.
+      //
+      // El AUDITOR EXTERNO no lo ve nunca, ni en una emisora de demostración: el
+      // suplemento y la vitrina quedan fuera de su alcance por encargo. Que el
+      // botón no se inyecte es además lo único que hay que hacer, porque el slot
+      // se resuelve aquí, en el servidor.
       suplemento={
-        tenantDelReporte?.es_demo && reporteSel ? (
+        !soyAuditor && tenantDelReporte?.es_demo && reporteSel ? (
           <SuplementoButton
+            key="suplemento"
             reporteId={reporteSel.id}
             ejercicio={reporteSel.ejercicio}
             pdfDisponible={pdfDisponible}

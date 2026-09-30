@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { puedeEntrarPanel } from "@/lib/roles";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 
 export type LoginState = { error: string | null };
 
@@ -54,6 +55,15 @@ export async function login(
   if (perfil?.debe_cambiar_password) {
     redirect("/restablecer");
   }
+
+  // Inicio de sesión del auditor. Va DESPUÉS de las dos comprobaciones de
+  // arriba —cliente desactivado y contraseña temporal— porque ninguna de esas
+  // dos termina en una sesión utilizable, y anotar como "entró" a quien fue
+  // rebotado convertiría el registro en algo que no se puede leer.
+  await registrarActividadAuditor(
+    perfil ? { id: data.user.id, rol: perfil.rol, tenant_id: perfil.tenant_id } : null,
+    { tipo: "inicio_sesion" }
+  );
 
   if (perfil != null && puedeEntrarPanel(perfil)) {
     redirect("/admin");

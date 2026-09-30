@@ -61,6 +61,7 @@ from (values
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example',    '[DEMO] Responsable Finanzas'),
   ('a0000000-0000-0000-0000-000000000005', 'admin.cliente@empresademo.example','[DEMO] Administradora del cliente'),
   ('a0000000-0000-0000-0000-000000000006', 'jefe.rh@empresademo.example',      '[DEMO] Jefa de RH'),
+  ('a0000000-0000-0000-0000-000000000007', 'auditor.externo@despacho.example', '[DEMO] Auditor externo'),
   ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example',        '[DEMO] Analista IRStrat'),
   ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example',           '[DEMO] Admin IRStrat')
 ) as u(id, email, nombre);
@@ -80,6 +81,7 @@ from (values
   ('a0000000-0000-0000-0000-000000000004', 'finanzas@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000005', 'admin.cliente@empresademo.example'),
   ('a0000000-0000-0000-0000-000000000006', 'jefe.rh@empresademo.example'),
+  ('a0000000-0000-0000-0000-000000000007', 'auditor.externo@despacho.example'),
   ('b0000000-0000-0000-0000-000000000001', 'analista@irstrat.example'),
   ('b0000000-0000-0000-0000-000000000002', 'admin@irstrat.example')
 ) as u(id, email);
@@ -119,6 +121,10 @@ insert into public.perfiles_usuario (id, tenant_id, rol, area, nombre, email) va
   -- sobre lo que su equipo entrega. Con área, como el responsable: sin ella no
   -- sería jefa de nada (`fn_es_jefe_de_area` devolvería false para todo).
   ('a0000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001', 'jefe_area',   'RH',          '[DEMO] Jefa de RH',                    'jefe.rh@empresademo.example'),
+  -- AUDITOR EXTERNO: lee TODO el tenant (sin área, como el admin_cliente) y no
+  -- escribe en ninguna tabla salvo comentarios_auditor. La cuenta del seed es la
+  -- que usa scripts/e2e-rol-auditor.mjs para probar esa frontera contra la base.
+  ('a0000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', 'auditor',     null,          '[DEMO] Auditor externo',                  'auditor.externo@despacho.example'),
   ('b0000000-0000-0000-0000-000000000001', null,                                   'analista',    null,          '[DEMO] Analista IRStrat',              'analista@irstrat.example'),
   ('b0000000-0000-0000-0000-000000000002', null,                                   'admin',       null,          '[DEMO] Admin IRStrat',                 'admin@irstrat.example');
 
@@ -311,25 +317,31 @@ join public.datapoints_taxonomia d
   on d.codigo = s.codigo and d.version_taxonomia = '2025';
 
 -- =============================================================================
--- 8. Objetos placeholder en storage (bucket 'evidencias').
---    Rutas conforme a la convención {tenant_id}/{solicitud_id}/<archivo>.
---    NOTA: son registros DEMO; no hay bytes físicos cargados en el backend.
+-- 8. Archivos de evidencia — NO SE SIEMBRAN DESDE AQUÍ.
+--
+-- Aquí había trece filas en `storage.objects` con la metadata escrita a mano y
+-- ningún archivo detrás. SQL puede insertar esas filas —es una tabla de
+-- Postgres— pero NO puede escribir los bytes, que viven en el backend de
+-- archivos de Storage, fuera de la base.
+--
+-- Esas filas a medias fueron un defecto latente durante meses: `createSignedUrl`
+-- firma contra la FILA y no contra el contenido, así que la descarga devolvía
+-- una firma válida que al abrirse contestaba con el 500 crudo de Storage. Se
+-- destapó el 29/09/2026 revisando el rol auditor.
+--
+-- Y no bastaba con subir los bytes encima: un `upsert` sobre una fila creada por
+-- SQL deja la metadata real pero sin archivo en disco. La fila tiene que nacer
+-- del propio Storage.
+--
+-- Así que las crea `scripts/seed-evidencias.mjs`, que sube un XLSX o un PDF de
+-- una página por cada evidencia. Corre solo:
+--
+--     npm run db:reset          (reset + archivos, que es lo que hay que usar)
+--     npm run seed:evidencias   (solo los archivos)
+--
+-- Sin ese paso, el expediente se ve completo y las descargas responden "El
+-- archivo no está disponible", que es lo correcto: no hay archivo.
 -- =============================================================================
-insert into storage.objects (id, bucket_id, name, owner_id, metadata) values
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000006/consumo_energia_2025_v1.xlsx', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000006/consumo_energia_2025_v2.xlsx', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000007/inventario_gei_alcance1_2025.xlsx', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000001/plantilla_rotacion_2025.xlsx', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000009/consumo_agua_2025.pdf', 'a0000000-0000-0000-0000-000000000003', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
-  -- Objetos de coherencia: solicitudes en estado avanzado que carecían de evidencia.
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000002/horas_capacitacion_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000003/diversidad_inclusion_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000004/indice_rotacion_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000002', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000013/inversiones_ambientales_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000004', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000017/consejo_composicion_esg_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000018/consejo_competencias_esg_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000019/plan_transicion_climatica_2025_DEMO.pdf', 'a0000000-0000-0000-0000-000000000001', '{"demo": true, "mimetype": "application/pdf"}'::jsonb),
-  (gen_random_uuid(), 'evidencias', '10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000021/consumo_electrico_finanzas_2025_DEMO.xlsx', 'a0000000-0000-0000-0000-000000000004', '{"demo": true, "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}'::jsonb);
 
 -- =============================================================================
 -- 9. Evidencias (APPEND ONLY). La columna version la asigna el trigger.

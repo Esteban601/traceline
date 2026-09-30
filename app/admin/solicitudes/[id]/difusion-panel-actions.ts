@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff, puedeEntrarPanel } from "@/lib/data";
+import { getPerfilActual, esStaff, puedeEscribirEnPanel } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { puedeRevisarOrigen, type OrigenSolicitud } from "@/lib/origen";
 
@@ -25,7 +25,7 @@ export type PanelDifusionState = {
  */
 export async function desactivarCopias(ids: string[]): Promise<PanelDifusionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (ids.length === 0) return { ok: false, error: "No seleccionaste ninguna copia." };

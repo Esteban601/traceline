@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SolicitudForm } from "../solicitud-form";
@@ -12,6 +13,11 @@ export const metadata: Metadata = { title: "Nueva solicitud" };
 export default async function NuevaSolicitudPage() {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
+
+  // El AUDITOR EXTERNO no tiene nada que hacer aquí. Su menú no lo ofrece; esto
+  // es para la URL tecleada, que es la única forma de llegar. La base también lo
+  // niega —las solicitudes las redacta quien responde por ellas, no quien las revisa—, así que el rebote es cortesía, no barrera.
+  if (esAuditor(perfil)) redirect("/admin");
 
   const soyStaff = esStaff(perfil);
   const opciones = await cargarOpcionesFormulario(perfil);

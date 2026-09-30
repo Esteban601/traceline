@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
-import { puedeEntrarPanel, rutaSoloStaff } from "@/lib/roles";
+import { esAuditor, puedeEntrarPanel, rutaSoloStaff } from "@/lib/roles";
 
 /**
  * Rutas públicas que no requieren sesión: el ingreso y todo el camino de acceso
@@ -18,6 +18,10 @@ const RUTAS_PUBLICAS = ["/login", "/invitacion", "/recuperar", "/restablecer", "
  *   - admin_cliente SÍ entra a /admin (es su panel, acotado a su tenant), pero
  *     las rutas solo-staff (clientes, reportes, plantillas y la captura de
  *     taxonomía) lo devuelven a su matriz.
+ *   - auditor SÍ entra a /admin, en SOLO LECTURA, y de las rutas solo-staff cruza
+ *     únicamente clima, objetivos y cuestionarios. Que no escriba no lo decide
+ *     este archivo: lo decide la barrera restrictiva de RLS, y las guardas de
+ *     cada server action (`puedeEscribirEnPanel`) lo dicen antes en voz alta.
  * `staff` = perfil de IRStrat (tenant_id NULL), consistente con fn_is_staff() en
  * la BD y con esStaff() en lib/data.ts. La matriz completa de secciones por rol
  * vive en lib/roles.ts, y esta comprobación se repite en cada página (defensa en
@@ -118,12 +122,35 @@ export async function updateSession(request: NextRequest) {
       );
     }
 
+    // El AUDITOR no entra al PORTAL. Es la única asimetría del ruteo —el
+    // administrador del cliente sí puede abrirlo, porque además de administrar
+    // es un usuario de su propia organización— y aquí está la razón: el portal
+    // es la pantalla donde se CARGA evidencia, y ofrecérsela a quien viene a
+    // verificarla sería invitarlo a contaminar lo que revisa. La base se lo
+    // niega igual; esto evita que llegue a ver el formulario.
+    // EXCEPCIÓN: /portal/descargar/<id> no es una pantalla, es la única puerta
+    // por la que sale un archivo de evidencia, para todos los roles. El encargo
+    // permite expresamente que el auditor descargue, y es ahí donde queda
+    // registrado que se llevó el archivo. Bloquearla junto con el resto del
+    // portal le habría quitado media razón de ser a la credencial.
+    if (
+      perfil &&
+      esAuditor(perfil) &&
+      (pathname === "/portal" || pathname.startsWith("/portal/")) &&
+      !pathname.startsWith("/portal/descargar/")
+    ) {
+      return redirigir("/admin");
+    }
+
     // El panel es para el staff y para el administrador del cliente; el usuario
     // de área y el coordinador rebotan a /portal.
     if (pathname === "/admin" || pathname.startsWith("/admin/")) {
       if (!entraAlPanel) return redirigir("/portal");
       // Secciones de la firma: el administrador del cliente vuelve a su matriz.
-      if (!esStaff && rutaSoloStaff(pathname)) return redirigir("/admin");
+      // El AUDITOR pasa en las tres de captura de taxonomía —clima, objetivos y
+      // cuestionarios—, que abre en lectura; por eso `rutaSoloStaff` recibe aquí
+      // el perfil y no solo la ruta.
+      if (!esStaff && perfil && rutaSoloStaff(pathname, perfil)) return redirigir("/admin");
     }
   }
 

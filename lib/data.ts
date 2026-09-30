@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   esAdminCliente as esAdminClienteRol,
   esAdminIrstrat as esAdminIrstratRol,
+  esAuditor as esAuditorRol,
   puedeEntrarPanel as puedeEntrarPanelRol,
+  puedeEscribirEnPanel as puedeEscribirEnPanelRol,
   type Rol,
 } from "@/lib/roles";
 
@@ -53,11 +55,32 @@ export function esAdminCliente(
   return esAdminClienteRol(perfil);
 }
 
+/**
+ * ¿Es AUDITOR EXTERNO? Espejo de `fn_is_auditor()`. Entra al panel y no escribe
+ * en ninguna pantalla.
+ */
+export function esAuditor(
+  perfil: Pick<PerfilActual, "rol" | "tenant_id">
+): boolean {
+  return esAuditorRol(perfil);
+}
+
 /** ¿Este perfil entra al PANEL (`/admin`) en vez del portal simple? */
 export function puedeEntrarPanel(
   perfil: Pick<PerfilActual, "rol" | "tenant_id">
 ): boolean {
   return puedeEntrarPanelRol(perfil);
+}
+
+/**
+ * ¿Puede ACTUAR en el panel? Guarda de toda server action y de toda ruta que
+ * mute algo. Ver la nota de `lib/roles.ts`: entrar al panel y poder escribir en
+ * él dejaron de ser la misma pregunta cuando llegó el auditor.
+ */
+export function puedeEscribirEnPanel(
+  perfil: Pick<PerfilActual, "rol" | "tenant_id">
+): boolean {
+  return puedeEscribirEnPanelRol(perfil);
 }
 
 /** ¿Es el rol `admin` de IRStrat? (congelar reportes, toggle de carga staff). */
@@ -116,4 +139,25 @@ export async function requiereStaff(): Promise<PerfilActual> {
   if (!perfil) redirect("/login");
   if (!esStaff(perfil)) redirect("/admin");
   return perfil;
+}
+
+/**
+ * Guarda de las tres pantallas de captura de taxonomía —clima, objetivos y
+ * cuestionarios—, que el AUDITOR sí abre, en lectura. Sustituye a
+ * `requiereStaff()` solo ahí; `/admin/clientes`, `/admin/reportes` y
+ * `/admin/plantillas` siguen con aquella, cerradas a todo lo que no sea la firma.
+ *
+ * Devuelve también si la sesión es de auditor, para que la página renderice en
+ * modo lectura sin repetir la consulta. Quien escriba en esas pantallas pasa
+ * además por la guarda de su server action: esto abre la puerta, no el cajón.
+ */
+export async function requiereStaffOAuditor(): Promise<{
+  perfil: PerfilActual;
+  soloLectura: boolean;
+}> {
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect("/login");
+  if (esAuditor(perfil)) return { perfil, soloLectura: true };
+  if (!esStaff(perfil)) redirect("/admin");
+  return { perfil, soloLectura: false };
 }

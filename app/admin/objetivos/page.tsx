@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { requiereStaff } from "@/lib/data";
+import { requiereStaffOAuditor } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
+import {
+  comentariosPorObjeto,
+  puedeResponderAuditor,
+} from "@/lib/comentarios-auditor";
+import { esAuditor } from "@/lib/data";
 import {
   ObjetivosView,
   type ObjetivoFila,
@@ -51,7 +57,11 @@ type DetRow = {
 export default async function ObjetivosPage() {
   // Sección de la firma: el administrador del cliente no entra (el middleware ya
   // lo rebota; esta es la barrera de página).
-  await requiereStaff();
+  const { perfil: perfilAud, soloLectura } = await requiereStaffOAuditor();
+  await registrarActividadAuditor(perfilAud, {
+    tipo: "vista_taxonomia",
+    objetoTipo: "objetivos",
+  });
 
   const db = await createClient();
 
@@ -118,6 +128,15 @@ export default async function ObjetivosPage() {
     .filter((r) => r.estado === "activo")
     .map((r) => ({ id: r.id, nombre: limpiar(r.nombre) ?? r.nombre, ejercicio: r.ejercicio }));
 
+  // Una sola consulta para todas las tarjetas de la pantalla: una por tarjeta
+  // convertiría una vista de lectura en una tormenta de consultas.
+  const comentariosAuditor = await comentariosPorObjeto(
+    "objetivo",
+    objetivos.map((x) => x.id)
+  );
+  const soyAuditorAqui = esAuditor(perfilAud);
+  const respondeAuditor = puedeResponderAuditor(perfilAud);
+
   return (
     <div className="space-y-8">
       <header>
@@ -134,7 +153,11 @@ export default async function ObjetivosPage() {
         </p>
       </header>
 
-      <ObjetivosView objetivos={objetivos} reportes={reportesOpc} />
+      <ObjetivosView objetivos={objetivos} reportes={reportesOpc} soloLectura={soloLectura}
+        comentarios={Object.fromEntries(comentariosAuditor)}
+        puedeComentar={soyAuditorAqui}
+        puedeResponder={respondeAuditor}
+      />
     </div>
   );
 }

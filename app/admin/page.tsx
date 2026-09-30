@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
+import { pendientesSinResponder } from "@/lib/comentarios-auditor";
 import { origenDe, type OrigenSolicitud } from "@/lib/origen";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { KPIS, contarPorBucket, type EstadoSolicitud } from "@/lib/estados";
@@ -43,6 +45,8 @@ export default async function AdminMatrizPage({
   // El administrador del cliente ve SU matriz completa (todas sus áreas): RLS ya
   // la acota a su tenant, así que aquí solo cambia lo que se le ofrece hacer.
   const soyStaff = esStaff(perfil);
+  const soyAuditor = esAuditor(perfil);
+  await registrarActividadAuditor(perfil, { tipo: "vista_matriz" });
   const origenPropio = origenDe(perfil);
 
   const { tenant: tenantParam } = await searchParams;
@@ -145,18 +149,30 @@ export default async function AdminMatrizPage({
 
   const conteos = contarPorBucket(filas.map((f) => f.estado));
 
+  // Comentarios del auditor SIN RESPONDER. La función devuelve 0 para el propio
+  // auditor y para los roles de área, así que el chip de abajo no necesita
+  // preguntar de nuevo quién mira: lo que falta por responder es asunto de quien
+  // responde, y mostrárselo al auditor se leería como una presión.
+  const pendientesAuditor = await pendientesSinResponder(perfil, tenantSel);
+
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-gold">
-            {soyStaff ? "Panel interno IRStrat · Seguimiento" : "Tu panel · Seguimiento"}
+            {soyStaff
+              ? "Panel interno IRStrat · Seguimiento"
+              : soyAuditor
+                ? "Auditoría externa · Seguimiento"
+                : "Tu panel · Seguimiento"}
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink sm:text-4xl">
             Matriz de seguimiento
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            {!soyStaff
+            {soyAuditor
+              ? "Todas las solicitudes de la emisora, de todas sus áreas, con su estado y su actividad. Abre cualquiera para ver las versiones de evidencia, quién las subió y quién las validó."
+              : !soyStaff
               ? "Todas las solicitudes de tu organización, su estado y su actividad reciente. Las de IRStrat las revisa IRStrat; las internas las revisas y validas tú."
               : tenantActivo
                 ? `Solicitudes de ${limpiarNombreTenant(
@@ -170,6 +186,7 @@ export default async function AdminMatrizPage({
           {/* Los recordatorios se disparan con service_role sobre TODOS los
               clientes: es una rutina de la firma, no una acción del cliente. */}
           {soyStaff && <BarraRecordatorios />}
+          {soyAuditor ? null : (
           <Link
             href="/admin/solicitudes/nueva"
             className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-teal px-3.5 text-sm font-medium text-crema shadow-soft transition duration-150 hover:bg-teal-dark"
@@ -179,8 +196,22 @@ export default async function AdminMatrizPage({
             </svg>
             {soyStaff ? "Nueva solicitud" : "Nueva solicitud interna"}
           </Link>
+          )}
         </div>
       </header>
+
+      {pendientesAuditor > 0 && (
+        <p className="rounded-card border border-gold/30 bg-gold/5 px-4 py-3 text-sm text-ink">
+          <span className="font-medium">
+            {pendientesAuditor}{" "}
+            {pendientesAuditor === 1
+              ? "comentario del auditor externo sin responder"
+              : "comentarios del auditor externo sin responder"}
+          </span>
+          . Ábrelos desde la solicitud, el registro, el objetivo o el
+          cuestionario donde estén.
+        </p>
+      )}
 
       <section aria-label="Resumen por estado">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
