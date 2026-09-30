@@ -39,7 +39,9 @@ cd "$RAIZ"
 # Sin --include-all: si una migración local es más vieja que la última de
 # ensayo (que es la de staging), el push falla en vez de aplicarla fuera de orden.
 supabase db push --db-url "$ENSAYO_DB_URL" --yes
-lista="$(supabase migration list --db-url "$ENSAYO_DB_URL")"
+# --agent yes: JSON siempre; en la terminal de una persona la CLI imprime la
+# tabla con los valores entre comillas invertidas (el parser admite las dos).
+lista="$(supabase migration list --db-url "$ENSAYO_DB_URL" --agent yes)"
 echo "$lista"
 
 # Filas con un lado vacío = local y remoto no coinciden. La CLI 2.109 imprime la
@@ -53,7 +55,7 @@ cuenta="$(echo "$lista" | node -e '
     const json = s.slice(s.indexOf("{"));
     try { filas = JSON.parse(json).migrations.map((m) => [m.local ?? "", m.remote ?? ""]); }
     catch {
-      filas = s.split("\n").map((l) => l.split("|").map((c) => c.trim()))
+      filas = s.split("\n").map((l) => l.split("|").map((c) => c.replace(/`/g, "").trim()))
         .filter((c) => c.length >= 3 && /^\d+$/.test(c[0] || c[1]));
     }
     const mal = filas.filter(([l, r]) => l !== r).length;

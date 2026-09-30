@@ -92,7 +92,9 @@ verificar() {
 
   paso "migration list local == $DESTINO"
   local cuenta leidas mal locales
-  cuenta="$(supabase migration list --db-url "$DB_URL" 2>/dev/null | node scripts/despliegue/contar-migraciones.mjs)"
+  # --agent yes: salida JSON siempre, la ejecute una persona o Claude Code. Sin
+  # él, la CLI elige el formato según quién la corre (ver contar-migraciones.mjs).
+  cuenta="$(supabase migration list --db-url "$DB_URL" --agent yes 2>/dev/null | node scripts/despliegue/contar-migraciones.mjs)"
   leidas="${cuenta% *}"; mal="${cuenta#* }"
   locales=$(ls supabase/migrations/*.sql | wc -l | tr -d ' ')
   [[ "$leidas" -gt 0 ]] || falla "No se leyó ninguna fila de migration list; no se comparó nada."
