@@ -105,8 +105,24 @@ export default async function CoberturaPage({
           />
         </>
       }
+      // LAS `key` DE LOS SLOTS no son decorativas. Estos elementos los crea este
+      // componente de SERVIDOR y los renderiza CoberturaView, que es de cliente:
+      // cruzan la frontera en la carga RSC y llegan al array de hijos del cliente
+      // sin la marca de "hijos estáticos" que el compilador de JSX pone cuando el
+      // array se escribe a mano. React los trata entonces como una lista dinámica
+      // y pide key.
+      //
+      // Medido, no supuesto: un <span>x</span> creado AQUÍ y pasado por el slot
+      // dispara el aviso; el mismo <span> escrito dentro de CoberturaView, en la
+      // misma posición, no. Y el aviso existe igual en `main` —no lo trajo esta
+      // rama—: en staging no se ve porque el botón del Suplemento solo se pinta
+      // para emisoras `es_demo`, y ahí casi nunca es la que se está mirando.
       informe={
-        <InformeButton tenantId={datos.tenantSel} reporteId={datos.reporteSel} />
+        <InformeButton
+          key="informe"
+          tenantId={datos.tenantSel}
+          reporteId={datos.reporteSel}
+        />
       }
       // Solo para emisoras de demostración, y solo con un reporte elegido: el
       // Suplemento es de un ejercicio concreto y sin reporte no hay año que
@@ -119,6 +135,7 @@ export default async function CoberturaPage({
       suplemento={
         !soyAuditor && tenantDelReporte?.es_demo && reporteSel ? (
           <SuplementoButton
+            key="suplemento"
             reporteId={reporteSel.id}
             ejercicio={reporteSel.ejercicio}
             pdfDisponible={pdfDisponible}

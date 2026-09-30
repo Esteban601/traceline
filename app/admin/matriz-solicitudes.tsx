@@ -426,7 +426,15 @@ export function MatrizSolicitudes({
                           <span className="text-muted/60">0</span>
                         )}
                       </td>
+                      {/* `relativo()` se calcula contra Date.now(), así que el
+                          servidor puede escribir "hace 44 min" y el cliente
+                          hidratar un minuto después con "hace 45 min". La
+                          diferencia es legítima —el texto ES el paso del
+                          tiempo—, y esto es justo para lo que existe
+                          suppressHydrationWarning. La fecha exacta va en el
+                          `title`, que no cambia. */}
                       <td
+                        suppressHydrationWarning
                         className="whitespace-nowrap px-4 py-3 text-muted"
                         title={fmtFechaHora(f.ultimaActividad)}
                       >
@@ -474,7 +482,10 @@ export function MatrizSolicitudes({
                       <span className={cn(f.numVersiones === 0 && "text-muted/60")}>
                         {f.numVersiones} {f.numVersiones === 1 ? "versión" : "versiones"}
                       </span>
-                      <span title={fmtFechaHora(f.ultimaActividad)}>
+                      <span
+                        suppressHydrationWarning
+                        title={fmtFechaHora(f.ultimaActividad)}
+                      >
                         {relativo(f.ultimaActividad)}
                       </span>
                     </div>
