@@ -144,6 +144,94 @@ h. **Paso 5 preparado y parada.** PR de `hotfix/rol-auditor` a `main` y lista de
    Claude Code se detiene ahí: el `git push heroku main` y la aplicación de migraciones en staging los hace
    Esteban.
 
+### 5.2 Guion del paso 5 · despliegue a staging
+
+Todo lo de esta sección lo ejecuta **una persona** (Esteban) en su terminal, en este orden, desde la raíz del
+repositorio con Node 22. Cada bloque se copia entero. Ningún comando imprime una URL, una llave ni una
+contraseña. Las URL de base se cargan con `read -rs` y no quedan en el historial.
+
+**Antes de empezar.**
+- `.env.staging.local` se usa en los pasos 1, 2 y 6, no solo para el script de prospectos. Eso contradice
+  `CLAUDE.md` §1 tal como está redactado. Propuesta de línea para §1: «`.env.staging.local` … se usa en
+  subshell para el script de prospectos y para los pasos del despliegue escritos en el encargo en curso».
+  Se aprueba o se rechaza antes del paso 1.
+- Los Excel de antes y de después se descargan **el mismo día**, porque el pie del libro lleva la fecha.
+- Grupo Carso es un cliente real y activo: si la instantánea del paso 6 difiere, primero se mira si las filas
+  nuevas son actividad suya posterior a la de antes. No es por fuerza un efecto del despliegue.
+- `admin@irstrat.example` y las demás cuentas del seed quedan con contraseña nueva en el paso 1. Quien use
+  alguna en staging la toma de `.credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json`.
+
+**0. `main` al día con el hotfix.** Después de que el revisor apruebe el PR:
+```sh
+nvm use 22
+git checkout main && git pull --ff-only origin main
+git merge --ff-only origin/hotfix/rol-auditor && git push origin main
+git rev-parse --short HEAD origin/main   # las dos iguales
+D=~/despliegue-rol-auditor && mkdir -p $D   # fuera del repo: los Excel llevan datos reales
+```
+
+**1. Cuentas del seed (hallazgo del ensayo).** Primero se revisa y después se rota. El ensayo encontró 7
+cuentas expuestas.
+```sh
+(set -a; source .env.staging.local; set +a; node scripts/despliegue/rotar-cuentas-seed.mjs --destino staging)
+(set -a; source .env.staging.local; set +a; node scripts/despliegue/rotar-cuentas-seed.mjs --destino staging --aplicar)
+(set -a; source .env.staging.local; set +a; node scripts/despliegue/rotar-cuentas-seed.mjs --destino staging)   # debe decir 0 expuestas
+```
+
+**2. Línea base en staging (solo lectura).**
+```sh
+read -rs STAGING_DB_URL && export STAGING_DB_URL   # pega la URL de la base de staging y Enter; no se muestra
+/opt/homebrew/opt/postgresql@17/bin/psql "$STAGING_DB_URL" -X -A -t -f scripts/ensayo/instantanea.sql > $D/instantanea-antes.txt && wc -l < $D/instantanea-antes.txt   # 19
+(set -a; source .env.staging.local; set +a; BASE_URL=https://traceline-staging-70ce5b369e7c.herokuapp.com node scripts/ensayo/descargar-excel.mjs --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json $D/excel-antes clepsa banco-base gcarso)
+```
+
+**3. Migraciones en staging, antes del código.** Primero se revisa: deben listarse exactamente las cinco
+`20260929*`. Después se aplica: el script pide escribir el ref y termina verificando que no queda nada
+pendiente, que `migration list` da 33 de 33 y que la barrera devuelve 69. Mientras el código de `main` corre
+sobre la base migrada no se rompe nada: se verificó en ensayo (§7, 30/09).
+```sh
+bash scripts/despliegue/migrar-remoto.sh staging
+bash scripts/despliegue/migrar-remoto.sh staging --aplicar
+bash scripts/despliegue/migrar-remoto.sh staging   # segunda pasada: «staging al día y verificado»
+```
+
+**4. Código.**
+```sh
+git push heroku main
+heroku releases -a traceline-staging | head -3
+```
+
+**5. Arranque.** Se abre `https://traceline-staging-70ce5b369e7c.herokuapp.com/login`, se entra como staff y
+se abre la matriz.
+```sh
+heroku logs -a traceline-staging -n 500 | grep -c -E 'status=5[0-9]{2}|Error:'   # 0
+```
+
+**6. Comprobaciones después del release.**
+```sh
+(set -a; source .env.staging.local; set +a; BASE_URL=https://traceline-staging-70ce5b369e7c.herokuapp.com node scripts/ensayo/descargar-excel.mjs --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json $D/excel-despues clepsa banco-base gcarso)
+for s in clepsa banco-base gcarso; do node scripts/ensayo/comparar-excel.mjs $D/excel-antes/$s.xlsx $D/excel-despues/$s.xlsx; done
+/opt/homebrew/opt/postgresql@17/bin/psql "$STAGING_DB_URL" -X -A -t -f scripts/ensayo/instantanea.sql > $D/instantanea-despues.txt && diff $D/instantanea-antes.txt $D/instantanea-despues.txt && echo "Grupo Carso intacto y ningún rol cambiado ✓"
+```
+
+**7. Alta del auditor de Deloitte.** Como staff, en Usuarios: «Nuevo usuario», rol «Auditor externo»,
+tenant CLEPSA. Lo hace una persona, sin comando.
+
+**Rollback, si algo del 5 o del 6 falla.** El código se revierte y las migraciones se quedan: son aditivas, y
+`main` corre sobre la base migrada (verificado en ensayo).
+```sh
+heroku rollback -a traceline-staging
+```
+
+**8. Cierre.** Registrar el despliegue en la especificación §10. Después:
+```sh
+unset STAGING_DB_URL
+rm -rf $D
+git worktree remove --force ../vert-evidencia-ensayo && git worktree remove --force ../vert-evidencia-main
+rm .env.ensayo.local .credenciales-demo/seed-ndodorukqqyzhinahmrm.json
+```
+Por último, se borra el proyecto `traceline-ensayo` desde el panel de Supabase, porque lleva datos reales.
+
 ## 6. Riesgos y dudas conocidas
 
 - Primer cambio de esquema en staging desde julio; el ensayo en copia no es opcional.
@@ -167,4 +255,5 @@ h. **Paso 5 preparado y parada.** PR de `hotfix/rol-auditor` a `main` y lista de
 | 2026-09-30 | (a) Copia ejecutada por Esteban. Chequeo previo verificado por el script de copia: «[2s] ensayo vacío de tablas públicas ✓». Cierre: «[77s] conteos idénticos en 27 tablas ✓» (auth.users 140, perfiles_usuario 140, tenants 19, solicitudes 803, evidencias 278, storage.objects 286, schema_migrations 28, bitacora 4316) | Continuar con (b) |
 | 2026-09-30 | Llaves de API de ensayo en `.env.ensayo.local`; Claude Code las valida (longitud, sin marcadores, `ref` de ensayo, `role` anon y service_role) | §5.1 corregida: llaves en `.env.ensayo.local`, subshell, app en worktree del hotfix en :3002. Auditor de utilería sobre Empresa Demo, borrado al terminar |
 | 2026-09-30 | **Informe del ensayo (paso 4).** (b) 13:35–13:37: instantánea de Grupo Carso (18 tablas y `storage.objects`, filas y md5) y de `perfiles_usuario` (140: id, rol, tenant); conteos de todas las tablas; Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso por la ruta del panel como staff, dos veces: idénticos celda por celda con bytes distintos (el comparador se validó así y con un control alterado, que detectó 1 valor y 1 nota). Las descargas no cambiaron ningún conteo. (c) 13:37–13:38: primera pasada aplica las cinco `20260929*`; segunda: «Remote database is up to date»; `migration list` 33 de 33 en las dos; `fn_aplicar_barrera_auditor()` = 69 en las dos. Se corrió una tercera pasada por error, también sin cambios. La barrera de `migrar-ensayo.sh` daba ✓ sin comparar nada (la CLI 2.109 imprime JSON; se verificó a mano y se corrigió). Tras migrar, instantánea de Carso igual a (b). (d) 13:38–13:51, tres rondas con auditor de utilería (id del seed, contraseña aleatoria solo en el entorno) sobre Empresa Demo: 1.ª `e2e:auditor` 57 ✓ y `e2e:auditor:rutas` 7 ✗, todos por servir en 127.0.0.1 mientras el middleware redirige a localhost (la cookie no viaja; artefacto del ensayo); 2.ª en localhost: 57 ✓, rutas 89 ✓ y 1 ✗ («el contador baja»: la prueba contaba nodos, el número sí bajó 4 → 3); 3.ª con la prueba corregida: 57 ✓ y 90 ✓. Borrado después de cada ronda; tras el último, conteos idénticos a los de después de migrar, 0 auditores, 0 comentarios del auditor, 0 filas de actividad y 0 tenants de e2e. (e) 13:51: los tres Excel, idénticos a (b) celda por celda (16 hojas; 641, 641 y 692 celdas). (f) 13:51: Grupo Carso idéntico a (b) en las 19 líneas; ningún usuario cambió de rol ni de tenant. Local: los dos e2e y `verify:export` verdes contra el stack local | Ensayo verde; el despliegue puede seguir al paso 5. Efectos que quedan en ensayo, todos fuera de Grupo Carso: 2 objetos de Empresa Demo re-subidos por `e2e:auditor:rutas` (las filas ya existían sin bytes) y los inicios de sesión de las cuentas del seed |
-| 2026-09-30 | **Hallazgo de seguridad.** Las cuentas del seed `admin@irstrat.example` (rol `admin`), `analista@irstrat.example`, `admin.cliente@empresademo.example` y `rh@empresademo.example` entran en la copia con la contraseña versionada del seed. La copia viene de `auth.users` de staging, así que en staging deben de estar igual (inferido; no se probó contra staging) | Pendiente de decisión de Esteban antes o durante el paso 5: rotar o desactivar esas cuentas en staging. `traceline-ensayo` lleva la misma exposición y datos reales: borrarlo en cuanto termine el despliegue |
+| 2026-09-30 | **Hallazgo de seguridad.** Las cuentas del seed `admin@irstrat.example` (rol `admin`), `analista@irstrat.example`, `admin.cliente@empresademo.example` y `rh@empresademo.example` (y otras tres: ver la fila siguiente) entran en la copia con la contraseña versionada del seed. La copia viene de `auth.users` de staging, así que en staging deben de estar igual (inferido; no se probó contra staging) | Pendiente de decisión de Esteban antes o durante el paso 5: rotar o desactivar esas cuentas en staging. `traceline-ensayo` lleva la misma exposición y datos reales: borrarlo en cuanto termine el despliegue |
+| 2026-09-30 | **Preparación del paso 5.** (1) `main` (2bd951c) contra la base ya migrada de ensayo, con `scripts/ensayo/verificar-main.mjs`: 26 ✓. Cinco roles (staff, admin IRStrat, admin del cliente, coordinador, área) entran y abren sus pantallas sin error. Staff, admin del cliente y área siguen escribiendo en `comentarios`, y el área sigue subiendo a storage. Los tres Excel, idénticos a (b). El log del servidor, sin errores. Lo que dejó (3 comentarios y 1 archivo) se borró, y los conteos y Grupo Carso quedaron como tras el ensayo. (2) `scripts/despliegue/migrar-remoto.sh`, probado contra ensayo en modo revisión (nada pendiente, 33 de 33, barrera 69) y en sus guardas (destino inválido; staging fuera de `origin/main`). La rama que aplica solo se ha ejecutado a través de `migrar-ensayo.sh`, que hace el mismo `db push`. (3) `scripts/despliegue/rotar-cuentas-seed.mjs` ensayado en ensayo. La corrección: son **7** las cuentas expuestas, no 4 (coordinador, rh, operaciones, finanzas, admin.cliente, analista, admin). Rotadas las 7; en la segunda revisión, 0 expuestas. El cambio de contraseña por admin ya cierra todas las sesiones (0 en `auth.sessions`), y el script lo afirma por el efecto: el refresh de la sesión previa ya no sirve. (4) `descargar-excel.mjs --credenciales` probado después de rotar: los tres Excel, idénticos | Guion del paso 5 en §5.2, con comandos. Pendiente de Esteban: aprobar la ampliación de `CLAUDE.md` §1 para usar `.env.staging.local` en el despliegue. Las contraseñas de ensayo quedaron en `.credenciales-demo/seed-ndodorukqqyzhinahmrm.json` (ignorado, modo 600) |
