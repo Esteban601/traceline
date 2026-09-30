@@ -78,3 +78,9 @@ logos-demo/
 # ambiente recién levantado tenga algo que enseñar. El PDF no, porque el
 # definitivo lo produce diseño y sube al bucket.
 assets/vitrina/suplemento-demo.pdf
+
+# Normas (IFRS, GRI…) e informes de referencia: no se versionan (CLAUDE.md §2 y
+# §4; se citan por párrafo). Aquí y no solo en .git/info/exclude, para que
+# ningún clon pueda commitearlos por descuido.
+referencia/
+normas/
