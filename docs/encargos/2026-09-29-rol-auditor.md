@@ -151,10 +151,9 @@ repositorio con Node 22. Cada bloque se copia entero. Ningún comando imprime un
 contraseña. Las URL de base se cargan con `read -rs` y no quedan en el historial.
 
 **Antes de empezar.**
-- `.env.staging.local` se usa en los pasos 1, 2 y 6, no solo para el script de prospectos. Eso contradice
-  `CLAUDE.md` §1 tal como está redactado. Propuesta de línea para §1: «`.env.staging.local` … se usa en
-  subshell para el script de prospectos y para los pasos del despliegue escritos en el encargo en curso».
-  Se aprueba o se rechaza antes del paso 1.
+- `.env.staging.local` se usa en los pasos 1, 2 y 6, además de en el script de prospectos. Lo permite
+  `CLAUDE.md` §1 desde la v1.3 (30/09/2026): pasos del despliegue escritos en el encargo en curso, ejecutados
+  por Esteban en su terminal.
 - Los Excel de antes y de después se descargan **el mismo día**, porque el pie del libro lleva la fecha.
 - Grupo Carso es un cliente real y activo: si la instantánea del paso 6 difiere, primero se mira si las filas
   nuevas son actividad suya posterior a la de antes. No es por fuerza un efecto del despliegue.
