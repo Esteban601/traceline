@@ -54,6 +54,9 @@ const RE_NOMBRES = new RegExp(
   "g"
 );
 
+/** Partes del .docx donde se sustituye el nombre: el cuerpo y sus propiedades. */
+const PARTES_CON_NOMBRE = ["word/document.xml", "docProps/core.xml"] as const;
+
 /** El nombre entra en un XML: un `&` o un `<` sin escapar rompen el .docx. */
 function escaparXml(s: string): string {
   return s
@@ -162,8 +165,14 @@ export async function GET(req: Request) {
     const destino = limpiarNombreTenant(tenant.nombre);
     try {
       const zip = await JSZip.loadAsync(contenido);
-      const parte = zip.file("word/document.xml");
-      if (parte) {
+      let cambio = false;
+      // El cuerpo y las propiedades del archivo: autor, título y asunto viven
+      // en `docProps/core.xml`, y es lo que enseña Archivo › Propiedades. Un
+      // Word con el nombre de la emisora en el texto y «Empresa Demo» como autor
+      // delata que es el ejemplo de otro.
+      for (const ruta of PARTES_CON_NOMBRE) {
+        const parte = zip.file(ruta);
+        if (!parte) continue;
         const xml = await parte.async("string");
         // UN SOLO PASE, con la forma larga primero en la alternancia.
         //
@@ -185,20 +194,23 @@ export async function GET(req: Request) {
         for (const n of [NOMBRE_LARGO, NOMBRE_CORTO]) {
           const enCrudo = xml.split(n).length - 1;
           const enPlano = plano.split(n).length - 1;
-          if (enPlano > enCrudo) sinSustituir.push(n);
+          if (enPlano > enCrudo && !sinSustituir.includes(n)) sinSustituir.push(n);
         }
         if (salida !== xml) {
-          zip.file("word/document.xml", salida);
-          // DEFLATE explícito: `generateAsync` guarda sin comprimir por omisión
-          // y el documento pasaba de 39 KB a 324 KB al re-empaquetarlo. Un
-          // .docx es un zip, y servir uno ocho veces más gordo por no pedir
-          // compresión es tirar ancho de banda del cliente.
-          contenido = await zip.generateAsync({
-            type: "nodebuffer",
-            compression: "DEFLATE",
-            compressionOptions: { level: 6 },
-          });
+          zip.file(ruta, salida);
+          cambio = true;
         }
+      }
+      if (cambio) {
+        // DEFLATE explícito: `generateAsync` guarda sin comprimir por omisión
+        // y el documento pasaba de 39 KB a 324 KB al re-empaquetarlo. Un
+        // .docx es un zip, y servir uno ocho veces más gordo por no pedir
+        // compresión es tirar ancho de banda del cliente.
+        contenido = await zip.generateAsync({
+          type: "nodebuffer",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 },
+        });
       }
     } catch (e) {
       // Que la sustitución falle no debe dejar sin documento a quien lo pidió:
