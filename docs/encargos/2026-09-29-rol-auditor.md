@@ -103,8 +103,13 @@ Proyecto `traceline-ensayo` (ref `ndodorukqqyzhinahmrm`). Lleva datos reales cop
 y se borra tras el despliegue (especificación §10, «Ensayo de despliegue»). Cada paso anota su hora de inicio y
 fin en §7.
 
-**Preparación.** `.env.ensayo.local` (ignorado por git) lleva solo `ENSAYO_DB_URL`, con la contraseña de ensayo
-que pega Esteban; si tiene caracteres especiales va codificada en porcentaje. `.env.local` lleva
+**Preparación.** `.env.ensayo.local` (ignorado por git) lleva `ENSAYO_DB_URL`, con la contraseña de ensayo
+que pega Esteban (si tiene caracteres especiales va codificada en porcentaje), y las llaves de API de ensayo
+`ENSAYO_SUPABASE_URL`, `ENSAYO_SUPABASE_ANON_KEY` y `ENSAYO_SUPABASE_SERVICE_ROLE_KEY`, que también pega
+Esteban. Claude Code las valida por longitud, ausencia de marcadores y el `ref`/`role` de su carga útil, sin
+imprimirlas. Los e2e y la app local contra ensayo las reciben como `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` solo en un subshell; la app corre en un worktree
+aparte del hotfix, sin `.env.local`, en el puerto 3002. `.env.local` lleva
 `ENSAYO_REF=ndodorukqqyzhinahmrm`, que solo lee `scripts/ensayo/migrar-ensayo.sh`. Ensayo **no** entra en
 `DEV_REFS_AUTORIZADOS`, y `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan su ref por constante.
 Antes de (a), Claude Code valida que `ENSAYO_DB_URL` conecta (`select 1`) y que ensayo no tiene tablas en
@@ -123,15 +128,15 @@ c. **Migraciones del hotfix, dos veces.** `bash scripts/ensayo/migrar-ensayo.sh`
    las cinco migraciones `20260929*`. La segunda no debe aplicar nada ni fallar. En las dos, `migration list`
    local == ensayo. `fn_aplicar_barrera_auditor()` devuelve el mismo número de políticas en las dos.
 d. **e2e contra ensayo.** `e2e:auditor` y `e2e:auditor:rutas` con `NEXT_PUBLIC_SUPABASE_URL` y las llaves de
-   ensayo en un subshell (pendiente: cómo llegan las llaves de API de ensayo sin pasar por el chat). Se usa un
+   ensayo en un subshell (ver Preparación). Se usa un
    auditor de utilería creado para la prueba sobre un tenant mockup, **nunca Grupo Carso**. El auditor, sus
    comentarios, su actividad y los tenants auxiliares del e2e se borran al terminar, y se verifica con conteos
    que no quedó ninguno.
 e. **Excel idéntico.** Se vuelven a descargar los tres Excel de (b) y se comparan celda por celda (valor, hoja y
    dirección) con un comparador ExcelJS en `scripts/ensayo/`, no por bytes: un libro regenerado difiere en
    bytes por las marcas de tiempo. `verify:export` no sirve aquí, porque valida el libro del demo contra sus
-   reglas pero no compara dos libros. La descarga necesita la app local apuntando a ensayo (pendiente, igual que
-   las llaves de (d)).
+   reglas pero no compara dos libros. La descarga usa la app local del worktree del hotfix en :3002 apuntando a
+   ensayo (ver Preparación).
 f. **Grupo Carso intacto.** La instantánea de (b) repetida coincide, y ningún usuario de `perfiles_usuario`
    cambió de rol ni de tenant.
 g. **Informe.** Fila en §7 con tiempos por paso, resultados y lo que falló.
@@ -159,3 +164,5 @@ h. **Paso 5 preparado y parada.** PR de `hotfix/rol-auditor` a `main` y lista de
 | 2026-09-29 | Deloitte estuvo en la llamada con CLEPSA y conoce que el tenant es de muestra | La conversión a cliente real sale de este encargo y se hace al kick off como encargo propio |
 | 2026-09-29 | Los comentarios del auditor los atiende staff o el admin del cliente | Sin responsable único; estado de atención por comentario y contador de pendientes en matriz y detalle |
 | 2026-09-30 | Guion del paso 4 escrito (§5.1); proyecto `traceline-ensayo` creado | La contraseña de staging no toca ningún archivo: la copia la ejecuta Esteban con variables de entorno. Ensayo fuera de `DEV_REFS_AUTORIZADOS`; `ENSAYO_REF` propio |
+| 2026-09-30 | (a) Copia ejecutada por Esteban. Chequeo previo verificado por el script de copia: «[2s] ensayo vacío de tablas públicas ✓». Cierre: «[77s] conteos idénticos en 27 tablas ✓» (auth.users 140, perfiles_usuario 140, tenants 19, solicitudes 803, evidencias 278, storage.objects 286, schema_migrations 28, bitacora 4316) | Continuar con (b) |
+| 2026-09-30 | Llaves de API de ensayo en `.env.ensayo.local`; Claude Code las valida (longitud, sin marcadores, `ref` de ensayo, `role` anon y service_role) | §5.1 corregida: llaves en `.env.ensayo.local`, subshell, app en worktree del hotfix en :3002. Auditor de utilería sobre Empresa Demo, borrado al terminar |
