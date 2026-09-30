@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, esStaff, puedeEntrarPanel } from "@/lib/data";
+import { getPerfilActual, esStaff, puedeEscribirEnPanel } from "@/lib/data";
 import { origenDe } from "@/lib/origen";
 import { enviarSolicitudesCore, type ResumenSolicitud } from "@/lib/solicitar";
 import { procesarRecordatorios, type ResumenRecordatorios } from "@/lib/recordatorios";
@@ -18,7 +18,7 @@ export async function enviarSolicitudesMasivo(
   ids: string[]
 ): Promise<ResumenSolicitud & { error?: string }> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return {
       modo: "consola",
       correos: 0,

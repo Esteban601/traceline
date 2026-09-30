@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
 import type { Rol } from "@/lib/roles";
 import { BitacoraView, type BitacoraFila, type TenantOpc } from "./bitacora-view";
 
@@ -11,6 +12,11 @@ const LIMITE = 500;
 export default async function BitacoraPage() {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
+
+  // El AUDITOR EXTERNO no tiene nada que hacer aquí. Su menú no lo ofrece; esto
+  // es para la URL tecleada, que es la única forma de llegar. La base también lo
+  // niega —`auditor_sin_lectura_bitacora` le devuelve cero filas—, así que el rebote es cortesía, no barrera.
+  if (esAuditor(perfil)) redirect("/admin");
 
   // RLS ya acota la bitácora: el staff ve todo, el administrador del cliente solo
   // los eventos de SU tenant. Lo que cambia aquí es el encabezado y el filtro de

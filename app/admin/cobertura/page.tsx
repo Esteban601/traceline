@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 import { cargarCobertura } from "@/lib/cobertura-datos";
 import { TenantSelector, type TenantOpcionSelector } from "@/components/tenant-selector";
 import { ParamSelect } from "@/components/ui/param-select";
@@ -24,6 +25,8 @@ export default async function CoberturaPage({
   // solicitudes y reportes a su tenant, y el selector de cliente no aparece
   // porque solo hay uno visible.
   const soyStaff = esStaff(perfil);
+  const soyAuditor = esAuditor(perfil);
+  await registrarActividadAuditor(perfil, { tipo: "vista_cobertura" });
 
   const { tenant: tenantParam, reporte: reporteParam } = await searchParams;
   const supabase = await createClient();
@@ -108,8 +111,13 @@ export default async function CoberturaPage({
       // Solo para emisoras de demostración, y solo con un reporte elegido: el
       // Suplemento es de un ejercicio concreto y sin reporte no hay año que
       // poner en el título del diálogo.
+      //
+      // El AUDITOR EXTERNO no lo ve nunca, ni en una emisora de demostración: el
+      // suplemento y la vitrina quedan fuera de su alcance por encargo. Que el
+      // botón no se inyecte es además lo único que hay que hacer, porque el slot
+      // se resuelve aquí, en el servidor.
       suplemento={
-        tenantDelReporte?.es_demo && reporteSel ? (
+        !soyAuditor && tenantDelReporte?.es_demo && reporteSel ? (
           <SuplementoButton
             reporteId={reporteSel.id}
             ejercicio={reporteSel.ejercicio}

@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeEntrarPanel } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
 import { fmtFecha } from "@/lib/fechas";
@@ -552,6 +553,11 @@ export async function GET(request: Request) {
       { status: 403 }
     );
   }
+
+  await registrarActividadAuditor(perfil, {
+    tipo: "descarga_excel",
+    objetoTipo: "Excel de taxonomía",
+  });
 
   // El reporte es OBLIGATORIO y explícito. Antes se deducía de la primera fila
   // del mapeo, que era del demo: cualquier otro cliente recibía el libro ajeno.

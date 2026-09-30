@@ -28,6 +28,7 @@ import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
+const URL_SB = URL;
 const ANON =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
@@ -61,6 +62,27 @@ function ok(cond, mensaje) {
   console.log(`  ${cond ? "✓" : "✗"} ${mensaje}`);
   if (!cond) problemas.push(`[${seccion}] ${mensaje}`);
   return cond;
+}
+
+/**
+ * `supabase db reset` REINICIA los contenedores de auth, storage y realtime. Si
+ * la prueba arranca enseguida, GoTrue contesta con un error vacío (`{}`) y
+ * Storage con "invalid response from upstream server": los dos son el servicio
+ * levantándose, no un fallo del producto, y confunden durante un rato largo
+ * porque parecen fallos de permisos. Se espera a que los dos respondan.
+ */
+async function esperarStack(segundos = 60) {
+  const puntos = [`${URL_SB}/auth/v1/health`, `${URL_SB}/storage/v1/version`];
+  for (let i = 0; i < segundos; i++) {
+    const listos = await Promise.all(
+      puntos.map((u) => fetch(u).then((r) => r.ok).catch(() => false))
+    );
+    if (listos.every(Boolean)) return;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error(
+    "El stack local no respondió a tiempo (auth/storage). ¿Corrió `supabase start`?"
+  );
 }
 
 async function sesion(email) {
@@ -132,6 +154,7 @@ async function desmontarOtroTenant() {
 // =============================================================================
 async function main() {
   console.log(`Base: ${URL}`);
+  await esperarStack();
 
   const aud = await sesion(CUENTAS.auditor);
   const adminCli = await sesion(CUENTAS.adminCliente);

@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useMemo, useState } from "react";
+import { SoloLecturaProvider, useSoloLectura } from "@/lib/solo-lectura";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
@@ -38,9 +39,12 @@ const areaCls =
 export function CuestionariosView({
   respuestas,
   reportes,
+  soloLectura = false,
 }: {
   respuestas: RespuestaFila[];
   reportes: ReporteOpcion[];
+  /** El AUDITOR EXTERNO lee las respuestas; no las captura ni las corrige. */
+  soloLectura?: boolean;
 }) {
   const [reporteId, setReporteId] = useState(reportes[0]?.id ?? "");
 
@@ -55,6 +59,7 @@ export function CuestionariosView({
   }
 
   return (
+    <SoloLecturaProvider valor={soloLectura}>
     <div className="space-y-8">
       {reportes.length > 1 && (
         <div className="max-w-md">
@@ -89,6 +94,7 @@ export function CuestionariosView({
         ))}
       </div>
     </div>
+    </SoloLecturaProvider>
   );
 }
 
@@ -119,6 +125,7 @@ function SeccionForm({
   respuestas: RespuestaFila[];
 }) {
   const toast = useToast();
+  const soloLectura = useSoloLectura();
   const [abierta, setAbierta] = useState(false);
   const [state, dispatch, pending] = useActionState(guardarSeccion, initial);
   // El reporte seleccionado forma parte de la identidad de los datos: al cambiarlo
@@ -199,6 +206,9 @@ function SeccionForm({
 
       {abierta && (
         <div className="space-y-5 border-t border-line px-5 py-5 sm:px-6">
+          {/* `display:contents` para que el fieldset no altere la retícula: solo
+              está para apagar de una vez todos los campos de la sección. */}
+          <fieldset disabled={soloLectura} className="contents">
           {seccion.preguntas.map((p) => (
             <PreguntaFieldset
               key={p.orden}
@@ -209,11 +219,15 @@ function SeccionForm({
             />
           ))}
 
-          <div className="flex justify-end border-t border-line pt-5">
-            <Button type="submit" loading={pending}>
-              Guardar sección
-            </Button>
-          </div>
+          </fieldset>
+
+          {soloLectura ? null : (
+            <div className="flex justify-end border-t border-line pt-5">
+              <Button type="submit" loading={pending}>
+                Guardar sección
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </form>

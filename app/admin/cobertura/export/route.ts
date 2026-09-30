@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeEntrarPanel } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 import { coberturaDe, COBERTURA_META } from "@/lib/cobertura";
 import { ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
 import { ORIGEN_META, type OrigenSolicitud } from "@/lib/origen";
@@ -58,6 +59,11 @@ export async function GET(request: Request) {
       { status: 403 }
     );
   }
+
+  await registrarActividadAuditor(perfil, {
+    tipo: "descarga_excel",
+    objetoTipo: "Excel de cobertura",
+  });
 
   // El export sigue al selector de cliente de /admin/cobertura: sin ?tenant es
   // el agregado de la firma; con él, SOLO ese cliente. Un libro que ignorara el

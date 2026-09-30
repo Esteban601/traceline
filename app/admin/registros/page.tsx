@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { requiereStaff } from "@/lib/data";
+import { requiereStaffOAuditor } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 import {
   RegistrosView,
   type RegistroFila,
@@ -17,7 +18,11 @@ function limpiar(nombre?: string | null): string | null {
 export default async function RegistrosPage() {
   // Sección de la firma: el administrador del cliente no entra (el middleware ya
   // lo rebota; esta es la barrera de página).
-  await requiereStaff();
+  const { perfil: perfilAud, soloLectura } = await requiereStaffOAuditor();
+  await registrarActividadAuditor(perfilAud, {
+    tipo: "vista_taxonomia",
+    objetoTipo: "registros_clima",
+  });
 
   const db = await createClient();
 
@@ -113,7 +118,7 @@ export default async function RegistrosPage() {
         </p>
       </header>
 
-      <RegistrosView registros={registros} reportes={reportesOpc} />
+      <RegistrosView registros={registros} reportes={reportesOpc} soloLectura={soloLectura} />
     </div>
   );
 }

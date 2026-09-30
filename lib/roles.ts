@@ -16,7 +16,22 @@ import type { Database } from "@/lib/database.types";
 //   * jefe_area            — JEFE de un área del cliente, en el PORTAL. Ve y carga
 //                            lo de SU área (como el responsable) y además da o
 //                            retira el VISTO BUENO DEL ÁREA. No valida.
+//   * auditor              — AUDITOR EXTERNO de una emisora (un despacho). Entra
+//                            al PANEL en SOLO LECTURA: ve todo su tenant y no
+//                            escribe en ninguna pantalla.
 //   * cliente / coordinador — usuarios del cliente en el PORTAL. Sin cambios.
+//
+// Sobre el auditor y este archivo: es el primer rol que entra al panel SIN poder
+// escribir, y eso parte en dos una pregunta que antes era una sola. Hasta ahora
+// `puedeEntrarPanel` respondía a la vez «¿ve el panel?» y «¿puede actuar en él?»,
+// porque quien entraba, actuaba. Con el auditor son distintas, y confundirlas
+// sería abrirle todas las server actions de golpe: hay dieciséis guardas escritas
+// como `!puedeEntrarPanel(perfil)`. Por eso existe `puedeEscribirEnPanel`, y por
+// eso las guardas de escritura usan ESA y no aquella.
+//
+// La autoridad sigue siendo la base: la barrera restrictiva de la migración
+// 20260929130000 rechaza al auditor aunque esta capa fallara. Lo de aquí es para
+// que el rechazo llegue como un mensaje y no como un error de RLS.
 // =============================================================================
 
 export type Rol = Database["public"]["Enums"]["rol_usuario"];
@@ -57,9 +72,32 @@ export function esRolDeArea(p: IdentidadRol): boolean {
   return ROLES_DE_AREA.includes(p.rol) && p.tenant_id !== null;
 }
 
+/**
+ * ¿Es AUDITOR EXTERNO de una emisora? Espejo de `fn_is_auditor()`. Como el
+ * administrador del cliente, es un rol con tenant que entra al panel; a
+ * diferencia de él, no escribe nada.
+ */
+export function esAuditor(p: IdentidadRol): boolean {
+  return p.rol === "auditor" && p.tenant_id !== null;
+}
+
 /** ¿Este perfil entra al PANEL (`/admin`) y no al portal simple? */
 export function puedeEntrarPanel(p: IdentidadRol): boolean {
-  return esStaffRol(p) || esAdminCliente(p);
+  return esStaffRol(p) || esAdminCliente(p) || esAuditor(p);
+}
+
+/**
+ * ¿Puede ACTUAR en el panel, no solo verlo? Es la guarda de toda server action y
+ * de toda ruta que mute algo. Se separó de `puedeEntrarPanel` al llegar el
+ * auditor: ver y poder dejaron de ser la misma pregunta.
+ *
+ * Se escribe como «entra y no es auditor» y no como «es staff o admin_cliente»
+ * a propósito: así un rol futuro que entre al panel hereda la escritura solo si
+ * alguien lo decide aquí, en vez de quedar bloqueado en silencio por una lista
+ * que nadie actualizó.
+ */
+export function puedeEscribirEnPanel(p: IdentidadRol): boolean {
+  return puedeEntrarPanel(p) && !esAuditor(p);
 }
 
 /** ¿Es el rol `admin` de IRStrat (congelar reportes, toggle de carga staff)? */
@@ -99,9 +137,33 @@ export const SECCIONES_ADMIN_CLIENTE: readonly SeccionPanel[] = [
   "usuarios",
 ] as const;
 
+/**
+ * Lo que ve el AUDITOR EXTERNO: la matriz completa de su emisora, Cobertura (con
+ * el Excel de taxonomía, que el encargo permite) y las tres pantallas de captura
+ * en lectura — clima, objetivos y cuestionarios—, porque son la materia prima
+ * del informe que viene a verificar.
+ *
+ * Fuera quedan: `usuarios` (no administra a nadie), `bitacora` (viene a revisar
+ * el expediente de sostenibilidad, no a vigilar la operación interna de su
+ * cliente; la base también se lo niega) y las tres de la firma.
+ *
+ * Nótese que comparte `registros`, `objetivos` y `cuestionarios` con el staff y
+ * NO con el administrador del cliente. No es un descuido: para el admin del
+ * cliente esas pantallas son de captura y siguen siendo trabajo de analista;
+ * para el auditor son de lectura.
+ */
+export const SECCIONES_AUDITOR: readonly SeccionPanel[] = [
+  "matriz",
+  "cobertura",
+  "registros",
+  "objetivos",
+  "cuestionarios",
+] as const;
+
 export function puedeVerSeccion(seccion: SeccionPanel, p: IdentidadRol): boolean {
   if (esStaffRol(p)) return true;
   if (esAdminCliente(p)) return SECCIONES_ADMIN_CLIENTE.includes(seccion);
+  if (esAuditor(p)) return SECCIONES_AUDITOR.includes(seccion);
   return false;
 }
 
@@ -119,8 +181,31 @@ export const RUTAS_SOLO_STAFF: readonly string[] = [
   "/admin/cuestionarios",
 ] as const;
 
-export function rutaSoloStaff(pathname: string): boolean {
-  return RUTAS_SOLO_STAFF.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+/**
+ * De las rutas de arriba, las tres que el AUDITOR sí abre —en lectura—. Son las
+ * de captura de taxonomía: lo que alimenta el informe. Las otras tres
+ * (`clientes`, `reportes`, `plantillas`) son de la firma y le quedan cerradas
+ * igual que al administrador del cliente.
+ */
+export const RUTAS_LECTURA_AUDITOR: readonly string[] = [
+  "/admin/registros",
+  "/admin/objetivos",
+  "/admin/cuestionarios",
+] as const;
+
+function enAlguna(rutas: readonly string[], pathname: string): boolean {
+  return rutas.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
+
+/**
+ * ¿Esta ruta le queda cerrada a este perfil? El parámetro `p` es opcional para
+ * no romper a quien solo pregunta por la ruta; cuando se pasa, el auditor cruza
+ * las tres de `RUTAS_LECTURA_AUDITOR` y ninguna más.
+ */
+export function rutaSoloStaff(pathname: string, p?: IdentidadRol): boolean {
+  if (!enAlguna(RUTAS_SOLO_STAFF, pathname)) return false;
+  if (p && esAuditor(p)) return !enAlguna(RUTAS_LECTURA_AUDITOR, pathname);
+  return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -152,12 +237,24 @@ const ROL_ADMIN_CLIENTE: OpcionRol = {
     "Administra su propio cliente: crea solicitudes internas, las valida y gestiona usuarios y áreas.",
 };
 
-/** Roles que puede asignar el STAFF de IRStrat a un usuario del cliente. */
+const ROL_AUDITOR: OpcionRol = {
+  value: "auditor",
+  label: "Auditor externo",
+  ayuda:
+    "Despacho que verifica el expediente. Ve todo el cliente en solo lectura, descarga los archivos y deja comentarios. Su actividad queda registrada.",
+};
+
+/**
+ * Roles que puede asignar el STAFF de IRStrat a un usuario del cliente. El
+ * auditor SOLO lo da de alta la firma —nunca el administrador del cliente—:
+ * quién audita a una emisora no lo decide la emisora.
+ */
 export const ROLES_ASIGNABLES_STAFF: readonly OpcionRol[] = [
   ROL_AREA,
   ROL_JEFE_AREA,
   ROL_COORDINADOR,
   ROL_ADMIN_CLIENTE,
+  ROL_AUDITOR,
 ] as const;
 
 /**

@@ -7,7 +7,7 @@ import {
   getPerfilActual,
   esStaff,
   esAdminCliente,
-  puedeEntrarPanel,
+  puedeEscribirEnPanel,
   type PerfilActual,
 } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
@@ -73,7 +73,7 @@ export async function crearUsuario(
   fd: FormData
 ): Promise<AltaUsuarioState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
 
@@ -290,7 +290,7 @@ function puedeAdministrarUsuario(
  */
 export async function regenerarInvitacion(usuarioId: string): Promise<InvitacionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!usuarioId) return { ok: false, error: "Usuario no válido." };
@@ -355,7 +355,7 @@ export async function cambiarActivoUsuario(
   activar: boolean
 ): Promise<ActivoState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!usuarioId) return { ok: false, error: "Usuario no válido." };
@@ -443,7 +443,7 @@ function normalizarNombreArea(bruto: string): string {
 
 export async function crearArea(tenantId: string, nombre: string): Promise<AreaState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   const tenant = await tenantParaAreas(perfil, tenantId);
@@ -504,7 +504,7 @@ export async function crearArea(tenantId: string, nombre: string): Promise<AreaS
  */
 export async function renombrarArea(areaId: string, nombre: string): Promise<AreaState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!areaId) return { ok: false, error: "Área no válida." };
@@ -540,7 +540,7 @@ export async function cambiarActivoArea(
   activar: boolean
 ): Promise<AreaState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!areaId) return { ok: false, error: "Área no válida." };

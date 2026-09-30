@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "build": "next build --turbopack",
-    "dev": "next dev --turbopack",
-    "lint": "eslint",
-    "start": "next start -p ${PORT:-3000}",
     "demo:prospectos": "node scripts/crear-demo-prospecto.mjs",
+    "dev": "next dev --turbopack",
+    "dev:local": "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU next dev --turbopack",
     "e2e:admin-cliente": "node scripts/e2e-admin-cliente.mjs",
+    "e2e:auditor": "node scripts/e2e-rol-auditor.mjs",
+    "e2e:auditor:rutas": "node scripts/e2e-auditor-rutas.mjs",
     "e2e:banner-demo": "node scripts/e2e-banner-demo.mjs",
     "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs",
     "e2e:demo-prospectos": "node scripts/e2e-demo-prospectos.mjs",
@@ -16,6 +17,8 @@
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
     "e2e:vb-area": "node scripts/e2e-vb-area.mjs",
     "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
+    "lint": "eslint",
+    "start": "next start -p ${PORT:-3000}",
     "verify:export": "node scripts/verify-export.mjs"
   },
   "engines": {

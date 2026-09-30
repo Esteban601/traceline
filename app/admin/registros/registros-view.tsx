@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useState, useTransition } from "react";
+import { SoloLecturaProvider, useSoloLectura } from "@/lib/solo-lectura";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/badge";
 import type { Tono } from "@/lib/estados";
@@ -110,9 +111,12 @@ const areaCls =
 export function RegistrosView({
   registros,
   reportes,
+  soloLectura = false,
 }: {
   registros: RegistroFila[];
   reportes: ReporteOpcion[];
+  /** El AUDITOR EXTERNO lee esta pantalla y no captura nada en ella. */
+  soloLectura?: boolean;
 }) {
   const [abrirAlta, setAbrirAlta] = useState(false);
 
@@ -122,6 +126,7 @@ export function RegistrosView({
   }));
 
   return (
+    <SoloLecturaProvider valor={soloLectura}>
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -129,9 +134,11 @@ export function RegistrosView({
             Registros
             <span className="ml-2 text-sm font-normal text-muted">{registros.length}</span>
           </h2>
-          <Button size="sm" onClick={() => setAbrirAlta((v) => !v)} disabled={reportes.length === 0}>
-            {abrirAlta ? "Cerrar" : "Nuevo registro"}
-          </Button>
+          {!soloLectura && (
+            <Button size="sm" onClick={() => setAbrirAlta((v) => !v)} disabled={reportes.length === 0}>
+              {abrirAlta ? "Cerrar" : "Nuevo registro"}
+            </Button>
+          )}
         </div>
 
         {reportes.length === 0 ? (
@@ -149,7 +156,11 @@ export function RegistrosView({
         <EmptyState
           glifo="△"
           titulo="Aún no hay registros de clima"
-          descripcion="Da de alta el primer riesgo u oportunidad con “Nuevo registro”."
+          descripcion={
+            soloLectura
+              ? "Esta emisora todavía no registra riesgos ni oportunidades climáticas."
+              : "Da de alta el primer riesgo u oportunidad con “Nuevo registro”."
+          }
         />
       ) : (
         <div className="space-y-8">
@@ -175,6 +186,7 @@ export function RegistrosView({
         </div>
       )}
     </div>
+    </SoloLecturaProvider>
   );
 }
 
@@ -320,6 +332,7 @@ function CrearRegistroForm({
 // Tarjeta de registro
 // -----------------------------------------------------------------------------
 function RegistroCard({ registro }: { registro: RegistroFila }) {
+  const soloLectura = useSoloLectura();
   const toast = useToast();
   const [editando, setEditando] = useState(false);
   const [capturando, setCapturando] = useState(false);
@@ -368,6 +381,8 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
+          {soloLectura ? null : (
+          <>
           <button
             type="button"
             onClick={() => setEditando((v) => !v)}
@@ -394,6 +409,8 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
               Reactivar
             </button>
           )}
+          </>
+          )}
         </div>
       </div>
 
@@ -407,7 +424,7 @@ function RegistroCard({ registro }: { registro: RegistroFila }) {
           <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">
             Valores por ejercicio
           </h4>
-          {registro.activo && (
+          {registro.activo && !soloLectura && (
             <button
               type="button"
               onClick={() => setCapturando((v) => !v)}

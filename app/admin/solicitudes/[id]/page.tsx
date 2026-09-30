@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import { registrarActividadAuditor } from "@/lib/auditoria";
 import { EstadoBadge, Chip, OrigenBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -93,6 +94,12 @@ export default async function SolicitudStaffPage({
   if (!sol) notFound();
 
   const soyStaff = esStaff(perfil);
+  const soyAuditor = esAuditor(perfil);
+  await registrarActividadAuditor(perfil, {
+    tipo: "vista_solicitud",
+    objetoTipo: "solicitudes",
+    objetoId: id,
+  });
   const origen = sol.origen as OrigenSolicitud;
   const reporteSol = sol.reporte as unknown as {
     id: string;
@@ -557,7 +564,15 @@ export default async function SolicitudStaffPage({
         </div>
       )}
 
-      {/* Acción ahora: lo que requiere el revisor, con su contexto */}
+      {/* Acción ahora: lo que requiere el revisor, con su contexto.
+
+          El AUDITOR EXTERNO no ve esta sección entera. No es que sus controles
+          queden deshabilitados: es que no hay ninguna acción que le corresponda
+          —ni cargar, ni revisar, ni validar— y una sección titulada "Acción
+          ahora" sin acciones se lee como una avería. Lo que él viene a ver
+          —versiones, quién subió, quién validó y cuándo— está más abajo, en el
+          historial, que sí renderiza. */}
+      {soyAuditor ? null : (
       <section className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
         <h2 className="font-display text-lg font-semibold text-ink">Acción ahora</h2>
         <p className="mt-1 text-sm text-muted">
@@ -594,6 +609,7 @@ export default async function SolicitudStaffPage({
           </div>
         </div>
       </section>
+      )}
 
       {/* ===================== SECUNDARIO ===================== */}
       <div className="space-y-8 border-t border-line pt-8">

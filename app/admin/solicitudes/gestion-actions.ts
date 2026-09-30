@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff, puedeEntrarPanel } from "@/lib/data";
+import { getPerfilActual, esStaff, puedeEscribirEnPanel } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { origenDe, puedeEditarOrigen, type OrigenSolicitud } from "@/lib/origen";
 import {
@@ -217,7 +217,7 @@ export async function crearSolicitud(
   fd: FormData
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   // ORIGEN: lo decide QUIÉN crea, nunca el formulario. Del origen depende después
@@ -407,7 +407,7 @@ export async function editarSolicitud(
   fd: FormData
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   const soyStaff = esStaff(perfil);
@@ -621,7 +621,7 @@ export async function asignarRubroTaxonomia(
   rubro: string | null
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
@@ -703,7 +703,7 @@ export async function declararAlcance(
   nota: string | null
 ): Promise<GestionState> {
   const perfil = await getPerfilActual();
-  if (!perfil || !puedeEntrarPanel(perfil)) {
+  if (!perfil || !puedeEscribirEnPanel(perfil)) {
     return { ok: false, error: "Acción reservada al panel de seguimiento." };
   }
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };

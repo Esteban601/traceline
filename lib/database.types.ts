@@ -1336,6 +1336,7 @@ export type Database = {
         | "descarga_evidencia"
         | "descarga_excel"
         | "comentario"
+        | "vista_taxonomia"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1503,6 +1504,7 @@ export const Constants = {
         "descarga_evidencia",
         "descarga_excel",
         "comentario",
+        "vista_taxonomia",
       ],
     },
   },
