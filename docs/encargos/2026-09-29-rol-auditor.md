@@ -196,6 +196,7 @@ bash scripts/despliegue/migrar-remoto.sh staging   # segunda pasada: «staging a
 
 **4. Código.**
 ```sh
+heroku releases -a traceline-staging -n 1   # antes del push: debe ser v28, el destino del rollback
 git push heroku main
 heroku releases -a traceline-staging | head -3
 ```
@@ -219,7 +220,7 @@ tenant CLEPSA. Lo hace una persona, sin comando.
 **Rollback, si algo del 5 o del 6 falla.** El código se revierte y las migraciones se quedan: son aditivas, y
 `main` corre sobre la base migrada (verificado en ensayo).
 ```sh
-heroku rollback -a traceline-staging
+heroku releases:rollback v28 -a traceline-staging
 ```
 
 **8. Cierre.** Registrar el despliegue en la especificación §10. Después:
