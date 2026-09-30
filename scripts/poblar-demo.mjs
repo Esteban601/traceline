@@ -38,6 +38,16 @@ const env = Object.fromEntries(
 );
 
 const URL_SB = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+// El proyecto de ensayo lleva datos reales copiados de staging (especificación
+// §10, «Ensayo de despliegue»). Se rechaza por constante, antes que cualquier
+// otra barrera y aunque su ref aparezca en alguna lista.
+const REF_ENSAYO = "ndodorukqqyzhinahmrm";
+if ([REF_ENSAYO, env.ENSAYO_REF].filter(Boolean).some((r) => URL_SB.includes(r))) {
+  console.error("\n✗ ABORTA: el destino es el proyecto de ensayo. Este script no corre ahí.\n");
+  process.exit(1);
+}
+
 if (!URL_SB.includes(DEV_REF)) {
   console.error(
     `\n✗ ABORTA: la URL de Supabase no es la de traceline-dev (${DEV_REF}).\n` +

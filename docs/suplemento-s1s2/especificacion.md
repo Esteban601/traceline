@@ -1,7 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.7** · 15 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.8** · 30 de septiembre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.7** (antes del primer cambio de esquema en staging desde julio):
+- §10: nueva sección «Ensayo de despliegue». Proyecto `traceline-ensayo` con datos reales copiados de
+  staging, temporal. La copia la ejecuta una persona, y el proyecto queda fuera de `DEV_REFS_AUTORIZADOS`.
 
 **Cambios respecto a 0.6** (al cerrar A5a, con el documento de 40 bloques corrido de extremo a extremo):
 - El generador se reparte en tres vías según de dónde sale el texto —plantilla, perfil, datos— y once bloques
@@ -604,6 +608,34 @@ Verificación tras el release, con la cuenta de CLEPSA: los dos textos en
 pantalla, Word con «Libramiento Elevado de Puebla (CLEPSA)» × 36 y sin rastro de
 «Empresa Demo», PDF de 5 445 827 bytes, dos entradas de bitácora con
 `origen: bucket`, consola limpia. Punto de reversión: `heroku releases:rollback v27`.
+
+### Ensayo de despliegue
+
+Antes de un release que cambia el esquema de staging, el despliegue se ensaya
+entero en una copia. El primero es el del rol auditor (encargo
+`docs/encargos/2026-09-29-rol-auditor.md`, §5.1, en `hotfix/rol-auditor`).
+
+- **Qué es.** Un proyecto Supabase aparte, `traceline-ensayo` (ref
+  `ndodorukqqyzhinahmrm`), donde se restaura staging, se aplican las migraciones
+  del release y se corren los e2e antes de tocar staging.
+- **Lleva datos reales.** La copia trae el schema `public` con sus datos, las
+  filas de `auth.users` y `auth.identities` y los metadatos de `storage.objects`
+  (sin bytes). Eso incluye Grupo Carso y las cuentas reales. En ensayo rigen las
+  mismas reglas que en staging: no se crean datos de demostración ni prospectos,
+  no se cambia el rol de ningún usuario real, y lo que crean los e2e se hace
+  sobre un mockup, nunca sobre Grupo Carso, y se borra al terminar.
+- **Es temporal.** El proyecto se borra tras el despliegue que ensayó. El borrado
+  lo hace una persona desde el dashboard y queda anotado en el registro del
+  despliegue.
+- **La copia la ejecuta una persona.** `scripts/ensayo/copiar-staging.sh` recibe
+  `STAGING_DB_URL` y `ENSAYO_DB_URL` como variables de entorno de esa ejecución.
+  La contraseña de staging no se escribe en ningún archivo ni pasa por Claude
+  Code. El script no imprime URLs y termina comparando conteos tabla por tabla.
+- **Barreras.** Ensayo **no** entra en `DEV_REFS_AUTORIZADOS`. Tiene su variable
+  propia, `ENSAYO_REF` en `.env.local`, que solo lee la barrera de migraciones
+  (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
+  `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
+  de ensayo por constante, aparezca o no en alguna lista.
 
 ### Conflicto pendiente para el merge de `dev/ajustes-sep26`
 
