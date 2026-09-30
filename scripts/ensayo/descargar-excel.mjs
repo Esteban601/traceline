@@ -19,16 +19,35 @@ import { createClient } from "@supabase/supabase-js";
 const BASE = process.env.BASE_URL || "http://localhost:3002";
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const STAFF = { email: "analista@irstrat.example", password: "Demo2025!" };
+// La app de staging es el único destino no local admitido: el paso 5 descarga
+// ahí la línea base y la comprobación después del release.
+const STAGING_APP = "https://traceline-staging-70ce5b369e7c.herokuapp.com";
 
-const [carpeta, ...slugs] = process.argv.slice(2);
+// --credenciales <archivo>: la contraseña del analista sale del archivo que deja
+// scripts/despliegue/rotar-cuentas-seed.mjs (después de rotar ya no es la del
+// seed). No se imprime.
+const argv = process.argv.slice(2);
+const iCred = argv.indexOf("--credenciales");
+let passwordStaff = "Demo2025!";
+if (iCred !== -1) {
+  const archivo = argv[iCred + 1];
+  argv.splice(iCred, 2);
+  passwordStaff = JSON.parse(await fs.readFile(archivo, "utf8"))["analista@irstrat.example"]?.password;
+  if (!passwordStaff) {
+    console.error(`✗ ${archivo} no trae la contraseña de analista@irstrat.example.`);
+    process.exit(2);
+  }
+}
+const STAFF = { email: "analista@irstrat.example", password: passwordStaff };
+
+const [carpeta, ...slugs] = argv;
 if (!carpeta || slugs.length === 0 || !URL_SB || !ANON) {
   console.error("Uso: node scripts/ensayo/descargar-excel.mjs <carpeta> <slug> [<slug> ...]");
   console.error("     con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en el entorno.");
   process.exit(2);
 }
-if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE)) {
-  console.error(`✗ BASE_URL debe ser una app local, no ${BASE}.`);
+if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE) && BASE !== STAGING_APP) {
+  console.error(`✗ BASE_URL debe ser una app local o ${STAGING_APP}, no ${BASE}.`);
   process.exit(2);
 }
 
