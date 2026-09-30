@@ -42,7 +42,26 @@ supabase db push --db-url "$ENSAYO_DB_URL" --yes
 lista="$(supabase migration list --db-url "$ENSAYO_DB_URL")"
 echo "$lista"
 
-# Filas con un lado vacío = local y remoto no coinciden.
-desalineadas=$(echo "$lista" | awk -F'|' 'NF>=3 && $1 ~ /[0-9]/ || NF>=3 && $2 ~ /[0-9]/ { l=$1; r=$2; gsub(/ /,"",l); gsub(/ /,"",r); if (l!=r) n++ } END { print n+0 }')
+# Filas con un lado vacío = local y remoto no coinciden. La CLI 2.109 imprime la
+# lista como JSON; las anteriores, como tabla con «|». Se leen las dos, y una
+# lista de la que no se leyó ninguna fila FALLA: el ensayo del 30/09/2026 mostró
+# que el conteo sobre la tabla daba 0 desalineadas contra una salida JSON, sin
+# haber comparado nada.
+cuenta="$(echo "$lista" | node -e '
+  let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+    let filas = [];
+    const json = s.slice(s.indexOf("{"));
+    try { filas = JSON.parse(json).migrations.map((m) => [m.local ?? "", m.remote ?? ""]); }
+    catch {
+      filas = s.split("\n").map((l) => l.split("|").map((c) => c.trim()))
+        .filter((c) => c.length >= 3 && /^\d+$/.test(c[0] || c[1]));
+    }
+    const mal = filas.filter(([l, r]) => l !== r).length;
+    console.log(`${filas.length} ${mal}`);
+  });')"
+leidas="${cuenta% *}"; desalineadas="${cuenta#* }"
+locales=$(ls "$RAIZ"/supabase/migrations/*.sql | wc -l | tr -d ' ')
+[[ "$leidas" -gt 0 ]] || falla "no se leyó ninguna fila de migration list; no se comparó nada."
+[[ "$leidas" == "$locales" ]] || falla "migration list trae $leidas filas y hay $locales migraciones locales."
 [[ "$desalineadas" == "0" ]] || falla "$desalineadas migraciones no coinciden entre local y ensayo."
-echo "migration list local == ensayo ✓"
+echo "migration list local == ensayo ✓ ($leidas de $locales)"
