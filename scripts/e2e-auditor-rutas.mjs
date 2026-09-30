@@ -43,11 +43,15 @@ const EV_SIN_BYTES =
   "10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000004/indice_rotacion_2025_DEMO.xlsx";
 const CUENTAS = {
   auditor: "auditor.externo@despacho.example",
+  adminIrstrat: "admin@irstrat.example",
   adminCliente: "admin.cliente@empresademo.example",
   staff: "analista@irstrat.example",
 };
 
 const svc = createClient(URL_SB, SERVICE, { auth: { persistSession: false } });
+
+/** Sesión del admin del cliente: se abre en el bloque F y se reutiliza después. */
+let cli = null;
 
 const problemas = [];
 let seccion = "";
@@ -124,9 +128,11 @@ async function ir(page, ruta, esperada) {
     await page
       .waitForURL((u) => u.pathname === esperada, { timeout: 20000 })
       .catch(() => {});
-  } else {
-    await page.waitForLoadState("load", { timeout: 30000 }).catch(() => {});
   }
+  // Siempre se espera a `load`, también cuando se aguardaba una URL: sin esto la
+  // función volvía en `domcontentloaded` y quien leyera `main` a continuación
+  // podía encontrarlo a medio pintar. Costó tres rojos falsos descubrirlo.
+  await page.waitForLoadState("load", { timeout: 30000 }).catch(() => {});
   const u = new URL(page.url());
   const h1 = await page
     .locator("h1")
@@ -334,7 +340,7 @@ async function main() {
   bloque("F · Nada de esto le cambió al ADMIN DEL CLIENTE");
 
   const cliCtx = await nav.newContext();
-  const cli = await cliCtx.newPage();
+  cli = await cliCtx.newPage();
   await entrar(cli, CUENTAS.adminCliente);
   const menuCli = (await cli.locator("nav").first().innerText()).replace(/\s+/g, " ");
   for (const [etq, debe] of [
@@ -378,6 +384,210 @@ async function main() {
   ok(
     descargas.every((f) => !!f.archivo),
     `cada descarga guarda el NOMBRE del archivo (no su ruta en el bucket)`
+  );
+
+
+  // ---------------------------------------------------------------------------
+  bloque("H · El canal del auditor: escribe, y ahí se acaba");
+
+  const detalle = `/admin/solicitudes/${solicitudId}`;
+  await ir(page, detalle);
+  ok(
+    (await page.getByText("Comentarios del auditor").count()) > 0,
+    "el bloque está en el detalle de solicitud"
+  );
+
+  const TEXTO = `Prueba e2e ${Date.now()}: ¿de dónde sale este factor?`;
+  const caja = page.locator('textarea[name="texto"]').first();
+  ok((await caja.count()) > 0, "el auditor tiene caja para comentar");
+  await caja.fill(TEXTO);
+  await page.getByRole("button", { name: "Comentar" }).first().click();
+  await page.waitForTimeout(2500);
+  await ir(page, detalle);
+  ok((await page.getByText(TEXTO).count()) > 0, "su comentario aparece");
+  ok(
+    (await page.getByText("Sin responder").count()) > 0,
+    "nace con estado «Sin responder»"
+  );
+  ok(
+    (await page.locator('textarea[name="respuesta"]').count()) === 0,
+    "al auditor NO se le ofrece responder su propio comentario"
+  );
+  ok(
+    (await page.getByText(/sin responder$/i).count()) === 0 ||
+      (await page.locator("text=/\\d+ sin responder/").count()) === 0,
+    "al auditor NO se le muestra el contador de pendientes"
+  );
+
+  // El bloque también en las tres pantallas de taxonomía.
+  for (const [ruta, etq] of [
+    ["/admin/registros", "registros de clima"],
+    ["/admin/objetivos", "objetivos"],
+    ["/admin/cuestionarios", "cuestionarios"],
+  ]) {
+    await ir(page, ruta);
+    if (ruta === "/admin/cuestionarios") {
+      // Las secciones vienen plegadas: hay que abrir una para ver las preguntas.
+      const acordeon = page.locator("form button[aria-expanded]").first();
+      if (await acordeon.count()) {
+        await acordeon.click();
+        await page.waitForTimeout(500);
+      }
+    }
+    ok(
+      (await page.getByText("Comentarios del auditor").count()) > 0,
+      `el bloque está en ${etq}`
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  bloque("I · Quien responde, y el contador que lo empuja");
+
+  const cliPagina = cli ?? null;
+  const cliente = cliPagina ?? (await (async () => {
+    const c = await (await nav.newContext()).newPage();
+    await entrar(c, CUENTAS.adminCliente);
+    return c;
+  })());
+
+  await ir(cliente, detalle);
+  ok(
+    (await cliente.getByText(TEXTO).count()) > 0,
+    "el admin del cliente ve el comentario del auditor"
+  );
+  const cajaResp = cliente.locator('textarea[name="respuesta"]').first();
+  ok((await cajaResp.count()) > 0, "y sí tiene caja para responder");
+
+  await ir(cliente, "/admin");
+  const contadorAntes = await cliente.locator("text=/sin responder/").count();
+  ok(contadorAntes > 0, "la matriz le avisa de lo que falta por responder");
+
+  await ir(cliente, detalle);
+  await cliente.locator('textarea[name="respuesta"]').first().fill("Respuesta e2e.");
+  await cliente.getByRole("button", { name: "Responder" }).first().click();
+  await cliente.waitForTimeout(2500);
+  await ir(cliente, detalle);
+  ok(
+    (await cliente.getByText("Respondido por").count()) > 0,
+    "tras responder, el estado cambia a «Respondido por …»"
+  );
+
+  await ir(page, detalle);
+  ok(
+    (await page.getByText("Respuesta e2e.").count()) > 0,
+    "el auditor ve la respuesta"
+  );
+
+  await ir(cliente, "/admin");
+  ok(
+    (await cliente.locator("text=/sin responder/").count()) < contadorAntes,
+    "el contador baja al responder"
+  );
+
+  // ---------------------------------------------------------------------------
+  bloque("J · /admin/auditoria: solo el ADMINISTRADOR de IRStrat");
+
+  const adminIrs = await (await nav.newContext()).newPage();
+  await entrar(adminIrs, CUENTAS.adminIrstrat);
+
+  const vistaAdmin = await ir(adminIrs, "/admin/auditoria", "/admin/auditoria");
+  ok(vistaAdmin.url === "/admin/auditoria", `admin de IRStrat entra → «${vistaAdmin.h1}»`);
+
+  const analista = await (await nav.newContext()).newPage();
+  await entrar(analista, CUENTAS.staff);
+  const vistaAnalista = await ir(analista, "/admin/auditoria", "/admin");
+  ok(vistaAnalista.url === "/admin", `el analista rebota → ${vistaAnalista.url}`);
+
+  const vistaCliente = await ir(cliente, "/admin/auditoria", "/admin");
+  ok(vistaCliente.url === "/admin", `el admin del cliente rebota → ${vistaCliente.url}`);
+
+  const vistaAuditor = await ir(page, "/admin/auditoria", "/admin");
+  ok(vistaAuditor.url === "/admin", `el propio auditor rebota → ${vistaAuditor.url}`);
+
+  // Agrupación: el auditor lleva varias vistas idénticas de la matriz seguidas.
+  //
+  // Se afirma con LOCALIZADORES y no leyendo `main` de un tirón: la página llega
+  // por streaming, así que `load` puede dispararse con la línea de tiempo aún
+  // sin pintar. Un `innerText` inmediato daba rojos falsos; un localizador
+  // espera a que el nodo exista, que es lo que de verdad se quiere afirmar.
+  await ir(adminIrs, "/admin/auditoria", "/admin/auditoria");
+  const agrupados = adminIrs.getByText(/×\d+/).first();
+  await agrupados.waitFor({ timeout: 15000 }).catch(() => {});
+  ok(await agrupados.isVisible().catch(() => false), "la línea de tiempo agrupa vistas repetidas (×N)");
+
+  const resumen = adminIrs.getByText(/\d+ tramos? · \d+ actos? registrados?/);
+  await resumen.first().waitFor({ timeout: 15000 }).catch(() => {});
+  const textoResumen = await resumen.first().innerText().catch(() => "");
+  ok(textoResumen !== "", `dice cuántos tramos resumen cuántos actos crudos: «${textoResumen}»`);
+
+  const csvAdmin = await adminIrs.request.get(`${BASE}/admin/auditoria/csv`);
+  ok(csvAdmin.status() === 200, `CSV para el admin de IRStrat → ${csvAdmin.status()}`);
+  const csv = await csvAdmin.text();
+  const renglones = csv.trim().split(/\r?\n/);
+  ok(renglones[0].includes("Auditor"), "el CSV trae encabezado");
+  ok(
+    renglones.length - 1 > 0,
+    `el CSV exporta el registro CRUDO, sin agrupar (${renglones.length - 1} filas)`
+  );
+
+  const csvAnalista = await analista.request.get(`${BASE}/admin/auditoria/csv`);
+  ok(csvAnalista.status() === 403, `CSV para el analista → ${csvAnalista.status()}`);
+  const csvAuditor = await page.request.get(`${BASE}/admin/auditoria/csv`);
+  ok(csvAuditor.status() === 403, `CSV para el auditor → ${csvAuditor.status()}`);
+
+  // El enlace desde Bitácora, solo para el administrador de la firma.
+  await ir(adminIrs, "/admin/bitacora", "/admin/bitacora");
+  const enlaceAct = adminIrs.getByRole("link", { name: "Actividad de auditores" });
+  await enlaceAct.first().waitFor({ timeout: 15000 }).catch(() => {});
+  ok(
+    (await enlaceAct.count()) > 0,
+    "Bitácora le ofrece el enlace al admin de IRStrat"
+  );
+  await ir(analista, "/admin/bitacora", "/admin/bitacora");
+  ok(
+    (await analista.getByRole("link", { name: "Actividad de auditores" }).count()) === 0,
+    "y NO se lo ofrece al analista"
+  );
+  await ir(cliente, "/admin/bitacora", "/admin/bitacora");
+  ok(
+    (await cliente.getByRole("link", { name: "Actividad de auditores" }).count()) === 0,
+    "ni al admin del cliente"
+  );
+
+  // ---------------------------------------------------------------------------
+  bloque("K · Alta de auditores: solo la firma");
+
+  /**
+   * Roles OFRECIDOS por el selector del alta, no texto de la página.
+   *
+   * La distinción costó un rojo: el cuerpo de /admin/usuarios incluye la LISTA
+   * de usuarios, y ahí aparece "Auditor externo" como etiqueta del auditor del
+   * seed —que pertenece a esta emisora— aunque el admin del cliente no pueda
+   * asignar ese rol. Leer el cuerpo medía quién existe; lo que se quiere medir
+   * es qué se puede crear.
+   */
+  async function rolesOfrecidos(pagina) {
+    await ir(pagina, "/admin/usuarios", "/admin/usuarios");
+    const alta = pagina.getByRole("button", { name: /Nuevo usuario/i }).first();
+    await alta.waitFor({ timeout: 15000 }).catch(() => {});
+    if ((await alta.count()) === 0) return null;
+    await alta.click();
+    const select = pagina.locator("#u-rol");
+    await select.waitFor({ timeout: 15000 }).catch(() => {});
+    if ((await select.count()) === 0) return null;
+    return await select.locator("option").allInnerTexts();
+  }
+
+  const rolesStaff = await rolesOfrecidos(analista);
+  ok(
+    Array.isArray(rolesStaff) && rolesStaff.includes("Auditor externo"),
+    `el staff puede asignar «Auditor externo» — ofrece: ${JSON.stringify(rolesStaff)}`
+  );
+
+  const rolesCliente = await rolesOfrecidos(cliente);
+  ok(
+    Array.isArray(rolesCliente) && !rolesCliente.includes("Auditor externo"),
+    `el admin del cliente NO puede asignarlo — ofrece: ${JSON.stringify(rolesCliente)}`
   );
 
   await nav.close();

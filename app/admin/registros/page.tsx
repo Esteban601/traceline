@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requiereStaffOAuditor } from "@/lib/data";
 import { registrarActividadAuditor } from "@/lib/auditoria";
 import {
+  comentariosPorObjeto,
+  puedeResponderAuditor,
+} from "@/lib/comentarios-auditor";
+import { esAuditor } from "@/lib/data";
+import {
   RegistrosView,
   type RegistroFila,
   type ReporteOpcion,
@@ -102,6 +107,15 @@ export default async function RegistrosPage() {
     .filter((r) => r.estado === "activo")
     .map((r) => ({ id: r.id, nombre: r.nombre, ejercicio: r.ejercicio }));
 
+  // Una sola consulta para todas las tarjetas de la pantalla: una por tarjeta
+  // convertiría una vista de lectura en una tormenta de consultas.
+  const comentariosAuditor = await comentariosPorObjeto(
+    "registro_clima",
+    registros.map((x) => x.id)
+  );
+  const soyAuditorAqui = esAuditor(perfilAud);
+  const respondeAuditor = puedeResponderAuditor(perfilAud);
+
   return (
     <div className="space-y-8">
       <header>
@@ -118,7 +132,11 @@ export default async function RegistrosPage() {
         </p>
       </header>
 
-      <RegistrosView registros={registros} reportes={reportesOpc} soloLectura={soloLectura} />
+      <RegistrosView registros={registros} reportes={reportesOpc} soloLectura={soloLectura}
+        comentarios={Object.fromEntries(comentariosAuditor)}
+        puedeComentar={soyAuditorAqui}
+        puedeResponder={respondeAuditor}
+      />
     </div>
   );
 }

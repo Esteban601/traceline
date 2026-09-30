@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import Link from "next/link";
+import { getPerfilActual, esStaff, esAuditor, esAdminIrstrat } from "@/lib/data";
 import type { Rol } from "@/lib/roles";
 import { BitacoraView, type BitacoraFila, type TenantOpc } from "./bitacora-view";
 
@@ -71,9 +72,16 @@ export default async function BitacoraPage() {
     (t) => ({ id: t.id, nombre: t.nombre })
   );
 
+  // La actividad de auditores vive aparte: registra LECTURA, no cambios, y la
+  // ve solo la administración de IRStrat. El enlace está aquí porque es donde
+  // alguien la va a buscar —"¿dónde veo el registro de auditoría?"— y no en el
+  // menú, para no ofrecerle una sección al analista que no puede abrir.
+  const veActividadAuditores = esAdminIrstrat(perfil);
+
   return (
     <div className="space-y-8">
-      <header>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-gold">
           {soyStaff ? "Panel interno IRStrat · Trazabilidad" : "Tu panel · Trazabilidad"}
         </p>
@@ -85,6 +93,15 @@ export default async function BitacoraPage() {
             ? `Registro de auditoría de todo el sistema. Últimos ${LIMITE} eventos; filtra por cliente, entidad y rango de fechas.`
             : `Registro de auditoría de tu organización. Últimos ${LIMITE} eventos; filtra por entidad y rango de fechas.`}
         </p>
+        </div>
+        {veActividadAuditores && (
+          <Link
+            href="/admin/auditoria"
+            className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-ink shadow-soft transition duration-150 hover:border-teal/40 hover:text-teal"
+          >
+            Actividad de auditores
+          </Link>
+        )}
       </header>
 
       <BitacoraView filas={filas} tenants={tenantsOpc} soyStaff={soyStaff} />

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
 import { registrarActividadAuditor } from "@/lib/auditoria";
+import { pendientesSinResponder } from "@/lib/comentarios-auditor";
 import { origenDe, type OrigenSolicitud } from "@/lib/origen";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { KPIS, contarPorBucket, type EstadoSolicitud } from "@/lib/estados";
@@ -148,6 +149,12 @@ export default async function AdminMatrizPage({
 
   const conteos = contarPorBucket(filas.map((f) => f.estado));
 
+  // Comentarios del auditor SIN RESPONDER. La función devuelve 0 para el propio
+  // auditor y para los roles de área, así que el chip de abajo no necesita
+  // preguntar de nuevo quién mira: lo que falta por responder es asunto de quien
+  // responde, y mostrárselo al auditor se leería como una presión.
+  const pendientesAuditor = await pendientesSinResponder(perfil, tenantSel);
+
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -192,6 +199,19 @@ export default async function AdminMatrizPage({
           )}
         </div>
       </header>
+
+      {pendientesAuditor > 0 && (
+        <p className="rounded-card border border-gold/30 bg-gold/5 px-4 py-3 text-sm text-ink">
+          <span className="font-medium">
+            {pendientesAuditor}{" "}
+            {pendientesAuditor === 1
+              ? "comentario del auditor externo sin responder"
+              : "comentarios del auditor externo sin responder"}
+          </span>
+          . Ábrelos desde la solicitud, el registro, el objetivo o el
+          cuestionario donde estén.
+        </p>
+      )}
 
       <section aria-label="Resumen por estado">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

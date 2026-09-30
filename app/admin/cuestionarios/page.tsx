@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requiereStaffOAuditor } from "@/lib/data";
 import { registrarActividadAuditor } from "@/lib/auditoria";
 import {
+  comentariosPorObjeto,
+  puedeResponderAuditor,
+} from "@/lib/comentarios-auditor";
+import { esAuditor } from "@/lib/data";
+import {
   CuestionariosView,
   type RespuestaFila,
   type ReporteOpcion,
@@ -16,6 +21,7 @@ function limpiar(nombre?: string | null): string | null {
 }
 
 type RespRow = {
+  id: string;
   reporte_id: string;
   hoja: string;
   pregunta_orden: number;
@@ -42,10 +48,11 @@ export default async function CuestionariosPage() {
       .order("ejercicio", { ascending: false }),
     db
       .from("cuestionarios_respuestas")
-      .select("reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas"),
+      .select("id, reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas"),
   ]);
 
   const respuestas: RespuestaFila[] = ((resp ?? []) as RespRow[]).map((r) => ({
+    id: r.id,
     reporteId: r.reporte_id,
     hoja: r.hoja,
     orden: r.pregunta_orden,
@@ -59,6 +66,17 @@ export default async function CuestionariosPage() {
   )
     .filter((r) => r.estado === "activo")
     .map((r) => ({ id: r.id, nombre: limpiar(r.nombre) ?? r.nombre, ejercicio: r.ejercicio }));
+
+  // El canal del auditor se ancla a la RESPUESTA, no a la hoja: es lo que el
+  // esquema permite (objeto_id apunta a cuestionarios_respuestas) y además es la
+  // granularidad útil —lo que un auditor cuestiona es una respuesta concreta, no
+  // un cuestionario entero—.
+  const comentariosAuditor = await comentariosPorObjeto(
+    "cuestionario",
+    respuestas.map((r) => r.id)
+  );
+  const soyAuditorAqui = esAuditor(perfilAud);
+  const respondeAuditor = puedeResponderAuditor(perfilAud);
 
   return (
     <div className="space-y-8">
@@ -77,7 +95,11 @@ export default async function CuestionariosPage() {
         </p>
       </header>
 
-      <CuestionariosView respuestas={respuestas} reportes={reportesOpc} soloLectura={soloLectura} />
+      <CuestionariosView respuestas={respuestas} reportes={reportesOpc} soloLectura={soloLectura}
+        comentarios={Object.fromEntries(comentariosAuditor)}
+        puedeComentar={soyAuditorAqui}
+        puedeResponder={respondeAuditor}
+      />
     </div>
   );
 }

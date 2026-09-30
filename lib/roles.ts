@@ -179,6 +179,10 @@ export const RUTAS_SOLO_STAFF: readonly string[] = [
   "/admin/registros",
   "/admin/objetivos",
   "/admin/cuestionarios",
+  // La actividad de auditores la lee SOLO el administrador de IRStrat; la
+  // página lo comprueba otra vez. Aquí queda para que el admin del cliente y el
+  // propio auditor reboten en el middleware, antes de renderizar nada.
+  "/admin/auditoria",
 ] as const;
 
 /**
@@ -191,6 +195,10 @@ export const RUTAS_LECTURA_AUDITOR: readonly string[] = [
   "/admin/registros",
   "/admin/objetivos",
   "/admin/cuestionarios",
+  // La actividad de auditores la lee SOLO el administrador de IRStrat; la
+  // página lo comprueba otra vez. Aquí queda para que el admin del cliente y el
+  // propio auditor reboten en el middleware, antes de renderizar nada.
+  "/admin/auditoria",
 ] as const;
 
 function enAlguna(rutas: readonly string[], pathname: string): boolean {

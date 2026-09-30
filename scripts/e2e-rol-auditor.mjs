@@ -302,6 +302,28 @@ async function main() {
   }).select().single();
   ok(!insRC.error, `comenta un registro de clima${insRC.error ? ` — ${insRC.error.message}` : ""}`);
 
+  // Los otros dos tipos del enum polimórfico: cada rama del trigger que resuelve
+  // el tenant navegando desde el objeto tiene que funcionar, y la única forma de
+  // saberlo es ejercitarlas.
+  const { data: obj } = await staff.from("objetivos").select("id").limit(1).single();
+  const insObj = await aud.from("comentarios_auditor").insert({
+    objeto_tipo: "objetivo", objeto_id: obj.id, tenant_id: TENANT_DEMO,
+    autor_id: AUDITOR_ID, texto: "¿Contra qué línea base se mide esta meta?",
+  }).select().single();
+  ok(!insObj.error, `comenta un objetivo${insObj.error ? ` — ${insObj.error.message}` : ""}`);
+
+  const { data: cues } = await staff.from("cuestionarios_respuestas").select("id").limit(1).single();
+  const insCues = await aud.from("comentarios_auditor").insert({
+    objeto_tipo: "cuestionario", objeto_id: cues.id, tenant_id: TENANT_DEMO,
+    autor_id: AUDITOR_ID, texto: "¿Qué evidencia respalda esta respuesta?",
+  }).select().single();
+  ok(!insCues.error, `comenta una respuesta de cuestionario${insCues.error ? ` — ${insCues.error.message}` : ""}`);
+
+  await niega(aud.from("comentarios_auditor").insert({
+    objeto_tipo: "objetivo", objeto_id: crypto.randomUUID(), tenant_id: TENANT_DEMO,
+    autor_id: AUDITOR_ID, texto: "objetivo que no existe",
+  }).select(), "comentar un objeto INEXISTENTE (lo ataja el trigger, no la FK)");
+
   await niega(aud.from("comentarios_auditor").insert({
     objeto_tipo: "solicitud", objeto_id: OTRO.solicitud, tenant_id: OTRO.tenant,
     autor_id: AUDITOR_ID, texto: "comentario sobre emisora ajena",

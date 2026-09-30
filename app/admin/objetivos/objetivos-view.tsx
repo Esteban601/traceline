@@ -8,6 +8,20 @@ import {
   useTransition,
 } from "react";
 import { SoloLecturaProvider, useSoloLectura } from "@/lib/solo-lectura";
+import { ComentariosAuditor } from "@/components/comentarios-auditor";
+import type { ComentarioAuditor } from "@/lib/comentarios-auditor";
+import { createContext, useContext } from "react";
+
+/**
+ * Canal del auditor para las tarjetas de esta lista. Va por contexto y no por
+ * props por lo mismo que `soloLectura`: la tarjeta está dos niveles abajo y
+ * hilarlo obligaría a tocar cada firma intermedia.
+ */
+const CanalAuditor = createContext<{
+  comentarios: Record<string, ComentarioAuditor[]>;
+  puedeComentar: boolean;
+  puedeResponder: boolean;
+}>({ comentarios: {}, puedeComentar: false, puedeResponder: false });
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/badge";
 import type { Tono } from "@/lib/estados";
@@ -89,11 +103,18 @@ export function ObjetivosView({
   objetivos,
   reportes,
   soloLectura = false,
+  comentarios = {},
+  puedeComentar = false,
+  puedeResponder = false,
 }: {
   objetivos: ObjetivoFila[];
   reportes: ReporteOpcion[];
   /** El AUDITOR EXTERNO lee esta pantalla y no da de alta objetivos. */
   soloLectura?: boolean;
+  /** Comentarios del auditor por id de objeto; RLS decide si llegan vacíos. */
+  comentarios?: Record<string, ComentarioAuditor[]>;
+  puedeComentar?: boolean;
+  puedeResponder?: boolean;
 }) {
   const [abrirAlta, setAbrirAlta] = useState(false);
 
@@ -103,6 +124,7 @@ export function ObjetivosView({
   }));
 
   return (
+    <CanalAuditor.Provider value={{ comentarios, puedeComentar, puedeResponder }}>
     <SoloLecturaProvider valor={soloLectura}>
     <div className="space-y-8">
       <section className="space-y-4">
@@ -168,6 +190,7 @@ export function ObjetivosView({
       )}
     </div>
     </SoloLecturaProvider>
+    </CanalAuditor.Provider>
   );
 }
 
@@ -191,6 +214,7 @@ function ObjetivoCard({
   objetivo: ObjetivoFila;
   reportes: ReporteOpcion[];
 }) {
+  const canal = useContext(CanalAuditor);
   const soloLectura = useSoloLectura();
   const toast = useToast();
   const [editando, setEditando] = useState(false);
@@ -328,6 +352,15 @@ function ObjetivoCard({
           />
         </div>
       )}
+
+      <ComentariosAuditor
+        objetoTipo="objetivo"
+        objetoId={objetivo.id}
+        comentarios={canal.comentarios[objetivo.id] ?? []}
+        puedeComentar={canal.puedeComentar}
+        puedeResponder={canal.puedeResponder}
+        compacto
+      />
 
       <ConfirmDialog
         open={confirmar}

@@ -3,6 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import { ComentariosAuditor } from "@/components/comentarios-auditor";
+import {
+  comentariosDe,
+  puedeResponderAuditor,
+} from "@/lib/comentarios-auditor";
 import { registrarActividadAuditor } from "@/lib/auditoria";
 import { EstadoBadge, Chip, OrigenBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -95,6 +100,10 @@ export default async function SolicitudStaffPage({
 
   const soyStaff = esStaff(perfil);
   const soyAuditor = esAuditor(perfil);
+  // Canal del auditor sobre ESTA solicitud. RLS decide quién ve filas: el
+  // usuario de área recibe cero y el bloque no se monta.
+  const comentariosAuditor = await comentariosDe("solicitud", id);
+  const respondeAuditor = puedeResponderAuditor(perfil);
   await registrarActividadAuditor(perfil, {
     tipo: "vista_solicitud",
     objetoTipo: "solicitudes",
@@ -765,6 +774,18 @@ export default async function SolicitudStaffPage({
           configurados={recordatoriosConfig}
           envios={enviosRecordatorio}
           puedeConfigurar={puedeEditar}
+        />
+
+        {/* Canal del AUDITOR EXTERNO. Va ANTES de la conversación completa y
+            no mezclado con ella: son dos conversaciones con reglas distintas
+            —aquí el auditor pregunta y una sola respuesta cierra el punto— y
+            fundirlas habría obligado a explicar en cada burbuja de quién es. */}
+        <ComentariosAuditor
+          objetoTipo="solicitud"
+          objetoId={sol.id}
+          comentarios={comentariosAuditor}
+          puedeComentar={soyAuditor}
+          puedeResponder={respondeAuditor}
         />
 
         {/* Conversación completa */}
