@@ -97,6 +97,48 @@ hotfix). Staging: solo en el despliegue, con el procedimiento de §7.
 - Paso 4: ensayo del despliegue en la copia de staging. Parada: informe del ensayo.
 - Paso 5: despliegue y alta del auditor de Deloitte.
 
+### 5.1 Guion del paso 4 · ensayo del despliegue
+
+Proyecto `traceline-ensayo` (ref `ndodorukqqyzhinahmrm`). Lleva datos reales copiados de staging, es temporal
+y se borra tras el despliegue (especificación §10, «Ensayo de despliegue»). Cada paso anota su hora de inicio y
+fin en §7.
+
+**Preparación.** `.env.ensayo.local` (ignorado por git) lleva solo `ENSAYO_DB_URL`, con la contraseña de ensayo
+que pega Esteban; si tiene caracteres especiales va codificada en porcentaje. `.env.local` lleva
+`ENSAYO_REF=ndodorukqqyzhinahmrm`, que solo lee `scripts/ensayo/migrar-ensayo.sh`. Ensayo **no** entra en
+`DEV_REFS_AUTORIZADOS`, y `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan su ref por constante.
+Antes de (a), Claude Code valida que `ENSAYO_DB_URL` conecta (`select 1`) y que ensayo no tiene tablas en
+`public`.
+
+a. **Copia.** Esteban ejecuta en su terminal `scripts/ensayo/copiar-staging.sh`, con `STAGING_DB_URL` y
+   `ENSAYO_DB_URL` como variables de esa ejecución: la contraseña de staging no se escribe en ningún archivo ni
+   pasa por Claude Code. El script copia `public` (esquema y datos), `supabase_migrations`, las filas de
+   `auth.users`, `auth.identities`, `storage.buckets` y `storage.objects` (sin bytes) y las políticas de
+   `storage.objects`, sin owners ni privilegios. Termina comparando conteos tabla por tabla, y si alguno difiere
+   sale con código 1. Esteban pega en el chat la tabla de conteos, que no lleva datos.
+b. **Línea base.** Antes de migrar, sobre ensayo: Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso
+   (ruta de descarga del panel como staff), y una instantánea de Grupo Carso (conteos por tabla de su tenant y
+   suma de verificación de sus filas) y de `perfiles_usuario` (id, rol, tenant) de todos los usuarios.
+c. **Migraciones del hotfix, dos veces.** `bash scripts/ensayo/migrar-ensayo.sh` dos veces. La primera aplica
+   las cinco migraciones `20260929*`. La segunda no debe aplicar nada ni fallar. En las dos, `migration list`
+   local == ensayo. `fn_aplicar_barrera_auditor()` devuelve el mismo número de políticas en las dos.
+d. **e2e contra ensayo.** `e2e:auditor` y `e2e:auditor:rutas` con `NEXT_PUBLIC_SUPABASE_URL` y las llaves de
+   ensayo en un subshell (pendiente: cómo llegan las llaves de API de ensayo sin pasar por el chat). Se usa un
+   auditor de utilería creado para la prueba sobre un tenant mockup, **nunca Grupo Carso**. El auditor, sus
+   comentarios, su actividad y los tenants auxiliares del e2e se borran al terminar, y se verifica con conteos
+   que no quedó ninguno.
+e. **Excel idéntico.** Se vuelven a descargar los tres Excel de (b) y se comparan celda por celda (valor, hoja y
+   dirección) con un comparador ExcelJS en `scripts/ensayo/`, no por bytes: un libro regenerado difiere en
+   bytes por las marcas de tiempo. `verify:export` no sirve aquí, porque valida el libro del demo contra sus
+   reglas pero no compara dos libros. La descarga necesita la app local apuntando a ensayo (pendiente, igual que
+   las llaves de (d)).
+f. **Grupo Carso intacto.** La instantánea de (b) repetida coincide, y ningún usuario de `perfiles_usuario`
+   cambió de rol ni de tenant.
+g. **Informe.** Fila en §7 con tiempos por paso, resultados y lo que falló.
+h. **Paso 5 preparado y parada.** PR de `hotfix/rol-auditor` a `main` y lista de comprobaciones del despliegue.
+   Claude Code se detiene ahí: el `git push heroku main` y la aplicación de migraciones en staging los hace
+   Esteban.
+
 ## 6. Riesgos y dudas conocidas
 
 - Primer cambio de esquema en staging desde julio; el ensayo en copia no es opcional.
@@ -116,3 +158,4 @@ hotfix). Staging: solo en el despliegue, con el procedimiento de §7.
 | 2026-09-29 | Encargo escrito con las respuestas de Manuel vía Esteban | Auditor sin bitácora general; sin caducidad, se desactiva; comentarios en bloque propio |
 | 2026-09-29 | Deloitte estuvo en la llamada con CLEPSA y conoce que el tenant es de muestra | La conversión a cliente real sale de este encargo y se hace al kick off como encargo propio |
 | 2026-09-29 | Los comentarios del auditor los atiende staff o el admin del cliente | Sin responsable único; estado de atención por comentario y contador de pendientes en matriz y detalle |
+| 2026-09-30 | Guion del paso 4 escrito (§5.1); proyecto `traceline-ensayo` creado | La contraseña de staging no toca ningún archivo: la copia la ejecuta Esteban con variables de entorno. Ensayo fuera de `DEV_REFS_AUTORIZADOS`; `ENSAYO_REF` propio |
