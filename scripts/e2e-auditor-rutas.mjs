@@ -35,9 +35,13 @@ const SERVICE =
 const PASSWORD = "Demo2025!";
 
 /**
- * Ruta de una evidencia del seed cuyo objeto existe como FILA en storage.objects
- * pero sin bytes detrás (metadata sin `size`). Es la que rompió la revisión de
- * Esteban el 29/09/2026: la de "Índice de rotación voluntaria 2025".
+ * Evidencia sobre la que se prueba la descarga de un archivo AUSENTE.
+ *
+ * La prueba se fabrica su propia avería —borra el objeto del bucket y lo repone
+ * al terminar— en vez de apoyarse en una evidencia rota del seed. Antes se
+ * apoyaba en la de "Índice de rotación voluntaria 2025", que llevaba meses sin
+ * bytes; al arreglar el seed el 30/09/2026 esa prueba se habría puesto verde
+ * sola, afirmando algo que ya no estaba comprobando.
  */
 const EV_SIN_BYTES =
   "10000000-0000-0000-0000-000000000001/c0000000-0000-0000-0000-000000000004/indice_rotacion_2025_DEMO.xlsx";
@@ -291,6 +295,10 @@ async function main() {
     .eq("archivo_path", EV_SIN_BYTES)
     .single();
 
+  // Se le quita el archivo a propósito: es la condición que se quiere probar.
+  const quitado = await dbStaff.storage.from("evidencias").remove([EV_SIN_BYTES]);
+  ok(!quitado.error, "se retira el archivo de una evidencia para probar el caso");
+
   const rota = await page.request.get(`${BASE}/portal/descargar/${sinBytes.id}`);
   const cuerpoRota = await rota.text();
   ok(rota.status() === 404, `evidencia sin archivo → ${rota.status()} (no 307 a una firma inservible)`);
@@ -311,6 +319,13 @@ async function main() {
     descargasDespues === descargasAntes,
     `no se registró la descarga fallida (${descargasAntes} → ${descargasDespues})`
   );
+
+  // Y se repone, para que la base quede como estaba.
+  await dbStaff.storage
+    .from("evidencias")
+    .upload(EV_SIN_BYTES, new Blob(["evidencia repuesta por la prueba"]), {
+      contentType: "text/plain",
+    });
 
   const vitrina = await page.request.get(
     `${BASE}/admin/cobertura/suplemento-demo?reporte=${reporteId}&formato=docx`,
