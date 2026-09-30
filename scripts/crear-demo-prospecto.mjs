@@ -614,6 +614,52 @@ const PROSPECTOS = [
       { re: /productos\/servicios sostenibles/i, area: "Comercial y Atención a Clientes" },
     ],
   },
+  {
+    slug: "rotoplas",
+    nombre: "Rotoplas",
+    prefijo: "ROTO",
+    logo: "rotoplas.png",
+    areas: [
+      "Operaciones y Manufactura",
+      "Cadena de Suministro",
+      "Comercial e Innovación",
+      "Riesgos y Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operaciones y Manufactura",
+      Finanzas: "Finanzas",
+      // En una emisora industrial el expediente del Consejo, la política de
+      // derechos humanos y el apetito de riesgo viven juntos en un área de
+      // riesgos y cumplimiento; no hay una dirección de sostenibilidad aparte.
+      "Gobierno Corporativo": "Riesgos y Cumplimiento",
+      Dirección: "Riesgos y Cumplimiento",
+    },
+    // Soluciones de agua: lo material es la MANUFACTURA de tinacos, tuberías y
+    // equipos —resina, energía de las plantas y la distribución del producto—,
+    // no el consumo de las oficinas. Las plantas se quedan con Alcance 1 y 2;
+    // lo que depende de proveedores y fletes se va a quien los contrata.
+    mueve: [
+      // Compras lleva la resina y los fletes: ahí está el grueso del Alcance 3
+      // de un fabricante de plástico. Sin estas tres, Cadena de Suministro se
+      // quedaría sin una sola solicitud y en el mockup se leería como adorno.
+      { re: /Alcance 3 — total/i, area: "Cadena de Suministro" },
+      { re: /Categoría 1-Bienes y servicios adquiridos/i, area: "Cadena de Suministro" },
+      { re: /Categoría 4-Transporte/i, area: "Cadena de Suministro" },
+      // Lo prospectivo del clima —sequía e inundación sobre las plantas, la
+      // ruta de transición y los escenarios— lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      // El ingreso de soluciones sostenibles (purificación, tratamiento,
+      // captación) lo coloca quien diseña y vende el portafolio.
+      { re: /productos\/servicios sostenibles/i, area: "Comercial e Innovación" },
+      // Las inversiones son de Tesorería, no de la planta.
+      { re: /Categoría 15-Inversiones/i, area: "Finanzas" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
