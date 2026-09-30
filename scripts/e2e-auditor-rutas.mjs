@@ -33,6 +33,16 @@ const SERVICE =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const PASSWORD = "Demo2025!";
+// Contra una copia de staging el auditor es de utilería y lleva contraseña
+// propia, que llega por el entorno del subshell y no se escribe en ningún lado.
+const PASSWORD_AUDITOR = process.env.E2E_PASSWORD_AUDITOR || PASSWORD;
+
+// Todo lo que la prueba toca se acota a la emisora demo del seed. En local es la
+// única con datos; en la copia de staging del ensayo no lo es, y «la primera
+// solicitud» o «la primera evidencia» podían ser de otra emisora —incluida una
+// real—, y la prueba sobrescribe el archivo de la evidencia que elige.
+const TENANT_DEMO = "10000000-0000-0000-0000-000000000001";
+const REPORTE_DEMO = "20000000-0000-0000-0000-000000000001";
 
 /**
  * Evidencia sobre la que se prueba la descarga de un archivo AUSENTE.
@@ -80,7 +90,8 @@ async function esperarStack(segundos = 60) {
   const puntos = [`${URL_SB}/auth/v1/health`, `${URL_SB}/storage/v1/version`];
   for (let i = 0; i < segundos; i++) {
     const listos = await Promise.all(
-      puntos.map((u) => fetch(u).then((r) => r.ok).catch(() => false))
+      // Con apikey: en un proyecto alojado /auth/v1/health la exige (401 sin ella).
+      puntos.map((u) => fetch(u, { headers: { apikey: ANON } }).then((r) => r.ok).catch(() => false))
     );
     if (listos.every(Boolean)) return;
     await new Promise((r) => setTimeout(r, 1000));
@@ -93,7 +104,7 @@ async function esperarStack(segundos = 60) {
 async function entrar(page, email) {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', PASSWORD);
+  await page.fill('input[type="password"]', email === CUENTAS.auditor ? PASSWORD_AUDITOR : PASSWORD);
   await Promise.all([
     // 90 s: la PRIMERA entrada al panel compila todo el árbol de /admin en
     // turbopack, y en frío eso pasa de 20 s con holgura. No es lentitud del
@@ -159,6 +170,7 @@ async function main() {
   const { data: sol } = await svc
     .from("solicitudes")
     .select("id")
+    .eq("reporte_id", REPORTE_DEMO)
     .limit(1)
     .single()
     .then((r) => r, () => ({ data: null }));
@@ -169,8 +181,7 @@ async function main() {
     const href = await staffPage.getAttribute('a[href^="/admin/solicitudes/"]', "href");
     solicitudId = href?.split("/").pop() ?? null;
   }
-  const { data: rep } = await svc.from("reportes").select("id").limit(1).single();
-  const reporteId = rep?.id ?? "";
+  const reporteId = REPORTE_DEMO;
 
   const ctx = await nav.newContext();
   const page = await ctx.newPage();
@@ -256,6 +267,8 @@ async function main() {
   const { data: evFila } = await dbStaff
     .from("evidencias")
     .select("id, archivo_path, nombre_original")
+    .like("archivo_path", `${TENANT_DEMO}/%`)
+    .neq("archivo_path", EV_SIN_BYTES)
     .limit(1)
     .single();
   const puesto = await dbStaff.storage
@@ -473,9 +486,23 @@ async function main() {
   const cajaResp = cliente.locator('textarea[name="respuesta"]').first();
   ok((await cajaResp.count()) > 0, "y sí tiene caja para responder");
 
-  await ir(cliente, "/admin");
-  const contadorAntes = await cliente.locator("text=/sin responder/").count();
-  ok(contadorAntes > 0, "la matriz le avisa de lo que falta por responder");
+  /**
+   * El NÚMERO del aviso de la matriz, no cuántos nodos dicen «sin responder».
+   * El aviso es un solo chip («N comentarios del auditor externo sin
+   * responder»): contar nodos daba 1 antes y 1 después siempre que quedara otro
+   * pendiente —p. ej. los que deja e2e-rol-auditor—, y el rojo era de la prueba.
+   * Sin chip, el número es 0.
+   */
+  async function pendientesEnMatriz(pagina) {
+    await ir(pagina, "/admin");
+    const chip = pagina.locator("text=/\\d+ comentarios? del auditor externo sin responder/").first();
+    await chip.waitFor({ timeout: 10000 }).catch(() => {});
+    if ((await chip.count()) === 0) return 0;
+    return Number((await chip.innerText()).match(/(\d+) comentarios?/)?.[1] ?? NaN);
+  }
+
+  const contadorAntes = await pendientesEnMatriz(cliente);
+  ok(contadorAntes > 0, `la matriz le avisa de lo que falta por responder (${contadorAntes})`);
 
   await ir(cliente, detalle);
   await cliente.locator('textarea[name="respuesta"]').first().fill("Respuesta e2e.");
@@ -493,10 +520,10 @@ async function main() {
     "el auditor ve la respuesta"
   );
 
-  await ir(cliente, "/admin");
+  const contadorDespues = await pendientesEnMatriz(cliente);
   ok(
-    (await cliente.locator("text=/sin responder/").count()) < contadorAntes,
-    "el contador baja al responder"
+    contadorDespues === contadorAntes - 1,
+    `el contador baja al responder (${contadorAntes} → ${contadorDespues})`
   );
 
   // ---------------------------------------------------------------------------

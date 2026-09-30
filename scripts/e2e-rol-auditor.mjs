@@ -37,6 +37,9 @@ const SERVICE =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const PASSWORD = "Demo2025!";
+// Contra una copia de staging el auditor es de utilería y lleva contraseña
+// propia, que llega por el entorno del subshell y no se escribe en ningún lado.
+const PASSWORD_AUDITOR = process.env.E2E_PASSWORD_AUDITOR || PASSWORD;
 const TENANT_DEMO = "10000000-0000-0000-0000-000000000001";
 const REPORTE_DEMO = "20000000-0000-0000-0000-000000000001";
 const AUDITOR_ID = "a0000000-0000-0000-0000-000000000007";
@@ -75,7 +78,8 @@ async function esperarStack(segundos = 60) {
   const puntos = [`${URL_SB}/auth/v1/health`, `${URL_SB}/storage/v1/version`];
   for (let i = 0; i < segundos; i++) {
     const listos = await Promise.all(
-      puntos.map((u) => fetch(u).then((r) => r.ok).catch(() => false))
+      // Con apikey: en un proyecto alojado /auth/v1/health la exige (401 sin ella).
+      puntos.map((u) => fetch(u, { headers: { apikey: ANON } }).then((r) => r.ok).catch(() => false))
     );
     if (listos.every(Boolean)) return;
     await new Promise((r) => setTimeout(r, 1000));
@@ -87,7 +91,8 @@ async function esperarStack(segundos = 60) {
 
 async function sesion(email) {
   const c = createClient(URL, ANON, { auth: { persistSession: false } });
-  const { error } = await c.auth.signInWithPassword({ email, password: PASSWORD });
+  const password = email === CUENTAS.auditor ? PASSWORD_AUDITOR : PASSWORD;
+  const { error } = await c.auth.signInWithPassword({ email, password });
   if (error) throw new Error(`login ${email}: ${error.message}`);
   return c;
 }
@@ -102,8 +107,8 @@ async function niega(res, etiqueta) {
   const r = negado(await res);
   return ok(r.no, `${etiqueta} → ${r.motivo}`);
 }
-async function cuenta(cli, tabla, filtro = (q) => q) {
-  const { count, error } = await filtro(cli.from(tabla).select("*", { count: "exact", head: true }));
+async function cuenta(cli, tabla, filtro = (q) => q, columnas = "*") {
+  const { count, error } = await filtro(cli.from(tabla).select(columnas, { count: "exact", head: true }));
   if (error) return { n: -1, error: error.message };
   return { n: count ?? 0 };
 }
@@ -180,15 +185,26 @@ async function main() {
   ok(solsArea.n > 0 && solsArea.n < solsSvc.n,
      `contraste: el responsable de RH ve ${solsArea.n}/${solsSvc.n} (solo su área) — el filtro por área existe y el auditor lo rebasa por diseño`);
 
+  // La referencia del staff se acota a la emisora demo: en una base con más
+  // emisoras (la copia de staging del ensayo) el staff ve todas y el auditor
+  // solo la suya, y comparar sin acotar daría un rojo falso.
+  const porReporte = (q) => q.eq("reporte_id", REPORTE_DEMO);
+  const porPadre = (padre) => [(q) => q.eq(`${padre}.reporte_id`, REPORTE_DEMO), `${padre}!inner(reporte_id)`];
+
   for (const t of ["evidencias", "capturas_valor", "comentarios"]) {
-    const s = await cuenta(staff, t);
+    const s = await cuenta(staff, t, ...porPadre("solicitudes"));
     const a = await cuenta(aud, t);
     ok(a.n === s.n && s.n > 0, `${t}: auditor ve ${a.n}/${s.n}`);
   }
 
-  for (const t of ["registros_clima", "registros_clima_valores", "objetivos",
-                   "objetivos_detalle", "cuestionarios_respuestas"]) {
-    const s = await cuenta(staff, t);
+  for (const [t, acotar] of [
+    ["registros_clima", [porReporte]],
+    ["registros_clima_valores", porPadre("registros_clima")],
+    ["objetivos", [porReporte]],
+    ["objetivos_detalle", porPadre("objetivos")],
+    ["cuestionarios_respuestas", [porReporte]],
+  ]) {
+    const s = await cuenta(staff, t, ...acotar);
     const a = await cuenta(aud, t);
     ok(a.n === s.n && s.n > 0, `${t}: auditor ve ${a.n}/${s.n} (política nueva)`);
   }
@@ -295,7 +311,8 @@ async function main() {
   const comentarioId = ins.data?.id;
   ok(ins.data?.respondido_en === null, "nace SIN responder");
 
-  const { data: rc } = await staff.from("registros_clima").select("id").limit(1).single();
+  const { data: rc } = await staff.from("registros_clima").select("id")
+    .eq("reporte_id", REPORTE_DEMO).limit(1).single();
   const insRC = await aud.from("comentarios_auditor").insert({
     objeto_tipo: "registro_clima", objeto_id: rc.id, tenant_id: TENANT_DEMO,
     autor_id: AUDITOR_ID, texto: "¿Qué horizonte cubre este riesgo?",
@@ -305,14 +322,16 @@ async function main() {
   // Los otros dos tipos del enum polimórfico: cada rama del trigger que resuelve
   // el tenant navegando desde el objeto tiene que funcionar, y la única forma de
   // saberlo es ejercitarlas.
-  const { data: obj } = await staff.from("objetivos").select("id").limit(1).single();
+  const { data: obj } = await staff.from("objetivos").select("id")
+    .eq("reporte_id", REPORTE_DEMO).limit(1).single();
   const insObj = await aud.from("comentarios_auditor").insert({
     objeto_tipo: "objetivo", objeto_id: obj.id, tenant_id: TENANT_DEMO,
     autor_id: AUDITOR_ID, texto: "¿Contra qué línea base se mide esta meta?",
   }).select().single();
   ok(!insObj.error, `comenta un objetivo${insObj.error ? ` — ${insObj.error.message}` : ""}`);
 
-  const { data: cues } = await staff.from("cuestionarios_respuestas").select("id").limit(1).single();
+  const { data: cues } = await staff.from("cuestionarios_respuestas").select("id")
+    .eq("reporte_id", REPORTE_DEMO).limit(1).single();
   const insCues = await aud.from("comentarios_auditor").insert({
     objeto_tipo: "cuestionario", objeto_id: cues.id, tenant_id: TENANT_DEMO,
     autor_id: AUDITOR_ID, texto: "¿Qué evidencia respalda esta respuesta?",
@@ -344,7 +363,10 @@ async function main() {
     .update({ respuesta: "Del factor SEMARNAT 2024; se anexa la memoria de cálculo." })
     .eq("id", comentarioId).select().single();
   ok(!resp.error, `el admin del cliente responde${resp.error ? ` — ${resp.error.message}` : ""}`);
-  ok(resp.data?.respondido_por === "a0000000-0000-0000-0000-000000000005",
+  // El id del admin del cliente se lee de su sesión: en el seed es fijo, pero en
+  // la copia de staging la cuenta tiene el id con el que se creó allá.
+  const { data: { user: yoCli } } = await adminCli.auth.getUser();
+  ok(!!yoCli && resp.data?.respondido_por === yoCli.id,
      "la base fija respondido_por (no la aplicación)");
   ok(!!resp.data?.respondido_en, "la base fija respondido_en");
 
