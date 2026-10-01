@@ -233,6 +233,36 @@ rm .env.ensayo.local .credenciales-demo/seed-ndodorukqqyzhinahmrm.json
 ```
 Por último, se borra el proyecto `traceline-ensayo` desde el panel de Supabase, porque lleva datos reales.
 
+### 5.3 Despliegue v30 · registro del auditor sin IP (01/10/2026)
+
+Sin rotación, y **con el código antes que la migración**, al revés que en el v29:
+- **El código de v29 contra la base migrada pierde el registro.** v29 escribe la IP, que en Heroku llega en
+  `x-forwarded-for`. El `CHECK (ip IS NULL)` rechaza ese insert, y como `registrarActividadAuditor` falla
+  abierto, la actividad del auditor no se registra.
+- **El orden inverso es limpio.** v30 contra la base sin migrar inserta sin IP, y la columna lo admite.
+
+Lo ejecuta una persona salvo lo que `CLAUDE.md` asigne a Claude Code. La URL de la base se carga con
+`read -rs`.
+```sh
+nvm use 22 && git checkout main && git pull --ff-only origin main && git rev-parse --short HEAD   # el merge del PR #2
+heroku releases -a traceline-staging -n 1                      # v29: destino del rollback
+git push heroku main                                           # Released v30
+heroku releases -a traceline-staging | head -3                 # v30 · Deploy <hash>
+read -rs STAGING_DB_URL && export STAGING_DB_URL
+bash scripts/despliegue/migrar-remoto.sh staging               # 1 pendiente: 20261001120000_auditor_actividad_sin_ip.sql
+bash scripts/despliegue/migrar-remoto.sh staging --aplicar     # 34 de 34 · barrera 69
+bash scripts/despliegue/migrar-remoto.sh staging               # «staging al día y verificado»
+/opt/homebrew/opt/postgresql@17/bin/psql "$STAGING_DB_URL" -X -A -t -c "select count(*) || ' filas · con ip ' || count(ip) from auditor_actividad"; unset STAGING_DB_URL   # con ip 0
+```
+**Comprobaciones posteriores al release** (las puede correr Claude Code, `CLAUDE.md` §1): los tres Excel
+contra `excel-despues` del v29, con `comparar-excel.mjs`, y la vitrina de Banco Base con
+`comprobar-vitrina.mjs`.
+
+**Rollback:**
+- Antes de migrar: `heroku releases:rollback v29 -a traceline-staging`, limpio.
+- Después de migrar: el código vuelve, pero la actividad del auditor no se registra mientras v29 esté
+  arriba. Se corrige hacia adelante.
+
 ## 6. Riesgos y dudas conocidas
 
 - Primer cambio de esquema en staging desde julio; el ensayo en copia no es opcional.
