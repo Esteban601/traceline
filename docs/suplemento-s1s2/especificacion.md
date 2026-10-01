@@ -1,7 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.8** · 30 de septiembre de 2026.
+Especificación para revisión interna. **Versión 0.9** · 1 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.8** (después de los releases v29 y v30 y del merge de `main` en `dev/ajustes-sep26`):
+- §10: registro de los releases v29 (rol auditor) y v30 (registro del auditor sin IP), y el conflicto del
+  merge marcado como resuelto.
 
 **Cambios respecto a 0.7** (antes del primer cambio de esquema en staging desde julio):
 - §10: nueva sección «Ensayo de despliegue». Proyecto `traceline-ensayo` con datos reales copiados de
@@ -609,6 +613,95 @@ pantalla, Word con «Libramiento Elevado de Puebla (CLEPSA)» × 36 y sin rastro
 «Empresa Demo», PDF de 5 445 827 bytes, dos entradas de bitácora con
 `origen: bucket`, consola limpia. Punto de reversión: `heroku releases:rollback v27`.
 
+### staging · release v29 · 30 de septiembre de 2026 · `cc033df`
+
+**El rol auditor**: el primer cambio de esquema en staging desde julio. Viene de
+`hotfix/rol-auditor` por el PR #1 (merge commit `42dcfc3`), más tres commits de
+documentación y herramientas en `main`. Guion y registro completos en el encargo
+`docs/encargos/2026-09-29-rol-auditor.md`, §5.1, §5.2 y §7.
+
+Contenido:
+
+- Rol `auditor`, de solo lectura, con barrera restrictiva
+  `fn_aplicar_barrera_auditor()` (69 políticas) y canal propio de comentarios.
+- `auditor_actividad`, con su pantalla `/admin/auditoria` solo para el
+  administrador de IRStrat.
+- Cinco migraciones `20260929*`, todas aditivas.
+
+Antes de tocar staging se ensayó el despliegue entero en `traceline-ensayo`, con
+este resultado:
+
+- Las migraciones, aplicadas dos veces.
+- `e2e:auditor` 57 ✓ y `e2e:auditor:rutas` 90 ✓, con un auditor de utilería
+  sobre Empresa Demo que se borró al terminar.
+- Los Excel de CLEPSA, Banco Base y Grupo Carso, idénticos celda por celda.
+- Grupo Carso, idéntico en filas y md5, sin ningún rol cambiado.
+- El código de `main` anterior, verificado sobre la base ya migrada.
+
+Orden en staging:
+
+1. Rotación de las **7 cuentas del seed** que entraban con la contraseña versionada.
+2. Línea base.
+3. Migraciones.
+4. `git push heroku main`.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Migraciones | 33 de 33, barrera 69, enum `auditor` presente (verificado por Esteban con psql) |
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso, frente a la línea base | ✓ idénticos celda por celda |
+| Vitrina de Banco Base (Word y PDF) | ✓ 200, `origen: bucket`, Word sin «Empresa Demo» |
+| Instantánea de Grupo Carso (18 tablas + storage, filas y md5) y roles de todos los usuarios | ✓ intacta (Esteban) |
+| Logs de Heroku | ✓ sin errores (Esteban) |
+
+**Fallo de la verificación automática, corregido después.** `migrar-remoto.sh`
+falló en el paso «migration list» con «no se leyó ninguna fila», aunque las
+migraciones sí se aplicaron. La causa: la CLI 2.109 imprime la tabla con los
+valores entre comillas invertidas cuando la ejecuta una persona, y JSON cuando
+la ejecuta un agente. Se corrigió en `8a5a922`.
+
+Punto de reversión: `heroku releases:rollback v28`.
+
+### staging · release v30 · 1 de octubre de 2026 · `56ee50b`
+
+**El registro de actividad del auditor ya no guarda la dirección IP**, por
+protección de datos y a petición del cliente. Viene de `hotfix/auditor-sin-ip`
+por el PR #2 (merge commit `56ee50b`).
+
+- La migración `20261001120000_auditor_actividad_sin_ip` anula las IP ya
+  guardadas y añade `CHECK (ip IS NULL)`. Son dos excepciones aprobadas a la
+  regla de migraciones aditivas, anotadas en el encargo §7. Los respaldos de
+  Supabase conservan las IP hasta que caducan (7 días).
+- La columna no se elimina.
+
+**El código se desplegó antes que la migración, al revés que en v29, y fue a
+propósito.** El código de v29 escribe la IP, y con el `CHECK` puesto ese insert
+falla. Como el registro falla abierto, la actividad del auditor se habría dejado
+de registrar sin que nada se cayera. Ensayado en `traceline-ensayo` con una fila
+de prueba con IP: se aplicó 1 migración, quedaron 34 de 34 y `count(ip)` pasó de
+1 a 0.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Migración (Esteban, en su terminal) | 34 de 34, barrera 69; `auditor_actividad`: 0 filas, 0 con IP |
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso, frente a los del v29 | ✓ idénticos celda por celda, salvo la fecha del pie («30 sep» → «1 oct», 14 celdas por libro; la línea base era del día anterior) |
+| Vitrina de Banco Base (Word y PDF) | ✓ 200, `origen: bucket` |
+
+Lo que no se probó en staging:
+
+- `auditor_actividad` no tenía ninguna fila en staging, así que el registro sin
+  IP no se ha visto en producción. Se verá en la primera sesión de la cuenta de
+  Deloitte.
+- No se repitieron la instantánea de Grupo Carso ni el conteo de errores en los
+  logs.
+
+Punto de reversión: `heroku releases:rollback v29`. Una vez aplicada la
+migración, revertir el código deja de registrar la actividad del auditor
+mientras v29 esté arriba, así que se corrige hacia adelante.
+
 ### Ensayo de despliegue
 
 Antes de un release que cambia el esquema de staging, el despliegue se ensaya
@@ -638,6 +731,14 @@ entero en una copia. El primero es el del rol auditor (encargo
   de ensayo por constante, aparezca o no en alguna lista.
 
 ### Conflicto pendiente para el merge de `dev/ajustes-sep26`
+
+> **Resuelto el 1 de octubre de 2026** en el merge `d3cea13`, como se decidió
+> abajo. Salieron seis conflictos, no siete:
+> - `taxonomia-export-button.tsx` se mezcló solo.
+> - `app/admin/registros/page.tsx` sí conflictuó, solo en los imports.
+> - `package.json` llevaba `jszip` en las dos secciones. Se dejó solo en
+>   `dependencies`, porque la vitrina lo usa en producción y Heroku poda las
+>   `devDependencies`. `pnpm-lock.yaml` se regeneró.
 
 Las dos ramas salieron de `b71a2bf` y tocan siete archivos comunes. Seis se
 resuelven leyendo el diff; el séptimo no, y conviene saberlo antes de abrirlo:
