@@ -25,12 +25,10 @@ set -euo pipefail
 REF_STAGING="ewgnvjtjhvdltvkopptn"
 REF_ENSAYO="ndodorukqqyzhinahmrm"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
+# 01/10/2026 (v30): registro de actividad del auditor sin IP. El del 30/09/2026
+# (v29, rol auditor) fueron las cinco 20260929*.
 ESPERADAS=(
-  20260929120000_rol_auditor_enum.sql
-  20260929130000_rol_auditor.sql
-  20260929140000_comentarios_auditor.sql
-  20260929150000_auditor_actividad.sql
-  20260929160000_actividad_vista_taxonomia.sql
+  20261001120000_auditor_actividad_sin_ip.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
@@ -122,7 +120,7 @@ if [[ ${#PEND[@]} -eq 0 ]]; then
 fi
 printf '  • %s\n' "${PEND[@]}"
 [[ "${PEND[*]}" == "${ESPERADAS[*]}" ]] \
-  || falla "Lo pendiente no es exactamente lo esperado (${#ESPERADAS[@]} migraciones 20260929*). No se aplica nada."
+  || falla "Lo pendiente no es exactamente lo esperado (${#ESPERADAS[@]}: ${ESPERADAS[*]}). No se aplica nada."
 echo "pendientes == esperadas (${#PEND[@]}) ✓"
 
 if [[ "$MODO" != "--aplicar" ]]; then
