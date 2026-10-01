@@ -45,7 +45,10 @@ export function ExportButton({ tenantId = null }: { tenantId?: string | null }) 
   }
 
   return (
-    <Button onClick={exportar} loading={cargando} size="md">
+    // Claro, como el PDF de cobertura y el Excel de taxonomía: los tres son
+    // exportaciones de lo que ya está en pantalla. El oscuro queda para el
+    // Suplemento, que es el entregable y no un volcado.
+    <Button onClick={exportar} loading={cargando} variant="secondary" size="md">
       {!cargando && (
         <svg
           aria-hidden
@@ -61,7 +64,7 @@ export function ExportButton({ tenantId = null }: { tenantId?: string | null }) 
           <path d="M4 20h16" />
         </svg>
       )}
-      {cargando ? "Generando…" : "Exportar matriz de trazabilidad"}
+      {cargando ? "Generando…" : "Matriz de trazabilidad"}
     </Button>
   );
 }

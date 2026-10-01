@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/data";
+import { getPerfilActual, esAuditor } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import {
   comentarioDeclinar,
@@ -32,6 +32,14 @@ async function mover(
 ): Promise<DifusionState> {
   const perfil = await getPerfilActual();
   if (!perfil) return { ok: false, error: "Sesión no válida." };
+  // El AUDITOR EXTERNO no llega aquí por navegación —el panel es su casa y esta
+  // pantalla es del portal—, así que este rechazo existe para el POST forjado.
+  // La base ya lo niega (barrera restrictiva de 20260929130000); lo que agrega
+  // esta línea es que el rechazo llegue como una frase y no como un error de RLS,
+  // y que quede escrito aquí que la exclusión es deliberada y no un descuido.
+  if (esAuditor(perfil)) {
+    return { ok: false, error: "El auditor externo no puede realizar esta acción." };
+  }
 
   const db = await createClient();
 

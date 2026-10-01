@@ -7,6 +7,21 @@ import {
   useState,
   useTransition,
 } from "react";
+import { SoloLecturaProvider, useSoloLectura } from "@/lib/solo-lectura";
+import { ComentariosAuditor } from "@/components/comentarios-auditor";
+import type { ComentarioAuditor } from "@/lib/comentarios-auditor";
+import { createContext, useContext } from "react";
+
+/**
+ * Canal del auditor para las tarjetas de esta lista. Va por contexto y no por
+ * props por lo mismo que `soloLectura`: la tarjeta está dos niveles abajo y
+ * hilarlo obligaría a tocar cada firma intermedia.
+ */
+const CanalAuditor = createContext<{
+  comentarios: Record<string, ComentarioAuditor[]>;
+  puedeComentar: boolean;
+  puedeResponder: boolean;
+}>({ comentarios: {}, puedeComentar: false, puedeResponder: false });
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/badge";
 import type { Tono } from "@/lib/estados";
@@ -87,9 +102,19 @@ const areaCls =
 export function ObjetivosView({
   objetivos,
   reportes,
+  soloLectura = false,
+  comentarios = {},
+  puedeComentar = false,
+  puedeResponder = false,
 }: {
   objetivos: ObjetivoFila[];
   reportes: ReporteOpcion[];
+  /** El AUDITOR EXTERNO lee esta pantalla y no da de alta objetivos. */
+  soloLectura?: boolean;
+  /** Comentarios del auditor por id de objeto; RLS decide si llegan vacíos. */
+  comentarios?: Record<string, ComentarioAuditor[]>;
+  puedeComentar?: boolean;
+  puedeResponder?: boolean;
 }) {
   const [abrirAlta, setAbrirAlta] = useState(false);
 
@@ -99,6 +124,8 @@ export function ObjetivosView({
   }));
 
   return (
+    <CanalAuditor.Provider value={{ comentarios, puedeComentar, puedeResponder }}>
+    <SoloLecturaProvider valor={soloLectura}>
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -106,13 +133,15 @@ export function ObjetivosView({
             Objetivos
             <span className="ml-2 text-sm font-normal text-muted">{objetivos.length}</span>
           </h2>
-          <Button
-            size="sm"
-            onClick={() => setAbrirAlta((v) => !v)}
-            disabled={reportes.length === 0}
-          >
-            {abrirAlta ? "Cerrar" : "Nuevo objetivo"}
-          </Button>
+          {!soloLectura && (
+            <Button
+              size="sm"
+              onClick={() => setAbrirAlta((v) => !v)}
+              disabled={reportes.length === 0}
+            >
+              {abrirAlta ? "Cerrar" : "Nuevo objetivo"}
+            </Button>
+          )}
         </div>
 
         {reportes.length === 0 ? (
@@ -130,7 +159,11 @@ export function ObjetivosView({
         <EmptyState
           glifo="◎"
           titulo="Aún no hay objetivos"
-          descripcion="Da de alta el primer objetivo climático o de sostenibilidad con “Nuevo objetivo”."
+          descripcion={
+            soloLectura
+              ? "Esta emisora todavía no declara objetivos climáticos ni de sostenibilidad."
+              : "Da de alta el primer objetivo climático o de sostenibilidad con “Nuevo objetivo”."
+          }
         />
       ) : (
         <div className="space-y-8">
@@ -156,6 +189,8 @@ export function ObjetivosView({
         </div>
       )}
     </div>
+    </SoloLecturaProvider>
+    </CanalAuditor.Provider>
   );
 }
 
@@ -179,6 +214,8 @@ function ObjetivoCard({
   objetivo: ObjetivoFila;
   reportes: ReporteOpcion[];
 }) {
+  const canal = useContext(CanalAuditor);
+  const soloLectura = useSoloLectura();
   const toast = useToast();
   const [editando, setEditando] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
@@ -237,6 +274,8 @@ function ObjetivoCard({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
+          {soloLectura ? null : (
+          <>
           <button
             type="button"
             onClick={() => setEditando((v) => !v)}
@@ -262,6 +301,8 @@ function ObjetivoCard({
             >
               Reactivar
             </button>
+          )}
+          </>
           )}
         </div>
       </div>
@@ -311,6 +352,15 @@ function ObjetivoCard({
           />
         </div>
       )}
+
+      <ComentariosAuditor
+        objetoTipo="objetivo"
+        objetoId={objetivo.id}
+        comentarios={canal.comentarios[objetivo.id] ?? []}
+        puedeComentar={canal.puedeComentar}
+        puedeResponder={canal.puedeResponder}
+        compacto
+      />
 
       <ConfirmDialog
         open={confirmar}

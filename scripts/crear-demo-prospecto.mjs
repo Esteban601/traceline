@@ -846,6 +846,16 @@ function leerEnvLocal() {
 const env = { ...leerEnvLocal(), ...process.env };
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
 
+// El proyecto de ensayo lleva datos reales copiados de staging (especificación
+// §10, «Ensayo de despliegue»). Se rechaza por constante, no por lista: aunque
+// su ref aparezca en DEV_REFS_AUTORIZADOS o se confirme con DEMO_TARGET_OK.
+const REF_ENSAYO = "ndodorukqqyzhinahmrm";
+const refsEnsayo = [REF_ENSAYO, env.ENSAYO_REF].filter(Boolean);
+if (refsEnsayo.some((r) => (SUPABASE_URL ?? "").includes(r))) {
+  console.error("\n❌ El destino es el proyecto de ensayo. Este script no corre ahí.\n");
+  process.exit(2);
+}
+
 /**
  * Nombre corto del destino: `local`, o la referencia del proyecto de Supabase.
  * Las mismas cuentas existen en local y en staging con contraseñas DISTINTAS

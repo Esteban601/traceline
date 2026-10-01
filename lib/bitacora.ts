@@ -79,6 +79,8 @@ export type AccionEvento =
   | "suplemento_bloque_generado"
   | "suplemento_documento_abierto"
   | "suplemento_documento_estado"
+  // Descarga del Suplemento de vitrina del tenant de demostración.
+  | "suplemento_demo_descargado"
   | "tenant_creado"
   | "tenant_desactivado"
   | "tenant_reactivado"

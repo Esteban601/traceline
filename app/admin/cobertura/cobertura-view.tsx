@@ -18,7 +18,6 @@ import {
 import { Anillo, AnillosStyle } from "@/components/ui/anillo";
 import { ExportButton } from "./export-button";
 import { TaxonomiaExportButton } from "./taxonomia-export-button";
-import { SuplementoButton } from "./suplemento-button";
 
 /** Estados en los que el valor de la solicitud ya entró como validado. */
 const VALIDADA: ReadonlySet<EstadoSolicitud> = new Set<EstadoSolicitud>([
@@ -59,6 +58,7 @@ export function CoberturaView({
   reporteId = null,
   soyStaff = true,
   informe,
+  suplemento,
 }: {
   datapoints: DatapointCobertura[];
   /** Selectores de cliente y reporte, inyectados desde el servidor. */
@@ -70,8 +70,16 @@ export function CoberturaView({
   reporteId?: string | null;
   /** false = administrador del cliente: es SU cobertura, no la de la firma. */
   soyStaff?: boolean;
-  /** Botón "Exportar PDF" (abre el informe para imprimir), inyectado desde el servidor. */
+  /** Botón "PDF de cobertura" (abre el informe para imprimir), inyectado desde el servidor. */
   informe?: React.ReactNode;
+  /**
+   * Botones del Suplemento S1 y S2, inyectados desde el servidor: la entrada al
+   * semáforo del generador y, en emisoras de demostración, la vitrina. Llegan ya
+   * resueltos —o no llegan— porque quién puede verlos depende del rol (el
+   * auditor no ve ninguno) y de `tenants.es_demo`, que son datos del servidor:
+   * decidirlo aquí obligaría a mandar las banderas al cliente.
+   */
+  suplemento?: React.ReactNode;
 }) {
   // La extensión GRI se aparta ANTES de cualquier cálculo: los KPIs, los anillos
   // y el universo son de la norma NIIF. Si los 4 datapoints GRI entraran al
@@ -182,7 +190,7 @@ export function CoberturaView({
           {selector}
           {informe}
           <TaxonomiaExportButton reporteId={reporteId} />
-          <SuplementoButton reporteId={reporteId} />
+          {suplemento}
           <ExportButton tenantId={tenantId} />
         </div>
       </header>

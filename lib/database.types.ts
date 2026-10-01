@@ -74,6 +74,60 @@ export type Database = {
           },
         ]
       }
+      auditor_actividad: {
+        Row: {
+          archivo: string | null
+          auditor_id: string
+          created_at: string
+          id: string
+          ip: unknown
+          navegador: string | null
+          objeto_id: string | null
+          objeto_tipo: string | null
+          tenant_id: string
+          tipo: Database["public"]["Enums"]["tipo_actividad_auditor"]
+        }
+        Insert: {
+          archivo?: string | null
+          auditor_id: string
+          created_at?: string
+          id?: string
+          ip?: unknown
+          navegador?: string | null
+          objeto_id?: string | null
+          objeto_tipo?: string | null
+          tenant_id: string
+          tipo: Database["public"]["Enums"]["tipo_actividad_auditor"]
+        }
+        Update: {
+          archivo?: string | null
+          auditor_id?: string
+          created_at?: string
+          id?: string
+          ip?: unknown
+          navegador?: string | null
+          objeto_id?: string | null
+          objeto_tipo?: string | null
+          tenant_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_actividad_auditor"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditor_actividad_auditor_id_fkey"
+            columns: ["auditor_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditor_actividad_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bitacora: {
         Row: {
           accion: string
@@ -221,6 +275,67 @@ export type Database = {
             columns: ["solicitud_id"]
             isOneToOne: false
             referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comentarios_auditor: {
+        Row: {
+          autor_id: string
+          created_at: string
+          id: string
+          objeto_id: string
+          objeto_tipo: Database["public"]["Enums"]["objeto_comentario_auditor"]
+          respondido_en: string | null
+          respondido_por: string | null
+          respuesta: string | null
+          tenant_id: string
+          texto: string
+        }
+        Insert: {
+          autor_id: string
+          created_at?: string
+          id?: string
+          objeto_id: string
+          objeto_tipo: Database["public"]["Enums"]["objeto_comentario_auditor"]
+          respondido_en?: string | null
+          respondido_por?: string | null
+          respuesta?: string | null
+          tenant_id: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string
+          created_at?: string
+          id?: string
+          objeto_id?: string
+          objeto_tipo?: Database["public"]["Enums"]["objeto_comentario_auditor"]
+          respondido_en?: string | null
+          respondido_por?: string | null
+          respuesta?: string | null
+          tenant_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_auditor_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comentarios_auditor_respondido_por_fkey"
+            columns: ["respondido_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comentarios_auditor_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1500,6 +1615,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_aplicar_barrera_auditor: { Args: never; Returns: number }
       fn_current_area: { Args: never; Returns: string }
       fn_current_rol: {
         Args: never
@@ -1513,6 +1629,8 @@ export type Database = {
         Returns: boolean
       }
       fn_is_admin_cliente: { Args: never; Returns: boolean }
+      fn_is_admin_irstrat: { Args: never; Returns: boolean }
+      fn_is_auditor: { Args: never; Returns: boolean }
       fn_is_staff: { Args: never; Returns: boolean }
       fn_log_correo: {
         Args: {
@@ -1567,6 +1685,11 @@ export type Database = {
         | "validado"
         | "congelado"
       norma_niif: "S1" | "S2"
+      objeto_comentario_auditor:
+        | "solicitud"
+        | "registro_clima"
+        | "objetivo"
+        | "cuestionario"
       origen_solicitud: "irstrat" | "cliente"
       pilar_niif: "gobernanza" | "estrategia" | "riesgos" | "metricas"
       rol_usuario:
@@ -1576,6 +1699,17 @@ export type Database = {
         | "admin"
         | "admin_cliente"
         | "jefe_area"
+        | "auditor"
+      tipo_actividad_auditor:
+        | "inicio_sesion"
+        | "vista_matriz"
+        | "vista_cobertura"
+        | "vista_solicitud"
+        | "vista_evidencia"
+        | "descarga_evidencia"
+        | "descarga_excel"
+        | "comentario"
+        | "vista_taxonomia"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1717,6 +1851,12 @@ export const Constants = {
         "congelado",
       ],
       norma_niif: ["S1", "S2"],
+      objeto_comentario_auditor: [
+        "solicitud",
+        "registro_clima",
+        "objetivo",
+        "cuestionario",
+      ],
       origen_solicitud: ["irstrat", "cliente"],
       pilar_niif: ["gobernanza", "estrategia", "riesgos", "metricas"],
       rol_usuario: [
@@ -1726,6 +1866,18 @@ export const Constants = {
         "admin",
         "admin_cliente",
         "jefe_area",
+        "auditor",
+      ],
+      tipo_actividad_auditor: [
+        "inicio_sesion",
+        "vista_matriz",
+        "vista_cobertura",
+        "vista_solicitud",
+        "vista_evidencia",
+        "descarga_evidencia",
+        "descarga_excel",
+        "comentario",
+        "vista_taxonomia",
       ],
     },
   },

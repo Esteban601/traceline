@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, esStaff } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
 import { esAdminCliente, rolesAsignablesPor, type OpcionRol, type Rol, puedeAsignarRol } from "@/lib/roles";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import {
@@ -19,6 +20,11 @@ export default async function UsuariosPage({
 }) {
   const perfil = await getPerfilActual();
   if (!perfil) return null; // el layout ya protege
+
+  // El AUDITOR EXTERNO no tiene nada que hacer aquí. Su menú no lo ofrece; esto
+  // es para la URL tecleada, que es la única forma de llegar. La base también lo
+  // niega —no administra usuarios ni áreas—, así que el rebote es cortesía, no barrera.
+  if (esAuditor(perfil)) redirect("/admin");
 
   // El administrador del cliente gestiona SU equipo: RLS acota tenants, perfiles
   // y áreas a su tenant, así que aquí solo cambia lo que se le ofrece.

@@ -1,6 +1,17 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useMemo, useState } from "react";
+import { createContext, useContext } from "react";
+import { SoloLecturaProvider, useSoloLectura } from "@/lib/solo-lectura";
+import { ComentariosAuditor } from "@/components/comentarios-auditor";
+import type { ComentarioAuditor } from "@/lib/comentarios-auditor";
+
+/** Canal del auditor, por contexto: el fieldset está tres niveles abajo. */
+const CanalAuditor = createContext<{
+  comentarios: Record<string, ComentarioAuditor[]>;
+  puedeComentar: boolean;
+  puedeResponder: boolean;
+}>({ comentarios: {}, puedeComentar: false, puedeResponder: false });
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
@@ -15,6 +26,7 @@ import {
 import { guardarSeccion, type CuestionarioState } from "./actions";
 
 export type RespuestaFila = {
+  id: string;
   reporteId: string;
   hoja: string;
   orden: number;
@@ -38,9 +50,19 @@ const areaCls =
 export function CuestionariosView({
   respuestas,
   reportes,
+  soloLectura = false,
+  comentarios = {},
+  puedeComentar = false,
+  puedeResponder = false,
 }: {
   respuestas: RespuestaFila[];
   reportes: ReporteOpcion[];
+  /** El AUDITOR EXTERNO lee las respuestas; no las captura ni las corrige. */
+  soloLectura?: boolean;
+  /** Comentarios del auditor por id de RESPUESTA. */
+  comentarios?: Record<string, ComentarioAuditor[]>;
+  puedeComentar?: boolean;
+  puedeResponder?: boolean;
 }) {
   const [reporteId, setReporteId] = useState(reportes[0]?.id ?? "");
 
@@ -55,6 +77,8 @@ export function CuestionariosView({
   }
 
   return (
+    <CanalAuditor.Provider value={{ comentarios, puedeComentar, puedeResponder }}>
+    <SoloLecturaProvider valor={soloLectura}>
     <div className="space-y-8">
       {reportes.length > 1 && (
         <div className="max-w-md">
@@ -89,6 +113,8 @@ export function CuestionariosView({
         ))}
       </div>
     </div>
+    </SoloLecturaProvider>
+    </CanalAuditor.Provider>
   );
 }
 
@@ -119,6 +145,7 @@ function SeccionForm({
   respuestas: RespuestaFila[];
 }) {
   const toast = useToast();
+  const soloLectura = useSoloLectura();
   const [abierta, setAbierta] = useState(false);
   const [state, dispatch, pending] = useActionState(guardarSeccion, initial);
   // El reporte seleccionado forma parte de la identidad de los datos: al cambiarlo
@@ -206,14 +233,20 @@ function SeccionForm({
               pregunta={p}
               campos={c}
               set={set}
+              respuestaId={
+                respuestas.find((r) => r.hoja === seccion.hoja && r.orden === p.orden)?.id ??
+                null
+              }
             />
           ))}
 
-          <div className="flex justify-end border-t border-line pt-5">
-            <Button type="submit" loading={pending}>
-              Guardar sección
-            </Button>
-          </div>
+          {soloLectura ? null : (
+            <div className="flex justify-end border-t border-line pt-5">
+              <Button type="submit" loading={pending}>
+                Guardar sección
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </form>
@@ -228,12 +261,22 @@ function PreguntaFieldset({
   pregunta: p,
   campos: c,
   set,
+  respuestaId,
 }: {
   seccion: SeccionCuestionario;
   pregunta: PreguntaCuestionario;
   campos: Campos;
   set: (k: string, v: string) => void;
+  /**
+   * Id de la fila de `cuestionarios_respuestas` de esta pregunta, o null si
+   * todavía no se ha respondido. Sin fila no hay a qué colgar un comentario: el
+   * trigger de la base rechaza un objeto inexistente, y ofrecer el formulario
+   * sería prometer algo que la base va a negar.
+   */
+  respuestaId: string | null;
 }) {
+  const canal = useContext(CanalAuditor);
+  const soloLectura = useSoloLectura();
   const rKey = `r_${p.orden}`;
   const valor = c[rKey] ?? "";
   return (
@@ -246,6 +289,13 @@ function PreguntaFieldset({
           {p.inciso}
         </span>
       </legend>
+
+      {/* Los campos de la respuesta se apagan en modo lectura, pero el bloque de
+          comentarios de abajo NO: el auditor lee el cuestionario y comenta sobre
+          él. Antes el apagado envolvía la sección entera y habría dejado inerte
+          el formulario del propio auditor. `display:contents` para que el
+          fieldset no altere la retícula. */}
+      <fieldset disabled={soloLectura} className="contents">
 
       {/* Respuesta — control por tipo de dato oficial */}
       {p.control === "texto" && (
@@ -309,6 +359,18 @@ function PreguntaFieldset({
           />
         </div>
       </div>
+      </fieldset>
+
+      {respuestaId && (
+        <ComentariosAuditor
+          objetoTipo="cuestionario"
+          objetoId={respuestaId}
+          comentarios={canal.comentarios[respuestaId] ?? []}
+          puedeComentar={canal.puedeComentar}
+          puedeResponder={canal.puedeResponder}
+          compacto
+        />
+      )}
     </fieldset>
   );
 }
