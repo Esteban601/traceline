@@ -149,7 +149,6 @@ export default async function AuditoriaPage({
                       ? ` – ${fmtFechaHora(t.createdAt)}`
                       : ""}
                   </time>
-                  {t.ip && <span className="tabular-nums">{t.ip}</span>}
                 </div>
               </li>
             ))}

@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
     "Tipo de objeto",
     "Id del objeto",
     "Archivo",
-    "IP",
     "Navegador",
   ];
 
@@ -60,7 +59,6 @@ export async function GET(req: NextRequest) {
         campo(a.objetoTipo),
         campo(a.objetoId),
         campo(a.archivo),
-        campo(a.ip),
         campo(a.navegador),
       ].join(";")
     ),

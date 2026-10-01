@@ -48,11 +48,10 @@ export async function registrarActividadAuditor(
 
   try {
     const h = await headers();
-    // Detrás de Heroku la IP del cliente viene en x-forwarded-for, y el primer
-    // elemento es el origen: los siguientes son los proxies del camino.
-    const reenviada = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-    const ip = reenviada || h.get("x-real-ip") || null;
-
+    // La IP NO se registra (decisión del 01/10/2026, protección de datos a
+    // petición del cliente; encargo rol auditor §7). La columna `ip` sigue en la
+    // tabla por la regla de migraciones aditivas, y un CHECK (ip IS NULL) hace
+    // que la base rechace cualquier valor: no añadirla aquí.
     const { error } = await createAdminClient().from("auditor_actividad").insert({
       tenant_id: perfil.tenant_id,
       auditor_id: perfil.id,
@@ -60,9 +59,6 @@ export async function registrarActividadAuditor(
       objeto_tipo: evento.objetoTipo ?? null,
       objeto_id: evento.objetoId ?? null,
       archivo: evento.archivo ?? null,
-      // `inet` rechaza en la base lo que no sea una dirección; un valor raro del
-      // encabezado se descarta aquí antes que hacer fallar el insert entero.
-      ip: ip && /^[0-9a-fA-F:.]+$/.test(ip) ? ip : null,
       navegador: h.get("user-agent")?.slice(0, 500) ?? null,
     });
     if (error) {

@@ -388,8 +388,16 @@ async function main() {
 
   await svc.from("auditor_actividad").insert({
     tenant_id: TENANT_DEMO, auditor_id: AUDITOR_ID, tipo: "vista_matriz",
-    ip: "187.190.0.1", navegador: "e2e",
+    navegador: "e2e",
   }).throwOnError();
+
+  // La IP no se registra (01/10/2026, protección de datos): la base la rechaza
+  // aunque quien escriba sea service_role, que es quien escribe este registro.
+  const conIp = await svc.from("auditor_actividad").insert({
+    tenant_id: TENANT_DEMO, auditor_id: AUDITOR_ID, tipo: "vista_matriz",
+    ip: "187.190.0.1", navegador: "e2e",
+  }).select();
+  ok(!!conIp.error, `una fila CON ip se rechaza en la base → ${conIp.error ? conIp.error.message.slice(0, 72) : "PASÓ — hueco"}`);
 
   const actAdm = await cuenta(adminIrs, "auditor_actividad");
   const actAna = await cuenta(analista, "auditor_actividad");

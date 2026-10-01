@@ -402,10 +402,12 @@ async function main() {
   }
   ok((porTipo["vista_taxonomia"] ?? 0) >= 3, `las tres pantallas de taxonomía: ${porTipo["vista_taxonomia"] ?? 0}`);
 
+  // La IP no se registra desde el 01/10/2026 (protección de datos, a petición
+  // del cliente): ninguna fila la trae, venga o no x-forwarded-for.
   const conIp = (filas ?? []).filter((f) => f.ip).length;
   const conUA = (filas ?? []).filter((f) => f.navegador).length;
   ok(conUA === (filas?.length ?? 0), `todas traen navegador (${conUA}/${filas?.length ?? 0})`);
-  console.log(`  (IP presente en ${conIp}/${filas?.length ?? 0}; en local el proxy no manda x-forwarded-for)`);
+  ok(conIp === 0, `ninguna trae IP (${conIp}/${filas?.length ?? 0})`);
 
   const descargas = (filas ?? []).filter((f) => f.tipo === "descarga_evidencia");
   ok(descargas.length > 0, `descargas de evidencia registradas: ${descargas.length}`);
@@ -567,6 +569,7 @@ async function main() {
   const csv = await csvAdmin.text();
   const renglones = csv.trim().split(/\r?\n/);
   ok(renglones[0].includes("Auditor"), "el CSV trae encabezado");
+  ok(!renglones[0].split(";").includes("IP"), "el CSV ya no trae columna IP");
   ok(
     renglones.length - 1 > 0,
     `el CSV exporta el registro CRUDO, sin agrupar (${renglones.length - 1} filas)`
