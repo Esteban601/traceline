@@ -27,7 +27,6 @@ export type Actividad = {
   objetoTipo: string | null;
   objetoId: string | null;
   archivo: string | null;
-  ip: string | null;
   navegador: string | null;
   createdAt: string;
 };
@@ -119,7 +118,8 @@ export async function leerActividad(
 
   let q = db
     .from("auditor_actividad")
-    .select("id, tenant_id, auditor_id, tipo, objeto_tipo, objeto_id, archivo, ip, navegador, created_at")
+    // Sin `ip`: no se registra desde el 01/10/2026 (encargo rol auditor §7).
+    .select("id, tenant_id, auditor_id, tipo, objeto_tipo, objeto_id, archivo, navegador, created_at")
     .order("created_at", { ascending: false })
     .limit(limite);
 
@@ -163,9 +163,6 @@ export async function leerActividad(
     objetoTipo: f.objeto_tipo,
     objetoId: f.objeto_id,
     archivo: f.archivo,
-    // `inet` llega como `unknown` en los tipos generados (Postgres no lo mapea
-    // a un escalar de TypeScript); en runtime es la dirección en texto.
-    ip: f.ip == null ? null : String(f.ip),
     navegador: f.navegador,
     createdAt: f.created_at,
   }));
