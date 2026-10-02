@@ -17,6 +17,7 @@
     "e2e:difusion": "node scripts/e2e-difusion.mjs",
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
     "e2e:vb-area": "node scripts/e2e-vb-area.mjs",
+    "e2e:vitrina": "node scripts/e2e-vitrina.mjs",
     "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
     "verify:export": "node scripts/verify-export.mjs",
     "seed:catalogo": "node scripts/regenerar-seed-catalogo.mjs",

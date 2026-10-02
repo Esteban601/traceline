@@ -1583,6 +1583,7 @@ export type Database = {
           prefijo_folio: string
           slug: string
           staff_puede_cargar: boolean
+          vitrina_habilitada: boolean
         }
         Insert: {
           activo?: boolean
@@ -1595,6 +1596,7 @@ export type Database = {
           prefijo_folio: string
           slug: string
           staff_puede_cargar?: boolean
+          vitrina_habilitada?: boolean
         }
         Update: {
           activo?: boolean
@@ -1607,6 +1609,7 @@ export type Database = {
           prefijo_folio?: string
           slug?: string
           staff_puede_cargar?: boolean
+          vitrina_habilitada?: boolean
         }
         Relationships: []
       }

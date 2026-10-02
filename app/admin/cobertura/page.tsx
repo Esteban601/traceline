@@ -142,7 +142,12 @@ export default async function CoberturaPage({
         soyAuditor ? null : (
           <Fragment key="suplemento">
             <SuplementoButton reporteId={datos.reporteSel} />
-            {tenantDelReporte?.es_demo && reporteSel ? (
+            {/* La vitrina, solo si esa emisora la tiene encendida: un mockup
+                puede apagarla (`tenants.vitrina_habilitada`), y la ruta la niega
+                igual. El enlace al semáforo de arriba no depende de esto. */}
+            {tenantDelReporte?.es_demo &&
+            tenantDelReporte.vitrina_habilitada &&
+            reporteSel ? (
               <SuplementoVitrinaButton
                 reporteId={reporteSel.id}
                 ejercicio={reporteSel.ejercicio}

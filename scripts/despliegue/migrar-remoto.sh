@@ -25,10 +25,10 @@ set -euo pipefail
 REF_STAGING="ewgnvjtjhvdltvkopptn"
 REF_ENSAYO="ndodorukqqyzhinahmrm"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# 01/10/2026 (v30): registro de actividad del auditor sin IP. El del 30/09/2026
-# (v29, rol auditor) fueron las cinco 20260929*.
+# v31 (encargo mockup AINDA, Fase 0): vitrina por tenant. Anteriores: v30,
+# 20261001120000_auditor_actividad_sin_ip; v29, las cinco 20260929*.
 ESPERADAS=(
-  20261001120000_auditor_actividad_sin_ip.sql
+  20261001140000_tenants_vitrina_habilitada.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
