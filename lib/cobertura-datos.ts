@@ -26,6 +26,8 @@ export type TenantOpcion = {
   logo_url: string | null;
   prefijo_folio: string;
   es_demo: boolean;
+  /** Vitrina del Suplemento encendida; solo cuenta con es_demo. */
+  vitrina_habilitada: boolean;
 };
 export type ReporteOpcion = {
   id: string;
@@ -79,7 +81,7 @@ export async function cargarCobertura(
     cargarDiscrepancias(db),
     db
       .from("tenants")
-      .select("id, nombre, logo_url, prefijo_folio, es_demo")
+      .select("id, nombre, logo_url, prefijo_folio, es_demo, vitrina_habilitada")
       .order("nombre", { ascending: true }),
     db
       .from("reportes")

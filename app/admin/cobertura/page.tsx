@@ -133,7 +133,12 @@ export default async function CoberturaPage({
       // botón no se inyecte es además lo único que hay que hacer, porque el slot
       // se resuelve aquí, en el servidor.
       suplemento={
-        !soyAuditor && tenantDelReporte?.es_demo && reporteSel ? (
+        // Y solo si la vitrina de esa emisora está encendida: un mockup puede
+        // apagarla (`tenants.vitrina_habilitada`), y la ruta la niega igual.
+        !soyAuditor &&
+        tenantDelReporte?.es_demo &&
+        tenantDelReporte.vitrina_habilitada &&
+        reporteSel ? (
           <SuplementoButton
             key="suplemento"
             reporteId={reporteSel.id}
