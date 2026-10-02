@@ -94,7 +94,8 @@ const REGLAS = [
   [/^\s+áreas: (.+)$/, (m) => `  áreas: ${m[1]}`],
   [
     // Línea de credencial: correo y rol por grupos; de la cola solo si ya existía.
-    /^\s{6}([a-z0-9.]+@[a-z0-9.-]+\.example)\s+(cliente|jefe_area|admin_cliente)\s+(\(ya existía)?/,
+    // `auditor` desde el mockup de AINDA (`auditor: true` en la entrada).
+    /^\s{6}([a-z0-9.]+@[a-z0-9.-]+\.example)\s+(cliente|jefe_area|admin_cliente|auditor)\s+(\(ya existía)?/,
     (m) => `  cuenta: ${m[1]} · ${m[2]} · ${m[3] ? "ya existía" : "nueva"}`,
   ],
   [/^✅ (Listo[^\n]*)$/, (m) => `fin: ${m[1]}`],

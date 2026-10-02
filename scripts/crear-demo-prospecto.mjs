@@ -953,7 +953,19 @@ const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
 // El rol `admin` de IRStrat, no `analista`: marcar un tenant como de
 // demostración es acción de administrador (trg_tenant_es_demo).
 const ADMIN_EMAIL = env.ADMIN_EMAIL || "admin@irstrat.example";
-const ADMIN_PASSWORD = env.ADMIN_PASSWORD || "Demo2025!";
+// SIN valor por defecto. La contraseña del seed dejó de servir en staging al
+// rotarse las cuentas del seed (despliegue v29, 30/09/2026), y un default que en
+// un destino entra y en otro no esconde de qué cuenta se trata. Se pasa en el
+// entorno de la ejecución —en local, la del seed; en staging, la de
+// .credenciales-demo/seed-<ref>.json leída dentro del subshell— y no se imprime.
+const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error(
+    `\n❌ Falta ADMIN_PASSWORD (la de ${ADMIN_EMAIL} en este destino). Pásala en el entorno\n` +
+      "   de la ejecución; el script ya no asume la contraseña del seed.\n"
+  );
+  process.exit(2);
+}
 
 const args = process.argv.slice(2);
 const REHACER = args.includes("--rehacer");
