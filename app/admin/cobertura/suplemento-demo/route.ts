@@ -101,7 +101,7 @@ export async function GET(req: Request) {
   // indistinguible de que no exista, y así debe seguir siendo.
   const { data: reporte } = await db
     .from("reportes")
-    .select("id, ejercicio, tenant_id, tenants(slug, nombre, es_demo)")
+    .select("id, ejercicio, tenant_id, tenants(slug, nombre, es_demo, vitrina_habilitada)")
     .eq("id", reporteId)
     .maybeSingle();
 
@@ -113,6 +113,7 @@ export async function GET(req: Request) {
     slug: string | null;
     nombre: string;
     es_demo: boolean;
+    vitrina_habilitada: boolean;
   } | null;
 
   // El botón solo se pinta para emisoras de demostración, pero la puerta no
@@ -128,6 +129,14 @@ export async function GET(req: Request) {
   const admin = esAdminCliente(perfil) && perfil.tenant_id === reporte.tenant_id;
   if (!staff && !admin) {
     return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
+  }
+
+  // Vitrina APAGADA para este mockup (`tenants.vitrina_habilitada`): 404, antes
+  // de leer el archivo y antes de la bitácora. No es un permiso que falte, es
+  // un documento que para esta emisora no existe; y una descarga que no se
+  // sirvió no debe quedar anotada como hecha.
+  if (!tenant.vitrina_habilitada) {
+    return NextResponse.json({ error: "Sin vitrina para esta emisora." }, { status: 404 });
   }
 
   const archivo = ARCHIVOS[formato];
