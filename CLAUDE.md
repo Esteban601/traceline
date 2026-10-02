@@ -1,6 +1,17 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.5 · 1 de octubre de 2026.
+Versión 1.6 · 1 de octubre de 2026.
+
+**Cambios respecto a 1.5** (1 de octubre de 2026, decisión de Esteban como dueño del repositorio):
+- §1 y §9: Esteban puede autorizar por chat que Claude Code ejecute el merge de un PR ya revisado, el push a
+  Heroku y las comprobaciones posteriores al release. Las migraciones contra staging las sigue ejecutando una
+  persona, porque requieren la contraseña de la base. Los demás colaboradores siguen el guion de persona-ejecuta.
+- §2: el autor puede mezclar su propio PR cuando el asesor lo revisó y Esteban lo aprobó por chat, dejando
+  constancia en el PR.
+- Ajustes de coherencia con lo anterior:
+  - §1, la viñeta de Heroku;
+  - §2, «Nunca a `heroku`», que pasa a «a `heroku` solo según §9»;
+  - §7, la prohibición de desplegar desde una sesión de Claude Code, que pasa a remitir a §9.
 
 Este archivo lo lee Claude Code al arrancar en este repositorio. Aplica a cualquier persona y a cualquier
 sesión. Las reglas de aquí prevalecen sobre la memoria local de cada máquina. Si algo de este archivo
@@ -26,9 +37,14 @@ después el código.
 - **Nunca `supabase db reset` contra un proyecto remoto.** Solo contra el stack local.
 - **Nada apunta a staging** salvo `.env.staging.local`, que solo existe en la máquina de Esteban y se usa en
   subshell para el script de prospectos y para los pasos del despliegue escritos en el encargo en curso
-  (p. ej. §5.2 del encargo rol auditor). Esos pasos los ejecuta Esteban en su terminal, salvo las
-  comprobaciones posteriores al release (solo lectura y descargas), que según §9 puede correr Claude Code.
-- Heroku no despliega solo: solo `git push heroku main` manual, y solo Esteban lo ejecuta.
+  (p. ej. §5.2 del encargo rol auditor). Esos pasos los ejecuta Esteban en su terminal, salvo lo que §9 permite
+  a Claude Code.
+- Heroku no despliega solo: solo `git push heroku main` manual. Lo ejecuta Esteban o, con su autorización por
+  chat, Claude Code (§9).
+- Esteban, como dueño del repositorio, puede autorizar por chat que Claude Code ejecute el merge de un PR ya
+  revisado, el push a Heroku y las comprobaciones posteriores al release. Las migraciones contra staging las
+  ejecuta siempre una persona, porque requieren la contraseña de la base. Los demás colaboradores siguen el
+  guion de persona-ejecuta.
 - El demo se reproduce en cualquier proyecto dev con `supabase db push` + `seed.sql` + `scripts/poblar-demo.mjs`
   (idempotente, aborta si la URL no contiene un ref de dev autorizado).
 
@@ -40,11 +56,13 @@ después el código.
   Esteban los revisa Quique y los de Quique los revisa Esteban; quien revisa, mezcla. Si el otro revisor no
   está disponible, el autor pide la revisión al asesor con el resumen del PR y mezcla él mismo dejando
   constancia en el PR.
+- El autor puede mezclar su propio PR cuando el asesor lo revisó y Esteban lo aprobó por chat, dejando
+  constancia en el PR.
 - Instrucciones operativas puntuales (una corrección, un renombre, una verificación) pueden ir directo a
   `dev/ajustes-sep26` en commits pequeños; lo que constituye un encargo (alcance, entregable, definición de
   terminado) va por rama y PR.
 - Commits pequeños y por tema, mensajes en español con prefijo (`feat`, `fix`, `docs`, `chore`, `refactor`).
-- Push a `origin` al terminar cada bloque de trabajo. **Nunca `--force`.** Nunca a `heroku`.
+- Push a `origin` al terminar cada bloque de trabajo. **Nunca `--force`.** A `heroku`, solo según §9.
 - No se commitean: `.env*` (salvo los `.example`), `normas/`, `referencia/`, `logos-demo/`,
   `.credenciales-demo/`, `assets/vitrina/*.pdf`. Verificar con `git check-ignore` antes de copiar material ahí.
 
@@ -118,8 +136,8 @@ después el código.
 - Cada reporte de trabajo termina con: qué se hizo, qué se verificó y cómo, qué decisiones se tomaron sin
   preguntar, y qué queda pendiente. Los errores propios se reportan explícitamente, incluidos los que ya se
   corrigieron.
-- No se despliega a staging, no se crean repositorios, no se crean cuentas ni se cambian contraseñas de
-  usuarios reales desde una sesión de Claude Code. Eso lo hace una persona.
+- Desde una sesión de Claude Code no se despliega a staging salvo lo que permite §9, no se crean repositorios,
+  no se crean cuentas ni se cambian contraseñas de usuarios reales. Eso lo hace una persona.
 
 ## 8. Encargos
 
@@ -137,3 +155,8 @@ Claude Code prepara el despliegue (verificación de la rama, fast-forward a `mai
 comprobaciones) y se detiene. El `git push heroku main` lo ejecuta una persona. Después del release, Claude
 Code puede correr las verificaciones en staging (solo lectura y descargas) y proponer el rollback si algo
 falla; el rollback también lo ejecuta una persona. Cada despliegue se registra en la especificación §10.
+
+Esteban, como dueño del repositorio, puede autorizar por chat que Claude Code ejecute el merge de un PR ya
+revisado, el push a Heroku y las comprobaciones posteriores al release. Las migraciones contra staging las
+ejecuta siempre una persona, porque requieren la contraseña de la base. Los demás colaboradores siguen el guion
+de persona-ejecuta.
