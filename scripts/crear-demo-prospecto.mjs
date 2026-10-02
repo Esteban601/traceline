@@ -660,6 +660,56 @@ const PROSPECTOS = [
       { re: /Categoría 15-Inversiones/i, area: "Finanzas" },
     ],
   },
+  {
+    // Administrador de fondos de capital privado de energía e infraestructura
+    // (CKD AINDACK 18A). Encargo docs/encargos/2026-10-01-mockup-ainda.md.
+    slug: "ainda",
+    nombre: "AINDA Energía & Infraestructura",
+    // AIND y no AINDA: el formato de folio es ^[A-Z]{3,4}$ y no se amplía por
+    // un mockup (encargo §7).
+    prefijo: "AIND",
+    logo: "ainda.png",
+    // Un administrador de fondos no tiene un informe de emisora que enseñar con
+    // la vitrina del Suplemento: se apaga. Y lleva un auditor externo, para que
+    // el prospecto vea el aseguramiento desde dentro.
+    vitrina: false,
+    auditor: true,
+    areas: [
+      "Inversiones y Portafolio",
+      "Gestión de Activos",
+      "Riesgos y Cumplimiento",
+      "Relación con Inversionistas",
+      "Recursos Humanos",
+      "Finanzas y Administración",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      // Lo operativo de un fondo de infraestructura es la operación de los
+      // activos en cartera: plantas, carreteras, líneas.
+      Operaciones: "Gestión de Activos",
+      Finanzas: "Finanzas y Administración",
+      "Gobierno Corporativo": "Riesgos y Cumplimiento",
+      // Hacia los inversionistas —LPs, tenedores del CKD— habla la dirección.
+      Dirección: "Relación con Inversionistas",
+    },
+    mueve: [
+      // En un fondo, el Alcance 3 que importa son las emisiones FINANCIADAS
+      // (Categoría 15): se arman desde la cartera, igual que el ingreso de
+      // activos sostenibles. Sin estas tres, Inversiones y Portafolio quedaría
+      // vacía.
+      { re: /Alcance 3 — total/i, area: "Inversiones y Portafolio" },
+      { re: /Categoría 15-Inversiones/i, area: "Inversiones y Portafolio" },
+      { re: /productos\/servicios sostenibles/i, area: "Inversiones y Portafolio" },
+      // Lo prospectivo del clima sobre la cartera lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Efectos financieros de riesgos climáticos/i, area: "Finanzas y Administración" },
+      // El Comité Técnico del CKD y su composición se reportan a los tenedores.
+      { re: /Composición y responsabilidades del Consejo/i, area: "Relación con Inversionistas" },
+      { re: /Competencias del Consejo/i, area: "Relación con Inversionistas" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
@@ -1081,6 +1131,28 @@ async function limpiar({ db, admin }, p) {
     );
   }
 
+  // Un mockup con auditor (`auditor: true`) deja rastro que NO se borra desde la
+  // aplicación: comentarios_auditor y auditor_actividad son append-only y sus
+  // llaves al tenant y al perfil son `on delete restrict`. Sin esta guarda el
+  // retiro fallaba a la mitad —reportes y archivos ya borrados, el tenant no—.
+  // Se comprueba ANTES de tocar nada; retirarlo exige decidir qué pasa con ese
+  // registro de auditoría, y esa decisión no la toma el script.
+  const rastro = [];
+  for (const tabla of ["comentarios_auditor", "auditor_actividad"]) {
+    const { count, error } = await db
+      .from(tabla)
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id);
+    if (error) throw new Error(`no se pudo revisar ${tabla} de ${p.slug}: ${error.message}`);
+    if (count) rastro.push(`${tabla}: ${count}`);
+  }
+  if (rastro.length) {
+    throw new Error(
+      `${p.slug} tiene registro de auditoría (${rastro.join(", ")}). No se borra nada: ` +
+        "ese registro es append-only y retirarlo es una decisión, no un paso del script."
+    );
+  }
+
   const { data: reportes } = await db.from("reportes").select("id").eq("tenant_id", tenant.id);
   for (const r of reportes ?? []) {
     const { data: sols } = await db.from("solicitudes").select("id").eq("reporte_id", r.id);
@@ -1129,10 +1201,13 @@ async function limpiar({ db, admin }, p) {
 // -----------------------------------------------------------------------------
 async function asegurarTenant({ db, admin, staffId }, p) {
   const nuevo = [];
+  // `vitrina: false` en la entrada apaga la vitrina del Suplemento para este
+  // mockup (`tenants.vitrina_habilitada`); sin la clave, queda encendida.
+  const vitrina = p.vitrina !== false;
 
   let { data: tenant } = await db
     .from("tenants")
-    .select("id, nombre, es_demo, logo_url")
+    .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
     .eq("slug", p.slug)
     .maybeSingle();
 
@@ -1150,8 +1225,9 @@ async function asegurarTenant({ db, admin, staffId }, p) {
         // Apagado: en el mockup la evidencia la carga el área desde su portal,
         // que es lo que el prospecto va a ver hacer a su gente.
         staff_puede_cargar: false,
+        vitrina_habilitada: vitrina,
       })
-      .select("id, nombre, es_demo, logo_url")
+      .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
       .single();
     if (error) throw new Error(`tenant ${p.slug}: ${error.message}`);
     tenant = data;
@@ -1175,6 +1251,15 @@ async function asegurarTenant({ db, admin, staffId }, p) {
       `${p.slug} existe y NO está marcado como demostración. No se toca: ` +
         "un mockup no puede convivir con un cliente real en el mismo slug."
     );
+  } else if (tenant.vitrina_habilitada !== vitrina) {
+    // Idempotente también aquí: la entrada manda. Se alinea y se anota.
+    const { error } = await db
+      .from("tenants")
+      .update({ vitrina_habilitada: vitrina })
+      .eq("id", tenant.id);
+    if (error) throw new Error(`vitrina de ${p.slug}: ${error.message}`);
+    tenant.vitrina_habilitada = vitrina;
+    nuevo.push(`vitrina ${vitrina ? "encendida" : "apagada"}`);
   }
 
   // Áreas: solo las que falten (el catálogo puede haberse editado a mano).
@@ -1272,6 +1357,17 @@ function plantillaUsuarios(p, areaDelJefe) {
     rol: "admin_cliente",
     area: null,
   });
+  // `auditor: true`: un auditor externo de utilería sobre el mockup, para que el
+  // prospecto vea el rol de aseguramiento desde dentro (solo lectura, comenta,
+  // descarga). Sin área: el auditor ve el tenant entero.
+  if (p.auditor) {
+    cuentas.push({
+      email: `auditor@${p.slug}.example`,
+      nombre: `Auditoría externa · ${p.nombre}`,
+      rol: "auditor",
+      area: null,
+    });
+  }
   return cuentas;
 }
 
