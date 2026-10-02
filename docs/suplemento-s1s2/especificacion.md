@@ -6,6 +6,8 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 **Cambios respecto a 0.8** (después de los releases v29 y v30 y del merge de `main` en `dev/ajustes-sep26`):
 - §10: registro de los releases v29 (rol auditor) y v30 (registro del auditor sin IP), y el conflicto del
   merge marcado como resuelto.
+- §10: punto a resolver antes del merge de `dev` a `main`: 17 migraciones de `dev`, y la reparación de la
+  barrera, son más antiguas que las de staging. Se resuelve con `--include-all` o renumerando (01/10/2026).
 
 **Cambios respecto a 0.7** (antes del primer cambio de esquema en staging desde julio):
 - §10: nueva sección «Ensayo de despliegue». Proyecto `traceline-ensayo` con datos reales copiados de
@@ -729,6 +731,28 @@ entero en una copia. El primero es el del rol auditor (encargo
   (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
+
+### Punto a resolver antes del merge de `dev/ajustes-sep26` a `main`: orden de migraciones
+
+Anotado el 1 de octubre de 2026. **Hoy no se toca**; es un riesgo conocido, no un fallo presente.
+
+- **El problema.** `dev` lleva **17 migraciones de septiembre** (`20260910120000` a `20260921120000`) que son más
+  antiguas que todo lo que ya está aplicado en staging:
+  - las `20260929*` de v29;
+  - `20261001120000` de v30;
+  - `20261001140000` de v31, si se despliega antes.
+
+  Lo mismo pasa con `20261001130000_barrera_auditor_reparacion`, que vive solo en `dev` y queda por debajo de
+  `20261001140000`.
+- **Qué falla y por qué.** `scripts/despliegue/migrar-remoto.sh` corre `supabase db push` sin `--include-all` a
+  propósito, para que una migración vieja no se aplique fuera de orden sin que nadie lo decida. Así que ese
+  despliegue va a fallar en la revisión.
+- **Cómo se resuelve**, antes de ese merge y con un ensayo en una copia de staging:
+  - **`--include-all`, deliberado.** Hay que confirmar que ninguna de las 17 dependa de algo que las `20260929*`
+    cambiaron.
+  - **Renumerar**: darles timestamps posteriores al último de staging. Antes hay que comprobar que ningún proyecto
+    dev las tenga ya aplicadas con su número actual; el de Esteban sí las tiene.
+- **Detalle:** en el encargo `docs/encargos/2026-10-01-mockup-ainda.md` §6.
 
 ### Conflicto pendiente para el merge de `dev/ajustes-sep26`
 
