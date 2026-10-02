@@ -1,6 +1,6 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.4 · 30 de septiembre de 2026.
+Versión 1.5 · 1 de octubre de 2026.
 
 Este archivo lo lee Claude Code al arrancar en este repositorio. Aplica a cualquier persona y a cualquier
 sesión. Las reglas de aquí prevalecen sobre la memoria local de cada máquina. Si algo de este archivo
@@ -99,6 +99,11 @@ después el código.
 - De un log que contenga credenciales no se imprime ninguna línea; solo conteos y nombres de cuenta mediante
   un extractor de lista blanca de campos (`scripts/` tiene uno).
 - Si una credencial aparece en pantalla por error: se reporta de inmediato y se rota. No se discute.
+- **Inspeccionar un archivo que contiene credenciales** (Excel de accesos, JSON de `.credenciales-demo/`, logs de
+  corridas): solo se imprimen nombres de hoja, encabezados y conteos. Nunca valores de muestra de una columna,
+  aunque se crea que no es la de contraseñas: primero se localiza la fila de encabezados y se identifica la
+  columna por su etiqueta, y las comparaciones se hacen en código imprimiendo solo el resultado (iguales/distintas,
+  cuántas). Origen: incidente del 1 de octubre de 2026 (encargo mockup AINDA §7).
 
 ## 7. Forma de trabajar
 
