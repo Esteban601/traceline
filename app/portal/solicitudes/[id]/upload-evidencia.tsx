@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { fmtDiaLargo } from "@/lib/fechas";
 import type { EstadoSolicitud } from "@/lib/estados";
+import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
 
 const initial: SubirState = { ok: false, error: null };
 
@@ -129,6 +130,13 @@ export function UploadEvidencia({
   }
 
   function elegirArchivo(f: File | null) {
+    // Más de 25 MB no se sube: se dice aquí, sin mandar nada al servidor.
+    if (f && excedeLimite(f.size)) {
+      setFile(null);
+      if (inputRef.current) inputRef.current.value = "";
+      setLocalError(MENSAJE_ARCHIVO_GRANDE);
+      return;
+    }
     setLocalError(null);
     setFile(f);
   }

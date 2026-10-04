@@ -7,6 +7,8 @@
 // se agrega una librería solo para él (decisión del Paso 0).
 // =============================================================================
 
+import { BYTES_MAX_EVIDENCIA } from "./limite-subida";
+
 export type TipoLectura = "excel" | "csv" | "pdf" | "word" | "imagen" | "otro";
 
 /** Formato de imagen que se manda a visión (HEIC/HEIF se convierte antes). */
@@ -17,8 +19,8 @@ export type Clasificacion =
   | { tipo: "imagen"; soportado: true; formato: FormatoImagen }
   | { tipo: TipoLectura; soportado: false; mensaje: string };
 
-/** Límite del encargo §2: más allá, no se lee. Se valida también al firmar la subida. */
-export const BYTES_MAX = 25 * 1024 * 1024;
+/** Límite del encargo §2: más allá, no se lee. Es el mismo de la subida (limite-subida.ts), no una copia. */
+export const BYTES_MAX = BYTES_MAX_EVIDENCIA;
 /** Límite del encargo §2: se leen las primeras 60 páginas y se avisa. */
 export const PAGINAS_MAX = 60;
 /** Tope de celdas con valor que se guardan de un libro de Excel. */
