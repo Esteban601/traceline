@@ -24,6 +24,8 @@ import {
 import type { Rol } from "@/lib/roles";
 import { AccionesStaff } from "./acciones-staff";
 import { CargaPanel } from "./carga-panel";
+import { SugerenciaBloque } from "@/components/sugerencia-bloque";
+import { cargarSugerencia } from "@/lib/evidencias/sugerencia-vista";
 import { EliminarSolicitud } from "./eliminar-solicitud";
 import { Timeline, type EventoBitacora } from "./timeline";
 import { MarcasVerificacion } from "@/components/marcas-verificacion";
@@ -328,6 +330,13 @@ export default async function SolicitudStaffPage({
   // cliente retire solicitudes (ni las suyas).
   const puedeEliminar = soyStaff && puedeEliminarSolicitud(estado, evs.length > 0);
   const ultimaEv = evs[0] ?? null;
+  // Sugerencia de la plataforma sobre la evidencia más reciente (captura
+  // sugerida). Con la sesión del usuario: el auditor la ve y no decide.
+  const bloqueSugerencia = await cargarSugerencia(
+    supabase,
+    { id: sol.id, unidad_esperada: sol.unidad_esperada },
+    ultimaEv ? { id: ultimaEv.id, nombre_original: ultimaEv.nombre_original } : null
+  );
   // Cifra vigente: la confirmada más reciente; si ninguna, la última capturada.
   const capVigente = caps.find((c) => c.confirmado) ?? caps[0] ?? null;
   const ultimaObs = [...coms].reverse().find((c) => c.es_observacion) ?? null;
@@ -592,6 +601,7 @@ export default async function SolicitudStaffPage({
         <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0 space-y-4">
             {contexto}
+            <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
             {/* Carga de evidencia desde el panel. Para el administrador del
                 cliente siempre está; para el staff, solo si el cliente tiene el
                 toggle encendido — apagado se muestra en gris y bloqueada. */}
@@ -683,6 +693,14 @@ export default async function SolicitudStaffPage({
                       </p>
                     </div>
                   )}
+                  {/* El auditor no ve «Acción ahora», donde vive el bloque para
+                      quien decide: aquí lo ve bajo la versión vigente, sin
+                      botones (puedeDecidir es false para él). */}
+                  {soyAuditor && i === 0 && bloqueSugerencia.sugerencia ? (
+                    <div className="mt-4">
+                      <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

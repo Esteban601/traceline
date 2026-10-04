@@ -24,6 +24,8 @@ export type SolicitudResumen = {
   declinada: boolean;
   /** Quien difundió retiró esta copia. */
   desactivada: boolean;
+  /** Tiene una sugerencia de la plataforma que este usuario puede decidir. */
+  pendiente_decision?: boolean;
 };
 
 function ordenar(a: SolicitudResumen, b: SolicitudResumen) {
@@ -122,6 +124,11 @@ export function ListaSolicitudes({
                     <h3 className="truncate font-medium text-ink transition duration-150 group-hover:text-teal">
                       {s.titulo}
                     </h3>
+                    {s.pendiente_decision && (
+                      <span className="shrink-0 whitespace-nowrap rounded-pill border border-teal/25 bg-teal/10 px-2 py-0.5 text-[11px] font-medium text-teal">
+                        Sugerencia por decidir
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                     {s.area_asignada && (

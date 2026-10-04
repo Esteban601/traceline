@@ -54,7 +54,7 @@ function noDisponible(mensaje: string, status: number) {
  * archivo que no existía y lo anotaba como descargado.
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ evidenciaId: string }> }
 ) {
   const { evidenciaId } = await params;
@@ -97,9 +97,13 @@ export async function GET(
     return noDisponible("El archivo no está disponible.", 404);
   }
 
+  // `?ver=1` (enlace de la fuente de una sugerencia): se abre en el navegador en
+  // vez de descargarse, para que el `#page=N` del enlace lleve a la página. El
+  // navegador conserva el fragmento a través de la redirección.
+  const ver = req.nextUrl.searchParams.get("ver") === "1";
   const { data, error } = await supabase.storage
     .from(BUCKET)
-    .createSignedUrl(ev.archivo_path, 60, { download: ev.nombre_original });
+    .createSignedUrl(ev.archivo_path, 60, ver ? undefined : { download: ev.nombre_original });
 
   if (error || !data) {
     console.error(

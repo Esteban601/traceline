@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
+import { conteoPorArea, pendientesDeDecision } from "@/lib/evidencias/pendientes";
 import { registrarActividadAuditor } from "@/lib/auditoria";
 import { pendientesSinResponder } from "@/lib/comentarios-auditor";
 import { origenDe, type OrigenSolicitud } from "@/lib/origen";
@@ -127,6 +128,12 @@ export default async function AdminMatrizPage({
     registrar(sid, b.created_at);
   }
 
+  // Sugerencias de la plataforma que ESTE usuario puede decidir (vacío para el auditor).
+  const pendientesDecision = await pendientesDeDecision(supabase, perfil);
+  const avisoDecision = conteoPorArea(
+    solicitudes.filter((s) => pendientesDecision.has(s.id)).map((s) => s.area_asignada)
+  );
+
   const filas: FilaMatriz[] = solicitudes.map((s) => {
     const t = s.reporte?.tenant_id ? tenantPorId.get(s.reporte.tenant_id) : undefined;
     return {
@@ -144,6 +151,7 @@ export default async function AdminMatrizPage({
       vbFirmado: s.vb_area_por != null,
       declinada: s.declinada,
       desactivada: s.desactivada,
+      pendienteDecision: pendientesDecision.has(s.id),
     };
   });
 
@@ -210,6 +218,17 @@ export default async function AdminMatrizPage({
           </span>
           . Ábrelos desde la solicitud, el registro, el objetivo o el
           cuestionario donde estén.
+        </p>
+      )}
+
+      {avisoDecision.length > 0 && (
+        <p className="rounded-card border border-teal/25 bg-teal/5 px-4 py-3 text-sm text-ink">
+          <span className="font-medium">
+            {avisoDecision.reduce((n, a) => n + a.n, 0) === 1
+              ? "1 sugerencia de la plataforma pendiente de decisión"
+              : `${avisoDecision.reduce((n, a) => n + a.n, 0)} sugerencias de la plataforma pendientes de decisión`}
+          </span>
+          : {avisoDecision.map((a) => `${a.area} ${a.n}`).join(" · ")}. Están marcadas en la matriz.
         </p>
       )}
 
