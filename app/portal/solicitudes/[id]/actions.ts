@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { procesarLecturaDeEvidencia } from "@/lib/evidencias/cola";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esAuditor } from "@/lib/data";
 
@@ -138,6 +140,13 @@ export async function subirEvidencia(
       error: `El archivo se subió pero no se registró la evidencia: ${evErr?.message ?? ""}`,
     };
   }
+
+  // Lectura de la evidencia en segundo plano (captura sugerida). La fila de
+  // contenido ya la creó el trigger; aquí solo se procesa sin hacer esperar al
+  // usuario. Va antes de la captura porque esa rama puede salir con aviso, y la
+  // lectura corresponde a la evidencia ya registrada. Si no termina, la recoge
+  // el cron /api/evidencias/procesar.
+  after(() => procesarLecturaDeEvidencia(ev.id).then(() => undefined));
 
   // Captura de valor (solo si la solicitud es cuantitativa y se proporcionó valor).
   if (sol.es_cuantitativa) {

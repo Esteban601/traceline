@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { procesarLecturaDeEvidencia } from "@/lib/evidencias/cola";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getPerfilActual,
@@ -455,6 +457,10 @@ export async function subirEvidenciaPanel(
       error: `No se registró la evidencia: ${evErr?.message ?? "error desconocido"}`,
     };
   }
+
+  // Lectura de la evidencia en segundo plano (captura sugerida); ver la acción
+  // del portal. Si no termina, la recoge el cron /api/evidencias/procesar.
+  after(() => procesarLecturaDeEvidencia(ev.id).then(() => undefined));
 
   // Captura de valor si la solicitud es cuantitativa y se dio un valor.
   let avisoCaptura: string | null = null;
