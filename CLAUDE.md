@@ -1,6 +1,9 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.6 · 1 de octubre de 2026.
+Versión 1.7 · 4 de octubre de 2026.
+
+**Cambios respecto a 1.6** (4 de octubre de 2026, decisión de Esteban):
+- §2: `test` se agrega a los prefijos de commit. Es una convención de mensajes, no un permiso.
 
 **Cambios respecto a 1.5** (1 de octubre de 2026, decisión de Esteban como dueño del repositorio):
 - §1 y §9: Esteban puede autorizar por chat que Claude Code ejecute el merge de un PR ya revisado, el push a
@@ -61,7 +64,7 @@ después el código.
 - Instrucciones operativas puntuales (una corrección, un renombre, una verificación) pueden ir directo a
   `dev/ajustes-sep26` en commits pequeños; lo que constituye un encargo (alcance, entregable, definición de
   terminado) va por rama y PR.
-- Commits pequeños y por tema, mensajes en español con prefijo (`feat`, `fix`, `docs`, `chore`, `refactor`).
+- Commits pequeños y por tema, mensajes en español con prefijo (`feat`, `fix`, `docs`, `chore`, `refactor`, `test`).
 - Push a `origin` al terminar cada bloque de trabajo. **Nunca `--force`.** A `heroku`, solo según §9.
 - No se commitean: `.env*` (salvo los `.example`), `normas/`, `referencia/`, `logos-demo/`,
   `.credenciales-demo/`, `assets/vitrina/*.pdf`. Verificar con `git check-ignore` antes de copiar material ahí.
