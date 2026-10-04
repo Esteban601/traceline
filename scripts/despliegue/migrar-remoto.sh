@@ -25,10 +25,11 @@ set -euo pipefail
 REF_STAGING="ewgnvjtjhvdltvkopptn"
 REF_ENSAYO="ndodorukqqyzhinahmrm"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# v31 (encargo mockup AINDA, Fase 0): vitrina por tenant. Anteriores: v30,
+# v32.1 (solo base, sin release de Heroku): el jefe de área entrega evidencia.
+# Anteriores: v31, 20261001140000_tenants_vitrina_habilitada; v30,
 # 20261001120000_auditor_actividad_sin_ip; v29, las cinco 20260929*.
 ESPERADAS=(
-  20261001140000_tenants_vitrina_habilitada.sql
+  20261004170000_jefe_area_sube_evidencia.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
