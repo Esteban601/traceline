@@ -126,9 +126,36 @@ const CODIGOS = {
   w03: ["NIIF S2 6 (a)", "NIIF S2 6 (a)(i)"],
 };
 
+// Expectativas reespecificadas según el requisito de su código (decisión al
+// aprobar el Paso 3). Las del Paso 1 comprobaban que el dato estuviera en la
+// fuente; las de la sugerencia, que el extracto responda al requisito. Las
+// anteriores se conservan en `esperado_paso1`, que es lo que sigue usando la
+// prueba de extracción.
+const REESPECIFICADOS = {
+  p03: {
+    esperado: { extracto_contiene: ["Cada dos años se evalúan los riesgos", "Comité de Sostenibilidad del Consejo"], fuente: { tipo: "pagina", pagina: 1 } },
+    nota_cambio: "NIIF S1 44 pide los procesos para identificar, evaluar y supervisar riesgos: lo pertinente es la evaluación bienal y el reporte al Comité. «Principios Rectores» y «Debida diligencia» (el marco y un encabezado) eran frases del Paso 1, no respuesta al requisito.",
+  },
+  w01: {
+    esperado: { extracto_contiene: ["30 %", "2030"], fuente: { tipo: "parrafo", parrafo: 3 } },
+    nota_cambio: "NIIF S2 33 pide objetivos climáticos: la meta de reducción del 30 % al 2030. «criterios de cuenca» es gestión del agua, fuera del requisito.",
+  },
+  w03: {
+    esperado: { cubre: false },
+    nota_cambio: "NIIF S2 6 (a) y (a)(i) piden quién supervisa los riesgos climáticos y cómo se refleja en sus mandatos. El documento solo describe la composición del Consejo y sus sesiones: la respuesta correcta es «no cubre». El catálogo no tiene un código de composición del Consejo.",
+  },
+};
+
 const archivoManifiesto = path.join(AQUI, "manifiesto.json");
 const m = JSON.parse(fs.readFileSync(archivoManifiesto, "utf8"));
 for (const c of m.casos) if (CODIGOS[c.id]) c.solicitud.codigos = CODIGOS[c.id];
+for (const c of m.casos) {
+  const r = REESPECIFICADOS[c.id];
+  if (!r) continue;
+  c.esperado_paso1 ??= c.esperado; // idempotente: la primera vez guarda la original
+  c.esperado = r.esperado;
+  c.nota_cambio = r.nota_cambio;
+}
 for (const n of nuevos) {
   const i = m.casos.findIndex((c) => c.id === n.id);
   if (i >= 0) m.casos[i] = n; else m.casos.push(n);

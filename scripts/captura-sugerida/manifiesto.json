@@ -222,6 +222,16 @@
       },
       "esperado": {
         "extracto_contiene": [
+          "Cada dos años se evalúan los riesgos",
+          "Comité de Sostenibilidad del Consejo"
+        ],
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 1
+        }
+      },
+      "esperado_paso1": {
+        "extracto_contiene": [
           "Principios Rectores",
           "Debida diligencia",
           "Comité de Sostenibilidad del Consejo"
@@ -230,7 +240,8 @@
           "tipo": "pagina",
           "pagina": 1
         }
-      }
+      },
+      "nota_cambio": "NIIF S1 44 pide los procesos para identificar, evaluar y supervisar riesgos: lo pertinente es la evaluación bienal y el reporte al Comité. «Principios Rectores» y «Debida diligencia» (el marco y un encabezado) eran frases del Paso 1, no respuesta al requisito."
     },
     {
       "id": "p04",
@@ -349,6 +360,16 @@
       "esperado": {
         "extracto_contiene": [
           "30 %",
+          "2030"
+        ],
+        "fuente": {
+          "tipo": "parrafo",
+          "parrafo": 3
+        }
+      },
+      "esperado_paso1": {
+        "extracto_contiene": [
+          "30 %",
           "2030",
           "criterios de cuenca"
         ],
@@ -356,7 +377,8 @@
           "tipo": "parrafo",
           "parrafo": 3
         }
-      }
+      },
+      "nota_cambio": "NIIF S2 33 pide objetivos climáticos: la meta de reducción del 30 % al 2030. «criterios de cuenca» es gestión del agua, fuera del requisito."
     },
     {
       "id": "w02",
@@ -393,6 +415,9 @@
         ]
       },
       "esperado": {
+        "cubre": false
+      },
+      "esperado_paso1": {
         "extracto_contiene": [
           "11 consejeros",
           "4 son independientes"
@@ -401,7 +426,8 @@
           "tipo": "parrafo",
           "parrafo": 2
         }
-      }
+      },
+      "nota_cambio": "NIIF S2 6 (a) y (a)(i) piden quién supervisa los riesgos climáticos y cómo se refleja en sus mandatos. El documento solo describe la composición del Consejo y sus sesiones: la respuesta correcta es «no cubre». El catálogo no tiene un código de composición del Consejo."
     },
     {
       "id": "w04",

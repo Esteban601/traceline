@@ -51,7 +51,8 @@ const MIME = { xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetm
 if (!/127\.0\.0\.1|localhost/.test(URL_SB)) { console.error(`✗ Solo contra el stack local, no ${URL_SB}.`); process.exit(2); }
 if (!CRON) { console.error("✗ Falta CRON_SECRET (el mismo con el que corre la app)."); process.exit(2); }
 
-const { casos: base } = JSON.parse(fs.readFileSync(path.join(AQUI, "manifiesto.json"), "utf8"));
+// Los 24 y el control; t01–t03 son del Paso 3 (probar-texto.mjs).
+const base = JSON.parse(fs.readFileSync(path.join(AQUI, "manifiesto.json"), "utf8")).casos.filter((c) => !/^t\d/.test(c.id));
 const porId = Object.fromEntries(base.map((c) => [c.id, c]));
 const VARIANTES = [
   { ...porId.x01, id: "v01", variante: true, solicitud: { ...porId.x01.solicitud, unidad: "MWh" },
@@ -185,7 +186,8 @@ for (const { caso: c, solicitudId } of ligados) {
   if (c.control) {
     fila.resultado = !s && cont?.estado === "no_soportado" ? "control ok" : "control mal";
   } else if (c.naturaleza === "texto") {
-    fila.resultado = !s ? "texto (Paso 3)" : "texto con sugerencia numérica (mal)";
+    // Desde el Paso 3 la de texto sí genera sugerencia, pero nunca numérica.
+    fila.resultado = s?.tipo === "numerica" ? "texto con sugerencia numérica (mal)" : "texto (Paso 3)";
   } else if (!s || s.estado === "fallida") {
     fila.resultado = "sin sugerencia";
   } else {

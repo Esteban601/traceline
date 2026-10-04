@@ -36,7 +36,12 @@ const MIME = { xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetm
 if (!/127\.0\.0\.1|localhost/.test(URL_SB)) { console.error(`✗ Solo contra el stack local, no ${URL_SB}.`); process.exit(2); }
 if (!CRON) { console.error("✗ Falta CRON_SECRET (el mismo con el que corre la app)."); process.exit(2); }
 
-const { casos } = JSON.parse(fs.readFileSync(path.join(AQUI, "manifiesto.json"), "utf8"));
+// El conjunto del Paso 1 (los 24 y el control), con sus expectativas de
+// extracción: los casos t01–t03 son del Paso 3 y `esperado_paso1` guarda la
+// expectativa original de los que se reespecificaron para la sugerencia.
+const casos = JSON.parse(fs.readFileSync(path.join(AQUI, "manifiesto.json"), "utf8")).casos
+  .filter((c) => !/^t\d/.test(c.id))
+  .map((c) => (c.esperado_paso1 ? { ...c, esperado: c.esperado_paso1 } : c));
 const db = createClient(URL_SB, ANON, { auth: { persistSession: false } });
 const { data: sesion, error: eLogin } = await db.auth.signInWithPassword({ email: "analista@irstrat.example", password: "Demo2025!" });
 if (eLogin) throw new Error(`login staff: ${eLogin.message}`);
