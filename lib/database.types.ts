@@ -680,6 +680,106 @@ export type Database = {
           },
         ]
       }
+      evidencias_contenido: {
+        Row: {
+          archivo_path: string
+          bytes: number | null
+          contenido: Json | null
+          costo_usd: number
+          created_at: string
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id: string
+          hojas: number | null
+          id: string
+          intentos: number
+          mensaje: string | null
+          modelo: string | null
+          nombre_original: string
+          paginas: number | null
+          procesado_en: string | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string | null
+          tokens_entrada: number
+          tokens_salida: number
+          truncado: boolean
+          version: number
+        }
+        Insert: {
+          archivo_path: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id: string
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original: string
+          paginas?: number | null
+          procesado_en?: string | null
+          solicitud_id: string
+          tenant_id: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+          version: number
+        }
+        Update: {
+          archivo_path?: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id?: string
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original?: string
+          paginas?: number | null
+          procesado_en?: string | null
+          solicitud_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidencias_contenido_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: true
+            referencedRelation: "evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidencias_contenido_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidencias_contenido_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitaciones: {
         Row: {
           creada_por: string | null
@@ -1578,6 +1678,8 @@ export type Database = {
           es_demo: boolean
           generaciones_mes_max: number
           id: string
+          lectura_evidencias_activa: boolean
+          lecturas_mes_max: number
           logo_url: string | null
           nombre: string
           prefijo_folio: string
@@ -1591,6 +1693,8 @@ export type Database = {
           es_demo?: boolean
           generaciones_mes_max?: number
           id?: string
+          lectura_evidencias_activa?: boolean
+          lecturas_mes_max?: number
           logo_url?: string | null
           nombre: string
           prefijo_folio: string
@@ -1604,6 +1708,8 @@ export type Database = {
           es_demo?: boolean
           generaciones_mes_max?: number
           id?: string
+          lectura_evidencias_activa?: boolean
+          lecturas_mes_max?: number
           logo_url?: string | null
           nombre?: string
           prefijo_folio?: string
@@ -1678,6 +1784,13 @@ export type Database = {
       }
     }
     Enums: {
+      estado_lectura:
+        | "pendiente"
+        | "procesando"
+        | "extraido"
+        | "error"
+        | "no_soportado"
+        | "omitido"
       estado_reporte: "activo" | "congelado"
       estado_solicitud:
         | "pendiente"
@@ -1843,6 +1956,14 @@ export const Constants = {
   },
   public: {
     Enums: {
+      estado_lectura: [
+        "pendiente",
+        "procesando",
+        "extraido",
+        "error",
+        "no_soportado",
+        "omitido",
+      ],
       estado_reporte: ["activo", "congelado"],
       estado_solicitud: [
         "pendiente",

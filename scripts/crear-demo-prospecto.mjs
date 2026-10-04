@@ -1238,6 +1238,9 @@ async function asegurarTenant({ db, admin, staffId }, p) {
         // que es lo que el prospecto va a ver hacer a su gente.
         staff_puede_cargar: false,
         vitrina_habilitada: vitrina,
+        // Las demostraciones leen sus evidencias (encargo captura sugerida §3);
+        // la columna nace apagada para que un cliente real no la herede.
+        lectura_evidencias_activa: true,
       })
       .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
       .single();
