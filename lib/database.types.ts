@@ -184,8 +184,10 @@ export type Database = {
           evidencia_id: string
           id: string
           justificacion: string | null
+          origen: string
           periodo: string | null
           solicitud_id: string
+          sugerencia_id: string | null
           unidad: string
           valor: number
         }
@@ -196,8 +198,10 @@ export type Database = {
           evidencia_id: string
           id?: string
           justificacion?: string | null
+          origen?: string
           periodo?: string | null
           solicitud_id: string
+          sugerencia_id?: string | null
           unidad: string
           valor: number
         }
@@ -208,8 +212,10 @@ export type Database = {
           evidencia_id?: string
           id?: string
           justificacion?: string | null
+          origen?: string
           periodo?: string | null
           solicitud_id?: string
+          sugerencia_id?: string | null
           unidad?: string
           valor?: number
         }
@@ -233,6 +239,13 @@ export type Database = {
             columns: ["solicitud_id"]
             isOneToOne: false
             referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capturas_valor_sugerencia_id_fkey"
+            columns: ["sugerencia_id"]
+            isOneToOne: false
+            referencedRelation: "sugerencias_captura"
             referencedColumns: ["id"]
           },
         ]
@@ -1688,6 +1701,7 @@ export type Database = {
           evidencia_id: string
           evidencia_version: number
           extracto: string | null
+          extracto_final: string | null
           fuente: Json | null
           id: string
           modelo: string | null
@@ -1723,6 +1737,7 @@ export type Database = {
           evidencia_id: string
           evidencia_version: number
           extracto?: string | null
+          extracto_final?: string | null
           fuente?: Json | null
           id?: string
           modelo?: string | null
@@ -1758,6 +1773,7 @@ export type Database = {
           evidencia_id?: string
           evidencia_version?: number
           extracto?: string | null
+          extracto_final?: string | null
           fuente?: Json | null
           id?: string
           modelo?: string | null
@@ -1868,6 +1884,18 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_decidir_sugerencia: {
+        Args: {
+          p_accion: string
+          p_extracto?: string
+          p_motivo?: string
+          p_periodo?: string
+          p_sugerencia_id: string
+          p_unidad?: string
+          p_valor?: number
+        }
+        Returns: Json
+      }
       fn_es_de_su_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_es_jefe_de_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_gestiona_recordatorios: {
@@ -1901,6 +1929,10 @@ export type Database = {
       }
       fn_perfil_es_del_tenant: {
         Args: { p_perfil: string; p_tenant: string }
+        Returns: boolean
+      }
+      fn_puede_decidir_sugerencia: {
+        Args: { p_solicitud_id: string }
         Returns: boolean
       }
       fn_puede_ver_solicitud: {
@@ -1939,6 +1971,7 @@ export type Database = {
         | "congelado"
       estado_sugerencia:
         | "sugerida"
+        | "sin_hallazgo"
         | "confirmada"
         | "corregida"
         | "rechazada"
@@ -2120,6 +2153,7 @@ export const Constants = {
       ],
       estado_sugerencia: [
         "sugerida",
+        "sin_hallazgo",
         "confirmada",
         "corregida",
         "rechazada",

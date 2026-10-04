@@ -17,9 +17,10 @@ import { llamarModelo, MODELO_SUGERENCIA, type Llamada, type SolicitudParaSugeri
 // requisito y no queda ningún fragmento verificado, la sugerencia es `fallida`
 // y no se muestra.
 //
-// «No cubre» es una respuesta válida, no un fallo: se guarda como sugerida, sin
-// extracto, con la línea de cobertura diciendo qué falta. No presenta ningún
-// dato de la evidencia, así que no necesita fuente.
+// «No cubre» es una respuesta válida, no un fallo: se guarda como `sin_hallazgo`
+// (visible), sin extracto, con la línea de cobertura diciendo qué falta. No
+// presenta ningún dato de la evidencia, así que no necesita fuente. `fallida`
+// es solo para errores técnicos y no se muestra.
 //
 // Sonnet 5.5, esfuerzo medio. Sin segunda opinión: Fable solo para lo numérico
 // (decisión del Paso 0). Prompt en dos capas (CLAUDE.md §5).
@@ -91,7 +92,8 @@ type RespuestaTexto = {
 export type FragmentoVerificado = { fuente: Fuente; fuente_texto: string; texto: string; recortado: boolean };
 
 export type ResultadoTexto = {
-  estado: "sugerida" | "fallida";
+  /** sin_hallazgo: se muestra («esta evidencia no cubre el requisito»). fallida: error técnico. */
+  estado: "sugerida" | "sin_hallazgo" | "fallida";
   cubreRequisito: "si" | "parcial" | "no" | null;
   fragmentos: FragmentoVerificado[];
   extracto: string | null;
@@ -171,7 +173,7 @@ export async function sugerirTexto(
   const cobertura = `Cubre: ${r.cubre.trim()} · No cubre: ${r.no_cubre.trim()}`;
   if (r.cubre_requisito === "no") {
     return {
-      estado: "sugerida", cubreRequisito: "no", fragmentos: [], extracto: null, cobertura, confianza: r.confianza,
+      estado: "sin_hallazgo", cubreRequisito: "no", fragmentos: [], extracto: null, cobertura, confianza: r.confianza,
       motivo: r.motivo, descartadas: [], llamadas, error: null,
     };
   }
@@ -193,9 +195,11 @@ export async function sugerirTexto(
   const fragmentos = aLimite(verificados);
   if (!fragmentos.length) {
     return {
-      estado: "fallida", cubreRequisito: r.cubre_requisito, fragmentos: [], extracto: null, cobertura,
-      confianza: null, motivo: r.motivo, descartadas, llamadas,
-      error: "Ningún fragmento propuesto está literalmente en el lugar que cita.",
+      // Lo propuesto no está literal en su fuente: no se muestra, y para el
+      // usuario equivale a que la evidencia no trae un texto que se pueda citar.
+      estado: "sin_hallazgo", cubreRequisito: r.cubre_requisito, fragmentos: [], extracto: null,
+      cobertura: `No se pudo citar literalmente ningún fragmento de esta evidencia · Faltaría: ${r.no_cubre.trim() || r.cubre.trim()}`,
+      confianza: null, motivo: r.motivo, descartadas, llamadas, error: null,
     };
   }
   return {

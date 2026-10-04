@@ -160,7 +160,8 @@ export type Llamada = {
 };
 
 export type ResultadoSugerencia = {
-  estado: "sugerida" | "fallida";
+  /** sin_hallazgo: se muestra («no se encontró la cifra»). fallida: error técnico, no se muestra. */
+  estado: "sugerida" | "sin_hallazgo" | "fallida";
   principal: LecturaVerificada | null;
   candidatos: LecturaVerificada[];
   confianza: Confianza | null;
@@ -378,12 +379,16 @@ export async function sugerirNumerica(
     }
   }
 
+  // Sin ninguna cifra verificada: «no se encontró la cifra en esta evidencia»,
+  // visible. Incluye el caso de cifras propuestas cuya fuente no se pudo
+  // localizar: esas no se muestran (encargo §3), pero lo que el usuario
+  // necesita saber es lo mismo —esta evidencia no trae la cifra con una fuente
+  // que se pueda señalar— y quedan en `descartadas` para revisión.
   if (!lista.length) {
     return {
-      ...vacio(
-        r.encontrado ? "Ninguna cifra propuesta tiene una fuente localizable en el contenido." : "La cifra no está en la evidencia.",
-        r.motivo
-      ),
+      ...vacio("", r.motivo),
+      estado: "sin_hallazgo",
+      error: null,
       descartadas,
       segundaOpinion,
     };

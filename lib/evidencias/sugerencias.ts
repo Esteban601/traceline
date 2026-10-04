@@ -12,8 +12,12 @@ import { PROMPT_TEXTO_VERSION, sugerirTexto } from "./sugerir-texto";
 // `generarSugerencia(contenidoId)` corre al terminar la lectura de una
 // evidencia (cola.ts) y desde /api/evidencias/sugerir (para regenerar sin
 // volver a leer el archivo). Guarda una fila en `sugerencias_captura`:
-//   · `sugerida` si quedó al menos una cifra con fuente verificada;
-//   · `fallida` si no, con el motivo y el costo (no se muestra; encargo §3).
+//   · `sugerida` si quedó al menos una cifra (o un fragmento) con fuente verificada;
+//   · `sin_hallazgo` si la evidencia no trae la cifra o no cubre el requisito
+//     (visible, con su mensaje y la línea de qué falta);
+//   · `fallida` solo ante un error técnico (no se muestra).
+// Cada una deja `sugerencia_generada` en la bitácora (sin usuario: la generó la
+// plataforma).
 // Antes de insertar deja `obsoleta` la sugerida anterior de la solicitud.
 //
 // Solo se sugiere sobre la evidencia MÁS RECIENTE de la solicitud: si el cron
@@ -29,7 +33,7 @@ export async function obsoletarAnteriores(solicitudId: string, version: number):
     .from("sugerencias_captura")
     .update({ estado: "obsoleta" })
     .eq("solicitud_id", solicitudId)
-    .eq("estado", "sugerida")
+    .in("estado", ["sugerida", "sin_hallazgo"])
     .lt("evidencia_version", version)
     .select("id");
   return data?.length ?? 0;
@@ -112,8 +116,19 @@ export async function generarSugerencia(
     tokens_salida: llamadas.reduce((s, l) => s + l.tokensSalida, 0),
     costo_usd: Number(llamadas.reduce((s, l) => s + l.costoUsd, 0).toFixed(4)),
   });
+  const registrarGenerada = async (sugerenciaId: string, tipo: string, estado: string) => {
+    const { error } = await db.rpc("fn_log_evento", {
+      p_tenant_id: fila.tenant_id,
+      p_usuario_id: null as unknown as string,
+      p_accion: "sugerencia_generada",
+      p_entidad: "sugerencia_captura",
+      p_entidad_id: sugerenciaId,
+      p_detalle: { solicitud_id: fila.solicitud_id, tipo, estado, evidencia_version: fila.version, regenerada },
+    });
+    if (error) console.error(`[sugerencia] no se registró en la bitácora: ${error.message}`);
+  };
   const obsoletarViva = () =>
-    db.from("sugerencias_captura").update({ estado: "obsoleta" }).eq("solicitud_id", fila.solicitud_id).eq("estado", "sugerida");
+    db.from("sugerencias_captura").update({ estado: "obsoleta" }).eq("solicitud_id", fila.solicitud_id).in("estado", ["sugerida", "sin_hallazgo"]);
 
   // Narrativa (Paso 3): extracto con fragmentos verificados y línea de cobertura.
   if (!sol.es_cuantitativa) {
@@ -138,6 +153,7 @@ export async function generarSugerencia(
       .select("id")
       .single();
     if (error) return fin("error", `no se guardó la sugerencia: ${error.message}`);
+    await registrarGenerada(nueva.id, "texto", t.estado);
     return fin(t.estado, t.error ?? undefined, nueva.id);
   }
 
@@ -172,5 +188,6 @@ export async function generarSugerencia(
     .select("id")
     .single();
   if (error) return fin("error", `no se guardó la sugerencia: ${error.message}`);
+  await registrarGenerada(nueva.id, "numerica", r.estado);
   return fin(r.estado, r.error ?? undefined, nueva.id);
 }
