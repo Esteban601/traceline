@@ -9,7 +9,9 @@ export const runtime = "nodejs";
  *
  * Header `x-cron-secret` = CRON_SECRET, como /api/evidencias/procesar. Es para
  * operación y pruebas: la sugerencia normal la genera la cola al terminar la
- * lectura. La anterior sugerida de la solicitud queda obsoleta.
+ * lectura. La anterior sugerida de la solicitud queda obsoleta. Cada
+ * regeneración cuenta como una lectura contra `lecturas_mes_max`; con el tope
+ * alcanzado responde 429.
  */
 export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -21,5 +23,6 @@ export async function POST(req: NextRequest) {
   if (!contenido || !/^[0-9a-f-]{36}$/i.test(contenido)) {
     return NextResponse.json({ error: "Falta `contenido` (id de evidencias_contenido)." }, { status: 400 });
   }
-  return NextResponse.json(await generarSugerencia(contenido));
+  const r = await generarSugerencia(contenido, { regenerada: true });
+  return NextResponse.json(r, { status: r.estado === "tope" ? 429 : 200 });
 }

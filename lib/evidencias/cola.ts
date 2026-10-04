@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { BYTES_MAX, PAGINAS_MAX, clasificarArchivo } from "./tipos";
 import { extraerContenido } from "./extraer";
 import { generarSugerencia, obsoletarAnteriores } from "./sugerencias";
+import { lecturasDelMes, mensajeTope } from "./tope";
 
 // =============================================================================
 // COLA DE LECTURA DE EVIDENCIAS (encargo captura sugerida, Paso 1).
@@ -30,11 +31,6 @@ const INTENTOS_MAX = 2;
 const PROCESANDO_ABANDONADO_MS = 15 * 60 * 1000;
 
 export type ResultadoCola = { id: string; estado: string; detalle?: string };
-
-function inicioDeMes(): string {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
-}
 
 export async function procesarLectura(id: string): Promise<ResultadoCola> {
   const db = createAdminClient();
@@ -80,14 +76,8 @@ export async function procesarLectura(id: string): Promise<ResultadoCola> {
   if (!tenant?.lectura_evidencias_activa) {
     return terminar({ estado: "omitido", tipo: clase.tipo, mensaje: "La lectura de evidencias está apagada para esta emisora." }, "omitido");
   }
-  const { count: delMes } = await db
-    .from("evidencias_contenido")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", fila.tenant_id)
-    .eq("estado", "extraido")
-    .gte("procesado_en", inicioDeMes());
-  if ((delMes ?? 0) >= tenant.lecturas_mes_max) {
-    const mensaje = `Se alcanzó el tope de ${tenant.lecturas_mes_max} lecturas de este mes para la emisora.`;
+  if ((await lecturasDelMes(db, fila.tenant_id)) >= tenant.lecturas_mes_max) {
+    const mensaje = mensajeTope(tenant.lecturas_mes_max);
     return terminar({ estado: "omitido", tipo: clase.tipo, mensaje }, "omitido", mensaje);
   }
 

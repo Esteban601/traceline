@@ -1695,6 +1695,7 @@ export type Database = {
           motivo_rechazo: string | null
           periodo: string | null
           prompt_version: string | null
+          regenerada: boolean
           segunda_opinion: Json | null
           solicitud_id: string
           tenant_id: string
@@ -1729,6 +1730,7 @@ export type Database = {
           motivo_rechazo?: string | null
           periodo?: string | null
           prompt_version?: string | null
+          regenerada?: boolean
           segunda_opinion?: Json | null
           solicitud_id: string
           tenant_id: string
@@ -1763,6 +1765,7 @@ export type Database = {
           motivo_rechazo?: string | null
           periodo?: string | null
           prompt_version?: string | null
+          regenerada?: boolean
           segunda_opinion?: Json | null
           solicitud_id?: string
           tenant_id?: string

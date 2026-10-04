@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
 import type { Contenido } from "./extraer";
 import { MODELO_SUGERENCIA, PROMPT_SUGERENCIA_VERSION, sugerirNumerica } from "./sugerir";
+import { lecturasDelMes, mensajeTope } from "./tope";
 
 // =============================================================================
 // SUGERENCIAS EN BASE DE DATOS — captura sugerida, Paso 2.
@@ -33,7 +34,15 @@ export async function obsoletarAnteriores(solicitudId: string, version: number):
   return data?.length ?? 0;
 }
 
-export async function generarSugerencia(contenidoId: string): Promise<ResultadoGeneracion> {
+/**
+ * `regenerada`: la pide /api/evidencias/sugerir. Cuenta como una lectura contra
+ * `lecturas_mes_max` y se rechaza si el tope ya se alcanzó. Desde la cola no
+ * cuenta aparte: va incluida en la lectura.
+ */
+export async function generarSugerencia(
+  contenidoId: string,
+  { regenerada = false }: { regenerada?: boolean } = {}
+): Promise<ResultadoGeneracion> {
   const db = createAdminClient();
   const fin = (estado: string, detalle?: string, sugerenciaId?: string) => ({ contenidoId, estado, detalle, sugerenciaId });
 
@@ -62,8 +71,15 @@ export async function generarSugerencia(contenidoId: string): Promise<ResultadoG
   if (!sol) return fin("sin_solicitud");
   if (!sol.es_cuantitativa) return fin("texto", "la sugerencia de texto es del Paso 3");
 
-  const { data: tenant } = await db.from("tenants").select("lectura_evidencias_activa").eq("id", fila.tenant_id).single();
+  const { data: tenant } = await db
+    .from("tenants")
+    .select("lectura_evidencias_activa, lecturas_mes_max")
+    .eq("id", fila.tenant_id)
+    .single();
   if (!tenant?.lectura_evidencias_activa) return fin("omitido", "la lectura de evidencias está apagada para esta emisora");
+  if (regenerada && (await lecturasDelMes(db, fila.tenant_id)) >= tenant.lecturas_mes_max) {
+    return fin("tope", mensajeTope(tenant.lecturas_mes_max));
+  }
 
   const [{ data: reporte }, { data: mapeo }] = await Promise.all([
     db.from("reportes").select("ejercicio").eq("id", sol.reporte_id).single(),
@@ -127,6 +143,7 @@ export async function generarSugerencia(contenidoId: string): Promise<ResultadoG
       tokens_salida: tokensSalida,
       costo_usd: Number(costo.toFixed(4)),
       error: r.error,
+      regenerada,
     })
     .select("id")
     .single();
