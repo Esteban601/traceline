@@ -208,3 +208,43 @@ export function verificarFuente(c: Contenido, f: Fuente | null | undefined, cita
   if (!citaContieneValor(cita, valor)) return { ok: false, motivo: `la cita no contiene el valor ${valor}` };
   return { ok: true };
 }
+
+// -----------------------------------------------------------------------------
+// 3. Verificación de un fragmento de texto (Paso 3)
+// -----------------------------------------------------------------------------
+
+/** Espacios colapsados; sin comillas ni puntos suspensivos alrededor. */
+export function normalizarTexto(t: string): string {
+  return t
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[«"“'‘]+|[»"”'’]+$/g, "")
+    .replace(/^(…|\.\.\.)\s*|\s*(…|\.\.\.)$/g, "")
+    .trim();
+}
+
+/**
+ * El fragmento tiene que existir LITERALMENTE en el lugar que cita: la misma
+ * secuencia de caracteres, con los espacios y saltos de línea colapsados (una
+ * línea de un PDF partida en dos sigue siendo la misma frase). Nada más se
+ * normaliza: ni mayúsculas, ni acentos, ni puntuación interior.
+ */
+export function verificarFragmento(c: Contenido, f: Fuente | null | undefined, texto: string): Verificacion {
+  if (!f?.tipo) return { ok: false, motivo: "sin fuente" };
+  const frag = normalizarTexto(texto ?? "");
+  if (!frag) return { ok: false, motivo: "fragmento vacío" };
+  let enFuente: string | null;
+  if (f.tipo === "celda") {
+    const celda = c.tipo === "excel" || c.tipo === "csv"
+      ? c.hojas.find((h) => h.nombre === f.hoja)?.celdas.find((x) => x.ref === String(f.celda ?? "").toUpperCase())
+      : undefined;
+    enFuente = celda ? String(celda.texto ?? celda.valor) : null;
+  } else {
+    enFuente = textoDeFuente(c, f);
+  }
+  if (enFuente === null) return { ok: false, motivo: `la fuente ${describirFuente(f)} no existe en un ${c.tipo}` };
+  if (!normalizarTexto(enFuente).includes(frag)) {
+    return { ok: false, motivo: `«${frag.slice(0, 60)}…» no está literalmente en ${describirFuente(f)}` };
+  }
+  return { ok: true };
+}

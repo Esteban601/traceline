@@ -4,6 +4,7 @@ import type { Json } from "@/lib/database.types";
 import type { Contenido } from "./extraer";
 import { MODELO_SUGERENCIA, PROMPT_SUGERENCIA_VERSION, sugerirNumerica } from "./sugerir";
 import { lecturasDelMes, mensajeTope } from "./tope";
+import { PROMPT_TEXTO_VERSION, sugerirTexto } from "./sugerir-texto";
 
 // =============================================================================
 // SUGERENCIAS EN BASE DE DATOS — captura sugerida, Paso 2.
@@ -16,8 +17,8 @@ import { lecturasDelMes, mensajeTope } from "./tope";
 // Antes de insertar deja `obsoleta` la sugerida anterior de la solicitud.
 //
 // Solo se sugiere sobre la evidencia MÁS RECIENTE de la solicitud: si el cron
-// procesa tarde una versión vieja, no genera nada. Las solicitudes de texto
-// esperan al Paso 3.
+// procesa tarde una versión vieja, no genera nada. Numérica o de texto según
+// `solicitudes.es_cuantitativa`.
 // =============================================================================
 
 export type ResultadoGeneracion = { contenidoId: string; estado: string; detalle?: string; sugerenciaId?: string };
@@ -69,7 +70,6 @@ export async function generarSugerencia(
     .eq("id", fila.solicitud_id)
     .single();
   if (!sol) return fin("sin_solicitud");
-  if (!sol.es_cuantitativa) return fin("texto", "la sugerencia de texto es del Paso 3");
 
   const { data: tenant } = await db
     .from("tenants")
@@ -90,37 +90,65 @@ export async function generarSugerencia(
     .filter((d): d is { codigo: string; descripcion: string } => Boolean(d))
     .map((d) => `${d.codigo} — ${d.descripcion}`);
 
-  const r = await sugerirNumerica(
-    {
-      titulo: sol.titulo,
-      descripcion: sol.descripcion,
-      unidad_esperada: sol.unidad_esperada,
-      codigos,
-      ejercicio: reporte?.ejercicio ?? new Date().getFullYear(),
-    },
-    fila.contenido as unknown as Contenido,
-    fila.nombre_original
-  );
+  const paraSugerir = {
+    titulo: sol.titulo,
+    descripcion: sol.descripcion,
+    unidad_esperada: sol.unidad_esperada,
+    codigos,
+    ejercicio: reporte?.ejercicio ?? new Date().getFullYear(),
+  };
+  const contenido = fila.contenido as unknown as Contenido;
+  const base = {
+    solicitud_id: fila.solicitud_id,
+    tenant_id: fila.tenant_id,
+    evidencia_id: fila.evidencia_id,
+    contenido_id: fila.id,
+    evidencia_version: fila.version,
+    regenerada,
+  };
+  const totales = (llamadas: { tokensEntrada: number; tokensSalida: number; costoUsd: number; modelo: string }[]) => ({
+    modelo: llamadas.map((l) => l.modelo).join(" + ") || MODELO_SUGERENCIA,
+    tokens_entrada: llamadas.reduce((s, l) => s + l.tokensEntrada, 0),
+    tokens_salida: llamadas.reduce((s, l) => s + l.tokensSalida, 0),
+    costo_usd: Number(llamadas.reduce((s, l) => s + l.costoUsd, 0).toFixed(4)),
+  });
+  const obsoletarViva = () =>
+    db.from("sugerencias_captura").update({ estado: "obsoleta" }).eq("solicitud_id", fila.solicitud_id).eq("estado", "sugerida");
 
-  const tokensEntrada = r.llamadas.reduce((s, l) => s + l.tokensEntrada, 0);
-  const tokensSalida = r.llamadas.reduce((s, l) => s + l.tokensSalida, 0);
-  const costo = r.llamadas.reduce((s, l) => s + l.costoUsd, 0);
+  // Narrativa (Paso 3): extracto con fragmentos verificados y línea de cobertura.
+  if (!sol.es_cuantitativa) {
+    const t = await sugerirTexto(paraSugerir, contenido, fila.nombre_original);
+    await obsoletarViva();
+    const { data: nueva, error } = await db
+      .from("sugerencias_captura")
+      .insert({
+        ...base,
+        tipo: "texto",
+        estado: t.estado,
+        extracto: t.extracto,
+        cobertura: t.cobertura,
+        fuente: { cubre_requisito: t.cubreRequisito, fragmentos: t.fragmentos } as unknown as Json,
+        confianza: t.confianza,
+        motivo: t.motivo || null,
+        segunda_opinion: (t.descartadas.length ? { descartadas: t.descartadas } : null) as Json,
+        prompt_version: PROMPT_TEXTO_VERSION,
+        error: t.error,
+        ...totales(t.llamadas),
+      })
+      .select("id")
+      .single();
+    if (error) return fin("error", `no se guardó la sugerencia: ${error.message}`);
+    return fin(t.estado, t.error ?? undefined, nueva.id);
+  }
 
-  await db
-    .from("sugerencias_captura")
-    .update({ estado: "obsoleta" })
-    .eq("solicitud_id", fila.solicitud_id)
-    .eq("estado", "sugerida");
+  const r = await sugerirNumerica(paraSugerir, contenido, fila.nombre_original);
+  await obsoletarViva();
 
   const p = r.principal;
   const { data: nueva, error } = await db
     .from("sugerencias_captura")
     .insert({
-      solicitud_id: fila.solicitud_id,
-      tenant_id: fila.tenant_id,
-      evidencia_id: fila.evidencia_id,
-      contenido_id: fila.id,
-      evidencia_version: fila.version,
+      ...base,
       tipo: "numerica",
       estado: r.estado,
       valor: p?.valor ?? null,
@@ -137,13 +165,9 @@ export async function generarSugerencia(
         : r.descartadas.length
           ? { descartadas: r.descartadas }
           : null) as Json,
-      modelo: r.llamadas.map((l) => l.modelo).join(" + ") || MODELO_SUGERENCIA,
       prompt_version: PROMPT_SUGERENCIA_VERSION,
-      tokens_entrada: tokensEntrada,
-      tokens_salida: tokensSalida,
-      costo_usd: Number(costo.toFixed(4)),
       error: r.error,
-      regenerada,
+      ...totales(r.llamadas),
     })
     .select("id")
     .single();

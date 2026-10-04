@@ -199,7 +199,18 @@ function mensajeUsuario(s: SolicitudParaSugerir, contenido: Contenido, nombreArc
     .join("\n");
 }
 
-async function llamar(modelo: ClaveModelo, usuario: string): Promise<{ respuesta: RespuestaModelo; llamada: Llamada }> {
+/**
+ * Una llamada con salida estructurada, con su costo. La comparten la sugerencia
+ * numérica y la de texto (sugerir-texto.ts): cada una trae su sistema, su
+ * esquema y su esfuerzo.
+ */
+export async function llamarModelo<T>(
+  modelo: ClaveModelo,
+  sistema: string,
+  esquema: Record<string, unknown>,
+  usuario: string,
+  esfuerzo: "low" | "medium" | "high" = ESFUERZO
+): Promise<{ respuesta: T; llamada: Llamada }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY para la sugerencia.");
   const client = new Anthropic({ apiKey });
@@ -208,8 +219,8 @@ async function llamar(modelo: ClaveModelo, usuario: string): Promise<{ respuesta
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    system: [{ type: "text", text: SISTEMA, cache_control: { type: "ephemeral" } }],
-    output_config: { effort: ESFUERZO, format: { type: "json_schema", schema: ESQUEMA } },
+    system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
+    output_config: { effort: esfuerzo, format: { type: "json_schema", schema: esquema } },
     messages: [{ role: "user", content: usuario }],
   });
   const r = await stream.finalMessage();
@@ -230,8 +241,11 @@ async function llamar(modelo: ClaveModelo, usuario: string): Promise<{ respuesta
   if (r.stop_reason === "max_tokens") throw Object.assign(new Error("La sugerencia no cupo en la respuesta (max_tokens)."), { llamada });
   const texto = r.content.find((b) => b.type === "text");
   if (!texto || texto.type !== "text") throw Object.assign(new Error("La respuesta no trajo texto."), { llamada });
-  return { respuesta: JSON.parse(texto.text) as RespuestaModelo, llamada };
+  return { respuesta: JSON.parse(texto.text) as T, llamada };
 }
+
+const llamar = (modelo: ClaveModelo, usuario: string) =>
+  llamarModelo<RespuestaModelo>(modelo, SISTEMA, ESQUEMA as unknown as Record<string, unknown>, usuario);
 
 /** Vuelve null los "" y 0 que el esquema usa por «no aplica». */
 function normalizar(l: LecturaModelo): LecturaModelo {
