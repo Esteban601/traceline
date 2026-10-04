@@ -1,0 +1,507 @@
+{
+  "generado_por": "scripts/captura-sugerida/crear-conjunto.mjs",
+  "casos": [
+    {
+      "id": "x01",
+      "archivo": "x01_electricidad_2025.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Consumo de electricidad 2025",
+        "unidad": "kWh",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 376300,
+        "unidad": "kWh",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "Energía",
+          "celda": "B14"
+        }
+      },
+      "notas": "Ambigüedad deliberada: Resumen!B2 trae 549.8 MWh de energía total."
+    },
+    {
+      "id": "x02",
+      "archivo": "x02_emisiones_gei.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Inventario GEI Alcance 1",
+        "unidad": "tCO2e",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 12480.5,
+        "unidad": "tCO2e",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "GEI",
+          "celda": "C2"
+        }
+      },
+      "notas": "Varios años: 2024 en B2 es el candidato que NO va."
+    },
+    {
+      "id": "x03",
+      "archivo": "x03_agua_sin_encabezado.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "feo": "hoja sin encabezado",
+      "solicitud": {
+        "titulo": "Extracción total de agua 2025",
+        "unidad": "m3",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 48210,
+        "unidad": "m3",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "Hoja1",
+          "celda": "B3"
+        }
+      }
+    },
+    {
+      "id": "x04",
+      "archivo": "x04_residuos_combinadas.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "feo": "celdas combinadas y unidad en fila aparte",
+      "solicitud": {
+        "titulo": "Residuos peligrosos generados 2025",
+        "unidad": "t",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 37.2,
+        "unidad": "t",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "Residuos",
+          "celda": "D5"
+        }
+      }
+    },
+    {
+      "id": "x05",
+      "archivo": "x05_capacitacion.csv",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Horas de capacitación 2025",
+        "unidad": "horas",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 15840,
+        "unidad": "horas",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "x05_capacitacion",
+          "celda": "C5"
+        }
+      }
+    },
+    {
+      "id": "x06",
+      "archivo": "x06_capex_multihoja.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "CAPEX alineado a objetivos climáticos 2025",
+        "unidad": "MXN",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 1250000,
+        "unidad": "MXN",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "Inversiones",
+          "celda": "D7"
+        }
+      }
+    },
+    {
+      "id": "x07",
+      "archivo": "x07_combustibles_texto.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "feo": "números como texto",
+      "solicitud": {
+        "titulo": "Consumo de diésel 2025",
+        "unidad": "L",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 18900,
+        "unidad": "L",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "Combustibles",
+          "celda": "B2"
+        }
+      }
+    },
+    {
+      "id": "x08",
+      "archivo": "x08_diversidad_porcentaje.xlsx",
+      "tipo": "excel",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Mujeres en plantilla 2025",
+        "unidad": "%",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 31.8,
+        "unidad": "%",
+        "fuente": {
+          "tipo": "celda",
+          "hoja": "Plantilla",
+          "celda": "B3"
+        }
+      },
+      "notas": "La celda guarda 0.318 con formato 0.0%: la cifra que se reporta es 31.8 %."
+    },
+    {
+      "id": "p01",
+      "archivo": "p01_informe_energia.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Consumo de electricidad 2025",
+        "unidad": "kWh",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 376300,
+        "unidad": "kWh",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 2
+        }
+      },
+      "notas": "La misma página trae 2024 y la energía total en MWh."
+    },
+    {
+      "id": "p02",
+      "archivo": "p02_tabla_rota.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "feo": "tabla rota: orden de trazo distinto al de lectura y cifra partida",
+      "solicitud": {
+        "titulo": "Inventario GEI Alcance 2 (método basado en ubicación)",
+        "unidad": "tCO2e",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 8930.2,
+        "unidad": "tCO2e",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 1
+        }
+      },
+      "notas": "La cifra se dibuja en dos trazos y pdf.js la entrega como «8,93 0.2». En el Paso 1 queda así en el texto; reconstruirla es tarea de la sugerencia (Paso 2)."
+    },
+    {
+      "id": "p03",
+      "archivo": "p03_politica_ddhh.pdf",
+      "tipo": "pdf",
+      "naturaleza": "texto",
+      "solicitud": {
+        "titulo": "Política de derechos humanos y debida diligencia",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "extracto_contiene": [
+          "Principios Rectores",
+          "Debida diligencia",
+          "Comité de Sostenibilidad del Consejo"
+        ],
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 1
+        }
+      }
+    },
+    {
+      "id": "p04",
+      "archivo": "p04_water_english.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "idioma": "en",
+      "solicitud": {
+        "titulo": "Extracción total de agua 2025",
+        "unidad": "m3",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 48210,
+        "unidad": "m3",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 1
+        }
+      }
+    },
+    {
+      "id": "p05",
+      "archivo": "p05_anexo_70_paginas.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "feo": "70 páginas: pasa el límite de 60",
+      "solicitud": {
+        "titulo": "Residuos peligrosos generados 2025",
+        "unidad": "t",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 37.2,
+        "unidad": "t",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 45
+        },
+        "truncado": true
+      }
+    },
+    {
+      "id": "p06",
+      "archivo": "p06_escaneado_factura.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "escaneado": true,
+      "solicitud": {
+        "titulo": "Consumo de diésel 2025",
+        "unidad": "L",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 18900,
+        "unidad": "L",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 1
+        }
+      }
+    },
+    {
+      "id": "p07",
+      "archivo": "p07_escaneado_torcido.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "escaneado": true,
+      "feo": "escaneado torcido con ruido",
+      "solicitud": {
+        "titulo": "Horas de capacitación 2025",
+        "unidad": "horas",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 15840,
+        "unidad": "horas",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 1
+        }
+      }
+    },
+    {
+      "id": "p08",
+      "archivo": "p08_escaneado_dos_paginas.pdf",
+      "tipo": "pdf",
+      "naturaleza": "numerica",
+      "escaneado": true,
+      "solicitud": {
+        "titulo": "Residuos peligrosos generados 2025",
+        "unidad": "t",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 37.2,
+        "unidad": "t",
+        "fuente": {
+          "tipo": "pagina",
+          "pagina": 2
+        }
+      }
+    },
+    {
+      "id": "w01",
+      "archivo": "w01_politica_ambiental.docx",
+      "tipo": "word",
+      "naturaleza": "texto",
+      "solicitud": {
+        "titulo": "Política ambiental",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "extracto_contiene": [
+          "30 %",
+          "2030",
+          "criterios de cuenca"
+        ],
+        "fuente": {
+          "tipo": "parrafo",
+          "parrafo": 3
+        }
+      }
+    },
+    {
+      "id": "w02",
+      "archivo": "w02_tabla_emisiones.docx",
+      "tipo": "word",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Emisiones GEI Alcance 3 — total",
+        "unidad": "tCO2e",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 251400,
+        "unidad": "tCO2e",
+        "fuente": {
+          "tipo": "tabla",
+          "tabla": 1,
+          "fila": 4,
+          "columna": 3
+        }
+      }
+    },
+    {
+      "id": "w03",
+      "archivo": "w03_consejo.docx",
+      "tipo": "word",
+      "naturaleza": "texto",
+      "solicitud": {
+        "titulo": "Composición y responsabilidades del Consejo",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "extracto_contiene": [
+          "11 consejeros",
+          "4 son independientes"
+        ],
+        "fuente": {
+          "tipo": "parrafo",
+          "parrafo": 2
+        }
+      }
+    },
+    {
+      "id": "w04",
+      "archivo": "w04_sustainable_revenue_en.docx",
+      "tipo": "word",
+      "naturaleza": "numerica",
+      "idioma": "en",
+      "solicitud": {
+        "titulo": "Ingresos asociados a productos/servicios sostenibles",
+        "unidad": "%",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 22,
+        "unidad": "%",
+        "fuente": {
+          "tipo": "parrafo",
+          "parrafo": 2
+        }
+      }
+    },
+    {
+      "id": "i01",
+      "archivo": "i01_tabla_energia.png",
+      "tipo": "imagen",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Consumo de electricidad 2025",
+        "unidad": "kWh",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 376300,
+        "unidad": "kWh",
+        "fuente": {
+          "tipo": "imagen"
+        }
+      }
+    },
+    {
+      "id": "i02",
+      "archivo": "i02_foto_torcida.jpg",
+      "tipo": "imagen",
+      "naturaleza": "numerica",
+      "feo": "foto torcida, borrosa y con ruido",
+      "solicitud": {
+        "titulo": "Extracción total de agua 2025",
+        "unidad": "m3",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 48210,
+        "unidad": "m3",
+        "fuente": {
+          "tipo": "imagen"
+        }
+      }
+    },
+    {
+      "id": "i03",
+      "archivo": "i03_recibo.webp",
+      "tipo": "imagen",
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Consumo de electricidad 2025",
+        "unidad": "kWh",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 376300,
+        "unidad": "kWh",
+        "fuente": {
+          "tipo": "imagen"
+        }
+      }
+    },
+    {
+      "id": "i04",
+      "archivo": "i04_pantalla.heic",
+      "tipo": "imagen",
+      "naturaleza": "numerica",
+      "heic": true,
+      "solicitud": {
+        "titulo": "Inventario GEI Alcance 1",
+        "unidad": "tCO2e",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "valor": 12480.5,
+        "unidad": "tCO2e",
+        "fuente": {
+          "tipo": "imagen"
+        }
+      }
+    },
+    {
+      "id": "c01",
+      "archivo": "c01_control_binario.xls",
+      "tipo": "excel",
+      "control": true,
+      "naturaleza": "numerica",
+      "solicitud": {
+        "titulo": "Inventario GEI Alcance 1",
+        "unidad": "tCO2e",
+        "periodo": "2025"
+      },
+      "esperado": {
+        "estado": "no_soportado",
+        "mensaje": "guarde el archivo como .xlsx"
+      }
+    }
+  ]
+}

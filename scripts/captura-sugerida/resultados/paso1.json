@@ -1,0 +1,738 @@
+{
+  "corrida": "[captura-sugerida 2026-10-04T18:07]",
+  "segundos": 18,
+  "resultados": [
+    {
+      "id": "x01",
+      "archivo": "x01_electricidad_2025.xlsx",
+      "tipo": "excel",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "Energía!B14 = 376300",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 2,
+      "truncado": false,
+      "bytes": 7407,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x02",
+      "archivo": "x02_emisiones_gei.xlsx",
+      "tipo": "excel",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "GEI!C2 = 12480.5",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 1,
+      "truncado": false,
+      "bytes": 6558,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x03",
+      "archivo": "x03_agua_sin_encabezado.xlsx",
+      "tipo": "excel",
+      "feo": "hoja sin encabezado",
+      "control": false,
+      "ok": true,
+      "motivo": "Hoja1!B3 = 48210",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 1,
+      "truncado": false,
+      "bytes": 6503,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x04",
+      "archivo": "x04_residuos_combinadas.xlsx",
+      "tipo": "excel",
+      "feo": "celdas combinadas y unidad en fila aparte",
+      "control": false,
+      "ok": true,
+      "motivo": "Residuos!D5 = 37.2",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 1,
+      "truncado": false,
+      "bytes": 6640,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x05",
+      "archivo": "x05_capacitacion.csv",
+      "tipo": "excel",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "x05_capacitacion!C5 = 15840",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 1,
+      "truncado": false,
+      "bytes": 125,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x06",
+      "archivo": "x06_capex_multihoja.xlsx",
+      "tipo": "excel",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "Inversiones!D7 = 1250000",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 3,
+      "truncado": false,
+      "bytes": 7993,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x07",
+      "archivo": "x07_combustibles_texto.xlsx",
+      "tipo": "excel",
+      "feo": "números como texto",
+      "control": false,
+      "ok": true,
+      "motivo": "Combustibles!B2 = \"18,900 L\"",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 1,
+      "truncado": false,
+      "bytes": 6518,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "x08",
+      "archivo": "x08_diversidad_porcentaje.xlsx",
+      "tipo": "excel",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "Plantilla!B3 = 0.318",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": 1,
+      "truncado": false,
+      "bytes": 6562,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "p01",
+      "archivo": "p01_informe_energia.pdf",
+      "tipo": "pdf",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«376,300» en pagina 2",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": 2,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 1593,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "p02",
+      "archivo": "p02_tabla_rota.pdf",
+      "tipo": "pdf",
+      "feo": "tabla rota: orden de trazo distinto al de lectura y cifra partida",
+      "control": false,
+      "ok": false,
+      "motivo": "no está en la fuente (Emisiones indirectas por electricidad Alcance 2 (tCO2e) | 2025 | Método Ubicación | 8,93 0…)",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 1220,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "p03",
+      "archivo": "p03_politica_ddhh.pdf",
+      "tipo": "pdf",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "las frases clave están en la fuente",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": 2,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 1896,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "p04",
+      "archivo": "p04_water_english.pdf",
+      "tipo": "pdf",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«48,210» en pagina 1",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 1156,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "p05",
+      "archivo": "p05_anexo_70_paginas.pdf",
+      "tipo": "pdf",
+      "feo": "70 páginas: pasa el límite de 60",
+      "control": false,
+      "ok": true,
+      "motivo": "«37.2» en pagina 45",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": 70,
+      "hojas": null,
+      "truncado": true,
+      "bytes": 25971,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": "Se leyeron las primeras 60 páginas de 70."
+    },
+    {
+      "id": "p06",
+      "archivo": "p06_escaneado_factura.pdf",
+      "tipo": "pdf",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«18,900» en pagina 1",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 50219,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 2176,
+      "tokens_salida": 144,
+      "costo_usd": 0.0058,
+      "mensaje": null
+    },
+    {
+      "id": "p07",
+      "archivo": "p07_escaneado_torcido.pdf",
+      "tipo": "pdf",
+      "feo": "escaneado torcido con ruido",
+      "control": false,
+      "ok": true,
+      "motivo": "«15,840» en pagina 1",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 640789,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 2176,
+      "tokens_salida": 116,
+      "costo_usd": 0.0055,
+      "mensaje": null
+    },
+    {
+      "id": "p08",
+      "archivo": "p08_escaneado_dos_paginas.pdf",
+      "tipo": "pdf",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«37.2» en pagina 2",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 2,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 53061,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 3753,
+      "tokens_salida": 143,
+      "costo_usd": 0.0089,
+      "mensaje": null
+    },
+    {
+      "id": "w01",
+      "archivo": "w01_politica_ambiental.docx",
+      "tipo": "word",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "las frases clave están en la fuente",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 8776,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "w02",
+      "archivo": "w02_tabla_emisiones.docx",
+      "tipo": "word",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«251,400» en tabla",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 8745,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "w03",
+      "archivo": "w03_consejo.docx",
+      "tipo": "word",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "las frases clave están en la fuente",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 8682,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "w04",
+      "archivo": "w04_sustainable_revenue_en.docx",
+      "tipo": "word",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«22» en parrafo",
+      "estado": "extraido",
+      "origen": "servidor",
+      "paginas": null,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 8592,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": null
+    },
+    {
+      "id": "i01",
+      "archivo": "i01_tabla_energia.png",
+      "tipo": "imagen",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«376,300» en imagen",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 28665,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 1676,
+      "tokens_salida": 86,
+      "costo_usd": 0.0042,
+      "mensaje": null
+    },
+    {
+      "id": "i02",
+      "archivo": "i02_foto_torcida.jpg",
+      "tipo": "imagen",
+      "feo": "foto torcida, borrosa y con ruido",
+      "control": false,
+      "ok": true,
+      "motivo": "«48,210» en imagen",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 52367,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 2765,
+      "tokens_salida": 104,
+      "costo_usd": 0.0066,
+      "mensaje": null
+    },
+    {
+      "id": "i03",
+      "archivo": "i03_recibo.webp",
+      "tipo": "imagen",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«376,300» en imagen",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 12336,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 1541,
+      "tokens_salida": 88,
+      "costo_usd": 0.004,
+      "mensaje": null
+    },
+    {
+      "id": "i04",
+      "archivo": "i04_pantalla.heic",
+      "tipo": "imagen",
+      "feo": null,
+      "control": false,
+      "ok": true,
+      "motivo": "«12,480.5» en imagen",
+      "estado": "extraido",
+      "origen": "vision",
+      "paginas": 1,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 15256,
+      "modelo": "claude-sonnet-5-5",
+      "tokens_entrada": 1541,
+      "tokens_salida": 89,
+      "costo_usd": 0.004,
+      "mensaje": null
+    },
+    {
+      "id": "c01",
+      "archivo": "c01_control_binario.xls",
+      "tipo": "excel",
+      "feo": null,
+      "control": true,
+      "ok": true,
+      "motivo": "no soportado: «Formato Excel 97-2003 (.xls): guarde el archivo como .xlsx y vuelva a cargarlo.»",
+      "estado": "no_soportado",
+      "origen": null,
+      "paginas": null,
+      "hojas": null,
+      "truncado": false,
+      "bytes": 5632,
+      "modelo": null,
+      "tokens_entrada": 0,
+      "tokens_salida": 0,
+      "costo_usd": 0,
+      "mensaje": "Formato Excel 97-2003 (.xls): guarde el archivo como .xlsx y vuelva a cargarlo."
+    }
+  ],
+  "muestra": {
+    "excel": {
+      "id": "x01",
+      "archivo": "x01_electricidad_2025.xlsx",
+      "contenido": {
+        "tipo": "excel",
+        "hojas": [
+          {
+            "filas": 14,
+            "celdas": [
+              {
+                "ref": "A1",
+                "valor": "Mes"
+              },
+              {
+                "ref": "B1",
+                "valor": "Electricidad (kWh)"
+              },
+              {
+                "ref": "A2",
+                "valor": "Ene"
+              },
+              {
+                "ref": "B2",
+                "valor": 30100
+              },
+              {
+                "ref": "A3",
+                "valor": "Feb"
+              },
+              {
+                "ref": "B3",
+                "valor": 29800
+              },
+              {
+                "ref": "A4",
+                "valor": "Mar"
+              },
+              {
+                "ref": "B4",
+                "valor": 31500
+              },
+              {
+                "ref": "A5",
+                "valor": "Abr"
+              },
+              {
+                "ref": "B5",
+                "valor": 32200
+              },
+              {
+                "ref": "A6",
+                "valor": "May"
+              },
+              {
+                "ref": "B6",
+                "valor": 33100
+              },
+              {
+                "ref": "A7",
+                "valor": "Jun"
+              },
+              {
+                "ref": "B7",
+                "valor": 32900
+              },
+              {
+                "ref": "A8",
+                "valor": "Jul"
+              },
+              {
+                "ref": "B8",
+                "valor": 31800
+              },
+              {
+                "ref": "A9",
+                "valor": "Ago"
+              },
+              {
+                "ref": "B9",
+                "valor": 31200
+              },
+              {
+                "ref": "A10",
+                "valor": "Sep"
+              },
+              {
+                "ref": "B10",
+                "valor": 30900
+              },
+              {
+                "ref": "A11",
+                "valor": "Oct"
+              },
+              {
+                "ref": "B11",
+                "valor": 31000
+              },
+              {
+                "ref": "A12",
+                "valor": "Nov"
+              },
+              {
+                "ref": "B12",
+                "valor": 30800
+              },
+              {
+                "ref": "A13",
+                "valor": "Dic"
+              },
+              {
+                "ref": "B13",
+                "valor": 31000
+              },
+              {
+                "ref": "A14",
+                "valor": "Total"
+              },
+              {
+                "ref": "B14",
+                "valor": 376300
+              }
+            ],
+            "nombre": "Energía",
+            "columnas": 2
+          },
+          {
+            "filas": 3,
+            "celdas": [
+              {
+                "ref": "A1",
+                "valor": "Indicador"
+              },
+              {
+                "ref": "B1",
+                "valor": "Valor"
+              },
+              {
+                "ref": "C1",
+                "valor": "Unidad"
+              },
+              {
+                "ref": "A2",
+                "valor": "Energía total consumida"
+              },
+              {
+                "ref": "B2",
+                "valor": 549.8
+              },
+              {
+                "ref": "C2",
+                "valor": "MWh"
+              },
+              {
+                "ref": "A3",
+                "valor": "Combustibles"
+              },
+              {
+                "ref": "B3",
+                "valor": 173.5
+              },
+              {
+                "ref": "C3",
+                "valor": "MWh"
+              }
+            ],
+            "nombre": "Resumen",
+            "columnas": 3
+          }
+        ]
+      }
+    },
+    "pdf": {
+      "id": "p06",
+      "archivo": "p06_escaneado_factura.pdf",
+      "contenido": {
+        "tipo": "pdf",
+        "paginas": [
+          {
+            "texto": "FACTURA DE COMBUSTIBLE\nProveedor: Combustibles Demo del Bajío (ficticio)\nPeriodo: enero a diciembre de 2025\n\nProducto | Litros\nDiésel | 18,900\nGasolina | 2,340\n\nTotal facturado: $ 512,304.00 MXN",
+            "origen": "vision",
+            "pagina": 1
+          }
+        ],
+        "paginas_total": 1
+      }
+    },
+    "word": {
+      "id": "w01",
+      "archivo": "w01_politica_ambiental.docx",
+      "contenido": {
+        "tipo": "word",
+        "bloques": [
+          {
+            "n": 1,
+            "tipo": "parrafo",
+            "texto": "Política Ambiental",
+            "titulo": true
+          },
+          {
+            "n": 2,
+            "tipo": "parrafo",
+            "texto": "Hidroeléctrica Demo del Norte, S.A. de C.V."
+          },
+          {
+            "n": 3,
+            "tipo": "parrafo",
+            "texto": "La empresa se compromete a reducir sus emisiones de gases de efecto invernadero un 30 % al 2030 respecto de 2022, a gestionar el agua con criterios de cuenca y a prevenir la contaminación en sus tres centrales."
+          },
+          {
+            "n": 4,
+            "tipo": "parrafo",
+            "texto": "La política se revisa cada año y la aprueba la Dirección General. Su cumplimiento lo supervisa el Comité de Sostenibilidad."
+          }
+        ]
+      }
+    },
+    "imagen": {
+      "id": "i01",
+      "archivo": "i01_tabla_energia.png",
+      "contenido": {
+        "tipo": "imagen",
+        "paginas": [
+          {
+            "texto": "Consumo energético 2025\n\nConcepto | Valor | Unidad\nElectricidad | 376,300 | kWh\nEnergía total | 549.8 | MWh",
+            "origen": "vision",
+            "pagina": 1
+          }
+        ]
+      }
+    }
+  }
+}
