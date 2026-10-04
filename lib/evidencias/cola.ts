@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BYTES_MAX, PAGINAS_MAX, clasificarArchivo } from "./tipos";
 import { extraerContenido } from "./extraer";
+import { generarSugerencia, obsoletarAnteriores } from "./sugerencias";
 
 // =============================================================================
 // COLA DE LECTURA DE EVIDENCIAS (encargo captura sugerida, Paso 1).
@@ -12,6 +13,11 @@ import { extraerContenido } from "./extraer";
 //   · desde /api/evidencias/procesar (cron, CRON_SECRET) para lo que haya
 //     quedado pendiente —un reinicio del dyno a media lectura, un error
 //     transitorio—. Es el mismo patrón del generador (en_cola + intentos).
+//
+// Al quedar `extraido`, se genera la sugerencia (Paso 2, sugerencias.ts). Una
+// versión nueva deja obsoletas las sugerencias de las anteriores en cuanto se
+// toma, aunque su lectura falle: lo sugerido sobre un archivo ya reemplazado
+// no se sigue mostrando.
 //
 // La bandera `lectura_evidencias_activa` y el tope `lecturas_mes_max` se
 // vuelven a revisar AQUÍ, al procesar, no solo al encolar: pueden haber cambiado
@@ -35,7 +41,7 @@ export async function procesarLectura(id: string): Promise<ResultadoCola> {
 
   const { data: fila } = await db
     .from("evidencias_contenido")
-    .select("id, estado, intentos, tenant_id, archivo_path, nombre_original, created_at")
+    .select("id, estado, intentos, tenant_id, solicitud_id, version, archivo_path, nombre_original, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!fila) return { id, estado: "inexistente" };
@@ -53,6 +59,7 @@ export async function procesarLectura(id: string): Promise<ResultadoCola> {
     .select("id")
     .maybeSingle();
   if (!tomada) return { id, estado: "ocupada", detalle: "otro proceso la tomó" };
+  await obsoletarAnteriores(fila.solicitud_id, fila.version);
 
   const terminar = async (cambios: Record<string, unknown>, estado: string, detalle?: string) => {
     await db.from("evidencias_contenido").update({ ...cambios, procesado_en: new Date().toISOString() }).eq("id", id);
@@ -94,7 +101,7 @@ export async function procesarLectura(id: string): Promise<ResultadoCola> {
     }
 
     const r = await extraerContenido(archivo, fila.nombre_original, clase);
-    return terminar(
+    const leida = await terminar(
       {
         estado: "extraido",
         tipo: clase.tipo,
@@ -112,6 +119,16 @@ export async function procesarLectura(id: string): Promise<ResultadoCola> {
       },
       "extraido"
     );
+    // La sugerencia no cambia el estado de la lectura: si falla, la lectura ya
+    // quedó guardada y /api/evidencias/sugerir la puede regenerar.
+    try {
+      const s = await generarSugerencia(id);
+      return { ...leida, detalle: `sugerencia: ${s.estado}${s.detalle ? ` (${s.detalle})` : ""}` };
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      console.error(`[sugerencia] ${fila.nombre_original}: ${error}`);
+      return { ...leida, detalle: `sugerencia: error (${error})` };
+    }
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     const agotado = intentos >= INTENTOS_MAX;
