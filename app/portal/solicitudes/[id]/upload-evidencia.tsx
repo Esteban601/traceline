@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { fmtDiaLargo } from "@/lib/fechas";
 import type { EstadoSolicitud } from "@/lib/estados";
 import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
+import { subirArchivoFirmado } from "@/lib/evidencias/subir-archivo";
 
 const initial: SubirState = { ok: false, error: null };
 
@@ -86,6 +87,9 @@ export function UploadEvidencia({
   const [periodoCaptura, setPeriodoCaptura] = useState("");
   const [capturaEditable, setCapturaEditable] = useState(false);
   const [justificacion, setJustificacion] = useState("");
+  // El archivo viaja directo a storage antes de la acción: mientras sube, el
+  // botón queda ocupado igual que mientras se registra.
+  const [subiendo, setSubiendo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const congelado = estado === "congelado";
@@ -141,7 +145,7 @@ export function UploadEvidencia({
     setFile(f);
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) {
       setLocalError("Falta tu archivo: arrástralo o selecciónalo en el paso 1.");
@@ -157,9 +161,18 @@ export function UploadEvidencia({
       );
       return;
     }
+    setLocalError(null);
+    setSubiendo(true);
+    const subido = await subirArchivoFirmado(solicitudId, file);
+    setSubiendo(false);
+    if (!subido.ok) {
+      setLocalError(subido.error);
+      return;
+    }
     const fd = new FormData();
     fd.set("solicitud_id", solicitudId);
-    fd.set("file", file);
+    fd.set("archivo_path", subido.path);
+    fd.set("nombre_original", file.name);
     fd.set("periodo_cubierto", periodo);
     fd.set("area_origen", area);
     fd.set("justificacion", justificacion);
@@ -412,7 +425,7 @@ export function UploadEvidencia({
       <div className="flex gap-4">
         <span className="size-8 shrink-0" aria-hidden />
         <div className="flex flex-1 justify-end">
-          <Button type="submit" loading={pending} disabled={!file}>
+          <Button type="submit" loading={pending || subiendo} disabled={!file}>
             {estado === "observaciones" ? "Reenviar" : "Enviar"}
           </Button>
         </div>
