@@ -1,5 +1,5 @@
 {
-  "generado_por": "scripts/captura-sugerida/crear-conjunto.mjs",
+  "generado_por": "scripts/captura-sugerida/crear-conjunto.mjs + crear-casos-texto.mjs",
   "casos": [
     {
       "id": "x01",
@@ -215,7 +215,10 @@
       "naturaleza": "texto",
       "solicitud": {
         "titulo": "Política de derechos humanos y debida diligencia",
-        "periodo": "2025"
+        "periodo": "2025",
+        "codigos": [
+          "NIIF S1 44 (a)(i)a(v)"
+        ]
       },
       "esperado": {
         "extracto_contiene": [
@@ -338,7 +341,10 @@
       "naturaleza": "texto",
       "solicitud": {
         "titulo": "Política ambiental",
-        "periodo": "2025"
+        "periodo": "2025",
+        "codigos": [
+          "NIIF S2 33"
+        ]
       },
       "esperado": {
         "extracto_contiene": [
@@ -380,7 +386,11 @@
       "naturaleza": "texto",
       "solicitud": {
         "titulo": "Composición y responsabilidades del Consejo",
-        "periodo": "2025"
+        "periodo": "2025",
+        "codigos": [
+          "NIIF S2 6 (a)",
+          "NIIF S2 6 (a)(i)"
+        ]
       },
       "esperado": {
         "extracto_contiene": [
@@ -502,6 +512,91 @@
         "estado": "no_soportado",
         "mensaje": "guarde el archivo como .xlsx"
       }
+    },
+    {
+      "id": "t01",
+      "archivo": "t01_politica_riesgos_escaneada.pdf",
+      "tipo": "pdf",
+      "naturaleza": "texto",
+      "escaneado": true,
+      "solicitud": {
+        "titulo": "Procesos para identificar, evaluar y priorizar los riesgos climáticos",
+        "periodo": "2025",
+        "codigos": [
+          "NIIF S2 25 (a)(i)a(v)"
+        ]
+      },
+      "esperado": {
+        "cubre": true,
+        "extracto_contiene": [
+          "análisis de escenarios",
+          "probabilidad e impacto"
+        ],
+        "fuentes": [
+          {
+            "tipo": "pagina",
+            "pagina": 1
+          }
+        ]
+      },
+      "notas": "Política escaneada: el texto sale de la transcripción por visión, y el extracto tiene que ser literal de esa transcripción."
+    },
+    {
+      "id": "t02",
+      "archivo": "t02_gobierno_disperso.docx",
+      "tipo": "word",
+      "naturaleza": "texto",
+      "feo": "requisito disperso en tres párrafos no contiguos",
+      "solicitud": {
+        "titulo": "Cómo y con qué frecuencia se informa al Consejo sobre los riesgos climáticos y cómo los considera en la estrategia",
+        "periodo": "2025",
+        "codigos": [
+          "NIIF S2 6 (a)(iii)",
+          "NIIF S2 6 (a)(iv)"
+        ]
+      },
+      "esperado": {
+        "cubre": true,
+        "extracto_contiene": [
+          "informe trimestral",
+          "escenarios climáticos",
+          "dos veces al año"
+        ],
+        "fuentes": [
+          {
+            "tipo": "parrafo",
+            "parrafo": 3
+          },
+          {
+            "tipo": "parrafo",
+            "parrafo": 6
+          },
+          {
+            "tipo": "parrafo",
+            "parrafo": 8
+          }
+        ],
+        "minimo_fuentes": 2
+      },
+      "notas": "Los párrafos 2, 4, 5 y 7 son distractores. Un extracto de un solo párrafo se queda corto."
+    },
+    {
+      "id": "t03",
+      "archivo": "t03_codigo_etica.docx",
+      "tipo": "word",
+      "naturaleza": "texto",
+      "feo": "no cubre el requisito; trampa: «riesgo de corrupción»",
+      "solicitud": {
+        "titulo": "Procesos para identificar, evaluar y priorizar los riesgos climáticos",
+        "periodo": "2025",
+        "codigos": [
+          "NIIF S2 25 (a)(i)a(v)"
+        ]
+      },
+      "esperado": {
+        "cubre": false
+      },
+      "notas": "La sugerencia correcta es «no cubre», sin extracto."
     }
   ]
 }
