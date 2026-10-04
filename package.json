@@ -15,6 +15,7 @@
     "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs",
     "e2e:demo-prospectos": "node scripts/e2e-demo-prospectos.mjs",
     "e2e:difusion": "node scripts/e2e-difusion.mjs",
+    "e2e:jefe-sube-evidencia": "node scripts/e2e-jefe-sube-evidencia.mjs",
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
     "e2e:vb-area": "node scripts/e2e-vb-area.mjs",
     "e2e:vitrina": "node scripts/e2e-vitrina.mjs",
