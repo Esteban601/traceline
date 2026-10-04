@@ -1671,6 +1671,140 @@ export type Database = {
           },
         ]
       }
+      sugerencias_captura: {
+        Row: {
+          candidatos: Json
+          cita: string | null
+          cobertura: string | null
+          confianza: string | null
+          contenido_id: string
+          conversion: Json | null
+          costo_usd: number
+          created_at: string
+          decidido_en: string | null
+          decidido_por: string | null
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id: string
+          evidencia_version: number
+          extracto: string | null
+          fuente: Json | null
+          id: string
+          modelo: string | null
+          motivo: string | null
+          motivo_rechazo: string | null
+          periodo: string | null
+          prompt_version: string | null
+          segunda_opinion: Json | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada: number
+          tokens_salida: number
+          unidad: string | null
+          unidad_final: string | null
+          valor: number | null
+          valor_final: number | null
+        }
+        Insert: {
+          candidatos?: Json
+          cita?: string | null
+          cobertura?: string | null
+          confianza?: string | null
+          contenido_id: string
+          conversion?: Json | null
+          costo_usd?: number
+          created_at?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id: string
+          evidencia_version: number
+          extracto?: string | null
+          fuente?: Json | null
+          id?: string
+          modelo?: string | null
+          motivo?: string | null
+          motivo_rechazo?: string | null
+          periodo?: string | null
+          prompt_version?: string | null
+          segunda_opinion?: Json | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          unidad?: string | null
+          unidad_final?: string | null
+          valor?: number | null
+          valor_final?: number | null
+        }
+        Update: {
+          candidatos?: Json
+          cita?: string | null
+          cobertura?: string | null
+          confianza?: string | null
+          contenido_id?: string
+          conversion?: Json | null
+          costo_usd?: number
+          created_at?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id?: string
+          evidencia_version?: number
+          extracto?: string | null
+          fuente?: Json | null
+          id?: string
+          modelo?: string | null
+          motivo?: string | null
+          motivo_rechazo?: string | null
+          periodo?: string | null
+          prompt_version?: string | null
+          segunda_opinion?: Json | null
+          solicitud_id?: string
+          tenant_id?: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          unidad?: string | null
+          unidad_final?: string | null
+          valor?: number | null
+          valor_final?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugerencias_captura_contenido_id_fkey"
+            columns: ["contenido_id"]
+            isOneToOne: false
+            referencedRelation: "evidencias_contenido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: false
+            referencedRelation: "evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           activo: boolean
@@ -1800,6 +1934,13 @@ export type Database = {
         | "observaciones"
         | "validado"
         | "congelado"
+      estado_sugerencia:
+        | "sugerida"
+        | "confirmada"
+        | "corregida"
+        | "rechazada"
+        | "obsoleta"
+        | "fallida"
       norma_niif: "S1" | "S2"
       objeto_comentario_auditor:
         | "solicitud"
@@ -1973,6 +2114,14 @@ export const Constants = {
         "observaciones",
         "validado",
         "congelado",
+      ],
+      estado_sugerencia: [
+        "sugerida",
+        "confirmada",
+        "corregida",
+        "rechazada",
+        "obsoleta",
+        "fallida",
       ],
       norma_niif: ["S1", "S2"],
       objeto_comentario_auditor: [
