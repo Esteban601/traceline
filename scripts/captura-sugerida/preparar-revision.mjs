@@ -16,6 +16,8 @@
 //   R3 · RH          · PDF escaneado (lectura por visión; decide el jefe de RH)
 //   R4 · Finanzas    · Word con el requisito en tres párrafos (extracto)
 //   R5 · Finanzas    · Código de ética que no cubre el requisito (sin hallazgo)
+//   R6 · Operaciones · Agua pedida, evidencia de combustibles (sin hallazgo numérico)
+// `--solo R6` crea solo los casos indicados.
 // Empresa ficticia; sin datos reales. Solo contra el stack local.
 // =============================================================================
 import fs from "node:fs";
@@ -24,7 +26,10 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
-const BASE = process.argv[2] || "http://localhost:3003";
+const args = process.argv.slice(2);
+const iSolo = args.indexOf("--solo");
+const SOLO = iSolo >= 0 ? args[iSolo + 1].split(",") : null; // --solo R6  (solo esos casos)
+const BASE = args.find((a, i) => !a.startsWith("--") && i !== iSolo + 1) || "http://localhost:3003";
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
 const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 const CLAVE_DEMO = "Demo2025!";
@@ -49,6 +54,8 @@ const CASOS = [
   { id: "R5", area: "Finanzas", sube: "finanzas@empresademo.example", archivo: "t03_codigo_etica.docx",
     titulo: "Procesos para identificar, evaluar y priorizar los riesgos climáticos", cuantitativa: false,
     codigos: ["NIIF S2 25 (a)(i)a(v)"], decide: "— (sin hallazgo: no hay nada que decidir)" },
+  { id: "R6", area: "Operaciones", sube: "operaciones@empresademo.example", archivo: "x07_combustibles_texto.xlsx",
+    titulo: "Extracción total de agua 2025", cuantitativa: true, unidad: "m3", decide: "— (sin hallazgo: la evidencia es de combustibles)" },
 ];
 
 async function sesion(email) {
@@ -64,7 +71,7 @@ const marca = "[Revisión Paso 4]";
 const { data: m } = await staff.c.from("solicitudes").select("orden").eq("reporte_id", REPORTE).order("orden", { ascending: false }).limit(1).maybeSingle();
 let orden = (m?.orden ?? 0) + 1;
 const creadas = [];
-for (const k of CASOS) {
+for (const k of CASOS.filter((c) => !SOLO || SOLO.includes(c.id))) {
   const { data: sol, error } = await staff.c.from("solicitudes").insert({
     reporte_id: REPORTE, titulo: `${marca} ${k.titulo}`, descripcion: `Solicitud de prueba para revisar la captura sugerida (${k.id}).`,
     area_asignada: k.area, es_cuantitativa: k.cuantitativa, unidad_esperada: k.unidad ?? null, estado: "solicitado", orden: orden++,
@@ -102,7 +109,7 @@ for (const c of creadas) {
   const s = (sugs ?? []).find((x) => x.solicitud_id === c.solicitudId);
   costo += Number(s?.costo_usd ?? 0);
   const muestra = !s ? "(sin sugerencia todavía)"
-    : s.estado === "sin_hallazgo" ? "sin hallazgo: no cubre el requisito"
+    : s.estado === "sin_hallazgo" ? (s.tipo === "texto" ? "sin hallazgo: no cubre el requisito" : "sin hallazgo: no se encontró la cifra")
     : s.tipo === "texto" ? `extracto (${s.confianza})`
     : `${s.conversion ? `${s.conversion.valor} ${s.conversion.unidad} ← ` : ""}${Number(s.valor)} ${s.unidad} (${s.confianza})`;
   console.log(`${c.id.padEnd(5)}${c.area.padEnd(13)}${muestra.slice(0, 42).padEnd(44)}${c.decide}`);

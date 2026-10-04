@@ -167,6 +167,11 @@ export async function generarSugerencia(
       ...base,
       tipo: "numerica",
       estado: r.estado,
+      // Sin hallazgo: la línea de qué falta, desde la solicitud (el modelo explica en `motivo` qué trae la evidencia).
+      cobertura:
+        r.estado === "sin_hallazgo"
+          ? `Falta: la cifra de «${sol.titulo}»${sol.unidad_esperada ? ` en ${sol.unidad_esperada}` : ""} para ${paraSugerir.ejercicio}.`
+          : null,
       valor: p?.valor ?? null,
       unidad: p?.unidad ?? null,
       periodo: p?.periodo ?? null,

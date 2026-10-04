@@ -132,8 +132,9 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
           <p className="text-sm font-medium text-ink">
             {esTexto ? "Esta evidencia no cubre el requisito." : "No se encontró la cifra en esta evidencia."}
           </p>
-          {s.cobertura ? <p className="text-sm text-muted">{s.cobertura}</p> : null}
-          {!esTexto && s.motivo ? <p className="text-sm text-muted">{s.motivo}</p> : null}
+          {/* La línea de qué falta y, aparte, lo que la evidencia sí trae. */}
+          {s.cobertura ? <p className="text-sm text-ink">{s.cobertura}</p> : null}
+          {s.motivo ? <p className="text-xs leading-relaxed text-muted">{s.motivo}</p> : null}
         </div>
       ) : null}
 

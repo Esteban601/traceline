@@ -171,9 +171,12 @@ export async function sugerirTexto(
   }
 
   const cobertura = `Cubre: ${r.cubre.trim()} · No cubre: ${r.no_cubre.trim()}`;
+  // Sin hallazgo: una sola línea, la de qué falta. «Cubre: nada · No cubre: X»
+  // dice lo mismo dos veces.
+  const falta = `Falta: ${(r.no_cubre.trim() || r.cubre.trim()).replace(/\.?$/, ".")}`;
   if (r.cubre_requisito === "no") {
     return {
-      estado: "sin_hallazgo", cubreRequisito: "no", fragmentos: [], extracto: null, cobertura, confianza: r.confianza,
+      estado: "sin_hallazgo", cubreRequisito: "no", fragmentos: [], extracto: null, cobertura: falta, confianza: r.confianza,
       motivo: r.motivo, descartadas: [], llamadas, error: null,
     };
   }
@@ -198,8 +201,10 @@ export async function sugerirTexto(
       // Lo propuesto no está literal en su fuente: no se muestra, y para el
       // usuario equivale a que la evidencia no trae un texto que se pueda citar.
       estado: "sin_hallazgo", cubreRequisito: r.cubre_requisito, fragmentos: [], extracto: null,
-      cobertura: `No se pudo citar literalmente ningún fragmento de esta evidencia · Faltaría: ${r.no_cubre.trim() || r.cubre.trim()}`,
-      confianza: null, motivo: r.motivo, descartadas, llamadas, error: null,
+      cobertura: falta,
+      confianza: null,
+      motivo: "Lo que se propuso citar no está literalmente en la evidencia.",
+      descartadas, llamadas, error: null,
     };
   }
   return {
