@@ -13,6 +13,8 @@
     "e2e:auditor:rutas": "node scripts/e2e-auditor-rutas.mjs",
     "e2e:banner-demo": "node scripts/e2e-banner-demo.mjs",
     "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs",
+    "e2e:captura-sugerida": "node scripts/e2e-captura-sugerida.mjs",
+    "e2e:captura-sugerida:ui": "node scripts/e2e-captura-sugerida-ui.mjs",
     "e2e:demo-prospectos": "node scripts/e2e-demo-prospectos.mjs",
     "e2e:difusion": "node scripts/e2e-difusion.mjs",
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",

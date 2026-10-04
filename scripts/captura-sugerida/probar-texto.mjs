@@ -117,7 +117,7 @@ const segundos = Math.round((Date.now() - t0) / 1000);
 const ids = ligados.map((l) => l.solicitudId);
 const [{ data: conts }, { data: sugs }] = await Promise.all([
   db.from("evidencias_contenido").select("solicitud_id, estado, contenido, costo_usd").in("solicitud_id", ids),
-  db.from("sugerencias_captura").select("*").in("solicitud_id", ids).in("estado", ["sugerida", "fallida"]).order("created_at", { ascending: false }),
+  db.from("sugerencias_captura").select("*").in("solicitud_id", ids).in("estado", ["sugerida", "sin_hallazgo", "fallida"]).order("created_at", { ascending: false }),
 ]);
 const contDe = new Map((conts ?? []).map((c) => [c.solicitud_id, c]));
 const sugDe = new Map();
@@ -153,7 +153,8 @@ for (const { caso: c, solicitudId } of ligados) {
     frases_faltantes: [], fuentes_faltantes: [], resultado: null,
   };
   if (c.esperado.cubre === false) {
-    fila.resultado = s?.estado === "sugerida" && fila.cubre_requisito === "no" && !extracto ? "correcto (no cubre)" : "fallo";
+    // Desde el Paso 4, «no cubre» es el estado visible `sin_hallazgo`.
+    fila.resultado = s?.estado === "sin_hallazgo" && fila.cubre_requisito === "no" && !extracto ? "correcto (no cubre)" : "fallo";
   } else if (!s || s.estado !== "sugerida" || !extracto) {
     fila.resultado = "fallo";
   } else {
