@@ -29,7 +29,7 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "a5b-v2-2026-09-15";
+export const PROMPT_VERSION = "a5b-v3-2026-10-04";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -41,7 +41,7 @@ export type RequisitoNiif = { codigo: string; descripcion: string };
 
 export type FuenteEntregada = {
   id: string;
-  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte";
+  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia";
   detalle: string;
 };
 
@@ -83,6 +83,7 @@ export const VOCABULARIO_PROHIBIDO = [
   "cue:",
   "perfil:",
   "reporte:",
+  "evi:",
 ];
 
 /** El marcador de pendiente, con formato uniforme. Es lo único que se permite. */
@@ -215,6 +216,8 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 7. SIN ENCABEZADOS NI VIÑETAS NI MARKDOWN. Prosa corrida, párrafos separados por una línea en blanco.
 
 8. SI TE DAN UNA TABLA YA ARMADA, la tabla dice las cifras. Tu prosa la introduce y comenta lo que la tabla no puede decir. Menciona una cifra en prosa solo si aporta algo que la tabla no dice, y nunca dos veces.
+
+9. EL DOCUMENTO DE RESPALDO ES CONTEXTO, NO FUENTE DE CIFRAS. Una solicitud puede traer \`documento_de_respaldo\`: el texto leído del archivo que la sustenta, con un id entre corchetes por página, párrafo, tabla u hoja (\`[evi:…]\`). Úsalo para describir con precisión lo que la emisora hace —procesos, responsables, frecuencias, alcance— y pon en \`fuentes_usadas\` el id exacto de la página o párrafo de donde lo tomaste. Pero NINGUNA CIFRA sale de ahí: las cifras vienen solo de \`valor\`, de la tabla, de \`texto_confirmado\` o de los demás datos entregados, y una cifra que solo aparece en el documento se rechaza. Si trae \`texto_confirmado\`, ese texto ya lo revisó la emisora: es la base preferida para redactar; cítalo con los ids de \`citar_con\`. Los ids van en \`fuentes_usadas\`, nunca en el texto.
 
 # Qué va en \`notas_revision\` y qué no
 

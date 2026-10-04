@@ -114,6 +114,17 @@ export function numerosPosibles(texto: string): number[] {
   return [...fuera];
 }
 
+/**
+ * Los números de un texto corrido, SIN juntar lo que separa un espacio (en
+ * prosa «2025 1,240» son dos cifras). Lo usa el validador de cifras del
+ * generador (lib/suplemento/cifras.ts).
+ */
+export function numerosDe(texto: string): number[] {
+  const fuera = new Set<number>();
+  leerNumeros(texto.replace(/[−–]/g, "-"), fuera);
+  return [...fuera];
+}
+
 function leerNumeros(t: string, fuera: Set<number>): void {
   for (const m of t.matchAll(/-?\d[\d.,']*/g)) {
     const crudo = m[0].replace(/[.,']$/, "").replace(/'/g, "");
