@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getPerfilActual,
@@ -343,6 +344,10 @@ export async function subirEvidenciaPanel(
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Selecciona o arrastra un archivo." };
+  }
+  // El cliente ya lo detiene; el servidor es el que manda (lib/evidencias/limite-subida.ts).
+  if (excedeLimite(file.size)) {
+    return { ok: false, error: MENSAJE_ARCHIVO_GRANDE };
   }
   if (!periodoCubierto) {
     return { ok: false, error: "Indica el periodo cubierto por la evidencia." };
