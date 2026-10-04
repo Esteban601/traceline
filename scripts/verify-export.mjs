@@ -21,8 +21,14 @@
 //     un cuestionario a medias muestra 'Pendiente en plataforma' en las preguntas
 //     sin responder.
 //
-// Requiere el server corriendo (pnpm dev o pnpm start) y Supabase local con el
-// seed aplicado (supabase db reset). Uso:
+// Requiere el server corriendo (pnpm dev o pnpm start) y el demo POBLADO: desde
+// 9887b10 las reglas son las del grupo financiero de scripts/poblar-demo.mjs, no
+// las del seed a secas. Hoy eso es el PROYECTO DEV (kmjkoxecxcujxixlxwlb):
+// poblar-demo solo corre ahí y escribe con service_role en tablas en las que las
+// migraciones solo le dan SELECT; funciona en el proyecto alojado por los
+// privilegios por defecto de Supabase y no en el stack local. Así que el server
+// va contra dev (variables de .env.local), no contra el local recién reseteado.
+// Si el demo no está poblado, el script lo dice y sale con 2. Uso:
 //   node scripts/verify-export.mjs [baseUrl]
 //   ADMIN_EMAIL=... ADMIN_PASSWORD=... node scripts/verify-export.mjs
 // -----------------------------------------------------------------------------
@@ -114,6 +120,24 @@ async function main() {
     .maybeSingle();
   if (!repDemo) {
     console.error("No se encontró el reporte de Empresa Demo (¿corriste supabase db reset?).");
+    process.exit(2);
+  }
+
+  // 2b. Las reglas de abajo son las del demo POBLADO (grupo financiero, desde
+  // 9887b10), no las del seed a secas (el giro industrial). Sin poblar, fallaban
+  // dieciocho comprobaciones que parecían un export roto y eran un demo viejo.
+  // Se detecta por un registro de clima que solo crea poblar-demo.mjs.
+  const { count: poblado } = await client
+    .from("registros_clima")
+    .select("id", { count: "exact", head: true })
+    .eq("reporte_id", repDemo.id)
+    .eq("nombre", "Huracanes e inundaciones en la red del sureste");
+  if (!poblado) {
+    console.error(
+      "\n✗ El demo NO está poblado: las reglas de este script son las del grupo financiero de\n" +
+        "  scripts/poblar-demo.mjs, no las del seed a secas. Corre primero:\n" +
+        "    node scripts/poblar-demo.mjs        (solo corre contra el proyecto dev; ver el encabezado)\n"
+    );
     process.exit(2);
   }
 

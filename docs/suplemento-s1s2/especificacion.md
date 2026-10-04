@@ -1,7 +1,12 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.9** · 1 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.10** · 4 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.9** (después de los releases v31 y v32):
+- §10: registro de v31 (vitrina por emisora) y v32 (subida de evidencias de más de 1 MB).
+- §10: nueva sección «Deudas conocidas»: los permisos de `service_role` difieren entre local y alojado, y
+  `generaciones_mes_max` no se aplica en ningún sitio.
 
 **Cambios respecto a 0.8** (después de los releases v29 y v30 y del merge de `main` en `dev/ajustes-sep26`):
 - §10: registro de los releases v29 (rol auditor) y v30 (registro del auditor sin IP), y el conflicto del
@@ -703,6 +708,84 @@ Lo que no se probó en staging:
 Punto de reversión: `heroku releases:rollback v29`. Una vez aplicada la
 migración, revertir el código deja de registrar la actividad del auditor
 mientras v29 esté arriba, así que se corrige hacia adelante.
+
+### staging · release v31 · 1 de octubre de 2026 · `d53ae68`
+
+**La vitrina del Suplemento se enciende por emisora** con
+`tenants.vitrina_habilitada`, en lugar de depender de `es_demo`. Viene de
+`hotfix/vitrina-por-tenant` por el PR #3 (merge commit `d53ae68`), dentro del
+encargo `docs/encargos/2026-10-01-mockup-ainda.md` (guion en §5.1).
+
+- Migración `20261001140000_tenants_vitrina_habilitada`, aditiva. La corrió
+  Esteban antes del código: la columna quedó en staging, con 19 de 19 tenants
+  con la vitrina encendida.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso, frente a los del v30 | ✓ idénticos celda por celda |
+| Vitrina de Banco Base (Word y PDF) | ✓ 200, `origen: bucket` |
+| Cobertura | ✓ 200 sin errores de página; botón de vitrina en Banco Base y no en Grupo Carso |
+
+Punto de reversión: `heroku releases:rollback v30`.
+
+### staging · release v32 · 4 de octubre de 2026 · `b682627`
+
+**Las evidencias de más de 1 MB vuelven a subir.** Viene de
+`hotfix/limite-subida` por el PR #4 (merge commit `b682627`). Sin migración.
+
+- **El fallo.** La subida pasa por una server action, y Next la limita a 1 MB
+  por defecto. En v31, un PDF de 1.45 MB subido desde el portal devolvía 500 y
+  el usuario veía «Algo salió mal», sin que se escribiera nada. Se encontró al
+  preparar el Paso 1 del encargo de captura sugerida.
+- **El arreglo.**
+  - `experimental.serverActions.bodySizeLimit = "26mb"`.
+  - Un límite propio de 25 MB por evidencia (`lib/evidencias/limite-subida.ts`).
+    El portal y el panel lo comprueban al elegir el archivo, con el mensaje «El
+    archivo supera 25 MB; comprímalo o divídalo.», y las dos acciones lo
+    vuelven a comprobar en el servidor.
+- **En local.**
+  - 1.45 MB: sube.
+  - 30 MB: se rechaza al elegirlo, sin petición al servidor.
+  - No hay e2e del portal para la subida.
+- La solución de fondo es la subida directa a storage con URL firmada, en el
+  Paso 4 del encargo `docs/encargos/2026-10-04-captura-sugerida.md`.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Subida de 1.45 MB con `operaciones@empresademo.example` en la solicitud `c0000000-…-0006` de Empresa Demo | ✓ POST 200; las evidencias pasan de 2 a 3 (`prueba-1.45MB.pdf`, v3). Se deja, es demo |
+| Excel de taxonomía de CLEPSA frente al del v31 | ✓ idéntico: 3234 celdas en 16 hojas, salvo la fecha del pie (14 celdas) |
+| `/login` | ✓ 200 |
+
+No se repitieron Banco Base, Grupo Carso, la vitrina ni la revisión de logs.
+
+Punto de reversión: `heroku releases:rollback v31`.
+
+### Deudas conocidas
+
+Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
+
+- **Los permisos de `service_role` difieren entre local y alojado.** En los
+  proyectos alojados, `service_role` tiene privilegios que el stack local no le
+  da con las migraciones del repo. Por ejemplo, en local no puede leer
+  `evidencias`.
+  - **Consecuencia:** `scripts/poblar-demo.mjs` solo corre contra proyectos
+    alojados (el dev de cada persona). Por eso `npm run verify:export` necesita
+    un servidor apuntado al proyecto dev; contra el stack local sale con código
+    2 y lo avisa (`4ad63ba`).
+  - **No se amplían permisos para emparejarlos.**
+  - **A decidir en el merge de `dev/ajustes-sep26` a `main`:** si los grants
+    de `service_role` que hoy da por hecho el alojado se declaran en una
+    migración, para que local, dev y staging queden iguales por código y no por
+    configuración de la plataforma.
+- **`tenants.generaciones_mes_max` no se aplica.** La columna existe (§5,
+  default 10), pero ningún camino del generador la consulta. Se dejó así en la
+  decisión 3 del Paso 0 del encargo de captura sugerida. El tope nuevo de
+  lecturas (`lecturas_mes_max`) sí se aplica en la cola de lectura. Queda
+  decidir si se aplica o se retira del diseño.
 
 ### Ensayo de despliegue
 
