@@ -1,7 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.10** · 4 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.11** · 4 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.10**:
+- §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia.
 
 **Cambios respecto a 0.9** (después de los releases v31 y v32):
 - §10: registro de v31 (vitrina por emisora) y v32 (subida de evidencias de más de 1 MB).
@@ -763,6 +766,41 @@ Verificación en staging tras el release:
 No se repitieron Banco Base, Grupo Carso, la vitrina ni la revisión de logs.
 
 Punto de reversión: `heroku releases:rollback v31`.
+
+### staging · v32.1 (solo base) · 4 de octubre de 2026 · `b2c3731`
+
+**El jefe de área puede entregar evidencia.** Viene de
+`hotfix/jefe-sube-evidencia` por el PR #5 (merge commit `b2c3731`). No hay
+release de Heroku: el cambio es solo de base, y el código desplegado (v32) no
+cambia.
+
+- **El fallo, en `main` desde la difusión (`20260826120000`).** El jefe de área
+  no podía subir evidencia a una solicitud en «pendiente», «solicitado» o
+  «validado».
+  - `fn_evidencia_after_insert` mueve el estado con la sesión de quien sube.
+  - `fn_valida_vb_area` solo deja al jefe cambiar el visto bueno y `declinada`,
+    así que rechazaba la carga entera.
+  - Lo encontró el e2e del Paso 4 de captura sugerida.
+- **La corrección**, migración `20261004170000_jefe_area_sube_evidencia`, que
+  reemplaza el cuerpo de las dos funciones:
+  - la carga marca su cambio de estado con `app.estado_por_evidencia`;
+  - el trigger del visto bueno deja pasar ese cambio y nada más.
+  - Un UPDATE directo del estado por el jefe se sigue rechazando: primero por
+    la regla de origen y, aislado, por la del visto bueno.
+- **Verificación antes del despliegue:**
+  - aplicada dos veces en local y en dev;
+  - `e2e:jefe-sube-evidencia` 13 de 13;
+  - regresión con el código de `main` en verde: vb-area 43, difusión 40,
+    auditor 58, auditor-rutas 92.
+- **Despliegue:** Esteban corre `scripts/despliegue/migrar-remoto.sh staging`,
+  primero para revisar y después con `--aplicar`. Debe quedar pendiente solo
+  `20261004170000` y la barrera debe dar 69.
+
+Verificación en staging tras la migración: **pendiente** (la migración la
+ejecuta Esteban).
+
+Reversión: volver a aplicar los cuerpos anteriores de las dos funciones (los de
+`20260820130000` y `20260826120000`). No hay datos que revertir.
 
 ### Deudas conocidas
 
