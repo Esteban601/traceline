@@ -11,7 +11,8 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 - §5: nueve migraciones del encargo.
 
 **Cambios respecto a 0.10**:
-- §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia.
+- §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia. Migración aplicada y verificada
+  en staging el 5 de octubre de 2026.
 
 **Cambios respecto a 0.9** (después de los releases v31 y v32):
 - §10: registro de v31 (vitrina por emisora) y v32 (subida de evidencias de más de 1 MB).
@@ -901,8 +902,27 @@ cambia.
   primero para revisar y después con `--aplicar`. Debe quedar pendiente solo
   `20261004170000` y la barrera debe dar 69.
 
-Verificación en staging tras la migración: **pendiente** (la migración la
-ejecuta Esteban).
+Migración aplicada en staging por Esteban el 5 de octubre de 2026 con
+`migrar-remoto.sh`: 36 de 36, barrera 69, staging al día. Sin release de Heroku:
+el código desplegado sigue siendo v32.
+
+Verificación en staging tras la migración:
+
+| | Resultado |
+|---|---|
+| Migraciones y barrera (Esteban) | ✓ 36 de 36, barrera 69 |
+| Excel de taxonomía de CLEPSA | ✓ 16 hojas y 3 234 posiciones de cuadrícula, igual que en v32 (parcial, ver abajo) |
+| `/login` | ✓ 200 |
+
+**El Excel de CLEPSA no se pudo comparar celda por celda con el de v32**: esa
+línea base se borró con la carpeta de despliegue (`~/despliegue-rol-auditor`)
+antes de esta comprobación. Se comparó la forma del libro (hojas y cuadrícula),
+que coincide, y el libro descargado hoy queda como línea base del próximo
+despliegue. La migración solo reemplaza dos funciones de trigger de la carga de
+evidencia; el export no las usa.
+
+No se probó en staging que el jefe de área suba evidencia, porque escribiría
+datos; queda cubierto por `e2e:jefe-sube-evidencia` en local y en dev.
 
 Reversión: volver a aplicar los cuerpos anteriores de las dos funciones (los de
 `20260820130000` y `20260826120000`). No hay datos que revertir.
