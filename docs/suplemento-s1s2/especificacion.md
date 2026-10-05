@@ -1,11 +1,22 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.13** · 5 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.14** · 5 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.13** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 1):
+- §10, «Antes del merge a producción», punto 1: resuelto. Las 26 migraciones de `dev` que staging no tiene se
+  renumeraron a `20261005120000 + n minutos`, con el mismo orden y contenido. El historial del proyecto dev se
+  reconcilió con `migration repair` (`scripts/despliegue/renumerar-historial.sh`).
+- §5: números nuevos, más tres migraciones:
+  - `tenants.generador_activo`, con la unidad de `generaciones_mes_max` y su aplicación;
+  - vitrina apagada en clientes reales;
+  - repunte de enlaces de riesgos físicos separado de la corrección del catálogo.
+- Corrección: eran ocho migraciones de captura sugerida, no nueve, y 26 en total, no 27. La novena que se contó,
+  `20261004170000`, es la del hotfix v32.1, que ya estaba en staging.
 
 **Cambios respecto a 0.12** (después del merge de captura sugerida en `dev`, PR #6):
 - §10: el punto previo al merge pasa a llamarse «Antes del merge a producción» y tiene dos partes. La primera
-  es el orden de migraciones, que ahora suma las nueve de captura sugerida, más antiguas que la de v32.1. La
+  es el orden de migraciones, que ahora suma las ocho de captura sugerida (decía «nueve»; corregido en 0.14), más antiguas que la de v32.1. La
   segunda es la verificación de que ninguna evidencia de staging supera 25 MB.
 
 **Cambios respecto a 0.11** (al cerrar el encargo de captura sugerida, `docs/encargos/2026-10-04-captura-sugerida.md`):
@@ -13,7 +24,7 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
   y en el caché.
 - §3.3 nueva: captura sugerida (lectura de evidencias, sugerencia con fuente verificada, decisión humana,
   generador con citas a evidencias y validador de cifras).
-- §5: nueve migraciones del encargo.
+- §5: ocho migraciones del encargo (decía «nueve»; corregido en 0.14).
 
 **Cambios respecto a 0.10**:
 - §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia. Migración aplicada y verificada
@@ -383,25 +394,28 @@ filas, no como JSON.
 | Tabla `perfil_emisor` | §4 | CREATE TABLE + RLS por tenant |
 | Tabla `documentos_generados` | Versiones, estado, idioma, auditoría, costo total | CREATE TABLE + RLS |
 | Tabla `documentos_bloques` | Un renglón por bloque, versión e idioma: texto, estado, `fuentes` (ids), pendientes, tokens, costo, modelo, `prompt_version`, editado_por | CREATE TABLE + RLS |
-| `documentos_bloques.tokens_entrada_cache_escritura`, `.tokens_entrada_cache_lectura`, `.duracion_ms` | Un solo `tokens_entrada` no permite reconstruir el costo: escritura de caché, lectura y entrada sin cachear se cobran a precios distintos. `duracion_ms` es lo que decide si un bloque cabe en los 30 s del router | ADD COLUMN (`20260913120000`, **aplicada en dev**) |
-| `documentos_bloques.estado` amplía su CHECK a `('borrador','generando','error','en_revision','aprobado')` | La orquestación asíncrona necesita `generando`; un fallo guardado como `borrador` sin texto es indistinguible de un bloque que nadie generó | DROP + ADD CONSTRAINT (`20260914120000`, **aplicada en dev**) |
+| `documentos_bloques.tokens_entrada_cache_escritura`, `.tokens_entrada_cache_lectura`, `.duracion_ms` | Un solo `tokens_entrada` no permite reconstruir el costo: escritura de caché, lectura y entrada sin cachear se cobran a precios distintos. `duracion_ms` es lo que decide si un bloque cabe en los 30 s del router | ADD COLUMN (`20261005120800`) |
+| `documentos_bloques.estado` amplía su CHECK a `('borrador','generando','error','en_revision','aprobado')` | La orquestación asíncrona necesita `generando`; un fallo guardado como `borrador` sin texto es indistinguible de un bloque que nadie generó | DROP + ADD CONSTRAINT (`20261005120900`) |
 | Bucket `documentos` (privado) | Word y organigrama, ruta `{tenant_id}/…` | Storage + políticas |
 | `tenants.generaciones_mes_max` (int, default 10) | Salvaguarda contra uso accidental o abusivo del botón; no es tope de presupuesto | ADD COLUMN |
-| `documentos_bloques.estado` suma `'no_aplica'` y `'pendiente_adjunto'` | Un bloque que el régimen excluye y otro que espera un adjunto no son errores ni borradores vacíos: sin estado propio, el revisor los perseguía como fallos | DROP + ADD CONSTRAINT (`20260918120000`, **aplicada en dev**) |
-| `documentos_bloques.estado` suma `'en_cola'`, y `documentos_bloques.reclamado_en` (timestamptz, nullable) | Insertar los 40 bloques como `generando` hacía que todos los POST recibieran 409 y que los últimos de la cola vencieran esperando turno. `en_cola` dice que nadie lo ha tomado; `reclamado_en` es desde cuándo corre el vencimiento y lo que hace atómico el reclamo | DROP + ADD CONSTRAINT + ADD COLUMN (`20260919120000`, **aplicada en dev**) |
-| `documentos_bloques.intentos` (smallint, default 0) | Cuenta los cortes por tiempo de la tanda actual. Sin memoria del intento, un bloque que siempre excede la ventana se reencola para siempre; al segundo corte pasa a `error` | ADD COLUMN (`20260920120000`, **aplicada en dev**) |
-| `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | El bloque 21 solo podía producir la tabla resumen: le faltaba con qué escribir el párrafo por riesgo de CADU pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Se capturan en `/admin/registros` | ADD COLUMN (`20260921120000`, **aplicada en dev**) |
+| `documentos_bloques.estado` suma `'no_aplica'` y `'pendiente_adjunto'` | Un bloque que el régimen excluye y otro que espera un adjunto no son errores ni borradores vacíos: sin estado propio, el revisor los perseguía como fallos | DROP + ADD CONSTRAINT (`20261005121300`) |
+| `documentos_bloques.estado` suma `'en_cola'`, y `documentos_bloques.reclamado_en` (timestamptz, nullable) | Insertar los 40 bloques como `generando` hacía que todos los POST recibieran 409 y que los últimos de la cola vencieran esperando turno. `en_cola` dice que nadie lo ha tomado; `reclamado_en` es desde cuándo corre el vencimiento y lo que hace atómico el reclamo | DROP + ADD CONSTRAINT + ADD COLUMN (`20261005121400`) |
+| `documentos_bloques.intentos` (smallint, default 0) | Cuenta los cortes por tiempo de la tanda actual. Sin memoria del intento, un bloque que siempre excede la ventana se reencola para siempre; al segundo corte pasa a `error` | ADD COLUMN (`20261005121500`) |
+| `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | El bloque 21 solo podía producir la tabla resumen: le faltaba con qué escribir el párrafo por riesgo de CADU pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Se capturan en `/admin/registros` | ADD COLUMN (`20261005121600`) |
 
-| Tabla `evidencias_contenido`, enum `estado_lectura`, `tenants.lectura_evidencias_activa` y `.lecturas_mes_max`, trigger de encolado | Captura sugerida (§3.3): el contenido de cada versión de evidencia, leído una vez | CREATE TABLE + ADD COLUMN (`20261004120000`) |
-| Tabla `sugerencias_captura`, enum `estado_sugerencia` | Sugerencias y sus decisiones | CREATE TABLE (`20261004130000`) |
-| `sugerencias_captura.regenerada` | La regeneración cuenta contra el tope | ADD COLUMN (`20261004140000`) |
-| Valor `sin_hallazgo` de `estado_sugerencia` | Estado visible para «no encontrada» y «no cubre» | ALTER TYPE ADD VALUE (`20261004150000`) |
-| `fn_decidir_sugerencia`, `fn_puede_decidir_sugerencia`, `capturas_valor.origen` y `.sugerencia_id`, `sugerencias_captura.extracto_final` | La decisión en una transacción y el origen de la captura | ADD COLUMN + funciones (`20261004150100`, corregida en `20261004160200`) |
-| Límite de 25 MB en el bucket `evidencias` | La subida directa ya no pasa por la server action | UPDATE de la configuración del bucket (`20261004160000`), más restrictivo |
-| Trigger `trg_evidencia_obsoleta_sugerencias` | La versión nueva deja obsoleta la sugerencia en el mismo INSERT | Trigger nuevo (`20261004160100`) |
+| Tabla `evidencias_contenido`, enum `estado_lectura`, `tenants.lectura_evidencias_activa` y `.lecturas_mes_max`, trigger de encolado | Captura sugerida (§3.3): el contenido de cada versión de evidencia, leído una vez | CREATE TABLE + ADD COLUMN (`20261005121800`) |
+| Tabla `sugerencias_captura`, enum `estado_sugerencia` | Sugerencias y sus decisiones | CREATE TABLE (`20261005121900`) |
+| `sugerencias_captura.regenerada` | La regeneración cuenta contra el tope | ADD COLUMN (`20261005122000`) |
+| Valor `sin_hallazgo` de `estado_sugerencia` | Estado visible para «no encontrada» y «no cubre» | ALTER TYPE ADD VALUE (`20261005122100`) |
+| `fn_decidir_sugerencia`, `fn_puede_decidir_sugerencia`, `capturas_valor.origen` y `.sugerencia_id`, `sugerencias_captura.extracto_final` | La decisión en una transacción y el origen de la captura | ADD COLUMN + funciones (`20261005122200`, corregida en `20261005122500`) |
+| Límite de 25 MB en el bucket `evidencias` | La subida directa ya no pasa por la server action | UPDATE de la configuración del bucket (`20261005122300`), más restrictivo |
+| Trigger `trg_evidencia_obsoleta_sugerencias` | La versión nueva deja obsoleta la sugerencia en el mismo INSERT | Trigger nuevo (`20261005122400`) |
+| `tenants.generador_activo` (boolean, default false; encendido en `es_demo`) y unidad de `tenants.generaciones_mes_max` | Bandera del generador por emisora (sus datos van a la API de Anthropic) y tope de corridas completas por mes, aplicados por las rutas de `/api/suplemento` | ADD COLUMN + comentario (`20261005122600`) |
+| `tenants.vitrina_habilitada = false` donde `es_demo = false` | La regla «Grupo Carso: vitrina apagada» se verifica por consulta | Migración de datos (`20261005122700`) |
+| Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 
-Todas aditivas, salvo el ajuste del bucket, que solo restringe. Las migraciones del encargo están aplicadas en
-local y en dev, y no en staging: van con el merge del generador a producción. Nada de lo que hoy usan staging ni
+Todas aditivas, salvo el ajuste del bucket, que solo restringe. Los números de migración son los de la renumeración del 5 de octubre de 2026
+(`20261005120000 + n minutos`, §10, «Antes del merge a producción»); se aplican en staging con v33. Nada de lo que hoy usan staging ni
 los 16 tenants cambia de forma.
 
 ---
@@ -1019,6 +1033,18 @@ no fallos presentes.
 
 Anotado el 1 de octubre de 2026 y ampliado el 5 de octubre de 2026.
 
+> **Resuelto el 5 de octubre de 2026 por renumeración** (encargo `2026-10-05-generador-a-produccion`, Paso 1).
+> - **La renumeración.** Las 26 migraciones de `dev` que staging no tenía se renombraron a `20261005120000 + n
+>   minutos`, en el mismo orden y con el mismo contenido. La única excepción es la sección 5 de la corrección del
+>   catálogo, que pasó a `20261005130000`.
+> - **Verificación del esquema.** Una aplicación limpia en local con el orden nuevo da el mismo esquema que la
+>   aplicación histórica (`pg_dump --schema-only` normalizado), sin diferencias como conjunto. La única
+>   diferencia de orden es la posición física de `tenants.generaciones_mes_max`, que ahora se agrega después de
+>   `vitrina_habilitada`; la aplicación lee las columnas por nombre.
+> - **Historial de dev.** Se reconcilió con `scripts/despliegue/renumerar-historial.sh`, que corre
+>   `migration repair` sin volver a ejecutar SQL. El proyecto de cualquier colaborador usa el mismo script.
+> - **Lo de abajo es el problema como se anotó.**
+
 - **El problema.** `dev` lleva **17 migraciones de septiembre** (`20260910120000` a `20260921120000`) que son más
   antiguas que todo lo que ya está aplicado en staging:
   - las `20260929*` de v29;
@@ -1028,9 +1054,9 @@ Anotado el 1 de octubre de 2026 y ampliado el 5 de octubre de 2026.
   Lo mismo pasa con `20261001130000_barrera_auditor_reparacion`, que vive solo en `dev` y queda por debajo de
   `20261001140000`.
 
-  **Y con las nueve de captura sugerida** (`20261004120000` a `20261004160200`, mezcladas en `dev` con el PR #6):
+  **Y con las ocho de captura sugerida** (`20261004120000` a `20261004160200`, mezcladas en `dev` con el PR #6):
   son más antiguas que `20261004170000_jefe_area_sube_evidencia`, que ya está en staging desde v32.1. En total,
-  27 migraciones de `dev` quedan por debajo de la última de staging.
+  26 migraciones de `dev` quedan por debajo de la última de staging (decía 27; corregido en 0.14).
 - **Qué falla y por qué.** `scripts/despliegue/migrar-remoto.sh` corre `supabase db push` sin `--include-all` a
   propósito, para que una migración vieja no se aplique fuera de orden sin que nadie lo decida. Así que ese
   despliegue va a fallar en la revisión.
@@ -1046,7 +1072,7 @@ Anotado el 1 de octubre de 2026 y ampliado el 5 de octubre de 2026.
 Anotado el 5 de octubre de 2026, al mezclar captura sugerida en `dev`.
 
 - **Por qué.** Con la captura sugerida, el límite de 25 MB pasa a valer en tres lugares: la firma de la subida, el
-  bucket `evidencias` (`20261004160000`) y la cola de lectura, que deja en «omitido» un archivo mayor.
+  bucket `evidencias` (`20261005122300`) y la cola de lectura, que deja en «omitido» un archivo mayor.
   - La migración del bucket no toca los objetos que ya existen.
   - Antes de desplegar hay que saber si alguna emisora ya trabaja con archivos más grandes. Esas emisoras no
     podrían subir una versión nueva del mismo archivo, y conviene avisarles antes.
