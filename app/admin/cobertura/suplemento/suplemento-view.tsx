@@ -77,6 +77,7 @@ export function SuplementoView({
   resumen,
   reporteId,
   puedeGenerar,
+  generadorActivo,
 }: {
   nombreReporte: string;
   ejercicio: number;
@@ -90,6 +91,8 @@ export function SuplementoView({
   reporteId: string;
   /** Solo el staff genera el documento en A5a; el admin del cliente en A8. */
   puedeGenerar: boolean;
+  /** `tenants.generador_activo`: apagado, no se ofrece generar y se dice por qué. */
+  generadorActivo: boolean;
 }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const alternar = (clave: string) =>
@@ -171,7 +174,12 @@ export function SuplementoView({
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          {puedeGenerar ? (
+          {!generadorActivo ? (
+            <span className="text-sm text-muted">
+              El generador del suplemento está apagado para esta emisora. Se enciende en Clientes cuando su
+              contrato de encargado lo cubra.
+            </span>
+          ) : puedeGenerar ? (
             <GenerarDocumento reporteId={reporteId} />
           ) : (
             <>

@@ -2,6 +2,7 @@ import { NextResponse, after } from "next/server";
 import { BLOQUES } from "@/lib/suplemento/bloques";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
+import { accesoAlGenerador, tenantDeDestino } from "@/lib/suplemento/acceso";
 import { generarBloque } from "@/lib/suplemento/generar-bloque";
 import { esModeloConocido, MODELO_POR_DEFECTO } from "@/lib/suplemento/modelos";
 import { regimenDe, leerAlivios } from "@/lib/perfil-emisor";
@@ -65,6 +66,12 @@ export async function POST(
   }
 
   const db = await createClient();
+  // Bandera de la emisora, ANTES de crear el documento o reservar el bloque.
+  const tenantId = await tenantDeDestino(db, destino);
+  if (!tenantId) return NextResponse.json({ error: "No existe ese documento ni ese reporte." }, { status: 404 });
+  const acceso = await accesoAlGenerador(db, tenantId);
+  if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
+
   const resuelto = await resolverDocumento(db, destino, perfil.id);
   if ("error" in resuelto) {
     return NextResponse.json({ error: resuelto.error }, { status: resuelto.status });

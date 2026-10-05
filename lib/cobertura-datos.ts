@@ -28,6 +28,8 @@ export type TenantOpcion = {
   es_demo: boolean;
   /** Vitrina del Suplemento encendida; solo cuenta con es_demo. */
   vitrina_habilitada: boolean;
+  /** Generador del suplemento encendido para esta emisora (lib/suplemento/acceso.ts). */
+  generador_activo: boolean;
 };
 export type ReporteOpcion = {
   id: string;
@@ -81,7 +83,7 @@ export async function cargarCobertura(
     cargarDiscrepancias(db),
     db
       .from("tenants")
-      .select("id, nombre, logo_url, prefijo_folio, es_demo, vitrina_habilitada")
+      .select("id, nombre, logo_url, prefijo_folio, es_demo, vitrina_habilitada, generador_activo")
       .order("nombre", { ascending: true }),
     db
       .from("reportes")
