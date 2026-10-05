@@ -80,7 +80,7 @@ if (error) throw new Error("catálogo: " + error.message);
 // Se detectan leyendo los INSERT de las migraciones, no por una lista a mano:
 // una lista a mano se queda vieja en cuanto haya otra migración.
 const migraciones = readFileSync(
-  path.join(RAIZ, "supabase", "migrations", "20260912120000_catalogo_niif_correcciones.sql"),
+  path.join(RAIZ, "supabase", "migrations", "20261005120700_catalogo_niif_correcciones.sql"),
   "utf8"
 );
 const iIns = migraciones.indexOf("insert into public.datapoints_taxonomia");

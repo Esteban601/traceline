@@ -68,6 +68,8 @@ export function RevisionView(p: {
   generadoPor: string | null;
   bloques: BloqueRevision[];
   puedeAprobar: boolean;
+  /** `tenants.generador_activo`: con el generador apagado no se ofrece regenerar (la ruta lo niega igual). */
+  generadorActivo: boolean;
 }) {
   const [sEstado, aEstado] = useActionState(cambiarEstado, VACIO);
   const toast = useToast();
@@ -211,6 +213,7 @@ export function RevisionView(p: {
                 bloque={b}
                 documentoId={p.documentoId}
                 editable={p.estado !== "aprobado"}
+                regenerable={p.estado !== "aprobado" && p.generadorActivo}
               />
             ))}
           </div>
@@ -278,10 +281,12 @@ function BloqueCard({
   bloque,
   documentoId,
   editable,
+  regenerable,
 }: {
   bloque: BloqueRevision;
   documentoId: string;
   editable: boolean;
+  regenerable: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState(false);
@@ -404,7 +409,7 @@ function BloqueCard({
                 Editar
               </Button>
             )}
-            {editable && bloque.estado !== "no_aplica" && (
+            {regenerable && bloque.estado !== "no_aplica" && (
               <Button size="sm" variant="ghost" onClick={regenerar} loading={regenerando}>
                 Regenerar
               </Button>

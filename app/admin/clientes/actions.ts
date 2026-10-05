@@ -213,6 +213,62 @@ export async function cambiarActivoTenant(
  * la autoría.
  */
 // -----------------------------------------------------------------------------
+// Generador del suplemento, por cliente (encargo 2026-10-05-generador-a-produccion).
+//
+// El generador manda los datos de la emisora a la API de Anthropic. En clientes
+// reales empieza APAGADO y se enciende cuando su contrato de encargado nombra a
+// Anthropic. Acción del administrador de IRStrat, con bitácora. Apagarlo no
+// borra los documentos ya generados; las rutas dejan de generar y de entregar
+// el Word para esa emisora.
+// -----------------------------------------------------------------------------
+export async function cambiarGenerador(
+  tenantId: string,
+  habilitar: boolean
+): Promise<AccionTenantState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+  if (!esAdminIrstrat(perfil)) {
+    return { ok: false, error: "Encender o apagar el generador del suplemento es una acción de administrador de IRStrat." };
+  }
+  if (!tenantId) return { ok: false, error: "Cliente no válido." };
+
+  const db = await createClient();
+  const { data: tenant } = await db
+    .from("tenants")
+    .select("id, nombre, generador_activo")
+    .eq("id", tenantId)
+    .single();
+  if (!tenant) return { ok: false, error: "No se encontró el cliente." };
+  if (tenant.generador_activo === habilitar) {
+    return { ok: false, error: habilitar ? "El generador ya estaba encendido." : "El generador ya estaba apagado." };
+  }
+
+  const { error } = await db.from("tenants").update({ generador_activo: habilitar }).eq("id", tenantId);
+  if (error) return { ok: false, error: "No se pudo actualizar el generador." };
+
+  await logEvento(db, {
+    tenantId,
+    usuarioId: perfil.id,
+    accion: habilitar ? "tenant_generador_habilitado" : "tenant_generador_deshabilitado",
+    entidad: "tenants",
+    entidadId: tenantId,
+    detalle: { nombre: tenant.nombre },
+  });
+
+  revalidatePath("/admin/clientes");
+  revalidatePath("/admin/cobertura");
+  return {
+    ok: true,
+    error: null,
+    mensaje: habilitar
+      ? `El generador del suplemento quedó encendido para ${limpiarNombreTenant(tenant.nombre)}.`
+      : `El generador del suplemento de ${limpiarNombreTenant(tenant.nombre)} quedó apagado. Los documentos ya generados se conservan.`,
+  };
+}
+
+// -----------------------------------------------------------------------------
 // Lectura de evidencias por la plataforma (captura sugerida), por cliente.
 //
 // El contenido de las evidencias viaja a la API de Anthropic para leerlo y

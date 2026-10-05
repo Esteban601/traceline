@@ -15,7 +15,7 @@ import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "./limite-subida";
 //   3. La acción de siempre (portal o panel) registra la fila de `evidencias`:
 //      verifica que el objeto exista en la carpeta de esa solicitud y que pese
 //      25 MB o menos (si no, lo retira y lo dice).
-// El bucket tiene además su propio límite (migración 20261004160000), así que
+// El bucket tiene además su propio límite (migración 20261005122300), así que
 // un archivo mayor no se guarda aunque alguien reutilizara la firma.
 // El `bodySizeLimit` de 26 MB del hotfix v32 se queda como red.
 // =============================================================================

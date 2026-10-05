@@ -56,7 +56,7 @@ export default async function RevisionPage({
 
   const [{ data: rep }, { data: tenant }, { data: filas }] = await Promise.all([
     db.from("reportes").select("nombre, ejercicio").eq("id", doc.reporte_id).maybeSingle(),
-    db.from("tenants").select("nombre").eq("id", doc.tenant_id).maybeSingle(),
+    db.from("tenants").select("nombre, generador_activo").eq("id", doc.tenant_id).maybeSingle(),
     db
       .from("documentos_bloques")
       .select(
@@ -104,6 +104,7 @@ export default async function RevisionPage({
         generadoPor={(doc.generado as unknown as { nombre: string } | null)?.nombre ?? null}
         bloques={bloques}
         puedeAprobar={esStaff(perfil)}
+        generadorActivo={tenant?.generador_activo ?? false}
       />
     </div>
   );

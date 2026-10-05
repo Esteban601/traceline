@@ -5,8 +5,8 @@
 
 > ## ✅ Aplicada en dev el 11 de septiembre de 2026
 >
-> Migraciones `20260912120000_catalogo_niif_correcciones.sql` —descripciones, códigos nuevos, plantilla base y
-> enlaces del tenant demo— y `20260915120000_catalogo_codigos_malformados.sql` —renombres—. `migration list`
+> Migraciones `20261005120700_catalogo_niif_correcciones.sql` —descripciones, códigos nuevos, plantilla base y
+> enlaces del tenant demo— y `20261005121000_catalogo_codigos_malformados.sql` —renombres— (renumeradas el 5 de octubre de 2026; antes `20260912120000` y `20260915120000`; el repunte de enlaces de reportes vivos pasó a `20261005130000_catalogo_repunte_riesgos_fisicos.sql`). `migration list`
 > local == remoto (39).
 >
 > **Catálogo: 95 → 98 filas** (91 → 94 NIIF). **36 descripciones corregidas, 9 códigos renombrados, 3 códigos
@@ -247,7 +247,7 @@ la etiqueta. Por eso no hubo cifras que mover.
 
 `scripts/preparar-plantilla-taxonomia.mjs` y `scripts/corregir-hojas-riesgo.mjs`,
 ambos idempotentes, más dos migraciones de red de seguridad para `mapeo_export`
-(`20260916120000` y `20260917120000`) que hoy afectan a cero filas: esa tabla
+(`20261005121100` y `20261005121200`, antes `20260916120000` y `20260917120000`) que hoy afectan a cero filas: esa tabla
 solo mapea las dos hojas GEI, pero el nombre de hoja es la llave con la que el
 export busca la pestaña.
 

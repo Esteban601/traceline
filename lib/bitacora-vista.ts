@@ -49,6 +49,8 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   },
   tenant_lectura_evidencias_habilitada: { label: "Lectura de evidencias encendida para este cliente", tono: "ambar-fuerte" },
   tenant_lectura_evidencias_deshabilitada: { label: "Lectura de evidencias apagada para este cliente", tono: "gris" },
+  tenant_generador_habilitado: { label: "Generador del suplemento encendido para este cliente", tono: "ambar-fuerte" },
+  tenant_generador_deshabilitado: { label: "Generador del suplemento apagado para este cliente", tono: "gris" },
   sugerencia_generada: { label: "La plataforma propuso una captura", tono: "azul" },
   sugerencia_confirmada: { label: "Sugerencia confirmada", tono: "verde" },
   sugerencia_corregida: { label: "Sugerencia corregida", tono: "ambar" },
@@ -192,6 +194,8 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "tenant_carga_staff_deshabilitada":
     case "tenant_lectura_evidencias_habilitada":
     case "tenant_lectura_evidencias_deshabilitada":
+    case "tenant_generador_habilitado":
+    case "tenant_generador_deshabilitado":
       return limpiar(s(detalle, "nombre")) ?? "";
     case "sugerencia_generada": {
       const estado = s(detalle, "estado");

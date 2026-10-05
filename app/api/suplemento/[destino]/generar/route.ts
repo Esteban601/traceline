@@ -5,6 +5,7 @@ import { BLOQUES } from "@/lib/suplemento/bloques";
 import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
+import { accesoAlGenerador } from "@/lib/suplemento/acceso";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,10 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     .eq("id", reporteId)
     .maybeSingle();
   if (!rep) return NextResponse.json({ error: "Ese reporte no existe o no es visible." }, { status: 404 });
+
+  // Bandera y tope de la emisora, en el servidor (lib/suplemento/acceso.ts).
+  const acceso = await accesoAlGenerador(db, rep.tenant_id, { corridaCompleta: true });
+  if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
 
   const regimen = regimenDe(rep.ejercicio, rep.anio_adopcion);
   if (regimen === "indeterminado") {

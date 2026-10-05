@@ -92,6 +92,9 @@ export type AccionEvento =
   // Lectura de evidencias por la plataforma (captura sugerida), por cliente.
   | "tenant_lectura_evidencias_habilitada"
   | "tenant_lectura_evidencias_deshabilitada"
+  // Generador del suplemento, por cliente.
+  | "tenant_generador_habilitado"
+  | "tenant_generador_deshabilitado"
   // Captura sugerida: las escribe la BASE (la cola al generar; fn_decidir_sugerencia
   // al decidir), no la aplicación. Se declaran para que la bitácora las nombre.
   | "sugerencia_generada"

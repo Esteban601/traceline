@@ -30,7 +30,7 @@ const HOJA_VIEJA = "Fondo I";
 export const HOJA_TAXONOMIA = "Taxonomía NIIF S1 S2";
 const SOLO_REVISAR = process.argv.includes("--revisar");
 
-/** Los nueve códigos que renombró la auditoría (migración 20260915120000). */
+/** Los nueve códigos que renombró la auditoría (migración 20261005121000). */
 const RENOMBRES = {
   "IFRS S1 2023-06-26 40 a": "NIIF S1 40(a)",
   "NIIF S2 29 (b) B64 y B65 inciso (a)": "NIIF S2 29 (b)",

@@ -141,7 +141,12 @@ export default async function CoberturaPage({
       suplemento={
         soyAuditor ? null : (
           <Fragment key="suplemento">
-            <SuplementoButton reporteId={datos.reporteSel} />
+            {/* El generador, solo si esa emisora lo tiene encendido
+                (`tenants.generador_activo`); las rutas lo niegan igual. Sin
+                reporte elegido se muestra apagado, como siempre. */}
+            {!reporteSel || tenantDelReporte?.generador_activo ? (
+              <SuplementoButton reporteId={datos.reporteSel} />
+            ) : null}
             {/* La vitrina, solo si esa emisora la tiene encendida: un mockup
                 puede apagarla (`tenants.vitrina_habilitada`), y la ruta la niega
                 igual. El enlace al semáforo de arriba no depende de esto. */}

@@ -5,7 +5,7 @@
 Este documento trae **solo las filas que hay que decidir**. La tabla completa de los 91 códigos, con
 las que ya coinciden y las erratas menores, está en `auditoria-catalogo.md`.
 
-Las secciones siguen el orden de la migración `20260912120000_catalogo_niif_correcciones.sql`, que está
+Las secciones siguen el orden de la migración `20261005120700_catalogo_niif_correcciones.sql` (antes `20260912120000`), que está
 escrita y **sin aplicar**. Marca la casilla de cada fila que apruebes; las que dejes sin marcar se quitan
 de la migración antes del `db push`.
 

@@ -74,7 +74,17 @@ export default async function SuplementoPage({
   // El botón de prueba gasta dinero real en cada clic. Dos condiciones, y la
   // segunda es explícita a propósito: que NEXT_PUBLIC_STAGING no valga "true"
   // dice "no me indexes", no "aquí se puede gastar en llamadas al modelo".
-  const conBotonDePrueba = esStaff(perfil) && process.env.SUPLEMENTO_PRUEBA === "1";
+  // Bandera de la emisora (`tenants.generador_activo`): apagada, la página sigue
+  // mostrando el semáforo pero no ofrece generar. Las rutas lo niegan igual.
+  const { data: repTenant } = await db
+    .from("reportes")
+    .select("tenants(generador_activo)")
+    .eq("id", reporteId)
+    .maybeSingle();
+  const generadorActivo =
+    (repTenant?.tenants as unknown as { generador_activo: boolean } | null)?.generador_activo ?? false;
+
+  const conBotonDePrueba = esStaff(perfil) && generadorActivo && process.env.SUPLEMENTO_PRUEBA === "1";
 
   return (
     <Marco>
@@ -96,7 +106,8 @@ export default async function SuplementoPage({
         bloques={res.bloques}
         resumen={res.resumen}
         reporteId={reporteId}
-        puedeGenerar={esStaff(perfil)}
+        puedeGenerar={esStaff(perfil) && generadorActivo}
+        generadorActivo={generadorActivo}
       />
     </Marco>
   );

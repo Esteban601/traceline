@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
+import { accesoAlGenerador } from "@/lib/suplemento/acceso";
 import { logEvento } from "@/lib/bitacora";
 import { construirWord, nombreArchivo } from "@/lib/suplemento/word";
 
@@ -43,6 +44,10 @@ export async function GET(
   const staff = esStaff(perfil);
   const admin = esAdminCliente(perfil) && perfil.tenant_id === doc.tenant_id;
   if (!staff && !admin) return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
+
+  // Bandera de la emisora: con el generador apagado no se entrega el documento.
+  const acceso = await accesoAlGenerador(db, doc.tenant_id);
+  if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
 
   const { data: bloques } = await db
     .from("documentos_bloques")

@@ -1830,6 +1830,7 @@ export type Database = {
           created_at: string
           es_demo: boolean
           generaciones_mes_max: number
+          generador_activo: boolean
           id: string
           lectura_evidencias_activa: boolean
           lecturas_mes_max: number
@@ -1845,6 +1846,7 @@ export type Database = {
           created_at?: string
           es_demo?: boolean
           generaciones_mes_max?: number
+          generador_activo?: boolean
           id?: string
           lectura_evidencias_activa?: boolean
           lecturas_mes_max?: number
@@ -1860,6 +1862,7 @@ export type Database = {
           created_at?: string
           es_demo?: boolean
           generaciones_mes_max?: number
+          generador_activo?: boolean
           id?: string
           lectura_evidencias_activa?: boolean
           lecturas_mes_max?: number
