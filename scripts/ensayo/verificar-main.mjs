@@ -30,7 +30,7 @@ const REPORTE_DEMO = "20000000-0000-0000-0000-000000000001";
 const SOLICITUD_DEMO = "c0000000-0000-0000-0000-000000000002";
 const MARCA = "[verificar-main]";
 
-if (!URL_SB || !ANON || !URL_SB.includes("ndodorukqqyzhinahmrm")) {
+if (!URL_SB || !ANON || !URL_SB.includes("sqpxcxewoznhpwvhxamy")) {
   console.error("✗ Esta verificación corre solo contra ensayo (NEXT_PUBLIC_SUPABASE_URL de ensayo).");
   process.exit(2);
 }

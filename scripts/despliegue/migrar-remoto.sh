@@ -23,17 +23,50 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-REF_ENSAYO="ndodorukqqyzhinahmrm"
+REF_ENSAYO="sqpxcxewoznhpwvhxamy"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# v31 (encargo mockup AINDA, Fase 0): vitrina por tenant. Anteriores: v30,
-# 20261001120000_auditor_actividad_sin_ip; v29, las cinco 20260929*.
+# v33 (encargo 2026-10-05-generador-a-produccion): las 26 migraciones de dev
+# renumeradas a 20261005120000 + n minutos, la bandera del generador, la vitrina
+# apagada en clientes reales y el repunte de riesgos físicos (aprobado para v33).
+# Anteriores: v32.1, 20261004170000_jefe_area_sube_evidencia; v31,
+# 20261001140000_tenants_vitrina_habilitada; v30, 20261001120000; v29, las 20260929*.
 ESPERADAS=(
-  20261001140000_tenants_vitrina_habilitada.sql
+  20261005120000_registros_clima_severidad.sql
+  20261005120100_reportes_regimen_adopcion.sql
+  20261005120200_perfil_emisor.sql
+  20261005120300_documentos_generados.sql
+  20261005120400_tenants_limite_generaciones.sql
+  20261005120500_storage_documentos.sql
+  20261005120600_perfil_emisor_adjuntos.sql
+  20261005120700_catalogo_niif_correcciones.sql
+  20261005120800_bloques_cache_y_duracion.sql
+  20261005120900_bloques_estado_generando.sql
+  20261005121000_catalogo_codigos_malformados.sql
+  20261005121100_mapeo_export_hoja_taxonomia.sql
+  20261005121200_mapeo_export_hojas_riesgo.sql
+  20261005121300_bloques_estados_a5.sql
+  20261005121400_bloques_en_cola.sql
+  20261005121500_bloques_intentos.sql
+  20261005121600_registros_clima_narrativa.sql
+  20261005121700_barrera_auditor_reparacion.sql
+  20261005121800_evidencias_contenido.sql
+  20261005121900_sugerencias_captura.sql
+  20261005122000_sugerencias_regenerada.sql
+  20261005122100_estado_sin_hallazgo.sql
+  20261005122200_decidir_sugerencia.sql
+  20261005122300_evidencias_limite_bucket.sql
+  20261005122400_obsoletar_sugerencias_al_subir.sql
+  20261005122500_decidir_sugerencia_correccion.sql
+  20261005122600_tenants_generador_activo.sql
+  20261005122700_vitrina_apagada_clientes_reales.sql
+  20261005130000_catalogo_repunte_riesgos_fisicos.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
 # (insert, update, delete) + 3 de storage.objects.
-BARRERA_ESPERADA="${BARRERA_ESPERADA:-69}"
+# v33: 69 de antes + 12 de las cuatro tablas del generador + 6 de las dos de
+# captura sugerida = 87 (medido en local y en dev).
+BARRERA_ESPERADA="${BARRERA_ESPERADA:-87}"
 
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 falla() { echo "✗ $*" >&2; exit 1; }
