@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build --turbopack",
+    "lint": "eslint",
+    "start": "next start -p ${PORT:-3000}",
     "db:reset": "supabase db reset && node scripts/seed-evidencias.mjs",
     "demo:prospectos": "node scripts/crear-demo-prospecto.mjs",
     "dev": "next dev --turbopack",
