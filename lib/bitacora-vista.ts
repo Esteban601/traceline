@@ -47,6 +47,12 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
     label: "IRStrat deshabilitó la carga de evidencia para este cliente",
     tono: "gris",
   },
+  tenant_lectura_evidencias_habilitada: { label: "Lectura de evidencias encendida para este cliente", tono: "ambar-fuerte" },
+  tenant_lectura_evidencias_deshabilitada: { label: "Lectura de evidencias apagada para este cliente", tono: "gris" },
+  sugerencia_generada: { label: "La plataforma propuso una captura", tono: "azul" },
+  sugerencia_confirmada: { label: "Sugerencia confirmada", tono: "verde" },
+  sugerencia_corregida: { label: "Sugerencia corregida", tono: "ambar" },
+  sugerencia_rechazada: { label: "Sugerencia rechazada", tono: "gris" },
   area_creada: { label: "Área creada", tono: "verde" },
   area_editada: { label: "Área editada", tono: "gris" },
   area_desactivada: { label: "Área desactivada", tono: "rojo" },
@@ -184,7 +190,21 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "tenant_logo_eliminado":
     case "tenant_carga_staff_habilitada":
     case "tenant_carga_staff_deshabilitada":
+    case "tenant_lectura_evidencias_habilitada":
+    case "tenant_lectura_evidencias_deshabilitada":
       return limpiar(s(detalle, "nombre")) ?? "";
+    case "sugerencia_generada": {
+      const estado = s(detalle, "estado");
+      return [s(detalle, "tipo") === "texto" ? "extracto" : "cifra", estado === "sin_hallazgo" ? "sin hallazgo" : null,
+        n(detalle, "evidencia_version") != null ? `versión ${n(detalle, "evidencia_version")}` : null].filter(Boolean).join(" · ");
+    }
+    case "sugerencia_confirmada":
+    case "sugerencia_corregida":
+    case "sugerencia_rechazada": {
+      const valor = n(detalle, "valor");
+      const unidad = s(detalle, "unidad");
+      return [valor != null ? `${valor}${unidad ? ` ${unidad}` : ""}` : null, s(detalle, "periodo"), s(detalle, "motivo")].filter(Boolean).join(" · ");
+    }
     case "area_creada":
     case "area_editada":
     case "area_desactivada":

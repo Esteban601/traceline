@@ -25,6 +25,7 @@ import { LogoUploader } from "./logo-uploader";
 import {
   cambiarActivoTenant,
   cambiarCargaStaff,
+  cambiarLecturaEvidencias,
   crearCliente,
   type AltaClienteState,
 } from "./actions";
@@ -38,6 +39,11 @@ export type ClienteFila = {
   activo: boolean;
   /** ¿IRStrat tiene habilitada la carga de evidencia para este cliente? */
   staffPuedeCargar: boolean;
+  /** ¿La plataforma lee sus evidencias y sugiere la captura? (contrato de encargado) */
+  lecturaActiva: boolean;
+  /** Lecturas del mes en curso, con la cuenta del tope (lecturas + regeneraciones). */
+  lecturasMes: number;
+  lecturasMax: number;
   /** Emisora de demostración: franja en sus sesiones y pie [DEMO] en su Excel. */
   esDemo: boolean;
   createdAt: string;
@@ -531,6 +537,7 @@ function ClienteCard({
       {/* Toggle "carga por IRStrat". Solo el rol admin lo ve y lo mueve; para el
           analista la fila no existe. La base lo revalida (trigger). */}
       {esAdmin && <CargaStaffSwitch cliente={cliente} />}
+      {esAdmin && <LecturaEvidenciasSwitch cliente={cliente} />}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5">
         <LogoUploader
@@ -631,6 +638,76 @@ function CargaStaffSwitch({ cliente }: { cliente: ClienteFila }) {
         titulo="¿Habilitar la carga de evidencia por IRStrat?"
         descripcion={`El equipo de IRStrat podrá cargar evidencia en las solicitudes de ${nombre}, eligiendo siempre el área en cuyo nombre carga. Cada carga queda marcada como hecha por IRStrat en el historial y en la bitácora, y esa marca no se puede retirar ni apagando de nuevo este interruptor.`}
         confirmar="Sí, habilitar"
+        cancelar="Cancelar"
+        cargando={pending}
+        onConfirm={() => aplicar(true)}
+        onCancel={() => setConfirmar(false)}
+      />
+    </div>
+  );
+}
+
+/**
+ * Interruptor de LECTURA DE EVIDENCIAS por la plataforma (captura sugerida).
+ * Encenderlo manda el contenido de las evidencias nuevas a la API de Anthropic,
+ * así que la confirmación pide lo que el encargo exige: que el contrato de
+ * encargado del cliente nombre a Anthropic. Apagarlo no pide confirmación: no
+ * expone nada.
+ */
+function LecturaEvidenciasSwitch({ cliente }: { cliente: ClienteFila }) {
+  const toast = useToast();
+  const [pending, startTransicion] = useTransition();
+  const [confirmar, setConfirmar] = useState(false);
+  const activo = cliente.lecturaActiva;
+  const nombre = limpiarNombreTenant(cliente.nombre);
+
+  const aplicar = (habilitar: boolean) => {
+    startTransicion(async () => {
+      const r = await cambiarLecturaEvidencias(cliente.id, habilitar);
+      setConfirmar(false);
+      if (r.ok) toast.success(r.mensaje ?? "Listo.");
+      else toast.error(r.error ?? "No se pudo actualizar la lectura de evidencias.");
+    });
+  };
+
+  return (
+    <div className="mt-5 flex flex-wrap items-start justify-between gap-4 border-t border-line pt-5">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-ink">Lectura de evidencias y captura sugerida</p>
+        <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted">
+          {activo
+            ? "La plataforma lee las evidencias nuevas y propone la cifra o el extracto, que una persona confirma."
+            : "Las evidencias no se leen. Enciéndela solo si el contrato de encargado del cliente nombra a Anthropic."}{" "}
+          Este mes: {cliente.lecturasMes} de {cliente.lecturasMax} lecturas.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={activo}
+        aria-label={`Lectura de evidencias para ${nombre}`}
+        disabled={pending}
+        onClick={() => (activo ? aplicar(false) : setConfirmar(true))}
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-pill border transition duration-150 disabled:opacity-50",
+          activo ? "border-teal bg-teal" : "border-line bg-crema"
+        )}
+      >
+        <span
+          aria-hidden
+          className={cn(
+            "inline-block size-4 rounded-full bg-surface shadow-soft transition-transform duration-150",
+            activo ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </button>
+
+      <ConfirmDialog
+        open={confirmar}
+        titulo="¿Encender la lectura de evidencias?"
+        descripcion={`El contenido de las evidencias nuevas de ${nombre} se enviará a la API de Anthropic para leerlo y sugerir la captura. Confirma que su contrato de encargado nombra a Anthropic como sub-encargado. Ninguna cifra llega al Excel ni al informe sin que una persona la confirme.`}
+        confirmar="Sí, encender"
         cancelar="Cancelar"
         cargando={pending}
         onConfirm={() => aplicar(true)}
