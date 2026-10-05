@@ -12,7 +12,12 @@
 --
 -- Va fechada al final de la serie a propósito: puede quedarse fuera sin mover
 -- ninguna otra. El resto de la corrección del catálogo es coherente sin ella.
--- Contenido sin cambios respecto de la sección original. Idempotente.
+-- CAMBIO RESPECTO DE LA SECCIÓN ORIGINAL (5 de octubre de 2026, Paso 2): el código
+-- equivocado se busca con sus DOS nombres. En el orden original esta sección
+-- corría antes de la de códigos malformados (hoy 20261005121000), que renombra
+-- «NIIF S2 29 (b) B64 y B65 inciso (a)» a «NIIF S2 29 (b)»; separada y fechada
+-- al final, corre después, y con el nombre viejo no encontraba nada sin avisar.
+-- Idempotente.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -37,7 +42,7 @@ select msd.solicitud_id, cor.id
   join public.solicitudes s   on s.id = msd.solicitud_id
   join public.datapoints_taxonomia inc
        on inc.id = msd.datapoint_id
-      and inc.codigo = 'NIIF S2 29 (b) B64 y B65 inciso (a)'
+      and inc.codigo in ('NIIF S2 29 (b) B64 y B65 inciso (a)', 'NIIF S2 29 (b)')
       and inc.version_taxonomia = '2025'
   join public.datapoints_taxonomia cor
        on cor.codigo = 'NIIF S2 29 (c)'
@@ -49,6 +54,6 @@ delete from public.mapeo_solicitud_datapoint msd
  using public.solicitudes s, public.datapoints_taxonomia inc
  where s.id = msd.solicitud_id
    and inc.id = msd.datapoint_id
-   and inc.codigo = 'NIIF S2 29 (b) B64 y B65 inciso (a)'
+   and inc.codigo in ('NIIF S2 29 (b) B64 y B65 inciso (a)', 'NIIF S2 29 (b)')
    and inc.version_taxonomia = '2025'
    and s.titulo = 'Riesgos físicos climáticos en instalaciones';
