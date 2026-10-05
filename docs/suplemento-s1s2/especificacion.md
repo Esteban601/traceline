@@ -1,7 +1,12 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.12** · 5 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.13** · 5 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.12** (después del merge de captura sugerida en `dev`, PR #6):
+- §10: el punto previo al merge pasa a llamarse «Antes del merge a producción» y tiene dos partes. La primera
+  es el orden de migraciones, que ahora suma las nueve de captura sugerida, más antiguas que la de v32.1. La
+  segunda es la verificación de que ninguna evidencia de staging supera 25 MB.
 
 **Cambios respecto a 0.11** (al cerrar el encargo de captura sugerida, `docs/encargos/2026-10-04-captura-sugerida.md`):
 - §3.2 (d): el insumo de las evidencias de las solicitudes ya está construido; difiere de (c) en cómo se lee el PDF
@@ -1005,9 +1010,14 @@ entero en una copia. El primero es el del rol auditor (encargo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
 
-### Punto a resolver antes del merge de `dev/ajustes-sep26` a `main`: orden de migraciones
+### Antes del merge a producción (`dev/ajustes-sep26` → `main`)
 
-Anotado el 1 de octubre de 2026. **Hoy no se toca**; es un riesgo conocido, no un fallo presente.
+Lo que hay que resolver o verificar antes de ese merge y de su despliegue. Hoy no se toca: son riesgos conocidos,
+no fallos presentes.
+
+#### 1. Orden de migraciones
+
+Anotado el 1 de octubre de 2026 y ampliado el 5 de octubre de 2026.
 
 - **El problema.** `dev` lleva **17 migraciones de septiembre** (`20260910120000` a `20260921120000`) que son más
   antiguas que todo lo que ya está aplicado en staging:
@@ -1017,6 +1027,10 @@ Anotado el 1 de octubre de 2026. **Hoy no se toca**; es un riesgo conocido, no u
 
   Lo mismo pasa con `20261001130000_barrera_auditor_reparacion`, que vive solo en `dev` y queda por debajo de
   `20261001140000`.
+
+  **Y con las nueve de captura sugerida** (`20261004120000` a `20261004160200`, mezcladas en `dev` con el PR #6):
+  son más antiguas que `20261004170000_jefe_area_sube_evidencia`, que ya está en staging desde v32.1. En total,
+  27 migraciones de `dev` quedan por debajo de la última de staging.
 - **Qué falla y por qué.** `scripts/despliegue/migrar-remoto.sh` corre `supabase db push` sin `--include-all` a
   propósito, para que una migración vieja no se aplique fuera de orden sin que nadie lo decida. Así que ese
   despliegue va a fallar en la revisión.
@@ -1026,6 +1040,29 @@ Anotado el 1 de octubre de 2026. **Hoy no se toca**; es un riesgo conocido, no u
   - **Renumerar**: darles timestamps posteriores al último de staging. Antes hay que comprobar que ningún proyecto
     dev las tenga ya aplicadas con su número actual; el de Esteban sí las tiene.
 - **Detalle:** en el encargo `docs/encargos/2026-10-01-mockup-ainda.md` §6.
+
+#### 2. Ninguna evidencia existente en staging supera 25 MB
+
+Anotado el 5 de octubre de 2026, al mezclar captura sugerida en `dev`.
+
+- **Por qué.** Con la captura sugerida, el límite de 25 MB pasa a valer en tres lugares: la firma de la subida, el
+  bucket `evidencias` (`20261004160000`) y la cola de lectura, que deja en «omitido» un archivo mayor.
+  - La migración del bucket no toca los objetos que ya existen.
+  - Antes de desplegar hay que saber si alguna emisora ya trabaja con archivos más grandes. Esas emisoras no
+    podrían subir una versión nueva del mismo archivo, y conviene avisarles antes.
+- **Qué se corre.** Esteban, en su terminal, con la URL de la base de staging cargada con `read -rs`. La consulta
+  es de solo lectura sobre `storage.objects` y no imprime nombres de archivo ni rutas, solo conteos por emisora:
+  ```sql
+  select (storage.foldername(name))[1] as tenant_id,
+         count(*) as evidencias_mayores_25mb,
+         max((metadata->>'size')::bigint) as mayor_bytes
+    from storage.objects
+   where bucket_id = 'evidencias'
+     and (metadata->>'size')::bigint > 26214400
+   group by 1;
+  ```
+- **Qué se espera:** cero filas. Si hay filas, antes del merge se decide con cada emisora afectada: avisarle,
+  dividir o comprimir los archivos, o subir el límite para ella. No se resuelve en silencio.
 
 ### Conflicto pendiente para el merge de `dev/ajustes-sep26`
 
