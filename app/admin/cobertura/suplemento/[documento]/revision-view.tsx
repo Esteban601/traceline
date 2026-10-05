@@ -445,7 +445,22 @@ function BloqueCard({
 
 /** Un id de fuente enlaza a donde se arregla. `sol:` lleva a la solicitud. */
 function Enlace({ id }: { id: string }) {
-  const [tipo, resto] = id.split(":");
+  const [tipo, resto, lugar] = id.split(":");
+  // Evidencia (captura sugerida): abre el archivo en el navegador, en su página
+  // si la cita es de un PDF (`evi:<evidencia>:p<N>`).
+  if (tipo === "evi") {
+    const pagina = /^p(\d+)$/.exec(lugar ?? "")?.[1];
+    return (
+      <a
+        href={`/portal/descargar/${resto}?ver=1${pagina ? `#page=${pagina}` : ""}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-mono text-xs text-teal hover:underline"
+      >
+        {id}
+      </a>
+    );
+  }
   const href =
     tipo === "sol" ? `/admin/solicitudes/${resto}`
     : tipo === "reg" ? "/admin/registros"

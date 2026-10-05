@@ -1,0 +1,172 @@
+{
+  "corrida": "[captura-sugerida-p3 2026-10-04T18:54]",
+  "reusada": true,
+  "segundos": 25,
+  "resultados": [
+    {
+      "id": "p03",
+      "archivo": "p03_politica_ddhh.pdf",
+      "feo": null,
+      "codigos": [
+        "NIIF S1 44 (a)(i)a(v)"
+      ],
+      "estado": "sugerida",
+      "cubre_requisito": "parcial",
+      "confianza": "media",
+      "extracto": "se compromete a identificar, prevenir y mitigar los impactos adversos en sus operaciones y en su cadena de suministro […] Cada dos años se evalúan los riesgos de las tres centrales y de los proveedores críticos. Los hallazgos se presentan al Comité de Sostenibilidad del Consejo.",
+      "palabras": 45,
+      "fuentes": [
+        "p. 1",
+        "p. 1"
+      ],
+      "literales": true,
+      "cobertura": "Cubre: Proceso de identificación y evaluación de riesgos de derechos humanos (periodicidad bienal, alcance en centrales y proveedores críticos) y su reporte al Comité de Sostenibilidad del Consejo. · No cubre: Procesos de priorización y supervisión continua de los riesgos, y los procesos para riesgos de sostenibilidad distintos de derechos humanos (p. ej. climáticos y ambientales).",
+      "descartadas": [],
+      "error": null,
+      "tokens_entrada": 2260,
+      "tokens_salida": 517,
+      "costo_lectura": 0,
+      "costo_sugerencia": 0.0067,
+      "frases_faltantes": [],
+      "fuentes_faltantes": [],
+      "resultado": "completo"
+    },
+    {
+      "id": "w01",
+      "archivo": "w01_politica_ambiental.docx",
+      "feo": null,
+      "codigos": [
+        "NIIF S2 33"
+      ],
+      "estado": "sugerida",
+      "cubre_requisito": "parcial",
+      "confianza": "media",
+      "extracto": "La empresa se compromete a reducir sus emisiones de gases de efecto invernadero un 30 % al 2030 respecto de 2022",
+      "palabras": 21,
+      "fuentes": [
+        "párr. 3"
+      ],
+      "literales": true,
+      "cobertura": "Cubre: Objetivo cuantitativo de emisiones de gases de efecto invernadero: reducción del 30 % al 2030 respecto del año base 2022. · No cubre: Alcances de emisiones a los que aplica el objetivo, métricas para supervisar el progreso, avance logrado, objetivos cualitativos u otros objetivos climáticos, y objetivos requeridos por ley o regulación.",
+      "descartadas": [],
+      "error": null,
+      "tokens_entrada": 2224,
+      "tokens_salida": 369,
+      "costo_lectura": 0,
+      "costo_sugerencia": 0.009,
+      "frases_faltantes": [],
+      "fuentes_faltantes": [],
+      "resultado": "completo"
+    },
+    {
+      "id": "w03",
+      "archivo": "w03_consejo.docx",
+      "feo": null,
+      "codigos": [
+        "NIIF S2 6 (a)",
+        "NIIF S2 6 (a)(i)"
+      ],
+      "estado": "sin_hallazgo",
+      "cubre_requisito": "no",
+      "confianza": "alta",
+      "extracto": null,
+      "palabras": 0,
+      "fuentes": [],
+      "literales": true,
+      "cobertura": "Cubre: Nada de los requisitos: solo describe la composición del Consejo y su asistencia, sin referirse al clima. · No cubre: Órgano u órganos o personas responsables de supervisar los riesgos y oportunidades relacionados con el clima; cómo se reflejan esas responsabilidades en términos de referencia, mandatos, descripciones de funciones y políticas relacionadas.",
+      "descartadas": [],
+      "error": null,
+      "tokens_entrada": 2217,
+      "tokens_salida": 255,
+      "costo_lectura": 0,
+      "costo_sugerencia": 0.004,
+      "frases_faltantes": [],
+      "fuentes_faltantes": [],
+      "resultado": "correcto (no cubre)"
+    },
+    {
+      "id": "t01",
+      "archivo": "t01_politica_riesgos_escaneada.pdf",
+      "feo": null,
+      "codigos": [
+        "NIIF S2 25 (a)(i)a(v)"
+      ],
+      "estado": "sugerida",
+      "cubre_requisito": "si",
+      "confianza": "alta",
+      "extracto": "Cada año la Dirección de Sostenibilidad identifica los riesgos físicos y de transición de las tres centrales mediante talleres con las áreas operativas y un análisis de escenarios de 1.5 °C y 3 °C. […] Los riesgos se califican por probabilidad e impacto financiero en una matriz de cinco niveles; los de nivel 4 y 5 se consideran prioritarios y se integran al mapa de riesgos corporativo. […] El Comité de Riesgos revisa cada semestre los riesgos prioritarios y el avance de sus planes de mitigación.",
+      "palabras": 84,
+      "fuentes": [
+        "p. 1",
+        "p. 1",
+        "p. 1"
+      ],
+      "literales": true,
+      "cobertura": "Cubre: Procesos de identificación (talleres y análisis de escenarios), evaluación y priorización (matriz de cinco niveles) y supervisión semestral de los riesgos climáticos. · No cubre: nada",
+      "descartadas": [],
+      "error": null,
+      "tokens_entrada": 2250,
+      "tokens_salida": 590,
+      "costo_lectura": 0.0074,
+      "costo_sugerencia": 0.0074,
+      "frases_faltantes": [],
+      "fuentes_faltantes": [],
+      "resultado": "completo"
+    },
+    {
+      "id": "t02",
+      "archivo": "t02_gobierno_disperso.docx",
+      "feo": "requisito disperso en tres párrafos no contiguos",
+      "codigos": [
+        "NIIF S2 6 (a)(iii)",
+        "NIIF S2 6 (a)(iv)"
+      ],
+      "estado": "sugerida",
+      "cubre_requisito": "si",
+      "confianza": "media",
+      "extracto": "El Comité de Sostenibilidad del Consejo recibe un informe trimestral de la Dirección de Sostenibilidad sobre los riesgos y oportunidades relacionados con el clima. […] Al aprobar el plan de inversiones anual, el Consejo revisa los escenarios climáticos y su efecto en la disponibilidad de agua para generación. […] La Dirección General informa además al Consejo en pleno dos veces al año sobre el avance de los objetivos de reducción de emisiones.",
+      "palabras": 70,
+      "fuentes": [
+        "párr. 3",
+        "párr. 6",
+        "párr. 8"
+      ],
+      "literales": true,
+      "cobertura": "Cubre: Quién informa al Consejo y su comité sobre riesgos climáticos y con qué frecuencia (trimestral al Comité, semestral al pleno), y que el Consejo revisa escenarios climáticos al aprobar el plan de inversiones. · No cubre: Si el Consejo considera los riesgos climáticos en transacciones importantes, procesos de gestión de riesgos y políticas, y si evalúa compensaciones (trade-offs).",
+      "descartadas": [],
+      "error": null,
+      "tokens_entrada": 2601,
+      "tokens_salida": 675,
+      "costo_lectura": 0,
+      "costo_sugerencia": 0.0089,
+      "frases_faltantes": [],
+      "fuentes_faltantes": [],
+      "resultado": "completo"
+    },
+    {
+      "id": "t03",
+      "archivo": "t03_codigo_etica.docx",
+      "feo": "no cubre el requisito; trampa: «riesgo de corrupción»",
+      "codigos": [
+        "NIIF S2 25 (a)(i)a(v)"
+      ],
+      "estado": "sin_hallazgo",
+      "cubre_requisito": "no",
+      "confianza": "alta",
+      "extracto": null,
+      "palabras": 0,
+      "fuentes": [],
+      "literales": true,
+      "cobertura": "Cubre: nada · No cubre: Procesos y políticas para identificar, evaluar, priorizar y supervisar los riesgos relacionados con el clima",
+      "descartadas": [],
+      "error": null,
+      "tokens_entrada": 2218,
+      "tokens_salida": 169,
+      "costo_lectura": 0,
+      "costo_sugerencia": 0.0031,
+      "frases_faltantes": [],
+      "fuentes_faltantes": [],
+      "resultado": "correcto (no cubre)"
+    }
+  ]
+}

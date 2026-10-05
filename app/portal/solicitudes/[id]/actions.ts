@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { procesarLecturaDeEvidencia } from "@/lib/evidencias/cola";
+import { verificarObjetoSubido } from "@/lib/evidencias/objeto-subido";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esAuditor } from "@/lib/data";
 
@@ -12,11 +15,6 @@ export type SubirState = {
   version?: number;
   error?: string | null;
 };
-
-function nombreSeguro(nombre: string): string {
-  const base = nombre.normalize("NFKD").replace(/[^\w.\- ]+/g, "").trim();
-  return base.replace(/\s+/g, "_").slice(0, 120) || "archivo";
-}
 
 export async function subirEvidencia(
   _prev: SubirState,
@@ -37,9 +35,13 @@ export async function subirEvidencia(
   const periodoCubierto = String(formData.get("periodo_cubierto") ?? "").trim();
   const areaOrigen = String(formData.get("area_origen") ?? "").trim();
   const justificacion = String(formData.get("justificacion") ?? "").trim();
-  const file = formData.get("file");
+  // El archivo ya está en storage: lo subió el navegador con una URL firmada
+  // (lib/evidencias/subida-firmada.ts). Aquí llegan su ruta y su nombre, y esta
+  // acción solo registra la fila después de verificarlo.
+  const archivoPath = String(formData.get("archivo_path") ?? "");
+  const nombreOriginal = String(formData.get("nombre_original") ?? "").trim();
 
-  if (!(file instanceof File) || file.size === 0) {
+  if (!archivoPath || !nombreOriginal) {
     return { ok: false, error: "Selecciona o arrastra un archivo." };
   }
   if (!periodoCubierto) {
@@ -88,19 +90,11 @@ export async function subirEvidencia(
     return { ok: false, error: "La solicitud no tiene un tenant asociado." };
   }
 
-  // Ruta conforme a la política de storage: {tenant_id}/{solicitud_id}/<archivo>
-  const path = `${tenantId}/${solicitudId}/${Date.now()}-${nombreSeguro(file.name)}`;
-
-  const { error: upErr } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, {
-      contentType: file.type || "application/octet-stream",
-      upsert: false,
-    });
-
-  if (upErr) {
-    return { ok: false, error: `No se pudo subir el archivo: ${upErr.message}` };
-  }
+  // Ruta conforme a la política de storage: {tenant_id}/{solicitud_id}/<archivo>.
+  // Que exista, que sea de esta solicitud y que pese 25 MB o menos.
+  const path = archivoPath;
+  const objeto = await verificarObjetoSubido(supabase, path, `${tenantId}/${solicitudId}/`);
+  if (!objeto.ok) return { ok: false, error: objeto.error };
 
   // Inserta la evidencia (el trigger asigna version y avanza el estado).
   const { data: ev, error: evErr } = await supabase
@@ -108,7 +102,7 @@ export async function subirEvidencia(
     .insert({
       solicitud_id: solicitudId,
       archivo_path: path,
-      nombre_original: file.name,
+      nombre_original: nombreOriginal,
       periodo_cubierto: periodoCubierto,
       area_origen: areaOrigen || null,
       subido_por: perfil.id,
@@ -138,6 +132,13 @@ export async function subirEvidencia(
       error: `El archivo se subió pero no se registró la evidencia: ${evErr?.message ?? ""}`,
     };
   }
+
+  // Lectura de la evidencia en segundo plano (captura sugerida). La fila de
+  // contenido ya la creó el trigger; aquí solo se procesa sin hacer esperar al
+  // usuario. Va antes de la captura porque esa rama puede salir con aviso, y la
+  // lectura corresponde a la evidencia ya registrada. Si no termina, la recoge
+  // el cron /api/evidencias/procesar.
+  after(() => procesarLecturaDeEvidencia(ev.id).then(() => undefined));
 
   // Captura de valor (solo si la solicitud es cuantitativa y se proporcionó valor).
   if (sol.es_cuantitativa) {

@@ -184,8 +184,10 @@ export type Database = {
           evidencia_id: string
           id: string
           justificacion: string | null
+          origen: string
           periodo: string | null
           solicitud_id: string
+          sugerencia_id: string | null
           unidad: string
           valor: number
         }
@@ -196,8 +198,10 @@ export type Database = {
           evidencia_id: string
           id?: string
           justificacion?: string | null
+          origen?: string
           periodo?: string | null
           solicitud_id: string
+          sugerencia_id?: string | null
           unidad: string
           valor: number
         }
@@ -208,8 +212,10 @@ export type Database = {
           evidencia_id?: string
           id?: string
           justificacion?: string | null
+          origen?: string
           periodo?: string | null
           solicitud_id?: string
+          sugerencia_id?: string | null
           unidad?: string
           valor?: number
         }
@@ -233,6 +239,13 @@ export type Database = {
             columns: ["solicitud_id"]
             isOneToOne: false
             referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capturas_valor_sugerencia_id_fkey"
+            columns: ["sugerencia_id"]
+            isOneToOne: false
+            referencedRelation: "sugerencias_captura"
             referencedColumns: ["id"]
           },
         ]
@@ -676,6 +689,106 @@ export type Database = {
             columns: ["subido_por"]
             isOneToOne: false
             referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidencias_contenido: {
+        Row: {
+          archivo_path: string
+          bytes: number | null
+          contenido: Json | null
+          costo_usd: number
+          created_at: string
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id: string
+          hojas: number | null
+          id: string
+          intentos: number
+          mensaje: string | null
+          modelo: string | null
+          nombre_original: string
+          paginas: number | null
+          procesado_en: string | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string | null
+          tokens_entrada: number
+          tokens_salida: number
+          truncado: boolean
+          version: number
+        }
+        Insert: {
+          archivo_path: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id: string
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original: string
+          paginas?: number | null
+          procesado_en?: string | null
+          solicitud_id: string
+          tenant_id: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+          version: number
+        }
+        Update: {
+          archivo_path?: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id?: string
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original?: string
+          paginas?: number | null
+          procesado_en?: string | null
+          solicitud_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidencias_contenido_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: true
+            referencedRelation: "evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidencias_contenido_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidencias_contenido_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1571,6 +1684,146 @@ export type Database = {
           },
         ]
       }
+      sugerencias_captura: {
+        Row: {
+          candidatos: Json
+          cita: string | null
+          cobertura: string | null
+          confianza: string | null
+          contenido_id: string
+          conversion: Json | null
+          costo_usd: number
+          created_at: string
+          decidido_en: string | null
+          decidido_por: string | null
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id: string
+          evidencia_version: number
+          extracto: string | null
+          extracto_final: string | null
+          fuente: Json | null
+          id: string
+          modelo: string | null
+          motivo: string | null
+          motivo_rechazo: string | null
+          periodo: string | null
+          prompt_version: string | null
+          regenerada: boolean
+          segunda_opinion: Json | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada: number
+          tokens_salida: number
+          unidad: string | null
+          unidad_final: string | null
+          valor: number | null
+          valor_final: number | null
+        }
+        Insert: {
+          candidatos?: Json
+          cita?: string | null
+          cobertura?: string | null
+          confianza?: string | null
+          contenido_id: string
+          conversion?: Json | null
+          costo_usd?: number
+          created_at?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id: string
+          evidencia_version: number
+          extracto?: string | null
+          extracto_final?: string | null
+          fuente?: Json | null
+          id?: string
+          modelo?: string | null
+          motivo?: string | null
+          motivo_rechazo?: string | null
+          periodo?: string | null
+          prompt_version?: string | null
+          regenerada?: boolean
+          segunda_opinion?: Json | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          unidad?: string | null
+          unidad_final?: string | null
+          valor?: number | null
+          valor_final?: number | null
+        }
+        Update: {
+          candidatos?: Json
+          cita?: string | null
+          cobertura?: string | null
+          confianza?: string | null
+          contenido_id?: string
+          conversion?: Json | null
+          costo_usd?: number
+          created_at?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id?: string
+          evidencia_version?: number
+          extracto?: string | null
+          extracto_final?: string | null
+          fuente?: Json | null
+          id?: string
+          modelo?: string | null
+          motivo?: string | null
+          motivo_rechazo?: string | null
+          periodo?: string | null
+          prompt_version?: string | null
+          regenerada?: boolean
+          segunda_opinion?: Json | null
+          solicitud_id?: string
+          tenant_id?: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          unidad?: string | null
+          unidad_final?: string | null
+          valor?: number | null
+          valor_final?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugerencias_captura_contenido_id_fkey"
+            columns: ["contenido_id"]
+            isOneToOne: false
+            referencedRelation: "evidencias_contenido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: false
+            referencedRelation: "evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           activo: boolean
@@ -1578,6 +1831,8 @@ export type Database = {
           es_demo: boolean
           generaciones_mes_max: number
           id: string
+          lectura_evidencias_activa: boolean
+          lecturas_mes_max: number
           logo_url: string | null
           nombre: string
           prefijo_folio: string
@@ -1591,6 +1846,8 @@ export type Database = {
           es_demo?: boolean
           generaciones_mes_max?: number
           id?: string
+          lectura_evidencias_activa?: boolean
+          lecturas_mes_max?: number
           logo_url?: string | null
           nombre: string
           prefijo_folio: string
@@ -1604,6 +1861,8 @@ export type Database = {
           es_demo?: boolean
           generaciones_mes_max?: number
           id?: string
+          lectura_evidencias_activa?: boolean
+          lecturas_mes_max?: number
           logo_url?: string | null
           nombre?: string
           prefijo_folio?: string
@@ -1625,6 +1884,18 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_decidir_sugerencia: {
+        Args: {
+          p_accion: string
+          p_extracto?: string
+          p_motivo?: string
+          p_periodo?: string
+          p_sugerencia_id: string
+          p_unidad?: string
+          p_valor?: number
+        }
+        Returns: Json
+      }
       fn_es_de_su_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_es_jefe_de_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_gestiona_recordatorios: {
@@ -1660,6 +1931,10 @@ export type Database = {
         Args: { p_perfil: string; p_tenant: string }
         Returns: boolean
       }
+      fn_puede_decidir_sugerencia: {
+        Args: { p_solicitud_id: string }
+        Returns: boolean
+      }
       fn_puede_ver_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: boolean
@@ -1678,6 +1953,13 @@ export type Database = {
       }
     }
     Enums: {
+      estado_lectura:
+        | "pendiente"
+        | "procesando"
+        | "extraido"
+        | "error"
+        | "no_soportado"
+        | "omitido"
       estado_reporte: "activo" | "congelado"
       estado_solicitud:
         | "pendiente"
@@ -1687,6 +1969,14 @@ export type Database = {
         | "observaciones"
         | "validado"
         | "congelado"
+      estado_sugerencia:
+        | "sugerida"
+        | "sin_hallazgo"
+        | "confirmada"
+        | "corregida"
+        | "rechazada"
+        | "obsoleta"
+        | "fallida"
       norma_niif: "S1" | "S2"
       objeto_comentario_auditor:
         | "solicitud"
@@ -1843,6 +2133,14 @@ export const Constants = {
   },
   public: {
     Enums: {
+      estado_lectura: [
+        "pendiente",
+        "procesando",
+        "extraido",
+        "error",
+        "no_soportado",
+        "omitido",
+      ],
       estado_reporte: ["activo", "congelado"],
       estado_solicitud: [
         "pendiente",
@@ -1852,6 +2150,15 @@ export const Constants = {
         "observaciones",
         "validado",
         "congelado",
+      ],
+      estado_sugerencia: [
+        "sugerida",
+        "sin_hallazgo",
+        "confirmada",
+        "corregida",
+        "rechazada",
+        "obsoleta",
+        "fallida",
       ],
       norma_niif: ["S1", "S2"],
       objeto_comentario_auditor: [

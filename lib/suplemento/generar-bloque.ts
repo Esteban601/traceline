@@ -34,6 +34,8 @@ import {
 } from "@/lib/suplemento/prompt";
 import { fronteraDe } from "@/lib/suplemento/fronteras";
 import { TABLAS } from "@/lib/suplemento/tablas";
+import { cargarEvidenciasDelBloque, respaldoDeCifras, type EvidenciaDelBloque, type RespaldoDeCifra } from "@/lib/suplemento/evidencias-bloque";
+import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
 import { ETIQUETA_CAMPO, SECCION_DE_CAMPO } from "@/lib/suplemento/completitud";
@@ -74,6 +76,7 @@ export type MotivoFallo =
   | "reporte_ilegible"
   | "fuentes_invalidas"
   | "voz_incorrecta"
+  | "cifras_sin_respaldo"
   | "pendiente_adjunto"
   | "no_aplica"
   | "respuesta_ilegible"
@@ -114,6 +117,13 @@ export type OpcionesGeneracion = {
   extension?: string;
   /** Solo para pruebas: no escribe en documentos_bloques. */
   sinPersistir?: boolean;
+  /**
+   * Solo para pruebas (exige sinPersistir): sustituye la respuesta del modelo
+   * por este texto y corre los MISMOS validadores contra los datos reales del
+   * bloque. No llama a la API ni cuesta. Es lo que prueba que el validador de
+   * cifras rechaza una cifra que solo está en el documento de respaldo.
+   */
+  salidaDePrueba?: { texto: string; fuentes_usadas: string[] };
 };
 
 
@@ -204,7 +214,14 @@ export async function generarBloque(
     bloque.datapoints.filter((d) => !exentos.has(d))
   );
 
-  const { fuentes, datos } = armarDatos(bloque, ens, evaluado, perfil, requisitos);
+  // Evidencias de las solicitudes del bloque: contenido ya extraído y extractos
+  // confirmados (captura sugerida, Paso 5). Contexto y citas, no cifras.
+  const [evid, respaldos] = await Promise.all([
+    cargarEvidenciasDelBloque(supabase, [...evaluado.solicitudes]),
+    respaldoDeCifras(supabase, [...evaluado.solicitudes], ens.reporte.ejercicio),
+  ]);
+  const { fuentes, datos } = armarDatos(bloque, ens, evaluado, perfil, requisitos, evid.porSolicitud, respaldos.porSolicitud);
+  for (const f of [...evid.fuentes, ...respaldos.fuentes]) if (!fuentes.some((x) => x.id === f.id)) fuentes.push(f);
 
   // --- 3. ¿Hace falta el modelo? --------------------------------------------
   const via = viaDe(bloque.numero);
@@ -259,6 +276,17 @@ export async function generarBloque(
   // Después de la tabla: lo que ella cite también es fuente válida.
   const idsValidos = new Set(fuentes.map((f) => f.id));
   const estables = capaEstable(bloque, prefs, requisitos);
+  // Lo que respalda una cifra: los datos entregados SIN el contenido crudo de
+  // las evidencias, más la tabla, los requisitos y los nombres de la emisora.
+  const corpus = corpusPermitido(
+    datos,
+    tabla,
+    JSON.stringify(requisitos),
+    bloque.titulo,
+    prefs.denominacionFormal,
+    prefs.nombreCorto
+  );
+  const aniosPermitidos = [ens.reporte.ejercicio, ens.reporte.ejercicio - 1];
 
   const volatil = capaVolatil({
     bloque,
@@ -280,6 +308,21 @@ export async function generarBloque(
     text: b.texto,
     ...(i === estables.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
   }));
+
+  if (opciones.salidaDePrueba && opciones.sinPersistir) {
+    const p = opciones.salidaDePrueba;
+    const inventadas = p.fuentes_usadas.filter((f) => !idsValidos.has(f));
+    const sinRespaldo = cifrasSinRespaldo(p.texto, corpus, aniosPermitidos);
+    const prohibidas = vocabularioProhibidoEn(p.texto);
+    if (inventadas.length) return { ok: false, motivo: "fuentes_invalidas", detalle: `Citó fuentes que no se le entregaron: ${inventadas.join(", ")}.` };
+    if (sinRespaldo.length) return { ok: false, motivo: "cifras_sin_respaldo", detalle: `Cifras sin respaldo en los datos confirmados: ${sinRespaldo.join(", ")}.` };
+    if (prohibidas.length) return { ok: false, motivo: "voz_incorrecta", detalle: `El texto usa vocabulario de proceso interno: ${prohibidas.join(", ")}.` };
+    return {
+      ok: true, texto: p.texto, fuentesUsadas: p.fuentes_usadas, pendientes: [], notasRevision: [], tabla,
+      modelo, uso: { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 }, costo: 0, duracionMs: 0,
+      intentos: 0, correccionesGrafia: 0, via, conModelo: false, bloque: evaluado,
+    };
+  }
 
   // --- 4. Llamada, con un reintento si cita una fuente inexistente -----------
   const client = new Anthropic({ apiKey });
@@ -363,7 +406,7 @@ export async function generarBloque(
       if (intento === 2) break;
       mensajes.push(
         { role: "assistant", content: textoDe(respuesta) },
-        { role: "user", content: `La respuesta anterior no se pudo leer con el esquema pedido. Devuélvela exactamente con las tres claves: texto, fuentes_usadas, pendientes.` }
+        { role: "user", content: `La respuesta anterior no se pudo leer con el esquema pedido. Devuélvela exactamente con las cuatro claves: texto, fuentes_usadas, pendientes, notas_revision.` }
       );
       continue;
     }
@@ -373,8 +416,9 @@ export async function generarBloque(
     const inventadas = parseada.fuentes_usadas.filter((f) => !idsValidos.has(f));
     const prohibidas = vocabularioProhibidoEn(parseada.texto);
     const marcadores = marcadoresMalFormados(parseada.texto);
+    const sinRespaldo = cifrasSinRespaldo(parseada.texto, corpus, aniosPermitidos);
 
-    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0) {
+    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0) {
       salida = parseada;
       break;
     }
@@ -388,6 +432,16 @@ export async function generarBloque(
         `Estos ids de \`fuentes_usadas\` no existen en la lista entregada: ${inventadas.join(", ")}.\n` +
           `Los únicos válidos son:\n${[...idsValidos].map((i) => `- ${i}`).join("\n")}\n` +
           `Cita solo esos. Si una afirmación no tiene fuente que la respalde, quítala o conviértela en un marcador de pendiente.`
+      );
+    }
+    if (sinRespaldo.length) {
+      // Cero dato inventado, hecho cumplir: una cifra que no está en lo
+      // confirmado no se publica, aunque venga del documento de respaldo.
+      reproches.push(
+        `Estas cifras del texto no están en los datos confirmados: ${sinRespaldo.join(", ")}.\n` +
+          `Las cifras solo pueden salir de \`valor\` de las solicitudes, de la tabla ya armada, de \`texto_confirmado\` o de los demás datos entregados. ` +
+          `El contenido de \`documento_de_respaldo\` es contexto: una cifra que solo aparece ahí no la ha confirmado nadie. ` +
+          `Tampoco calcules diferencias, porcentajes ni totales. Quita la cifra o, si hace falta, pon en su lugar un marcador [Pendiente: … — …].`
       );
     }
     if (prohibidas.length) {
@@ -407,6 +461,8 @@ export async function generarBloque(
 
     ultimoError = inventadas.length
       ? `Citó fuentes que no se le entregaron: ${inventadas.join(", ")}.`
+      : sinRespaldo.length
+        ? `Cifras sin respaldo en los datos confirmados: ${sinRespaldo.join(", ")}.`
       : prohibidas.length
         ? `El texto usa vocabulario de proceso interno: ${prohibidas.join(", ")}.`
         : `Marcadores mal formados: ${marcadores.join(" ")}.`;
@@ -435,11 +491,24 @@ export async function generarBloque(
       ok: false,
       motivo: ultimoError.startsWith("Citó")
         ? "fuentes_invalidas"
+        : ultimoError.startsWith("Cifras sin respaldo")
+          ? "cifras_sin_respaldo"
         : ultimoError.startsWith("El texto usa") || ultimoError.startsWith("Marcadores")
           ? "voz_incorrecta"
           : "respuesta_ilegible",
       detalle: ultimoError,
     };
+  }
+
+  // El respaldo de cada cifra citada: si el texto cita una solicitud cuya cifra
+  // confirmada sabe de qué archivo y lugar salió, ese lugar se cita también. Lo
+  // agrega el código para que no dependa de que el modelo se acuerde.
+  for (const id of [...salida.fuentes_usadas]) {
+    if (!id.startsWith("sol:")) continue;
+    const r = respaldos.porSolicitud.get(id.slice(4));
+    if (r && ens.entregaPorSolicitud.get(id.slice(4))?.valor != null && !salida.fuentes_usadas.includes(r.id)) {
+      salida.fuentes_usadas.push(r.id);
+    }
   }
 
   // Grafía de la denominación: se corrige aquí, sin reintento. Es un carácter y
@@ -570,7 +639,9 @@ function armarDatos(
   ens: Ensamblado,
   evaluado: BloqueEvaluado,
   perfil: Record<string, unknown> | null,
-  requisitos: RequisitoNiif[]
+  requisitos: RequisitoNiif[],
+  evidencias: Map<string, EvidenciaDelBloque> = new Map(),
+  respaldos: Map<string, RespaldoDeCifra> = new Map()
 ): { fuentes: FuenteEntregada[]; datos: unknown } {
   const fuentes: FuenteEntregada[] = [];
   const porId = new Map(ens.solicitudes.map((s) => [s.id, s]));
@@ -612,6 +683,27 @@ function armarDatos(
         valor: e.valor,
         validada_por: s.origen === "cliente" ? "el propio cliente" : "IRStrat",
         nota_de_alcance: s.nota_alcance,
+        // De qué archivo y lugar salió la cifra confirmada (si nació de una sugerencia).
+        respaldo_de_la_cifra: e.valor != null ? respaldos.get(s.id) ?? null : null,
+        // El archivo más reciente de la solicitud, ya leído. Contexto y citas:
+        // las cifras NO salen de aquí (lo revisa cifras.ts).
+        documento_de_respaldo: (() => {
+          const ev = evidencias.get(s.id);
+          if (!ev) return null;
+          return {
+            archivo: ev.archivo,
+            version: ev.version,
+            contenido: ev.contenido,
+            recortado: ev.recortado,
+            texto_confirmado: ev.extractoConfirmado
+              ? {
+                  texto: ev.extractoConfirmado.texto,
+                  corregido_por_la_emisora: ev.extractoConfirmado.corregido,
+                  citar_con: ev.extractoConfirmado.citarCon,
+                }
+              : null,
+          };
+        })(),
       };
     });
 

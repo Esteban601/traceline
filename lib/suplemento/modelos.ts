@@ -24,7 +24,10 @@ export type Tarifa = {
 
 export type ClaveModelo = keyof typeof MODELOS;
 
-export const PRECIOS_VERIFICADOS_EL = "2026-09-11";
+// Reverificada completa el 4 de octubre de 2026 contra
+// platform.claude.com/docs/en/about-claude/pricing: las cuatro tarifas de
+// septiembre siguen iguales y se agrega Sonnet 5.5 (captura sugerida).
+export const PRECIOS_VERIFICADOS_EL = "2026-10-04";
 
 export const MODELOS = {
   "claude-fable-5-1": {
@@ -36,6 +39,14 @@ export const MODELOS = {
     etiqueta: "Claude Opus 5",
     nivel: "alto" as const,
     tarifa: { entrada: 5, cacheEscritura5m: 6.25, cacheLectura: 0.5, salida: 25 },
+  },
+  // La Sonnet vigente. La usan la lectura de evidencias y la captura sugerida
+  // (encargo 2026-10-04); el generador sigue en Sonnet 5 para sus bloques de
+  // plantilla hasta que se mida el cambio sobre los mismos bloques.
+  "claude-sonnet-5-5": {
+    etiqueta: "Claude Sonnet 5.5",
+    nivel: "intermedio" as const,
+    tarifa: { entrada: 2, cacheEscritura5m: 2.5, cacheLectura: 0.2, salida: 10 },
   },
   "claude-sonnet-5": {
     etiqueta: "Claude Sonnet 5",

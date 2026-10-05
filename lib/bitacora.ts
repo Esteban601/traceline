@@ -89,6 +89,15 @@ export type AccionEvento =
   // Toggle "carga por IRStrat", por cliente (solo el rol admin de la firma).
   | "tenant_carga_staff_habilitada"
   | "tenant_carga_staff_deshabilitada"
+  // Lectura de evidencias por la plataforma (captura sugerida), por cliente.
+  | "tenant_lectura_evidencias_habilitada"
+  | "tenant_lectura_evidencias_deshabilitada"
+  // Captura sugerida: las escribe la BASE (la cola al generar; fn_decidir_sugerencia
+  // al decidir), no la aplicación. Se declaran para que la bitácora las nombre.
+  | "sugerencia_generada"
+  | "sugerencia_confirmada"
+  | "sugerencia_corregida"
+  | "sugerencia_rechazada"
   // Áreas del cliente (catálogo por tenant).
   | "area_creada"
   | "area_editada"
