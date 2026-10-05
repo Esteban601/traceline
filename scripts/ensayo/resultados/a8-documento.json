@@ -1,0 +1,297 @@
+{
+  "docId": "f07da34d-7532-4655-be48-c1891840d9fc",
+  "pared": 591830,
+  "fallidos": [],
+  "reintento": [],
+  "estados": {
+    "borrador": 40
+  },
+  "conCortes": 0,
+  "costo": {
+    "costo_usd": 8.9269,
+    "tokens_entrada": 261496,
+    "tokens_salida": 129170
+  },
+  "filas": [
+    {
+      "n": 1,
+      "estado": "borrador",
+      "duracion_ms": 48718,
+      "costo_usd": 0.2683,
+      "intentos": 0
+    },
+    {
+      "n": 2,
+      "estado": "borrador",
+      "duracion_ms": 0,
+      "costo_usd": 0,
+      "intentos": 0
+    },
+    {
+      "n": 3,
+      "estado": "borrador",
+      "duracion_ms": 0,
+      "costo_usd": 0,
+      "intentos": 0
+    },
+    {
+      "n": 4,
+      "estado": "borrador",
+      "duracion_ms": 44463,
+      "costo_usd": 0.2522,
+      "intentos": 0
+    },
+    {
+      "n": 5,
+      "estado": "borrador",
+      "duracion_ms": 0,
+      "costo_usd": 0,
+      "intentos": 0
+    },
+    {
+      "n": 6,
+      "estado": "borrador",
+      "duracion_ms": 34665,
+      "costo_usd": 0.195,
+      "intentos": 0
+    },
+    {
+      "n": 7,
+      "estado": "borrador",
+      "duracion_ms": 51141,
+      "costo_usd": 0.1542,
+      "intentos": 0
+    },
+    {
+      "n": 8,
+      "estado": "borrador",
+      "duracion_ms": 31331,
+      "costo_usd": 0.1345,
+      "intentos": 0
+    },
+    {
+      "n": 9,
+      "estado": "borrador",
+      "duracion_ms": 31787,
+      "costo_usd": 0.1734,
+      "intentos": 0
+    },
+    {
+      "n": 10,
+      "estado": "borrador",
+      "duracion_ms": 56846,
+      "costo_usd": 0.3394,
+      "intentos": 0
+    },
+    {
+      "n": 11,
+      "estado": "borrador",
+      "duracion_ms": 41489,
+      "costo_usd": 0.189,
+      "intentos": 0
+    },
+    {
+      "n": 12,
+      "estado": "borrador",
+      "duracion_ms": 37327,
+      "costo_usd": 0.1575,
+      "intentos": 0
+    },
+    {
+      "n": 13,
+      "estado": "borrador",
+      "duracion_ms": 34632,
+      "costo_usd": 0.2489,
+      "intentos": 0
+    },
+    {
+      "n": 14,
+      "estado": "borrador",
+      "duracion_ms": 0,
+      "costo_usd": 0,
+      "intentos": 0
+    },
+    {
+      "n": 15,
+      "estado": "borrador",
+      "duracion_ms": 47787,
+      "costo_usd": 0.2685,
+      "intentos": 0
+    },
+    {
+      "n": 16,
+      "estado": "borrador",
+      "duracion_ms": 56714,
+      "costo_usd": 0.3391,
+      "intentos": 0
+    },
+    {
+      "n": 17,
+      "estado": "borrador",
+      "duracion_ms": 41117,
+      "costo_usd": 0.2586,
+      "intentos": 0
+    },
+    {
+      "n": 18,
+      "estado": "borrador",
+      "duracion_ms": 36074,
+      "costo_usd": 0.1468,
+      "intentos": 0
+    },
+    {
+      "n": 19,
+      "estado": "borrador",
+      "duracion_ms": 41371,
+      "costo_usd": 0.1832,
+      "intentos": 0
+    },
+    {
+      "n": 20,
+      "estado": "borrador",
+      "duracion_ms": 39697,
+      "costo_usd": 0.1658,
+      "intentos": 0
+    },
+    {
+      "n": 21,
+      "estado": "borrador",
+      "duracion_ms": 60311,
+      "costo_usd": 0.3693,
+      "intentos": 0
+    },
+    {
+      "n": 22,
+      "estado": "borrador",
+      "duracion_ms": 41753,
+      "costo_usd": 0.2508,
+      "intentos": 0
+    },
+    {
+      "n": 23,
+      "estado": "borrador",
+      "duracion_ms": 41050,
+      "costo_usd": 0.245,
+      "intentos": 0
+    },
+    {
+      "n": 24,
+      "estado": "borrador",
+      "duracion_ms": 50975,
+      "costo_usd": 0.2631,
+      "intentos": 0
+    },
+    {
+      "n": 25,
+      "estado": "borrador",
+      "duracion_ms": 40697,
+      "costo_usd": 0.2384,
+      "intentos": 0
+    },
+    {
+      "n": 26,
+      "estado": "borrador",
+      "duracion_ms": 58859,
+      "costo_usd": 0.3732,
+      "intentos": 0
+    },
+    {
+      "n": 27,
+      "estado": "borrador",
+      "duracion_ms": 39925,
+      "costo_usd": 0.25,
+      "intentos": 0
+    },
+    {
+      "n": 28,
+      "estado": "borrador",
+      "duracion_ms": 48508,
+      "costo_usd": 0.259,
+      "intentos": 0
+    },
+    {
+      "n": 29,
+      "estado": "borrador",
+      "duracion_ms": 36041,
+      "costo_usd": 0.1866,
+      "intentos": 0
+    },
+    {
+      "n": 30,
+      "estado": "borrador",
+      "duracion_ms": 40143,
+      "costo_usd": 0.2449,
+      "intentos": 0
+    },
+    {
+      "n": 31,
+      "estado": "borrador",
+      "duracion_ms": 27595,
+      "costo_usd": 0.1862,
+      "intentos": 0
+    },
+    {
+      "n": 32,
+      "estado": "borrador",
+      "duracion_ms": 41984,
+      "costo_usd": 0.2583,
+      "intentos": 0
+    },
+    {
+      "n": 33,
+      "estado": "borrador",
+      "duracion_ms": 61146,
+      "costo_usd": 0.4111,
+      "intentos": 0
+    },
+    {
+      "n": 34,
+      "estado": "borrador",
+      "duracion_ms": 31615,
+      "costo_usd": 0.215,
+      "intentos": 0
+    },
+    {
+      "n": 35,
+      "estado": "borrador",
+      "duracion_ms": 37052,
+      "costo_usd": 0.2292,
+      "intentos": 0
+    },
+    {
+      "n": 36,
+      "estado": "borrador",
+      "duracion_ms": 46992,
+      "costo_usd": 0.2824,
+      "intentos": 0
+    },
+    {
+      "n": 37,
+      "estado": "borrador",
+      "duracion_ms": 44635,
+      "costo_usd": 0.2917,
+      "intentos": 0
+    },
+    {
+      "n": 38,
+      "estado": "borrador",
+      "duracion_ms": 48709,
+      "costo_usd": 0.3098,
+      "intentos": 0
+    },
+    {
+      "n": 39,
+      "estado": "borrador",
+      "duracion_ms": 43411,
+      "costo_usd": 0.2825,
+      "intentos": 0
+    },
+    {
+      "n": 40,
+      "estado": "borrador",
+      "duracion_ms": 42608,
+      "costo_usd": 0.306,
+      "intentos": 0
+    }
+  ]
+}
