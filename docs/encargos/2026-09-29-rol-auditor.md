@@ -147,6 +147,16 @@ h. **Paso 5 preparado y parada.** PR de `hotfix/rol-auditor` a `main` y lista de
 
 ### 5.2 Guion del paso 5 · despliegue a staging
 
+> **Regla vigente desde el 5 de octubre de 2026** (decisión de Esteban). Las líneas base de un despliegue (los
+> Excel de taxonomía y las instantáneas) se guardan en `referencia/lineas-base/<release>/`, que git ignora. No
+> se guardan en `~/despliegue-rol-auditor`, ni en el scratchpad de una sesión, ni en otra carpeta del home, y no
+> se borran al cerrar: son la línea base del siguiente despliegue.
+>
+> Los comandos de abajo son el registro de v29 y se dejan como se ejecutaron. En un despliegue nuevo, `D` es
+> `referencia/lineas-base/<release>` y el `rm -rf $D` del paso 8 no se hace. La regla completa está en la
+> especificación §10, «Líneas base del despliegue». La primera línea base guardada así es la de v32.1
+> (`referencia/lineas-base/v32.1/clepsa.xlsx`).
+
 Todo lo de esta sección lo ejecuta **una persona** (Esteban) en su terminal, en este orden, desde la raíz del
 repositorio con Node 22. Cada bloque se copia entero. Ningún comando imprime una URL, una llave ni una
 contraseña. Las URL de base se cargan con `read -rs` y no quedan en el historial.

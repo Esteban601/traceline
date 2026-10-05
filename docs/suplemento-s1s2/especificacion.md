@@ -6,6 +6,7 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 **Cambios respecto a 0.10**:
 - §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia. Migración aplicada y verificada
   en staging el 5 de octubre de 2026.
+- §10: regla nueva del guion, «Líneas base del despliegue»: van en `referencia/lineas-base/<release>/`.
 
 **Cambios respecto a 0.9** (después de los releases v31 y v32):
 - §10: registro de v31 (vitrina por emisora) y v32 (subida de evidencias de más de 1 MB).
@@ -813,7 +814,8 @@ Verificación en staging tras la migración:
 línea base se borró con la carpeta de despliegue (`~/despliegue-rol-auditor`)
 antes de esta comprobación. Se comparó la forma del libro (hojas y cuadrícula),
 que coincide, y el libro descargado hoy queda como línea base del próximo
-despliegue. La migración solo reemplaza dos funciones de trigger de la carga de
+despliegue en `referencia/lineas-base/v32.1/clepsa.xlsx` (regla «Líneas base del
+despliegue», abajo). La migración solo reemplaza dos funciones de trigger de la carga de
 evidencia; el export no las usa.
 
 No se probó en staging que el jefe de área suba evidencia, porque escribiría
@@ -844,6 +846,31 @@ Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
   decisión 3 del Paso 0 del encargo de captura sugerida. El tope nuevo de
   lecturas (`lecturas_mes_max`) sí se aplica en la cola de lectura. Queda
   decidir si se aplica o se retira del diseño.
+
+### Líneas base del despliegue (regla del guion)
+
+Vigente desde el 5 de octubre de 2026, por decisión de Esteban. Origen: la línea base del Excel de v32 vivía en
+`~/despliegue-rol-auditor`, se borró con esa carpeta y la comprobación de v32.1 tuvo que quedarse en la forma
+del libro (§10, v32.1).
+
+- **Dónde.** `referencia/lineas-base/<release>/` en la copia del repositorio de quien despliega, por ejemplo
+  `referencia/lineas-base/v33/`. `referencia/` está en `.gitignore`. Antes de copiar se verifica con
+  `git check-ignore` (CLAUDE.md §2). No se guardan en el home, ni en el scratchpad de una sesión de Claude Code,
+  ni en otra carpeta temporal.
+- **Qué.**
+  - Los Excel de taxonomía que compara el guion, como `<slug>.xlsx` (hoy `clepsa`, `banco-base` y `gcarso`).
+  - Las instantáneas, `instantanea-antes.txt` e `instantanea-despues.txt`, cuando el release las lleva.
+  - Si hay antes y después en el mismo release, van en `antes/` y `despues/`.
+- **Cuánto se guardan.** No se borran al cerrar el despliegue: la línea base del release siguiente es el
+  después del anterior. Contienen datos reales (Grupo Carso), por eso viven solo en `referencia/` y nunca entran
+  a git ni salen de la máquina.
+- **Cómo se compara.**
+  - Con `scripts/ensayo/comparar-excel.mjs`, celda por celda.
+  - El pie del libro lleva la fecha de generación; si la línea base es de otro día, se normaliza antes de
+    comparar.
+  - El registro dice qué se comparó: celdas con contenido, o forma del libro (hojas y cuadrícula).
+- **La primera:** `referencia/lineas-base/v32.1/clepsa.xlsx`, descargada de staging el 5 de octubre de 2026
+  tras la migración de v32.1.
 
 ### Ensayo de despliegue
 
