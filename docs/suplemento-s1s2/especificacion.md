@@ -1,7 +1,14 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.11** · 4 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.12** · 5 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.11** (al cerrar el encargo de captura sugerida, `docs/encargos/2026-10-04-captura-sugerida.md`):
+- §3.2 (d): el insumo de las evidencias de las solicitudes ya está construido; difiere de (c) en cómo se lee el PDF
+  y en el caché.
+- §3.3 nueva: captura sugerida (lectura de evidencias, sugerencia con fuente verificada, decisión humana,
+  generador con citas a evidencias y validador de cifras).
+- §5: nueve migraciones del encargo.
 
 **Cambios respecto a 0.10**:
 - §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia.
@@ -236,7 +243,95 @@ que no esté en el archivo. Las únicas hojas de cuestionario que existen son la
   se consulta varias veces: una por bloque que lo cite, más cada reintento de la revisión fila por fila. Sin
   caché, el mismo documento se paga entero cada vez.
 
+**(d) Construido para las evidencias de las solicitudes** (encargo de captura sugerida, octubre de 2026; detalle
+en §3.3). El archivo se lee **una sola vez por versión** y su contenido se guarda (`evidencias_contenido`); la
+sugerencia y el generador lo reutilizan. Dos diferencias con (c), decididas en el encargo:
+
+- **El PDF con texto se extrae en el servidor** (pdf.js), con su número de página, sin costo. Solo las páginas
+  sin texto, es decir, los escaneados, y las imágenes van al modelo con visión. La paginación se conserva igual.
+- **Sin caché.** Lo que se manda al modelo es el contenido ya extraído y recortado (hasta 8 000 caracteres por
+  evidencia y 30 000 por bloque), no el archivo; la sugerencia cuesta del orden de $0.007 y no lo amerita.
+- **Los adjuntos del Perfil (a) y la pre-carga A10 (b) siguen sin construir.**
+
 ---
+
+### 3.3 Captura sugerida
+
+Encargo `docs/encargos/2026-10-04-captura-sugerida.md` (Pasos 0 a 6, con su registro en §7). Capturar deja de ser
+teclear y pasa a ser confirmar, y **ninguna cifra llega al Excel ni al informe sin que una persona la confirme**.
+
+**Lectura.** Al registrar una evidencia (portal o panel), un trigger encola su lectura y la cola la procesa en
+segundo plano; `/api/evidencias/procesar` (cron) recoge lo pendiente.
+- **Formatos.** Excel y CSV: celdas con hoja y referencia. PDF: texto por página; las páginas escaneadas se leen
+  con visión. Word: párrafos y tablas numerados. Imágenes (HEIC convertido): visión.
+- **No soportados.** `.xls` y `.doc` quedan «no soportado», con el mensaje de guardarlos como `.xlsx` o `.docx`.
+- **Límites.** 25 MB por archivo y 60 páginas (se avisa si se recorta).
+- **Bandera y tope por emisora.**
+  - `tenants.lectura_evidencias_activa`: apagada en clientes reales hasta que su contrato de encargado nombre a
+    Anthropic. La mueve el administrador de IRStrat en `/admin/clientes`, con confirmación y bitácora.
+  - `tenants.lecturas_mes_max` (500): tope de lecturas al mes. Una sugerencia va incluida en su lectura;
+    regenerarla por `/api/evidencias/sugerir` cuenta como una lectura.
+
+**Subida.** El archivo va directo a storage con URL firmada; la server action solo registra la fila después de
+verificar la ruta y el tamaño. El bucket rechaza más de 25 MB aunque la firma sea válida. El `bodySizeLimit` de
+26 MB (v32) se queda como red.
+
+**Sugerencia** (`sugerencias_captura`). Se genera sobre la evidencia más reciente de la solicitud, con Sonnet 5.5
+y salida estructurada.
+- **Numérica.** Propone la cifra, la unidad y el periodo, con hasta tres candidatos alternos y la conversión
+  cuando la solicitud espera otra unidad; el factor sale de una tabla propia, no del modelo. Fable 5.1 da segunda
+  opinión cuando la confianza es baja.
+- **De texto.** Propone un extracto literal de hasta 150 palabras en uno o varios fragmentos, más una línea de qué
+  cubre y qué no del requisito según sus códigos de la taxonomía.
+- **La fuente se verifica en código.** La celda, página, párrafo o tabla citada tiene que existir; la cita tiene
+  que estar ahí literalmente y su número tiene que ser el valor. Lo que no pasa se descarta.
+- **Estados.**
+  - `sugerida` y `sin_hallazgo` se muestran. `sin_hallazgo` dice «No se encontró la cifra en esta evidencia» o
+    «Esta evidencia no cubre el requisito», con la línea de qué falta.
+  - `fallida` es un error técnico y no se muestra.
+  - Una versión nueva de la evidencia deja la sugerencia `obsoleta`; lo ya decidido se conserva.
+- **Resultado sobre el conjunto de prueba.** 21 de 21 cifras con su fuente correcta y 6 de 6 extractos.
+
+**Decisión** (`fn_decidir_sugerencia`, una transacción). Confirmar, corregir o rechazar.
+- **Qué queda.** Una cifra aceptada crea la captura como una manual, con `origen = 'sugerida'` y su
+  `sugerencia_id`. Un extracto aceptado se queda en la sugerencia; el Excel solo recibe números. La bitácora
+  registra `sugerencia_confirmada`, `_corregida` y `_rechazada`, y `sugerencia_generada` sin usuario.
+- **Quién decide: quien hoy puede capturar.** Responsable y jefe de su área, coordinador y administrador del
+  cliente; el staff solo con «carga por IRStrat». El auditor ve las sugerencias y la base le niega decidir.
+- **Dónde se ve.** En el detalle de la solicitud, bajo la evidencia vigente. La matriz y el tablero del portal
+  marcan «Sugerencia por decidir» y cuentan por área, nunca para el auditor.
+
+**Generador.** Cada solicitud del bloque lleva su `documento_de_respaldo`: el contenido extraído, con un id
+citable por página, párrafo, tabla u hoja (`evi:<evidencia>:p2`, `:par3`…), y el `texto_confirmado` si lo hay.
+- **Contexto, no fuente de cifras.** El respaldo de cada cifra confirmada que nació de una sugerencia (archivo y
+  hoja con celda, página, o tabla con fila y columna) se agrega a `fuentes_usadas` por código.
+- **Validador de cifras** (`lib/suplemento/cifras.ts`). Rechaza toda cifra del texto que no esté en los datos
+  confirmados: capturas confirmadas, tabla, extractos confirmados y demás datos entregados. El contenido crudo de
+  las evidencias no cuenta. El modelo recibe un reproche y tiene un reintento; si insiste, el bloque queda en
+  error `cifras_sin_respaldo`.
+- Versión de prompt `a5b-v3-2026-10-04`.
+
+**Costos medidos** (precios verificados el 4 de octubre de 2026):
+
+| Concepto | Costo |
+|---|---|
+| Lectura de Excel, Word o PDF con texto | $0 |
+| Lectura de un PDF escaneado | ~$0.0065 |
+| Lectura de una imagen | ~$0.0047 |
+| Sugerencia numérica (Sonnet) | ~$0.0067 |
+| Sugerencia numérica con segunda opinión (Fable) | ~$0.065; 3 de 36 en las pruebas |
+| Sugerencia de texto | ~$0.0068 |
+
+**Estimación por emisora con 37 solicitudes** (las del demo: 26 cuantitativas y 11 de texto), una evidencia cada
+una:
+
+| Caso | Supuesto | Total |
+|---|---|---|
+| Típico | 15 % de escaneados, 5 % de imágenes, una de cada doce con segunda opinión | ~$0.40 por ronda; ~$0.60 con nuevas versiones y regeneraciones |
+| Peor | todo escaneado y todo con segunda opinión | ~$2.30 |
+
+Al generador, el documento de respaldo le agrega hasta unos 8 000 tokens de entrada en cada bloque que tenga
+evidencias: del orden de $0.5 a $2 más por corrida completa. Se mide en la próxima.
 
 ## 4. Perfil del emisor (nuevo)
 
@@ -290,7 +385,17 @@ filas, no como JSON.
 | `documentos_bloques.intentos` (smallint, default 0) | Cuenta los cortes por tiempo de la tanda actual. Sin memoria del intento, un bloque que siempre excede la ventana se reencola para siempre; al segundo corte pasa a `error` | ADD COLUMN (`20260920120000`, **aplicada en dev**) |
 | `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | El bloque 21 solo podía producir la tabla resumen: le faltaba con qué escribir el párrafo por riesgo de CADU pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Se capturan en `/admin/registros` | ADD COLUMN (`20260921120000`, **aplicada en dev**) |
 
-Todas aditivas. Nada de lo que hoy usan staging ni los 16 tenants cambia de forma.
+| Tabla `evidencias_contenido`, enum `estado_lectura`, `tenants.lectura_evidencias_activa` y `.lecturas_mes_max`, trigger de encolado | Captura sugerida (§3.3): el contenido de cada versión de evidencia, leído una vez | CREATE TABLE + ADD COLUMN (`20261004120000`) |
+| Tabla `sugerencias_captura`, enum `estado_sugerencia` | Sugerencias y sus decisiones | CREATE TABLE (`20261004130000`) |
+| `sugerencias_captura.regenerada` | La regeneración cuenta contra el tope | ADD COLUMN (`20261004140000`) |
+| Valor `sin_hallazgo` de `estado_sugerencia` | Estado visible para «no encontrada» y «no cubre» | ALTER TYPE ADD VALUE (`20261004150000`) |
+| `fn_decidir_sugerencia`, `fn_puede_decidir_sugerencia`, `capturas_valor.origen` y `.sugerencia_id`, `sugerencias_captura.extracto_final` | La decisión en una transacción y el origen de la captura | ADD COLUMN + funciones (`20261004150100`, corregida en `20261004160200`) |
+| Límite de 25 MB en el bucket `evidencias` | La subida directa ya no pasa por la server action | UPDATE de la configuración del bucket (`20261004160000`), más restrictivo |
+| Trigger `trg_evidencia_obsoleta_sugerencias` | La versión nueva deja obsoleta la sugerencia en el mismo INSERT | Trigger nuevo (`20261004160100`) |
+
+Todas aditivas, salvo el ajuste del bucket, que solo restringe. Las migraciones del encargo están aplicadas en
+local y en dev, y no en staging: van con el merge del generador a producción. Nada de lo que hoy usan staging ni
+los 16 tenants cambia de forma.
 
 ---
 
