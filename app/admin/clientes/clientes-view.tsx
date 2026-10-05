@@ -25,6 +25,7 @@ import { LogoUploader } from "./logo-uploader";
 import {
   cambiarActivoTenant,
   cambiarCargaStaff,
+  cambiarGenerador,
   cambiarLecturaEvidencias,
   crearCliente,
   type AltaClienteState,
@@ -44,6 +45,11 @@ export type ClienteFila = {
   /** Lecturas del mes en curso, con la cuenta del tope (lecturas + regeneraciones). */
   lecturasMes: number;
   lecturasMax: number;
+  /** ¿El generador del suplemento corre para esta emisora? (contrato de encargado) */
+  generadorActivo: boolean;
+  /** Corridas completas del suplemento este mes, contra `generaciones_mes_max`. */
+  corridasMes: number;
+  corridasMax: number;
   /** Emisora de demostración: franja en sus sesiones y pie [DEMO] en su Excel. */
   esDemo: boolean;
   createdAt: string;
@@ -538,6 +544,7 @@ function ClienteCard({
           analista la fila no existe. La base lo revalida (trigger). */}
       {esAdmin && <CargaStaffSwitch cliente={cliente} />}
       {esAdmin && <LecturaEvidenciasSwitch cliente={cliente} />}
+      {esAdmin && <GeneradorSwitch cliente={cliente} />}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5">
         <LogoUploader
@@ -707,6 +714,74 @@ function LecturaEvidenciasSwitch({ cliente }: { cliente: ClienteFila }) {
         open={confirmar}
         titulo="¿Encender la lectura de evidencias?"
         descripcion={`El contenido de las evidencias nuevas de ${nombre} se enviará a la API de Anthropic para leerlo y sugerir la captura. Confirma que su contrato de encargado nombra a Anthropic como sub-encargado. Ninguna cifra llega al Excel ni al informe sin que una persona la confirme.`}
+        confirmar="Sí, encender"
+        cancelar="Cancelar"
+        cargando={pending}
+        onConfirm={() => aplicar(true)}
+        onCancel={() => setConfirmar(false)}
+      />
+    </div>
+  );
+}
+
+/**
+ * Interruptor del GENERADOR DEL SUPLEMENTO por emisora. Encenderlo manda los
+ * datos de la emisora a la API de Anthropic: la confirmación pide que su
+ * contrato de encargado lo cubra. Apagarlo no pide confirmación.
+ */
+function GeneradorSwitch({ cliente }: { cliente: ClienteFila }) {
+  const toast = useToast();
+  const [pending, startTransicion] = useTransition();
+  const [confirmar, setConfirmar] = useState(false);
+  const activo = cliente.generadorActivo;
+  const nombre = limpiarNombreTenant(cliente.nombre);
+
+  const aplicar = (habilitar: boolean) => {
+    startTransicion(async () => {
+      const r = await cambiarGenerador(cliente.id, habilitar);
+      setConfirmar(false);
+      if (r.ok) toast.success(r.mensaje ?? "Listo.");
+      else toast.error(r.error ?? "No se pudo actualizar el generador.");
+    });
+  };
+
+  return (
+    <div className="mt-5 flex flex-wrap items-start justify-between gap-4 border-t border-line pt-5">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-ink">Generador del suplemento NIIF S1/S2</p>
+        <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted">
+          {activo
+            ? "IRStrat puede generar el suplemento de esta emisora con sus datos validados."
+            : "El generador no corre para esta emisora. Enciéndelo solo si su contrato de encargado nombra a Anthropic."}{" "}
+          Este mes: {cliente.corridasMes} de {cliente.corridasMax} generaciones completas.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={activo}
+        aria-label={`Generador del suplemento para ${nombre}`}
+        disabled={pending}
+        onClick={() => (activo ? aplicar(false) : setConfirmar(true))}
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-pill border transition duration-150 disabled:opacity-50",
+          activo ? "border-teal bg-teal" : "border-line bg-crema"
+        )}
+      >
+        <span
+          aria-hidden
+          className={cn(
+            "inline-block size-4 rounded-full bg-surface shadow-soft transition-transform duration-150",
+            activo ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </button>
+
+      <ConfirmDialog
+        open={confirmar}
+        titulo="¿Encender el generador del suplemento?"
+        descripcion={`Los datos validados de ${nombre} —capturas, perfil, registros y el contenido de sus evidencias— se enviarán a la API de Anthropic para redactar el suplemento. Confirma que su contrato de encargado nombra a Anthropic como sub-encargado.`}
         confirmar="Sí, encender"
         cancelar="Cancelar"
         cargando={pending}
