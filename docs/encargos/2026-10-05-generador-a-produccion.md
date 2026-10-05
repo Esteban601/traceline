@@ -59,6 +59,78 @@ El generador necesita una bandera por tenant si hoy no la tiene; si no existe, s
 5. PR de `dev/ajustes-sep26` a `main`, revisado con el asesor. Guion v33 en §5.1 con los comandos exactos. Parada.
 6. Despliegue v33: merge y push por Claude Code (CLAUDE.md v1.6/v1.7), migraciones por Esteban antes del push, verificaciones, banderas, registro. Limpieza.
 
+### 5.1 Guion del Paso 3 · copia de staging a ensayo y app `traceline-dev`
+
+Lo ejecuta **Esteban en su terminal**, salvo lo marcado como Claude Code. Ningún comando imprime una URL, una
+llave ni una contraseña.
+
+**0. Antes, una vez creado el proyecto de ensayo.**
+- **Pasar a Claude Code el ref del proyecto de ensayo.** No es secreto, pero es nuevo. Seis scripts tienen fijo
+  el ref del ensayo anterior (`ndodorukqqyzhinahmrm`): `copiar-staging.sh`, `migrar-ensayo.sh`,
+  `migrar-remoto.sh`, `rotar-cuentas-seed.mjs`, `verificar-main.mjs`, y como rechazo `poblar-demo.mjs` y
+  `crear-demo-prospecto.mjs`. Claude Code los actualiza en `dev` en un commit propio, junto con `ESPERADAS` de
+  `migrar-remoto.sh` (las 29 migraciones de v33). El ref de ensayo **no** entra en `DEV_REFS_AUTORIZADOS`.
+- **El proyecto de ensayo se crea con Postgres 17**, la versión de staging.
+- **En `.env.local`**, `ENSAYO_REF=<ref>`. En `.env.ensayo.local`, solo `ENSAYO_DB_URL` (la URL de conexión
+  directa del proyecto de ensayo). Se escribe con el editor, nunca con `>>`.
+
+**(a) Copia de staging a ensayo.** Se corre desde `../vert-evidencia-dev`, ya al día, con el cliente de
+Postgres 17:
+```sh
+cd ~/Repositorios/vert-evidencia-dev && git pull --ff-only
+export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+read -rs STAGING_DB_URL && export STAGING_DB_URL   # pega la URL de staging (conexión directa) y Enter; no se muestra
+read -rs ENSAYO_DB_URL && export ENSAYO_DB_URL     # la del proyecto de ensayo
+bash scripts/ensayo/copiar-staging.sh              # copia public, historial de migraciones, auth y metadatos de storage; compara conteos
+unset STAGING_DB_URL ENSAYO_DB_URL
+```
+- **Los archivos de storage no se copian**, solo sus metadatos: los objetos viven fuera de la base. Para las
+  pruebas de A8 se suben evidencias nuevas.
+- Después, las migraciones de v33 en ensayo con `bash scripts/ensayo/migrar-ensayo.sh`: primero se revisa y
+  después se aplica con `--aplicar`, dos veces.
+
+**(b) Config vars de `traceline-dev`** (Heroku → Settings → Config Vars). No van valores en este documento.
+
+| Variable | De dónde sale | Nota |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase, proyecto de ensayo → Project Settings → API → Project URL | La app apunta a ensayo, nunca a staging |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ensayo → Project Settings → API → `anon` `public` | |
+| `SUPABASE_SERVICE_ROLE_KEY` | Ensayo → Project Settings → API → `service_role` | Secreta; solo en Heroku |
+| `ANTHROPIC_API_KEY` | Consola de Anthropic: una llave **nueva**, con nombre propio (p. ej. `traceline-dev-ensayo`) y límite de gasto | Una por persona y ambiente (CLAUDE.md §6); no la de dev ni la de staging |
+| `CRON_SECRET` | Se genera en la terminal (`openssl rand -hex 32`) y se pega sin imprimirlo en otro lado | Distinto del de staging; lo usan `/api/evidencias/procesar` y `/api/recordatorios` |
+| `NEXT_PUBLIC_APP_URL` | La URL de la app `traceline-dev` (Heroku → Settings → Domains) | Los enlaces de los correos y de las invitaciones |
+| `NEXT_PUBLIC_APP_NAME` | El mismo valor que en `traceline-staging` | |
+| `NEXT_PUBLIC_STAGING` | `true` | Franja de ambiente de prueba y sin indexación, como staging |
+| `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` | `1` | Como staging: el build no descarga navegadores |
+| `RESEND_API_KEY` y `EMAIL_FROM` | **No se definen** | Sin llave, el correo sale a la consola (modo sin envío). La copia trae usuarios reales de Grupo Carso: desde ensayo no sale ningún correo |
+| `SUPLEMENTO_PRUEBA` | Opcional, `1` | Muestra al staff el botón de prueba del bloque 29. Solo para A8 |
+
+Además:
+- buildpack `heroku/nodejs`; Node 22 y pnpm 11 salen de `engines` y `packageManager`;
+- un dyno web Basic, como staging;
+- el add-on **Heroku Scheduler** con un job cada 10 minutos:
+  `curl -s -X POST -H "x-cron-secret: $CRON_SECRET" "$NEXT_PUBLIC_APP_URL/api/evidencias/procesar?maximo=10"`.
+  Sin job de recordatorios, porque no se manda correo desde ensayo;
+- en Supabase, proyecto de ensayo → Authentication → URL Configuration: Site URL y Redirect URLs con el dominio de
+  `traceline-dev`, para el login y la recuperación de contraseña.
+
+**(c) Despliegue de `dev/ajustes-sep26` a `traceline-dev`.** Va **después** de migrar ensayo: el código de `dev`
+espera las columnas nuevas.
+```sh
+cd ~/Repositorios/vert-evidencia-dev && git pull --ff-only
+git remote add heroku-dev https://git.heroku.com/traceline-dev.git   # una sola vez
+heroku buildpacks -a traceline-dev                                   # debe decir heroku/nodejs
+git push heroku-dev dev/ajustes-sep26:main                           # la rama dev va a la rama main de la app
+heroku releases -a traceline-dev | head -3
+heroku logs -a traceline-dev -n 300 | grep -c -E 'status=5[0-9]{2}|Error:'   # 0
+```
+- **Quién empuja.** El push a `traceline-dev` no toca staging. Con la autorización de Esteban por chat lo puede
+  ejecutar Claude Code (CLAUDE.md §9 aplicado por analogía), y cada push se anota en §7.
+- **Comprobaciones mínimas tras el release.**
+  - `/login` responde 200.
+  - Las páginas de Cobertura y del generador cargan sin errores de consola.
+  - Las banderas de ensayo valen lo de §3, verificado por consulta.
+
 ## 6. Riesgos
 
 - Renumerar migraciones ya aplicadas en dev y en los proyectos de los colaboradores: dev y el proyecto de Quique (si existe) deberán marcarse con `migration repair` o recrearse; se documenta el procedimiento.
