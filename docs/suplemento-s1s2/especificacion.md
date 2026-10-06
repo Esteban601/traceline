@@ -1,7 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.21** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.22** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.21**:
+- §10: registro de v38 (`003c957`): aprobar el Suplemento es solo del staff, también en el servidor.
 
 **Cambios respecto a 0.20**:
 - §10, «Los mockups solo llevan direcciones `.example`»: regla, y corrección de la cuenta de Bafar.
@@ -1063,6 +1066,38 @@ impresa):
 
 Punto de reversión: `heroku releases:rollback v35 -a traceline-staging`. Con el código de v34 el job nuevo
 fallaría porque no encuentra el script; habría que volver temporalmente al comando con `curl`.
+
+### staging · release v38 · 6 de octubre de 2026 · `003c957`
+
+**Aprobar el Suplemento es solo del staff, también en el servidor.** Viene de `hotfix/aprobar-solo-staff` por el
+PR #14 (merge commit `003c957`). Solo código, sin migración. Encontrado durante el Paso 1 del encargo
+`2026-10-06-sistema-de-alertas`.
+
+- **El fallo.** `autorizar()` dejaba al administrador del cliente hacer cualquier cambio de estado del documento.
+  La pantalla recibía `puedeAprobar`, pero no lo usaba. El admin del cliente veía «Aprobar» y podía aprobar su
+  propio Suplemento, y un POST directo también le servía para devolverlo a borrador o sacarlo de `aprobado`.
+- **El arreglo.**
+  - `autorizar(documentoId, { soloStaff })`; `cambiarEstado` lo exige para `aprobado` y para `borrador`.
+    Pasar a revisión sigue siendo de los dos.
+  - Un documento aprobado no cambia de estado, para nadie (igual que su texto).
+  - La pantalla usa `puedeAprobar`.
+- **Antes del despliegue.** `e2e:aprobar-solo-staff`:
+  - contra el código sin arreglo, el admin del cliente aprobó el documento (el e2e detecta el hueco);
+  - con el arreglo, 7 de 7.
+
+  `tsc`, `eslint` y `verify:export` en verde.
+- **Numeración.** Heroku lo publicó como **v38**. La v37 es «Set CRON_SECRET config vars», la última
+  rotación del 5/10.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Release | ✓ v38 · Deploy `003c9570`; `web.1` up; `/login` 200 |
+| Cobertura (analista) | ✓ 200, «Cobertura de la taxonomía», sin errores de página |
+| Logs desde el release (solo conteos) | ✓ 64 líneas: 0 respuestas 5xx, 0 `Error:`, sin caídas |
+
+Punto de reversión: `heroku releases:rollback v37 -a traceline-staging`.
 
 ### Deudas conocidas
 
