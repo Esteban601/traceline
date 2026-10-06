@@ -55,7 +55,18 @@ export type Adjunto = {
   creadoEn: string;
   subidoPor: string | null;
   url: string | null;
+  /** Estado de su lectura para el generador (null = sin fila: adjunto anterior a la lectura). */
+  lectura: { estado: string; mensaje: string | null } | null;
 };
+
+/** Cómo se ve la lectura de un adjunto: lo que el generador puede usar de él. */
+function etiquetaLectura(l: Adjunto["lectura"]): string | null {
+  if (!l) return null;
+  if (l.estado === "extraido") return l.mensaje ? `Leído · ${l.mensaje}` : "Leído";
+  if (l.estado === "pendiente" || l.estado === "procesando") return "En lectura";
+  if (l.estado === "omitido") return l.mensaje ?? "Sin leer";
+  return `No se pudo leer${l.mensaje ? ` · ${l.mensaje}` : ""}`;
+}
 
 export type PerfilData = {
   denominacion_formal: string | null;
@@ -1126,6 +1137,7 @@ function Adjuntos({
                 <span className="block text-xs text-muted">
                   {tamano(a.tamano)}
                   {a.subidoPor ? ` · ${a.subidoPor}` : ""} · {fmtFechaHora(a.creadoEn)}
+                  {etiquetaLectura(a.lectura) ? ` · ${etiquetaLectura(a.lectura)}` : ""}
                 </span>
               </span>
               <form action={aQuitar}>

@@ -120,7 +120,7 @@ export default async function PerfilEmisorPage({
   const { data: filasAdj } = await db
     .from("perfil_emisor_adjuntos")
     .select(
-      "id, seccion, nombre_original, tamano, created_at, subido:perfiles_usuario!perfil_emisor_adjuntos_subido_por_fkey(nombre), archivo_path"
+      "id, seccion, nombre_original, tamano, created_at, subido:perfiles_usuario!perfil_emisor_adjuntos_subido_por_fkey(nombre), archivo_path, lectura:perfil_emisor_adjuntos_contenido(estado, mensaje, error)"
     )
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
@@ -134,6 +134,11 @@ export default async function PerfilEmisorPage({
       creadoEn: a.created_at,
       subidoPor: (a.subido as unknown as { nombre: string } | null)?.nombre ?? null,
       url: await urlAdjunto(a.archivo_path),
+      lectura: (() => {
+        const l = a.lectura as unknown as { estado: string; mensaje: string | null; error: string | null } | null;
+        // El error técnico no se muestra tal cual: basta con decir que no se leyó.
+        return l ? { estado: l.estado, mensaje: l.estado === "error" ? null : l.mensaje } : null;
+      })(),
     }))
   );
 

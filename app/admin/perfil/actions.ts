@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente, type PerfilActual } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { PLAZOS } from "@/lib/perfil-emisor";
+import { procesarLecturaDeAdjunto } from "@/lib/evidencias/cola";
 
 // =============================================================================
 // Perfil del emisor — guardado POR SECCIÓN.
@@ -403,16 +404,20 @@ export async function subirAdjunto(_p: AdjuntoState, fd: FormData): Promise<Adju
     .upload(ruta, archivo, { contentType: archivo.type, upsert: false });
   if (upErr) return { ok: false, error: "No se pudo subir el archivo.", seccion };
 
-  const { error } = await db.from("perfil_emisor_adjuntos").insert({
-    tenant_id: tenantId,
-    seccion,
-    archivo_path: ruta,
-    nombre_original: archivo.name,
-    mime: archivo.type,
-    tamano: archivo.size,
-    subido_por: perfil.id,
-  });
-  if (error) {
+  const { data: adjunto, error } = await db
+    .from("perfil_emisor_adjuntos")
+    .insert({
+      tenant_id: tenantId,
+      seccion,
+      archivo_path: ruta,
+      nombre_original: archivo.name,
+      mime: archivo.type,
+      tamano: archivo.size,
+      subido_por: perfil.id,
+    })
+    .select("id")
+    .single();
+  if (error || !adjunto) {
     // El objeto ya está en el bucket; sin fila quedaría huérfano y nadie podría
     // verlo ni quitarlo desde la interfaz.
     await db.storage.from("documentos").remove([ruta]);
@@ -428,6 +433,13 @@ export async function subirAdjunto(_p: AdjuntoState, fd: FormData): Promise<Adju
       entidadId: null,
       detalle: { seccion, nombre: archivo.name, bytes: archivo.size },
     });
+    // Lectura del adjunto (encargo suplemento-calidad, Paso 2). Si falla o el
+    // proceso muere a medias, la fila sigue `pendiente` y la recoge el cron.
+    try {
+      await procesarLecturaDeAdjunto(adjunto.id);
+    } catch (e) {
+      console.error(`[lectura-adjunto] ${archivo.name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   });
 
   revalidatePath("/admin/perfil");

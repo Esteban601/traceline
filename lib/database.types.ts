@@ -1269,6 +1269,96 @@ export type Database = {
           },
         ]
       }
+      perfil_emisor_adjuntos_contenido: {
+        Row: {
+          adjunto_id: string
+          archivo_path: string
+          bytes: number | null
+          contenido: Json | null
+          costo_usd: number
+          created_at: string
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_lectura"]
+          hojas: number | null
+          id: string
+          intentos: number
+          mensaje: string | null
+          modelo: string | null
+          nombre_original: string
+          paginas: number | null
+          procesado_en: string | null
+          seccion: string
+          tenant_id: string
+          tipo: string | null
+          tokens_entrada: number
+          tokens_salida: number
+          truncado: boolean
+        }
+        Insert: {
+          adjunto_id: string
+          archivo_path: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original: string
+          paginas?: number | null
+          procesado_en?: string | null
+          seccion: string
+          tenant_id: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+        }
+        Update: {
+          adjunto_id?: string
+          archivo_path?: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original?: string
+          paginas?: number | null
+          procesado_en?: string | null
+          seccion?: string
+          tenant_id?: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_emisor_adjuntos_contenido_adjunto_id_fkey"
+            columns: ["adjunto_id"]
+            isOneToOne: true
+            referencedRelation: "perfil_emisor_adjuntos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_emisor_adjuntos_contenido_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles_usuario: {
         Row: {
           activo: boolean
