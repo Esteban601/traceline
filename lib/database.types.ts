@@ -1221,6 +1221,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
+          recibe_resumen_diario: boolean
           rol: Database["public"]["Enums"]["rol_usuario"]
           tenant_id: string | null
         }
@@ -1232,6 +1233,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
+          recibe_resumen_diario?: boolean
           rol: Database["public"]["Enums"]["rol_usuario"]
           tenant_id?: string | null
         }
@@ -1243,6 +1245,7 @@ export type Database = {
           email?: string
           id?: string
           nombre?: string
+          recibe_resumen_diario?: boolean
           rol?: Database["public"]["Enums"]["rol_usuario"]
           tenant_id?: string | null
         }
@@ -1950,6 +1953,7 @@ export type Database = {
         Args: { p_solicitud_id: string }
         Returns: Database["public"]["Enums"]["estado_reporte"]
       }
+      fn_set_resumen_diario: { Args: { p_recibir: boolean }; Returns: boolean }
       fn_tenant_de_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: string
