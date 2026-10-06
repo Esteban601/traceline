@@ -413,6 +413,7 @@ filas, no como JSON.
 | `tenants.generador_activo` (boolean, default false; encendido en `es_demo`) y unidad de `tenants.generaciones_mes_max` | Bandera del generador por emisora (sus datos van a la API de Anthropic) y tope de corridas completas por mes, aplicados por las rutas de `/api/suplemento` | ADD COLUMN + comentario (`20261005122600`) |
 | `tenants.vitrina_habilitada = false` donde `es_demo = false` | La regla «Grupo Carso: vitrina apagada» se verifica por consulta | Migración de datos (`20261005122700`) |
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
+| `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
 
 Todas aditivas, salvo el ajuste del bucket, que solo restringe. Los números de migración son los de la renumeración del 5 de octubre de 2026
 (`20261005120000 + n minutos`, §10, «Antes del merge a producción»); se aplican en staging con v33. Nada de lo que hoy usan staging ni

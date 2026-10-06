@@ -27,7 +27,8 @@ REF_ENSAYO="sqpxcxewoznhpwvhxamy"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
 # v33 (encargo 2026-10-05-generador-a-produccion): las 26 migraciones de dev
 # renumeradas a 20261005120000 + n minutos, la bandera del generador, la vitrina
-# apagada en clientes reales y el repunte de riesgos físicos (aprobado para v33).
+# apagada en clientes reales, el repunte de riesgos físicos (aprobado para v33) y
+# el año de adopción de los reportes de demostración.
 # Anteriores: v32.1, 20261004170000_jefe_area_sube_evidencia; v31,
 # 20261001140000_tenants_vitrina_habilitada; v30, 20261001120000; v29, las 20260929*.
 ESPERADAS=(
@@ -60,6 +61,7 @@ ESPERADAS=(
   20261005122600_tenants_generador_activo.sql
   20261005122700_vitrina_apagada_clientes_reales.sql
   20261005130000_catalogo_repunte_riesgos_fisicos.sql
+  20261005130100_reportes_anio_adopcion_demo.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
