@@ -22,6 +22,9 @@ const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // La app de staging es el único destino no local admitido: el paso 5 descarga
 // ahí la línea base y la comprobación después del release.
 const STAGING_APP = "https://traceline-staging-70ce5b369e7c.herokuapp.com";
+// Y la app de ensayo, con el código de `dev` contra la base de ensayo (Paso 4 del
+// encargo generador a producción).
+const ENSAYO_APP = "https://traceline-dev-d4fd7a3cda04.herokuapp.com";
 
 // --credenciales <archivo>: la contraseña del analista sale del archivo que deja
 // scripts/despliegue/rotar-cuentas-seed.mjs (después de rotar ya no es la del
@@ -46,8 +49,8 @@ if (!carpeta || slugs.length === 0 || !URL_SB || !ANON) {
   console.error("     con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en el entorno.");
   process.exit(2);
 }
-if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE) && BASE !== STAGING_APP) {
-  console.error(`✗ BASE_URL debe ser una app local o ${STAGING_APP}, no ${BASE}.`);
+if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE) && BASE !== STAGING_APP && BASE !== ENSAYO_APP) {
+  console.error(`✗ BASE_URL debe ser una app local, ${STAGING_APP} o ${ENSAYO_APP}, no ${BASE}.`);
   process.exit(2);
 }
 

@@ -20,11 +20,16 @@
 // -----------------------------------------------------------------------------
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
+import fs from "node:fs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3002";
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const PASSWORD = "Demo2025!";
+// Contra una copia de staging las cuentas del seed están rotadas: E2E_CREDENCIALES
+// apunta al JSON que deja scripts/despliegue/rotar-cuentas-seed.mjs. No se imprime.
+const CREDENCIALES = process.env.E2E_CREDENCIALES ? JSON.parse(fs.readFileSync(process.env.E2E_CREDENCIALES, "utf8")) : {};
+const claveDe = (email) => CREDENCIALES[email]?.password ?? PASSWORD;
 const TENANT_DEMO = "10000000-0000-0000-0000-000000000001";
 const REPORTE_DEMO = "20000000-0000-0000-0000-000000000001";
 const SOLICITUD_DEMO = "c0000000-0000-0000-0000-000000000002";
@@ -85,7 +90,7 @@ for (const [email, rutas] of Object.entries(RUTAS)) {
   const page = await ctx.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', PASSWORD);
+  await page.fill('input[type="password"]', claveDe(email));
   await Promise.all([
     page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 90000 }),
     page.click('button[type="submit"]'),
@@ -110,7 +115,7 @@ await nav.close();
 console.log("\n════════ B · Los roles que no son auditor siguen escribiendo ════════");
 async function sesion(email) {
   const c = createClient(URL_SB, ANON, { auth: { persistSession: false } });
-  const { data, error } = await c.auth.signInWithPassword({ email, password: PASSWORD });
+  const { data, error } = await c.auth.signInWithPassword({ email, password: claveDe(email) });
   if (error) throw new Error(`login ${email}: ${error.message}`);
   return { c, id: data.user.id };
 }

@@ -22,6 +22,7 @@
  */
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
+import fs from "node:fs";
 
 const BASE = process.argv[2] || process.env.BASE_URL || "http://localhost:3000";
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
@@ -36,6 +37,10 @@ const PASSWORD = "Demo2025!";
 // Contra una copia de staging el auditor es de utilería y lleva contraseña
 // propia, que llega por el entorno del subshell y no se escribe en ningún lado.
 const PASSWORD_AUDITOR = process.env.E2E_PASSWORD_AUDITOR || PASSWORD;
+// Contra una copia de staging las cuentas del seed están rotadas: E2E_CREDENCIALES
+// apunta al JSON que deja scripts/despliegue/rotar-cuentas-seed.mjs. No se imprime.
+const CREDENCIALES = process.env.E2E_CREDENCIALES ? JSON.parse(fs.readFileSync(process.env.E2E_CREDENCIALES, "utf8")) : {};
+const claveDe = (email) => CREDENCIALES[email]?.password ?? PASSWORD;
 
 // Todo lo que la prueba toca se acota a la emisora demo del seed. En local es la
 // única con datos; en la copia de staging del ensayo no lo es, y «la primera
@@ -104,7 +109,7 @@ async function esperarStack(segundos = 60) {
 async function entrar(page, email) {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', email === CUENTAS.auditor ? PASSWORD_AUDITOR : PASSWORD);
+  await page.fill('input[type="password"]', email === CUENTAS.auditor ? PASSWORD_AUDITOR : claveDe(email));
   await Promise.all([
     // 90 s: la PRIMERA entrada al panel compila todo el árbol de /admin en
     // turbopack, y en frío eso pasa de 20 s con holgura. No es lentitud del
@@ -263,7 +268,7 @@ async function main() {
   // `db reset` recrea la base, no el bucket), así que IRStrat deja uno por la
   // misma vía que usa el producto y el auditor lo pide por la suya.
   const dbStaff = createClient(URL_SB, ANON, { auth: { persistSession: false } });
-  await dbStaff.auth.signInWithPassword({ email: CUENTAS.staff, password: PASSWORD });
+  await dbStaff.auth.signInWithPassword({ email: CUENTAS.staff, password: claveDe(CUENTAS.staff) });
   const { data: evFila } = await dbStaff
     .from("evidencias")
     .select("id, archivo_path, nombre_original")

@@ -26,6 +26,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const BASE = process.env.BASE_URL || "http://localhost:3002";
 const STAGING_APP = "https://traceline-staging-70ce5b369e7c.herokuapp.com";
+// La app de ensayo (código de `dev` contra la base de ensayo), para el ensayo de v33.
+const ENSAYO_APP = "https://traceline-dev-d4fd7a3cda04.herokuapp.com";
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -48,8 +50,8 @@ if (!carpeta || !slug || !URL_SB || !ANON) {
   console.error("Uso: node scripts/despliegue/comprobar-vitrina.mjs <carpeta> <slug> [--credenciales <archivo>]");
   process.exit(2);
 }
-if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE) && BASE !== STAGING_APP) {
-  console.error(`✗ BASE_URL debe ser una app local o ${STAGING_APP}, no ${BASE}.`);
+if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE) && BASE !== STAGING_APP && BASE !== ENSAYO_APP) {
+  console.error(`✗ BASE_URL debe ser una app local, ${STAGING_APP} o ${ENSAYO_APP}, no ${BASE}.`);
   process.exit(2);
 }
 

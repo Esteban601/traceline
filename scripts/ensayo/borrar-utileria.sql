@@ -7,8 +7,9 @@
 --   psql "$ENSAYO_DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/ensayo/borrar-utileria.sql
 --
 -- Aborta sin tocar nada si la cuenta no es la de utilería (id del seed, rol
--- auditor, tenant Empresa Demo, nombre «[ENSAYO] …») o si hay filas de
--- auditoría de otro autor, que no serían de la prueba.
+-- auditor, tenant Empresa Demo, nombre «[ENSAYO] …») o si alguna fila de la
+-- utilería quedó fuera de Empresa Demo. Las filas de auditoría de otros autores
+-- (la copia de staging ya las trae) no se tocan: el borrado es por id.
 -- -----------------------------------------------------------------------------
 begin;
 
@@ -26,12 +27,12 @@ begin
   end if;
 
   select (select count(*) from public.comentarios_auditor
-          where autor_id <> v_id or tenant_id <> v_demo)
+          where autor_id = v_id and tenant_id <> v_demo)
        + (select count(*) from public.auditor_actividad
-          where auditor_id <> v_id or tenant_id <> v_demo)
+          where auditor_id = v_id and tenant_id <> v_demo)
     into n_ajenos;
   if n_ajenos > 0 then
-    raise exception '% filas de auditoría no son de la utilería; no se borra nada', n_ajenos;
+    raise exception '% filas de la utilería están fuera de Empresa Demo; no se borra nada', n_ajenos;
   end if;
 end $$;
 
