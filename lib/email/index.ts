@@ -1,7 +1,6 @@
 export { enviarCorreo, entregar, noEntregable, modoConsola, type ResultadoEnvio } from "./enviar";
 export {
   plantillaSolicitud,
-  plantillaRecordatorio,
   plantillaRecordatorioProgramado,
   plantillaObservacion,
   plantillaInvitacion,
@@ -9,6 +8,10 @@ export {
   plantillaRespuestaAuditor,
   plantillaDocumentoAprobado,
   type ObjetoAviso,
+  plantillaResumenDiario,
+  plantillaResumenStaff,
+  type ItemResumen,
+  type SeccionResumen,
   type SolicitudEmail,
   type Plantilla,
 } from "./plantillas";

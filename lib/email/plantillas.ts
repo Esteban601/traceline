@@ -164,37 +164,6 @@ export function plantillaSolicitud(nombre: string, sols: SolicitudEmail[]): Plan
   };
 }
 
-/** (b) Recordatorio semanal (digest). Observaciones destacadas. */
-export function plantillaRecordatorio(nombre: string, sols: SolicitudEmail[]): Plantilla {
-  const n = sols.length;
-  const conObs = sols.filter((s) => s.esObservacion).length;
-  const subject = `Recordatorio: ${n} ${n === 1 ? "solicitud pendiente" : "solicitudes pendientes"}${
-    conObs > 0 ? ` (${conObs} con observaciones)` : ""
-  }`;
-  const intro = `Este es el resumen de la información que tienes pendiente de entregar o corregir para el Informe Anual Sustentable.`;
-  const nota =
-    conObs > 0
-      ? `<p style="font-family:${FONT};font-size:14px;color:${COLOR.rojo};margin:0 0 14px 0;line-height:1.6;">Hay ${conObs} ${
-          conObs === 1 ? "solicitud" : "solicitudes"
-        } con observaciones que requieren tu corrección (marcadas abajo).</p>`
-      : "";
-  const cuerpoHtml = `
-    ${saludo(nombre)}
-    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 12px 0;line-height:1.6;">${intro}</p>
-    ${nota}
-    ${listaSolicitudes(sols)}
-    ${boton(urlPortal(), "Revisar mis pendientes")}`;
-  return {
-    subject,
-    html: layout({
-      preheader: intro,
-      etiqueta: "Recordatorio",
-      titulo: "Tienes información pendiente",
-      cuerpoHtml,
-    }),
-  };
-}
-
 /**
  * (c) Aviso de observación sobre una solicitud específica.
  *
@@ -409,5 +378,124 @@ export function plantillaDocumentoAprobado(
   return {
     subject,
     html: layout({ preheader: intro, etiqueta: "Suplemento", titulo: "Tu Suplemento está aprobado", cuerpoHtml }),
+  };
+}
+
+// =============================================================================
+// RESUMEN DIARIO (encargo sistema de alertas, Paso 2). Sustituye al digest de
+// pendientes: el mismo correo, ahora por persona y con secciones. Una sección
+// vacía no se pinta; un resumen sin secciones no se manda (eso lo decide quien
+// arma las secciones, no la plantilla).
+// =============================================================================
+
+export type ItemResumen = {
+  titulo: string;
+  /** Línea secundaria: plazo, área, «nuevo desde ayer»… */
+  nota?: string | null;
+  /** Ruta relativa (portal o panel, según quien recibe). */
+  ruta?: string | null;
+  destacado?: boolean;
+};
+
+export type SeccionResumen = {
+  clave: string;
+  titulo: string;
+  /** Una frase de qué se espera de quien lee. */
+  intro: string;
+  items: ItemResumen[];
+};
+
+const MAX_ITEMS_POR_SECCION = 10;
+
+function itemResumen(it: ItemResumen): string {
+  const titulo = it.ruta
+    ? `<a href="${esc(urlPanel(it.ruta))}" target="_blank" style="color:${COLOR.ink};text-decoration:none;">${esc(it.titulo)}</a>`
+    : esc(it.titulo);
+  return `
+    <tr>
+      <td style="padding:10px 14px;border:1px solid ${it.destacado ? COLOR.gold : COLOR.line};border-radius:10px;background:${COLOR.surface};">
+        <div style="font-family:${FONT};font-size:14px;font-weight:600;color:${COLOR.ink};line-height:1.4;">${titulo}</div>
+        ${it.nota ? `<div style="font-family:${FONT};font-size:12px;color:${COLOR.muted};margin-top:3px;">${esc(it.nota)}</div>` : ""}
+      </td>
+    </tr>
+    <tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>`;
+}
+
+function seccionResumen(s: SeccionResumen): string {
+  // Lo nuevo primero: con más de MAX ítems, la novedad no puede quedar en «y N más».
+  const ordenados = [...s.items.filter((i) => i.destacado), ...s.items.filter((i) => !i.destacado)];
+  const visibles = ordenados.slice(0, MAX_ITEMS_POR_SECCION);
+  const resto = s.items.length - visibles.length;
+  return `
+    <div style="margin:18px 0 6px 0;">
+      <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${COLOR.teal};">
+        ${esc(s.titulo)} <span style="font-weight:600;color:${COLOR.muted};">· ${s.items.length}</span>
+      </div>
+      <div style="font-family:${FONT};font-size:13px;color:${COLOR.muted};margin:3px 0 10px 0;line-height:1.5;">${esc(s.intro)}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${visibles.map(itemResumen).join("")}</table>
+      ${resto > 0 ? `<div style="font-family:${FONT};font-size:13px;color:${COLOR.muted};">y ${resto} más en la plataforma.</div>` : ""}
+    </div>`;
+}
+
+/** Resumen diario de una persona de UNA emisora (cliente, jefe, admin del cliente). */
+export function plantillaResumenDiario(
+  nombre: string,
+  opts: { emisora: string; secciones: SeccionResumen[]; rutaInicio: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const total = opts.secciones.reduce((n, s) => n + s.items.length, 0);
+  const subject = `${emisora} · Resumen diario`;
+  const intro = `Lo que tienes pendiente y lo que cambió ayer en ${emisora}.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 6px 0;line-height:1.6;">${esc(intro)}</p>
+    ${opts.secciones.map(seccionResumen).join("")}
+    <div style="height:10px;"></div>
+    ${boton(urlPanel(opts.rutaInicio), "Abrir la plataforma")}
+    <p style="font-family:${FONT};font-size:12px;color:${COLOR.muted};margin:14px 0 0 0;line-height:1.6;">
+      Recibes este resumen porque lo tienes encendido en «Mi cuenta». Puedes apagarlo ahí; los avisos
+      de comentarios y aprobaciones te seguirán llegando.
+    </p>`;
+  return {
+    subject,
+    html: layout({
+      preheader: `${total} ${total === 1 ? "elemento" : "elementos"} · ${intro}`,
+      etiqueta: "Resumen diario",
+      titulo: emisora,
+      cuerpoHtml,
+    }),
+  };
+}
+
+/** Resumen diario del staff: un solo correo con secciones por emisora real. */
+export function plantillaResumenStaff(
+  nombre: string,
+  opts: { emisoras: { nombre: string; secciones: SeccionResumen[] }[] }
+): Plantilla {
+  const n = opts.emisoras.length;
+  const subject = `${APP_NAME} · Resumen diario · ${n} ${n === 1 ? "emisora" : "emisoras"}`;
+  const intro = `Lo que espera la validación de IRStrat en ${n} ${n === 1 ? "emisora" : "emisoras"}.`;
+  const bloques = opts.emisoras
+    .map(
+      (e) => `
+    <div style="margin:22px 0 4px 0;padding-top:14px;border-top:1px solid ${COLOR.line};">
+      <div style="font-family:${FONT};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:${COLOR.gold};">Emisora</div>
+      <div style="font-family:${FONT};font-size:18px;font-weight:700;color:${COLOR.ink};margin-top:2px;">${esc(limpiarNombre(e.nombre))}</div>
+      ${e.secciones.map(seccionResumen).join("")}
+    </div>`
+    )
+    .join("");
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 6px 0;line-height:1.6;">${esc(intro)}</p>
+    ${bloques}
+    <div style="height:10px;"></div>
+    ${boton(urlPanel("/admin"), "Abrir el panel")}
+    <p style="font-family:${FONT};font-size:12px;color:${COLOR.muted};margin:14px 0 0 0;line-height:1.6;">
+      Solo emisoras reales; las de demostración no entran en este resumen. Puedes apagarlo en «Mi cuenta».
+    </p>`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Resumen diario", titulo: "Pendientes de validación", cuerpoHtml }),
   };
 }

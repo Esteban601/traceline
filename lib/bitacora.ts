@@ -14,7 +14,10 @@ export type AccionCorreo =
   // id y sin su dirección (lib/notificaciones/inmediatos.ts).
   | "aviso_comentario_auditor"
   | "aviso_respuesta_auditor"
-  | "aviso_documento_aprobado";
+  | "aviso_documento_aprobado"
+  // Resumen diario por persona (sustituye a `recordatorio_enviado`, que queda en
+  // la bitácora de antes y se sigue leyendo para la regla de 5 días).
+  | "resumen_diario";
 
 /**
  * Registra un evento de correo en la bitácora (append-only) vía fn_log_correo

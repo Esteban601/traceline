@@ -37,7 +37,11 @@ type Db = SupabaseClient<Database>;
 
 type Destinatario = { id: string; nombre: string; email: string; activo: boolean };
 
-type Evento = { tipo: "comentario_auditor" | "respuesta_auditor" | "documento_aprobado"; id: string };
+/** El hecho que originó el correo. En el resumen diario, `id` es la fecha evaluada. */
+export type Evento = {
+  tipo: "comentario_auditor" | "respuesta_auditor" | "documento_aprobado" | "resumen_diario";
+  id: string;
+};
 
 /** Lo que va al `detalle` de la bitácora: sin dirección, sin nombre. */
 export function detalleAviso(destinatarioId: string, evento: Evento, r: ResultadoEnvio): Record<string, unknown> {
