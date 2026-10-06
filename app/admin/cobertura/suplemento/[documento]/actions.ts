@@ -26,10 +26,18 @@ export type EstadoAccion = { ok: boolean; error: string | null; mensaje: string 
 const ERR = (e: string): EstadoAccion => ({ ok: false, error: e, mensaje: null });
 const OK = (m: string): EstadoAccion => ({ ok: true, error: null, mensaje: m });
 
-async function autorizar(documentoId: string) {
+/**
+ * `soloStaff`: el acto es de IRStrat aunque el administrador del cliente pueda ver
+ * y editar el documento. Se comprueba AQUÍ, en el servidor: esconder el botón no
+ * basta (un POST directo a la acción no pasa por la pantalla).
+ */
+async function autorizar(documentoId: string, opts: { soloStaff?: boolean } = {}) {
   const perfil = await getPerfilActual();
   if (!perfil) return { ok: false as const, error: "No autenticado." };
   if (!esStaff(perfil) && !esAdminCliente(perfil)) return { ok: false as const, error: "Sin permiso." };
+  if (opts.soloStaff && !esStaff(perfil)) {
+    return { ok: false as const, error: "Esta acción la hace el equipo de IRStrat." };
+  }
   const db = await createClient();
   const { data: doc } = await db
     .from("documentos_generados")
@@ -130,8 +138,17 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
     return ERR("Estado desconocido.");
   }
 
-  const a = await autorizar(documentoId);
+  // Aprobar es de IRStrat (la pantalla lo reserva con `puedeAprobar`); volver a
+  // borrador no lo ofrece ninguna pantalla, así que tampoco lo hace el cliente.
+  // Pasar a revisión sí es de los dos.
+  const a = await autorizar(documentoId, { soloStaff: destino === "aprobado" || destino === "borrador" });
   if (!a.ok) return ERR(a.error);
+
+  // Un documento aprobado no cambia de estado, para nadie: igual que su texto
+  // (guardarTexto), se cambia abriendo una versión nueva.
+  if (a.doc.estado === "aprobado") {
+    return ERR("El documento está aprobado; para cambiarlo hay que abrir una versión nueva.");
+  }
 
   // APROBAR ESTÁ BLOQUEADO MIENTRAS QUEDE UN PENDIENTE. Es la regla de §7.5: un
   // documento aprobado con un [Pendiente: …] dentro sale a la calle diciendo que
