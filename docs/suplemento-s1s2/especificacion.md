@@ -1,7 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.23** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.24** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.23**:
+- §10: registro de v39 (`901eae3`): sistema de alertas por correo.
 
 **Cambios respecto a 0.22** (encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`, Paso 3):
 - §1: a la fecha no hay clientes en producción; Grupo Carso es un tenant de prueba con datos reales y sus banderas siguen
@@ -1118,6 +1121,34 @@ Verificación en staging tras el release:
 | Logs desde el release (solo conteos) | ✓ 64 líneas: 0 respuestas 5xx, 0 `Error:`, sin caídas |
 
 Punto de reversión: `heroku releases:rollback v37 -a traceline-staging`.
+
+### staging · release v39 · 6 de octubre de 2026 · `901eae3`
+
+**Sistema de alertas por correo.** Encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`, por los PR #15 (a `dev`) y #16
+(a `main`, merge commit `901eae3`), revisados con el asesor y aprobados por Esteban. Qué entra: §11. Orden de v33:
+
+1. Merge (Claude Code).
+2. Migraciones (Esteban).
+3. `git push heroku main` (Claude Code).
+
+**Migraciones.** Aplicadas por Esteban con `migrar-remoto.sh staging --aplicar`: 2 de 2, 68 de 68 alineadas, barrera 90.
+- `20261006120000_perfiles_recibe_resumen_diario`.
+- `20261006130000_correos_retenidos`.
+
+Verificación en staging tras el release (solo conteos y booleanos sobre los logs):
+
+| | Resultado |
+|---|---|
+| Release | ✓ v39 · Deploy `901eae36`; `web.1` up; `/login` 200 |
+| Cobertura y «Mi cuenta» (analista) | ✓ 200, sin errores de página |
+| Logs desde el release | ✓ 76 líneas: 0 respuestas 5xx, 0 `Error:`, sin caídas |
+| Job de 10 minutos | ✓ 22:01 UTC: arranque con `node scripts/cron/llamar.mjs evidencias/procesar`, `POST` 200; vacía los retenidos antes de la cola (0 pendientes) |
+| `correos_retenidos` | ✓ El staff la lee (RLS); 0 filas |
+| Comentario del auditor de prueba en Empresa Demo | Pendiente: staging no tiene auditor en Empresa Demo, y la cuenta de utilería la crea una persona (CLAUDE.md §7) |
+| Primer resumen diario | Pendiente: 7/10, 13:00 UTC; se verifica por conteo de `resumen_diario` |
+
+Punto de reversión: `heroku releases:rollback v38 -a traceline-staging`. Revierte solo el código; las migraciones son
+aditivas y se quedan. Con el código de v38, el resumen vuelve a ser el digest anterior.
 
 ### Deudas conocidas
 
