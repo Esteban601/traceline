@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { procesarPendientes } from "@/lib/evidencias/cola";
+import { vaciarRetenidos } from "@/lib/notificaciones/inmediatos";
 
 export const runtime = "nodejs";
 
@@ -19,8 +20,17 @@ export async function POST(req: NextRequest) {
   }
   const pedido = Number(req.nextUrl.searchParams.get("maximo") ?? 10);
   const maximo = Number.isInteger(pedido) && pedido >= 1 && pedido <= 50 ? pedido : 10;
+  // El mismo job vacía los avisos inmediatos retenidos por el tope de 20 por
+  // emisora y hora (sistema de alertas): un correo agrupado por destinatario. Va
+  // primero y aparte: un fallo de la cola no debe dejar avisos sin salir.
+  let agrupados: { correos: number; avisos: number } | { error: string };
+  try {
+    agrupados = await vaciarRetenidos();
+  } catch (e) {
+    agrupados = { error: e instanceof Error ? e.message : "error al vaciar los retenidos" };
+  }
   const resultados = await procesarPendientes(maximo);
   const porEstado: Record<string, number> = {};
   for (const r of resultados) porEstado[r.estado] = (porEstado[r.estado] ?? 0) + 1;
-  return NextResponse.json({ procesadas: resultados.length, porEstado, resultados });
+  return NextResponse.json({ procesadas: resultados.length, porEstado, resultados, agrupados });
 }

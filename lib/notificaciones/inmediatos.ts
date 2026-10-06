@@ -9,6 +9,7 @@ import {
   plantillaComentarioAuditor,
   plantillaDocumentoAprobado,
   plantillaRespuestaAuditor,
+  plantillaAvisosAgrupados,
   type ObjetoAviso,
   type Plantilla,
   type ResultadoEnvio,
@@ -39,7 +40,15 @@ type Destinatario = { id: string; nombre: string; email: string; activo: boolean
 
 /** El hecho que originó el correo. En el resumen diario, `id` es la fecha evaluada. */
 export type Evento = {
-  tipo: "comentario_auditor" | "respuesta_auditor" | "documento_aprobado" | "resumen_diario";
+  tipo:
+    | "comentario_auditor"
+    | "respuesta_auditor"
+    | "documento_aprobado"
+    | "resumen_diario"
+    | "avisos_agrupados"
+    | "recordatorio_programado"
+    | "solicitud_enviada"
+    | "observacion";
   id: string;
 };
 
@@ -62,7 +71,35 @@ function motivoOmision(d: Destinatario): string | null {
   return noEntregable(d.email);
 }
 
-/** Entrega y registra, destinatario por destinatario. Nunca lanza. */
+// -----------------------------------------------------------------------------
+// TOPE: máximo 20 avisos inmediatos por emisora y hora (encargo, §2). Cuentan los
+// que SALIERON (modo enviado) en los últimos 60 minutos, incluidos los
+// agrupados. Al pasar el tope el aviso no se manda suelto: se guarda en
+// `correos_retenidos` y el job de 10 minutos lo manda en un correo agrupado por
+// destinatario (vaciarRetenidos). Lo omitido (inactivo, dirección reservada) no
+// cuenta ni se retiene.
+// -----------------------------------------------------------------------------
+export const TOPE_INMEDIATOS_POR_HORA = 20;
+export const ACCIONES_INMEDIATAS: AccionCorreo[] = [
+  "aviso_comentario_auditor",
+  "aviso_respuesta_auditor",
+  "aviso_documento_aprobado",
+  "avisos_agrupados",
+];
+
+async function enviadosUltimaHora(db: Db, tenantId: string): Promise<number> {
+  const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await db
+    .from("bitacora")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .in("accion", ACCIONES_INMEDIATAS)
+    .eq("detalle->>modo", "enviado")
+    .gte("created_at", desde);
+  return count ?? 0;
+}
+
+/** Entrega (o retiene) y registra, destinatario por destinatario. Nunca lanza. */
 async function avisar(
   db: Db,
   opts: {
@@ -72,21 +109,50 @@ async function avisar(
     evento: Evento;
     destinatarios: Destinatario[];
     plantilla: (d: Destinatario) => Plantilla;
+    /** Para el correo agrupado si se retiene: una línea y el enlace. */
+    extracto: string | null;
+    ruta: string;
   }
-): Promise<{ enviados: number; omitidos: number; fallidos: number }> {
-  const cuenta = { enviados: 0, omitidos: 0, fallidos: 0 };
+): Promise<{ enviados: number; omitidos: number; fallidos: number; retenidos: number }> {
+  const cuenta = { enviados: 0, omitidos: 0, fallidos: 0, retenidos: 0 };
   // Una persona, un correo: el admin del cliente que además fuera staff (no
   // ocurre hoy) o un id repetido por dos caminos no recibe dos.
   const unicos = [...new Map(opts.destinatarios.map((d) => [d.id, d])).values()];
+  let salieron = await enviadosUltimaHora(db, opts.tenantId);
   for (const d of unicos) {
+    const omitir = motivoOmision(d);
+    if (!omitir && salieron >= TOPE_INMEDIATOS_POR_HORA) {
+      let asunto = "Aviso";
+      try { asunto = opts.plantilla(d).subject; } catch { /* asunto genérico */ }
+      const { error } = await db.from("correos_retenidos").insert({
+        tenant_id: opts.tenantId,
+        destinatario_id: d.id,
+        accion: opts.accion,
+        evento: opts.evento,
+        asunto,
+        extracto: opts.extracto,
+        ruta: opts.ruta,
+      });
+      cuenta.retenidos += 1;
+      await logCorreo(db, {
+        tenantId: opts.tenantId,
+        usuarioId: null,
+        accion: opts.accion,
+        entidadId: opts.entidadId,
+        detalle: error
+          ? { destinatario_id: d.id, evento: opts.evento, modo: "fallido", error: `no se pudo retener: ${error.message}` }
+          : { destinatario_id: d.id, evento: opts.evento, modo: "retenido", motivo: `tope de ${TOPE_INMEDIATOS_POR_HORA} avisos por emisora y hora` },
+      });
+      continue;
+    }
     let r: ResultadoEnvio;
     try {
-      r = await entregar(d.email, opts.plantilla(d), { omitir: motivoOmision(d) });
+      r = await entregar(d.email, opts.plantilla(d), { omitir });
     } catch (e) {
       r = { ok: false, modo: "resend", error: e instanceof Error ? e.message : "error al armar el correo" };
     }
     if (r.modo === "omitido") cuenta.omitidos += 1;
-    else if (r.ok) cuenta.enviados += 1;
+    else if (r.ok) { cuenta.enviados += 1; salieron += 1; }
     else cuenta.fallidos += 1;
     await logCorreo(db, {
       tenantId: opts.tenantId,
@@ -97,6 +163,59 @@ async function avisar(
     });
   }
   return cuenta;
+}
+
+/**
+ * Vacía `correos_retenidos`: un correo agrupado por destinatario y emisora con
+ * todo lo retenido, y marca `agrupado_en`. Lo llama el job de 10 minutos. Nunca
+ * lanza; devuelve cuántos correos agrupados salieron y cuántos avisos llevaban.
+ */
+export async function vaciarRetenidos(db: Db = createAdminClient()): Promise<{ correos: number; avisos: number }> {
+  const { data: pendientes } = await db
+    .from("correos_retenidos")
+    .select("id, tenant_id, destinatario_id, asunto, extracto, ruta, created_at")
+    .is("agrupado_en", null)
+    .order("created_at", { ascending: true })
+    .limit(2000);
+  const grupos = new Map<string, NonNullable<typeof pendientes>>();
+  for (const p of pendientes ?? []) {
+    const k = `${p.tenant_id}|${p.destinatario_id}`;
+    grupos.set(k, [...(grupos.get(k) ?? []), p]);
+  }
+  let correos = 0;
+  let avisos = 0;
+  for (const filas of grupos.values()) {
+    const { tenant_id: tenantId, destinatario_id: destinatarioId } = filas[0];
+    const { data: d } = await db.from("perfiles_usuario").select(PERFIL).eq("id", destinatarioId).maybeSingle();
+    const em = await emisora(db, tenantId);
+    let r: ResultadoEnvio;
+    if (!d) {
+      r = { ok: true, modo: "omitido", motivo: "el destinatario ya no existe" };
+    } else {
+      try {
+        r = await entregar(
+          d.email,
+          plantillaAvisosAgrupados(d.nombre, { emisora: em.nombre, avisos: filas.map((f) => ({ asunto: f.asunto, extracto: f.extracto, ruta: f.ruta })) }),
+          { omitir: motivoOmision(d as Destinatario) }
+        );
+      } catch (e) {
+        r = { ok: false, modo: "resend", error: e instanceof Error ? e.message : "error al armar el correo" };
+      }
+    }
+    // Un fallo deja los avisos pendientes para la siguiente vuelta del job.
+    if (r.ok) {
+      await db.from("correos_retenidos").update({ agrupado_en: new Date().toISOString() }).in("id", filas.map((f) => f.id));
+      if (r.modo !== "omitido") { correos += 1; avisos += filas.length; }
+    }
+    await logCorreo(db, {
+      tenantId,
+      usuarioId: null,
+      accion: "avisos_agrupados",
+      entidadId: null,
+      detalle: { ...detalleAviso(destinatarioId, { tipo: "avisos_agrupados", id: tenantId }, r), avisos: filas.length },
+    });
+  }
+  return { correos, avisos };
 }
 
 // -----------------------------------------------------------------------------
@@ -185,6 +304,8 @@ export async function avisarComentarioAuditor(comentarioId: string): Promise<voi
     evento: { tipo: "comentario_auditor", id: c.id },
     destinatarios,
     plantilla: (d) => plantillaComentarioAuditor(d.nombre, { emisora: em.nombre, objeto, texto: c.texto }),
+    extracto: `Comentario sobre ${objeto.etiqueta}: ${objeto.titulo}`,
+    ruta: objeto.ruta,
   });
 }
 
@@ -214,6 +335,8 @@ export async function avisarRespuestaAuditor(comentarioId: string): Promise<void
         comentario: c.texto,
         respuesta: c.respuesta!,
       }),
+    extracto: `Respuesta sobre ${objeto.etiqueta}: ${objeto.titulo}`,
+    ruta: objeto.ruta,
   });
 }
 
@@ -242,5 +365,7 @@ export async function avisarDocumentoAprobado(documentoId: string): Promise<void
         ejercicio: reporte?.ejercicio ?? null,
         ruta: `/admin/cobertura/suplemento/${doc.id}`,
       }),
+    extracto: titulo,
+    ruta: `/admin/cobertura/suplemento/${doc.id}`,
   });
 }

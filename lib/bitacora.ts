@@ -17,7 +17,10 @@ export type AccionCorreo =
   | "aviso_documento_aprobado"
   // Resumen diario por persona (sustituye a `recordatorio_enviado`, que queda en
   // la bitácora de antes y se sigue leyendo para la regla de 5 días).
-  | "resumen_diario";
+  | "resumen_diario"
+  // Los avisos inmediatos que pasaron el tope de 20 por emisora y hora, en un
+  // solo correo por destinatario (correos_retenidos).
+  | "avisos_agrupados";
 
 /**
  * Registra un evento de correo en la bitácora (append-only) vía fn_log_correo

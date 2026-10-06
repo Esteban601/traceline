@@ -135,13 +135,22 @@ function listaSolicitudes(sols: SolicitudEmail[]): string {
 
 export type Plantilla = { subject: string; html: string };
 
+/**
+ * Asunto con la emisora al frente, como todos los avisos («Emisora · …»): quien
+ * recibe puede atender a varias. Sin emisora, el asunto queda como estaba.
+ */
+function conEmisora(emisora: string | null | undefined, asunto: string): string {
+  const e = limpiarNombre(emisora ?? "");
+  return e ? `${e} · ${asunto}` : asunto;
+}
+
 /** (a) Solicitud de información. Una o varias solicitudes para una persona. */
-export function plantillaSolicitud(nombre: string, sols: SolicitudEmail[]): Plantilla {
+export function plantillaSolicitud(nombre: string, sols: SolicitudEmail[], emisora?: string | null): Plantilla {
   const n = sols.length;
-  const subject =
-    n === 1
-      ? `Solicitud de información: ${sols[0].titulo}`
-      : `${n} solicitudes de información pendientes`;
+  const subject = conEmisora(
+    emisora,
+    n === 1 ? `Solicitud de información: ${sols[0].titulo}` : `${n} solicitudes de información pendientes`
+  );
   const intro =
     n === 1
       ? `Te solicitamos la siguiente información para el Informe Anual Sustentable. Ábrela para cargar la evidencia correspondiente:`
@@ -176,9 +185,10 @@ export function plantillaObservacion(
   nombre: string,
   sol: SolicitudEmail,
   observacion: string,
-  autor: { esIrstrat: boolean; organizacion?: string | null } = { esIrstrat: true }
+  autor: { esIrstrat: boolean; organizacion?: string | null } = { esIrstrat: true },
+  emisora?: string | null
 ): Plantilla {
-  const subject = `Observación sobre: ${sol.titulo}`;
+  const subject = conEmisora(emisora, `Observación sobre: ${sol.titulo}`);
   const quien = autor.esIrstrat
     ? "El equipo de IRStrat"
     : `El equipo de ${limpiarNombre(autor.organizacion ?? "tu organización")}`;
@@ -214,11 +224,11 @@ export function plantillaObservacion(
 export function plantillaRecordatorioProgramado(
   nombre: string,
   sol: SolicitudEmail,
-  opts: { diasAntes: number; estadoLabel: string; queFalta: string }
+  opts: { emisora?: string | null; diasAntes: number; estadoLabel: string; queFalta: string }
 ): Plantilla {
   const plazo =
     opts.diasAntes === 1 ? "Vence mañana" : `Faltan ${opts.diasAntes} días`;
-  const subject = `${plazo}: ${sol.titulo}`;
+  const subject = conEmisora(opts.emisora, `${plazo}: ${sol.titulo}`);
   const intro = `${plazo} el plazo de una solicitud del Informe Anual Sustentable.`;
   const cuerpoHtml = `
     ${saludo(nombre)}
@@ -256,7 +266,7 @@ export function plantillaInvitacion(
   nombre: string,
   opts: { url: string; expiraEn: string; cliente: string; horas: number }
 ): Plantilla {
-  const subject = `Tu acceso a ${APP_NAME}`;
+  const subject = conEmisora(opts.cliente, `Tu acceso a ${APP_NAME}`);
   const intro = `Te damos acceso al portal de evidencia de sostenibilidad de ${limpiarNombre(
     opts.cliente
   )}. Para entrar, establece tu contraseña:`;
@@ -497,5 +507,35 @@ export function plantillaResumenStaff(
   return {
     subject,
     html: layout({ preheader: intro, etiqueta: "Resumen diario", titulo: "Pendientes de validación", cuerpoHtml }),
+  };
+}
+
+/**
+ * (h) Avisos AGRUPADOS: los inmediatos que pasaron el tope de 20 por emisora y
+ * hora, juntos en un solo correo por destinatario (encargo sistema de alertas,
+ * Paso 3). Cada aviso conserva su asunto, un extracto y su enlace.
+ */
+export function plantillaAvisosAgrupados(
+  nombre: string,
+  opts: { emisora: string; avisos: { asunto: string; extracto: string | null; ruta: string | null }[] }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const n = opts.avisos.length;
+  const subject = `${emisora} · ${n} ${n === 1 ? "aviso" : "avisos"} de la última hora`;
+  const intro = `Hubo mucha actividad en ${emisora}: para no llenarte la bandeja, juntamos ${n} ${n === 1 ? "aviso" : "avisos"} en este correo.`;
+  const items: ItemResumen[] = opts.avisos.map((a) => ({
+    titulo: a.asunto.replace(new RegExp(`^${emisora.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · `), ""),
+    nota: a.extracto,
+    ruta: a.ruta,
+  }));
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 6px 0;line-height:1.6;">${esc(intro)}</p>
+    ${seccionResumen({ clave: "agrupados", titulo: "Avisos", intro: "Abre cada uno en la plataforma.", items })}
+    <div style="height:10px;"></div>
+    ${boton(urlPanel("/admin"), "Abrir la plataforma")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Avisos agrupados", titulo: `${n} ${n === 1 ? "aviso" : "avisos"} de ${emisora}`, cuerpoHtml }),
   };
 }

@@ -10,6 +10,7 @@ export {
   type ObjetoAviso,
   plantillaResumenDiario,
   plantillaResumenStaff,
+  plantillaAvisosAgrupados,
   type ItemResumen,
   type SeccionResumen,
   type SolicitudEmail,

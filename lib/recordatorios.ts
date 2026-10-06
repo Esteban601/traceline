@@ -1,12 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import {
-  enviarCorreo,
-  modoConsola,
-  detalleEnvio,
-  type ResultadoEnvio,
-} from "@/lib/email/enviar";
+import { entregar, modoConsola, noEntregable, type ResultadoEnvio } from "@/lib/email/enviar";
+import { detalleAviso } from "@/lib/notificaciones/inmediatos";
 import {
   plantillaRecordatorioProgramado,
   type SolicitudEmail,
@@ -83,7 +79,7 @@ type RecordatorioRow = {
     responsable_cliente_id: string | null;
     declinada: boolean;
     desactivada: boolean;
-    reporte: { tenant_id: string; tenant: { activo: boolean } | null } | null;
+    reporte: { tenant_id: string; tenant: { activo: boolean; nombre: string } | null } | null;
   } | null;
 };
 
@@ -125,7 +121,7 @@ export async function procesarRecordatoriosProgramados(
   const { data, error } = await db
     .from("solicitudes_recordatorios")
     .select(
-      "id, dias_antes, solicitud:solicitudes!solicitudes_recordatorios_solicitud_id_fkey(id, titulo, estado, fecha_limite, area_asignada, responsable_cliente_id, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(activo)))"
+      "id, dias_antes, solicitud:solicitudes!solicitudes_recordatorios_solicitud_id_fkey(id, titulo, estado, fecha_limite, area_asignada, responsable_cliente_id, declinada, desactivada, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(activo, nombre)))"
     )
     .eq("activo", true);
 
@@ -229,74 +225,29 @@ export async function procesarRecordatoriosProgramados(
       esObservacion: s.estado === "observaciones",
     };
 
-    let fallo: string | null = null;
-    let omitidosDominio = 0;
-    const entregados: { id: string; email: string; envio: ResultadoEnvio }[] = [];
+    // UNA FILA POR DESTINATARIO, con su id (nunca su dirección) y el modo:
+    // enviado, omitido (dirección que no recibe correo, en cualquier transporte)
+    // o fallido. Sustituye a la fila única de «nadie pudo recibir» y a las filas
+    // solo de los entregados (encargo sistema de alertas, Paso 3). La regla de 5
+    // días del resumen diario lee estas filas con `fueEnviado` (modo = enviado).
+    const cuenta = { enviados: 0, omitidos: 0, fallidos: 0 };
+    let ultimoError: string | null = null;
     for (const u of destinatarios.values()) {
       const plantilla = plantillaRecordatorioProgramado(u.nombre, solEmail, {
+        emisora: s.reporte?.tenant?.nombre ?? "",
         diasAntes: r.dias_antes,
         estadoLabel: ESTADO_META[s.estado].label,
         queFalta: queFalta(s.estado),
       });
-      const envio = await enviarCorreo(u.email, plantilla);
-      // Un destinatario OMITIDO (dominio de pruebas) no cuenta como entregado: si
-      // contara, un recordatorio a puras cuentas @example quedaría registrado como
-      // enviado y nadie sabría por qué el cliente no recibió nada.
-      if (envio.ok && envio.modo !== "omitido") {
-        entregados.push({ id: u.id, email: u.email, envio });
-      } else if (envio.modo === "omitido") {
-        omitidosDominio += 1;
-        fallo = envio.motivo ?? "dirección que no recibe correo";
-      } else {
-        fallo = envio.error ?? "error desconocido";
+      let envio: ResultadoEnvio;
+      try {
+        envio = await entregar(u.email, plantilla, { omitir: noEntregable(u.email) });
+      } catch (e) {
+        envio = { ok: false, modo: "resend", error: e instanceof Error ? e.message : "error al armar el correo" };
       }
-    }
-
-    if (entregados.length === 0) {
-      // Si NINGÚN destinatario podía recibir (todas cuentas de prueba), no es un
-      // fallo: es un disparo sin nadie a quien avisar, y así se reporta.
-      // Si NADIE podía recibir se cuenta como omitido, no como fallo. Se decide con
-      // el contador, no leyendo el texto del motivo: el mensaje puede cambiar.
-      const todoOmitido = omitidosDominio === destinatarios.size;
-      resumen.omitidosDominio += omitidosDominio;
-      if (todoOmitido) resumen.omitidos += 1;
-      else resumen.fallidos += 1;
-      await logCorreo(db, {
-        tenantId,
-        usuarioId: null,
-        accion: "recordatorio_programado_enviado",
-        entidadId: s.id,
-        detalle: {
-          solicitud_id: s.id,
-          titulo: s.titulo,
-          recordatorio_id: r.id,
-          dias_antes: r.dias_antes,
-          fecha_disparo: hoyISO,
-          area: s.area_asignada,
-          destinatarios: destinatarios.size,
-          modo: modoConsola() ? "consola" : "resend",
-          enviado: false,
-          error: fallo ?? "no se pudo enviar a ningún destinatario",
-        },
-      });
-      resumen.detalles.push({
-        solicitud: s.titulo,
-        solicitudId: s.id,
-        diasAntes: r.dias_antes,
-        destinatarios: destinatarios.size,
-        resultado: todoOmitido ? "omitido" : "fallido",
-        motivo: todoOmitido
-          ? `Ningún destinatario recibe correo (${destinatarios.size}): ${fallo}`
-          : (fallo ?? "no se pudo enviar a ningún destinatario"),
-      });
-      continue;
-    }
-
-    // Una entrada de bitácora POR DESTINATARIO: la regla anti-spam del digest se
-    // aplica por persona, así que necesita saber a quién se le escribió. La
-    // idempotencia se resuelve con `recordatorio_id` + `fecha_disparo`, iguales en
-    // todas las entradas del mismo disparo.
-    for (const e of entregados) {
+      if (envio.modo === "omitido") cuenta.omitidos += 1;
+      else if (envio.ok) cuenta.enviados += 1;
+      else { cuenta.fallidos += 1; ultimoError = envio.error ?? "error desconocido"; }
       await logCorreo(db, {
         tenantId,
         usuarioId: null, // acto del sistema/cron
@@ -311,30 +262,26 @@ export async function procesarRecordatoriosProgramados(
           fecha_disparo: hoyISO,
           area: s.area_asignada,
           estado: s.estado,
-          destinatario_id: e.id,
-          email: e.email,
-          destinatarios: entregados.length,
-          ...detalleEnvio(e.envio),
+          destinatarios: destinatarios.size,
+          ...detalleAviso(u.id, { tipo: "recordatorio_programado", id: r.id }, envio),
         },
       });
     }
 
-    // Salió a alguien, pero puede haber quedado gente fuera: se dice cuánta y por
-    // qué, distinguiendo la cuenta de prueba (omitida) del error real (fallo).
-    resumen.omitidosDominio += omitidosDominio;
-    const noEntregados = destinatarios.size - entregados.length;
-    const fallosReales = noEntregados - omitidosDominio;
+    resumen.omitidosDominio += cuenta.omitidos;
+    if (cuenta.enviados > 0) resumen.enviados += 1;
+    else if (cuenta.fallidos === 0) resumen.omitidos += 1;
+    else resumen.fallidos += 1;
     const notas = [
-      omitidosDominio > 0 ? `${omitidosDominio} omitido(s) por dominio de prueba` : null,
-      fallosReales > 0 ? `${fallosReales} fallo(s): ${fallo}` : null,
+      cuenta.omitidos > 0 ? `${cuenta.omitidos} omitido(s) por dirección que no recibe correo` : null,
+      cuenta.fallidos > 0 ? `${cuenta.fallidos} fallo(s): ${ultimoError}` : null,
     ].filter(Boolean);
-    resumen.enviados += 1;
     resumen.detalles.push({
       solicitud: s.titulo,
       solicitudId: s.id,
       diasAntes: r.dias_antes,
-      destinatarios: entregados.length,
-      resultado: "enviado",
+      destinatarios: cuenta.enviados,
+      resultado: cuenta.enviados > 0 ? "enviado" : cuenta.fallidos === 0 ? "omitido" : "fallido",
       motivo: notas.length > 0 ? notas.join("; ") : undefined,
     });
   }
