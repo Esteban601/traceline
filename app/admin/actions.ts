@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, puedeEscribirEnPanel } from "@/lib/data";
 import { origenDe } from "@/lib/origen";
 import { enviarSolicitudesCore, type ResumenSolicitud } from "@/lib/solicitar";
-import { procesarRecordatorios, type ResumenRecordatorios } from "@/lib/recordatorios";
+import { procesarResumenDiario, type ResumenDiario } from "@/lib/notificaciones/resumen-diario";
 
 /**
  * Envía solicitudes (individual o masivo). Agrupa por responsable → un correo
@@ -43,12 +43,15 @@ export async function enviarSolicitudesMasivo(
  * (no expone CRON_SECRET al navegador).
  */
 export async function dispararRecordatorios(): Promise<
-  ResumenRecordatorios & { error?: string }
+  ResumenDiario & { error?: string }
 > {
   const perfil = await getPerfilActual();
   if (!perfil || !esStaff(perfil)) {
     return {
       modo: "consola",
+      fecha: "",
+      apagados: 0,
+      yaEnviados: 0,
       enviados: 0,
       omitidos: 0,
       omitidosDominio: 0,
@@ -60,7 +63,7 @@ export async function dispararRecordatorios(): Promise<
   }
 
   const db = createAdminClient();
-  const resumen = await procesarRecordatorios(db);
+  const resumen = await procesarResumenDiario(db);
   revalidatePath("/admin");
   return resumen;
 }

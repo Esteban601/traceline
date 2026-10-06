@@ -22,14 +22,16 @@ export function BarraRecordatorios() {
         return;
       }
       if (r.responsables === 0) {
-        toast.success("Sin pendientes por recordar.");
+        toast.success("Nadie tiene novedades ni pendientes hoy.");
         return;
       }
       const nota = r.modo === "consola" ? " (modo consola: revisa el log)" : "";
       const partes = [
-        `${r.enviados} ${r.enviados === 1 ? "recordatorio enviado" : "recordatorios enviados"}`,
+        `${r.enviados} ${r.enviados === 1 ? "resumen enviado" : "resúmenes enviados"}`,
       ];
-      if (r.omitidos > 0) partes.push(`${r.omitidos} omitidos (regla de 5 días)`);
+      if (r.omitidos > 0) partes.push(`${r.omitidos} sin novedades fuera de la regla de 5 días`);
+      if (r.yaEnviados > 0) partes.push(`${r.yaEnviados} ya tenían el de hoy`);
+      if (r.apagados > 0) partes.push(`${r.apagados} con el resumen apagado`);
       if (r.omitidosDominio > 0) {
         partes.push(`${r.omitidosDominio} sin buzón real (cuentas de demostración)`);
       }

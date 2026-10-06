@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
+import { avisarDocumentoAprobado } from "@/lib/notificaciones/inmediatos";
 
 // =============================================================================
 // Acciones de la vista de revisión: editar un bloque y mover el estado del
@@ -200,6 +201,11 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
       entidadId: documentoId,
       detalle: { de: a.doc.estado, a: destino, version: a.doc.version },
     });
+    // Aviso inmediato al administrador del cliente: su documento ya se puede
+    // revisar y descargar. Solo al ENTRAR a aprobado, no al reafirmarlo.
+    if (destino === "aprobado" && a.doc.estado !== "aprobado") {
+      await avisarDocumentoAprobado(documentoId);
+    }
   });
 
   revalidatePath(`/admin/cobertura/suplemento/${documentoId}`);

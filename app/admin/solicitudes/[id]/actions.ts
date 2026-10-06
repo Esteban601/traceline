@@ -201,11 +201,16 @@ export async function agregarObservacion(
   // la única pieza del flujo que contradice el origen.
   const soyStaff = esStaff(perfil);
   const tenantAutor = soyStaff ? null : await getTenantDe(perfil);
+  // La emisora va al frente del asunto, como en todos los avisos.
+  const { data: emisora } = reporte?.tenant_id
+    ? await supabase.from("tenants").select("nombre").eq("id", reporte.tenant_id).maybeSingle()
+    : { data: null };
   const plantilla = plantillaObservacion(
     responsable.nombre,
     { id: sol.id, titulo: sol.titulo, fechaLimite: sol.fecha_limite },
     contenido,
-    { esIrstrat: soyStaff, organizacion: tenantAutor?.nombre ?? null }
+    { esIrstrat: soyStaff, organizacion: tenantAutor?.nombre ?? null },
+    emisora?.nombre ?? null
   );
   const envio = await enviarCorreo(responsable.email, plantilla);
 
@@ -218,8 +223,9 @@ export async function agregarObservacion(
     accion: "aviso_observacion",
     entidadId: sol.id,
     detalle: {
+      // Id y no dirección (sistema de alertas, decisión 6 del Paso 0).
       responsable_id: sol.responsable_cliente_id,
-      email: responsable.email,
+      destinatario_id: sol.responsable_cliente_id,
       nombre: responsable.nombre,
       solicitud_id: sol.id,
       ...detalleEnvio(envio),

@@ -9,7 +9,18 @@ export type AccionCorreo =
   // Va aparte del digest porque es lo que hace idempotente al cron y porque en la
   // bitácora se lee distinto: "faltan 3 días para esta solicitud", no "tienes N".
   | "recordatorio_programado_enviado"
-  | "aviso_observacion";
+  | "aviso_observacion"
+  // Avisos inmediatos del sistema de alertas: una fila por destinatario, con su
+  // id y sin su dirección (lib/notificaciones/inmediatos.ts).
+  | "aviso_comentario_auditor"
+  | "aviso_respuesta_auditor"
+  | "aviso_documento_aprobado"
+  // Resumen diario por persona (sustituye a `recordatorio_enviado`, que queda en
+  // la bitácora de antes y se sigue leyendo para la regla de 5 días).
+  | "resumen_diario"
+  // Los avisos inmediatos que pasaron el tope de 20 por emisora y hora, en un
+  // solo correo por destinatario (correos_retenidos).
+  | "avisos_agrupados";
 
 /**
  * Registra un evento de correo en la bitácora (append-only) vía fn_log_correo

@@ -1,9 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  procesarRecordatorios,
-  procesarRecordatoriosProgramados,
-} from "@/lib/recordatorios";
+import { procesarRecordatoriosProgramados } from "@/lib/recordatorios";
+import { procesarResumenDiario } from "@/lib/notificaciones/resumen-diario";
 
 export const runtime = "nodejs";
 
@@ -62,7 +60,9 @@ export async function POST(req: NextRequest) {
   try {
     const db = createAdminClient();
     const programados = await procesarRecordatoriosProgramados(db, fecha);
-    const digest = await procesarRecordatorios(db);
+    // El resumen diario sustituye al digest; evalúa el mismo día que los
+    // programados (`fecha`, para las pruebas).
+    const digest = await procesarResumenDiario(db, fecha);
     return NextResponse.json({ programados, digest });
   } catch (e) {
     return NextResponse.json(

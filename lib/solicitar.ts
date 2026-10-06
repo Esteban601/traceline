@@ -30,7 +30,7 @@ type SolRow = {
   origen: OrigenSolicitud;
   fecha_limite: string | null;
   responsable_cliente_id: string | null;
-  reporte: { tenant_id: string } | null;
+  reporte: { tenant_id: string; tenant: { nombre: string } | null } | null;
   responsable: { id: string; nombre: string; email: string } | null;
 };
 
@@ -68,7 +68,7 @@ export async function enviarSolicitudesCore(
   const { data, error } = await db
     .from("solicitudes")
     .select(
-      "id, titulo, estado, origen, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
+      "id, titulo, estado, origen, fecha_limite, responsable_cliente_id, reporte:reportes!solicitudes_reporte_id_fkey(tenant_id, tenant:tenants!reportes_tenant_id_fkey(nombre)), responsable:perfiles_usuario!solicitudes_responsable_cliente_id_fkey(id, nombre, email)"
     )
     .in("id", unicos);
 
@@ -82,6 +82,7 @@ export async function enviarSolicitudesCore(
     nombre: string;
     email: string;
     tenantId: string | null;
+    emisora: string | null;
     items: SolicitudEmail[];
     ids: string[];
   };
@@ -101,6 +102,7 @@ export async function enviarSolicitudesCore(
       nombre: s.responsable!.nombre,
       email: s.responsable!.email,
       tenantId: s.reporte?.tenant_id ?? null,
+      emisora: s.reporte?.tenant?.nombre ?? null,
       items: [],
       ids: [],
     };
@@ -112,7 +114,7 @@ export async function enviarSolicitudesCore(
   resumen.omitidas += unicos.length - sols.length;
 
   for (const g of grupos.values()) {
-    const plantilla = plantillaSolicitud(g.nombre, g.items);
+    const plantilla = plantillaSolicitud(g.nombre, g.items, g.emisora);
     const r = await enviarCorreo(g.email, plantilla);
 
     if (r.modo === "omitido") {
@@ -126,7 +128,6 @@ export async function enviarSolicitudesCore(
         entidadId: g.ids.length === 1 ? g.ids[0] : null,
         detalle: {
           responsable_id: g.responsableId,
-          email: g.email,
           nombre: g.nombre,
           solicitud_ids: g.ids,
           total: g.ids.length,
@@ -155,7 +156,6 @@ export async function enviarSolicitudesCore(
         entidadId: g.ids.length === 1 ? g.ids[0] : null,
         detalle: {
           responsable_id: g.responsableId,
-          email: g.email,
           nombre: g.nombre,
           solicitud_ids: g.ids,
           total: g.ids.length,
@@ -198,7 +198,6 @@ export async function enviarSolicitudesCore(
       entidadId: g.ids.length === 1 ? g.ids[0] : null,
       detalle: {
         responsable_id: g.responsableId,
-        email: g.email,
         nombre: g.nombre,
         solicitud_ids: g.ids,
         total: g.ids.length,

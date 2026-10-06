@@ -1,4 +1,6 @@
 import "server-only";
+import fs from "node:fs";
+import path from "node:path";
 import { Resend } from "resend";
 import type { Plantilla } from "./plantillas";
 
@@ -21,7 +23,7 @@ export type ResultadoEnvio = {
    * `resend`   — se entregó al proveedor.
    * `omitido`  — destinatario NO ENTREGABLE por diseño (dominio reservado).
    */
-  modo: "resend" | "consola" | "omitido";
+  modo: "resend" | "consola" | "archivo" | "omitido";
   id?: string;
   error?: string;
   /** Por qué se omitió, cuando `modo === "omitido"`. */
@@ -41,7 +43,7 @@ export type ResultadoEnvio = {
  */
 const DOMINIOS_NO_ENTREGABLES = ["example", "invalid", "test", "localhost", "local"];
 
-function noEntregable(to: string): string | null {
+export function noEntregable(to: string): string | null {
   const dominio = to.split("@")[1]?.toLowerCase().trim();
   if (!dominio) return "la dirección no tiene dominio";
   const ultimo = dominio.split(".").pop() ?? "";
@@ -66,6 +68,70 @@ const TIMEOUT_MS = 10_000;
 
 export function modoConsola(): boolean {
   return !API_KEY;
+}
+
+// -----------------------------------------------------------------------------
+// TRANSPORTE DE PRUEBA: `EMAIL_TRANSPORTE=archivo` (encargo sistema de alertas,
+// decisión 7 del Paso 0). Escribe cada correo —con su HTML— como una línea JSON
+// en `EMAIL_ARCHIVO` (por omisión `.correos-prueba/correos.jsonl`, ignorado por
+// git), para que los e2e afirmen QUÉ se mandó y A QUIÉN sin leer el log del
+// servidor, y para capturar el correo renderizado. Gana sobre Resend: con el
+// archivo puesto no sale nada a la red.
+//
+// BLOQUEADO EN PRODUCCIÓN: con NODE_ENV=production se ignora (y se avisa una
+// vez). Un HTML con datos de clientes en un archivo del dyno no es un buzón.
+// -----------------------------------------------------------------------------
+const ARCHIVO_PEDIDO = process.env.EMAIL_TRANSPORTE === "archivo";
+const ARCHIVO_ACTIVO = ARCHIVO_PEDIDO && process.env.NODE_ENV !== "production";
+const RUTA_ARCHIVO = path.resolve(
+  process.env.EMAIL_ARCHIVO || path.join(".correos-prueba", "correos.jsonl")
+);
+if (ARCHIVO_PEDIDO && !ARCHIVO_ACTIVO) {
+  console.warn("[email] EMAIL_TRANSPORTE=archivo se ignora con NODE_ENV=production.");
+}
+
+function escribirEnArchivo(
+  to: string,
+  plantilla: Plantilla,
+  extra: { omitido?: boolean; motivo?: string } = {}
+): string {
+  fs.mkdirSync(path.dirname(RUTA_ARCHIVO), { recursive: true });
+  const id = `archivo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  fs.appendFileSync(
+    RUTA_ARCHIVO,
+    JSON.stringify({
+      id,
+      fecha: new Date().toISOString(),
+      para: to,
+      asunto: plantilla.subject,
+      html: plantilla.html,
+      ...extra,
+    }) + "\n",
+    { mode: 0o600 }
+  );
+  return id;
+}
+
+/**
+ * Entrega con OMISIÓN DECIDIDA POR QUIEN LLAMA (avisos del sistema de alertas).
+ *
+ * `enviarCorreo` omite los dominios reservados solo con Resend activo, para que
+ * las pruebas locales recorran el camino real. Los avisos nuevos llevan un
+ * criterio único en todos los transportes: dirección no entregable o usuario
+ * inactivo → NUNCA se envía y se registra como omitido. Con el transporte de
+ * prueba, el omitido se escribe igual al archivo, marcado, para que un e2e pueda
+ * comprobar que se omitió y la captura muestre el correo que habría salido.
+ */
+export async function entregar(
+  to: string,
+  plantilla: Plantilla,
+  opts: { omitir?: string | null } = {}
+): Promise<ResultadoEnvio> {
+  if (opts.omitir) {
+    if (ARCHIVO_ACTIVO) escribirEnArchivo(to, plantilla, { omitido: true, motivo: opts.omitir });
+    return { ok: true, modo: "omitido", motivo: opts.omitir };
+  }
+  return enviarCorreo(to, plantilla);
 }
 
 // Aviso de configuración, UNA vez por proceso: con clave real y sin EMAIL_FROM, el
@@ -95,6 +161,11 @@ export async function enviarCorreo(
   // advertencia), y así las pruebas locales, que usan `.example` por norma, siguen
   // recorriendo el mismo camino que la producción.
   const motivo = noEntregable(to);
+  if (ARCHIVO_ACTIVO) {
+    // Transporte de prueba: se escribe tal cual, con la marca de lo que haría
+    // el transporte real con esta dirección.
+    return { ok: true, modo: "archivo", id: escribirEnArchivo(to, plantilla, motivo ? { motivo } : {}) };
+  }
   if (motivo && API_KEY) {
     console.log(`[email] omitido — ${to}: ${motivo}`);
     return { ok: true, modo: "omitido", motivo };
