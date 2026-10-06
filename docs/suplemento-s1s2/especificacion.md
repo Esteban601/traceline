@@ -1,7 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.20** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.21** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.20**:
+- §10, «Los mockups solo llevan direcciones `.example`»: regla, y corrección de la cuenta de Bafar.
 
 **Cambios respecto a 0.19**:
 - §10, «Cuentas de los mockups: rotación cerrada»: riesgo aceptado de forma definitiva.
@@ -1140,6 +1143,28 @@ entero en una copia. El primero es el del rol auditor (encargo
   (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
+
+### Los mockups solo llevan direcciones `.example`
+
+Regla desde el 6 de octubre de 2026: **toda cuenta de un tenant de demostración de prospecto lleva una dirección
+`@<slug>.example`** (RFC 2606). Esas direcciones no reciben correo: los recordatorios, el digest y los avisos
+quedan en bitácora como omitidos y no le llega nada a nadie.
+- `crear-demo-prospecto.mjs` ya crea así todas sus cuentas.
+- Esta regla cubre también las altas que se hagan después por el panel.
+
+- **Lo que pasó en Bafar.** Una cuenta del área Administración y Finanzas, dada de alta por el panel el
+  10/9/2026, tenía una dirección real: no de IRStrat y la única de su dominio en toda la plataforma. El 4/10
+  recibió 4 recordatorios programados.
+  - El 6/10 se cambió a `<mismo usuario>@bafar.example` con la API de administración (`email_confirm`, sin
+    correo de confirmación), en `auth.users` y en `perfiles_usuario`.
+  - Quedó en bitácora como `usuario_email_cambiado`; el `detalle` no guarda la dirección anterior, a propósito,
+    porque la bitácora no se borra.
+  - Bafar queda sin direcciones que no sean `.example`.
+- **Excepción conocida, fuera de la regla:** Empresa Demo (`empresa-demo-sab`), que es el demo interno y no un
+  mockup de prospecto. Tiene una cuenta de área (RH) con dirección `irstrat.com`, **inactiva**, dada de alta
+  por el panel el 21/8/2026.
+- **Cómo se comprueba.** Conteo de `perfiles_usuario` de tenants con `es_demo` cuyo `email` no termina en
+  `.example`. El 6/10 da 1, la de Empresa Demo.
 
 ### Cuentas de los mockups: rotación cerrada
 
