@@ -1,7 +1,18 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.16** · 5 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.18** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.17**:
+- §10, «Jobs del Scheduler…»: el disparador de los recordatorios ya está identificado. Era el job del
+  Scheduler de staging, editado por error el 5/10. Se agregan la causa y la lección. Corrige lo que 0.17 decía.
+
+**Cambios respecto a 0.16**:
+- §10: registro de v36 (`be2a3fe`, jobs sin variables en el comando).
+- §10, «Jobs del Scheduler…»: en staging no existe un job de recordatorios del Scheduler. Los recordatorios
+  corren a diario a las 13:00 UTC por un disparador sin identificar.
+- §10, «Ambiente de pruebas en Heroku»: `traceline-dev` apunta al dev de Esteban (`kmjkoxecxcujxixlxwlb`);
+  release v15.
 
 **Cambios respecto a 0.15** (`hotfix/cron-sin-secreto`):
 - §10, «Jobs del Scheduler sin variables en el comando»: los jobs llaman a `scripts/cron/llamar.mjs`; regla
@@ -1017,6 +1028,32 @@ Punto de reversión: `heroku releases:rollback v33 -a traceline-staging`. No es 
 también las config vars, y v32 no tiene `ANTHROPIC_API_KEY`. Solo revierte código; las migraciones son
 aditivas y se quedan. Antes que el rollback está apagar `generador_activo` por emisora en `/admin/clientes`.
 
+### staging · release v36 · 5 de octubre de 2026 · `be2a3fe`
+
+**Los jobs del Scheduler dejan de llevar variables en su comando.** Viene de `hotfix/cron-sin-secreto` por el
+PR #10 (merge commit `be2a3fe`). Sin migración.
+
+- **Por qué.** Al cerrar v33 se vio que la línea `heroku[scheduler.N] Starting process with command …`
+  escribía el `CRON_SECRET` sustituido, también con `bash -c` (ver «Jobs del Scheduler sin variables en el
+  comando»).
+- **Qué cambia.** `scripts/cron/llamar.mjs <ruta>`. Regla en CLAUDE.md v1.8, §6.
+- **Numeración.** Heroku lo publicó como **v36**. La v35 es «Set CRON_SECRET config vars»: la segunda
+  rotación, que hizo Esteban.
+- **Después del release.** Esteban cambió el job de la cola a `node scripts/cron/llamar.mjs
+  evidencias/procesar` y rotó `CRON_SECRET` por última vez.
+
+Verificación en staging tras el release (solo conteos y booleanos sobre `heroku logs`; ninguna línea
+impresa):
+
+| | Resultado |
+|---|---|
+| Release | ✓ v36 · Deploy `be2a3fe3`; `web.1` up; `/login` 200; `scripts/cron/llamar.mjs` presente en el slug (`heroku run`) |
+| Arranque del job de la cola de las 01:20:49 UTC | ✓ La línea `heroku[scheduler]` lleva exactamente `node scripts/cron/llamar.mjs evidencias/procesar`: 48 caracteres, sin `$` y sin `x-cron-secret` |
+| Respuesta | ✓ `POST /api/evidencias/procesar` 200, con el secreto rotado |
+
+Punto de reversión: `heroku releases:rollback v35 -a traceline-staging`. Con el código de v34 el job nuevo
+fallaría porque no encuentra el script; habría que volver temporalmente al comando con `curl`.
+
 ### Deudas conocidas
 
 Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
@@ -1115,9 +1152,25 @@ Regla desde el 5 de octubre de 2026; también en CLAUDE.md §6.
   | App | Job | Comando | Frecuencia |
   |---|---|---|---|
   | `traceline-staging` | Cola de lectura | `node scripts/cron/llamar.mjs evidencias/procesar` | cada 10 min |
-  | `traceline-staging` | Recordatorios | `node scripts/cron/llamar.mjs recordatorios` | diaria |
+  | `traceline-staging` | Recordatorios | `node scripts/cron/llamar.mjs recordatorios` | diaria, 13:00 UTC |
   | `traceline-dev` | Cola de lectura | `node scripts/cron/llamar.mjs evidencias/procesar` | cada 10 min |
 
+- **Incidente del 5 de octubre: el job de recordatorios se convirtió en el de la cola.** Staging tenía un
+  solo job, el de recordatorios (`curl` diario a las 13:00 UTC). Al configurar la cola de lectura de v33, ese
+  job **se editó** en vez de agregar uno nuevo: quedó como el job de la cola y los recordatorios dejaron de
+  tener disparador.
+  - **Cómo se encontró.** La bitácora mostraba corridas diarias a las 13:00 UTC hasta el 5/10 y ninguna el
+    6/10. En los logs del 3, 4 y 5 de octubre, cada corrida es `app[api]` (arranque) → `heroku[scheduler.N]`
+    → router `POST /api/recordatorios` 200, desde una IP de AWS distinta cada día (la salida normal de un
+    dyno). La versión 0.17 de este documento lo daba por «sin identificar», y era un error.
+  - **Efecto.** La corrida del 6 de octubre no se hizo y no se recupera (decisión de Esteban). El comando
+    viejo también escribía el secreto sustituido en la línea `heroku[scheduler]`; esos secretos ya están
+    rotados.
+  - **Corrección.** Esteban recreó el job con «Add Job» el 6/10: `node scripts/cron/llamar.mjs
+    recordatorios`, diario a las 13:00 UTC. Staging tiene ahora **dos jobs**, cola y recordatorios.
+  - **Lección.** En el dashboard del Scheduler, «agregar» y «editar» solo se distinguen por el botón: editar
+    un job existente reemplaza su comando sin aviso. **Antes y después de cada cambio se cuenta el número de
+    jobs** y se comprueba que cada uno sigue con el comando y la frecuencia que le tocan.
 - **Cómo se verifica.** Por conteo, con un extractor de lista blanca sobre `heroku logs`. La línea
   `heroku[scheduler]` del arranque no debe tener nada después de `x-cron-secret` (el comando ya no lo nombra).
   El router debe responder `POST … status=200`.
@@ -1145,9 +1198,9 @@ borra; lo borra Esteban.
 
   | Variable | Para qué |
   |---|---|
-  | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Proyecto Supabase al que apunta (hoy, ensayo) |
+  | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Proyecto Supabase al que apunta: el dev de Esteban, `kmjkoxecxcujxixlxwlb`, desde el 5/10 |
   | `ANTHROPIC_API_KEY` | Llave propia de este ambiente para el generador y la lectura de evidencias; su gasto es el de las pruebas |
-  | `CRON_SECRET` | Secreto del job de la cola (`x-cron-secret`); rotado el 5/10 tras el incidente del Paso 3 |
+  | `CRON_SECRET` | Secreto del job de la cola (`x-cron-secret`); rotado tres veces el 5/10 (incidente del Paso 3 y los jobs con variables) |
   | `NEXT_PUBLIC_APP_URL` | URL propia de la app (con el hash de Heroku), para enlaces y recuperación de contraseña |
   | `NEXT_PUBLIC_APP_NAME` | Nombre visible |
   | `NEXT_PUBLIC_STAGING` | Banner de ambiente no productivo |
@@ -1156,15 +1209,17 @@ borra; lo borra Esteban.
 
   No lleva `RESEND_API_KEY` ni `EMAIL_FROM`: desde aquí no se manda correo.
 - **Add-ons.** `scheduler:standard`, con un único job, cada 10 minutos: `node scripts/cron/llamar.mjs
-  evidencias/procesar` (sin variables en el comando; ver «Jobs del Scheduler sin variables en el comando»).
-  No tiene job de recordatorios.
-- **Release vigente:** v11, código `dev/ajustes-sep26` en `9d8eec6`.
-- **Pendiente de decidir (Esteban): a qué base apunta cuando se borre ensayo.** Hoy las tres variables de
-  Supabase y el Site URL de Auth son las del proyecto de ensayo. Al borrarlo, la app y su job del Scheduler se
-  quedan sin base hasta que se reapunte. Hay que elegir entre un proyecto de pruebas propio o el dev de una
-  persona; nunca staging.
-  - Si apunta al dev de una persona, aplica la regla de §1 de CLAUDE.md: cada proyecto es de una sola persona.
-  - Mientras no se decida, conviene pausar el job del Scheduler de `traceline-dev`.
+  evidencias/procesar`, sin variables en el comando. Lo recrea Esteban tras el cambio de base; el comando se
+  probó en el dyno con `heroku run` → 200. No tiene job de recordatorios.
+- **Release vigente:** v15, código `main` en `be2a3fe`.
+- **Base: el dev de Esteban** (`kmjkoxecxcujxixlxwlb`), desde el 5 de octubre de 2026. Ese proyecto tiene las
+  mismas migraciones y el demo poblado. Esteban cambió las tres variables de Supabase y agregó el dominio de
+  `traceline-dev` en la autenticación de ese proyecto; verificado por `ref` y `role` de las llaves, sin
+  imprimirlas.
+  - Como el proyecto es de una sola persona (CLAUDE.md §1), lo que se pruebe aquí escribe en el dev de
+    Esteban: otra persona no apunta `traceline-dev` a su propio proyecto sin acordarlo.
+  - El proyecto de ensayo `sqpxcxewoznhpwvhxamy` está borrado (Esteban, 5/10).
+  - `.env.ensayo.local` se sobrescribió y se borró, y `ENSAYO_REF` salió de `.env.local`.
 
 ### Antes del merge a producción (`dev/ajustes-sep26` → `main`)
 
