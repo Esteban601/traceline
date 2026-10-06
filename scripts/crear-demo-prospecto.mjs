@@ -710,6 +710,48 @@ const PROSPECTOS = [
       { re: /Competencias del Consejo/i, area: "Relación con Inversionistas" },
     ],
   },
+  {
+    slug: "pinfra",
+    nombre: "PINFRA",
+    prefijo: "PINF",
+    logo: "pinfra.png",
+    // Concesionaria de autopistas de peaje, con planta de asfalto y terminal
+    // portuaria en Altamira. Emisora: la vitrina se queda encendida (sin la
+    // clave) y no lleva auditor.
+    areas: [
+      "Operación de Autopistas y Peaje",
+      "Conservación y Construcción",
+      "Seguridad Vial y Ambiental",
+      "Riesgos y Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      Operaciones: "Operación de Autopistas y Peaje",
+      RH: "Recursos Humanos",
+      Finanzas: "Finanzas",
+      "Gobierno Corporativo": "Riesgos y Cumplimiento",
+      Dirección: "Riesgos y Cumplimiento",
+    },
+    mueve: [
+      // El Alcance 3 de una concesionaria lo domina la cadena de obra y
+      // suministro: insumos, asfalto y su transporte.
+      { re: /Alcance 3 — total/i, area: "Conservación y Construcción" },
+      { re: /Categoría 1-Bienes y servicios adquiridos/i, area: "Conservación y Construcción" },
+      { re: /Categoría 4-Transporte/i, area: "Conservación y Construcción" },
+      // La gestión ambiental: combustibles, agua y residuos. `residuos` también
+      // atrapa la Categoría 5 del Alcance 3 (residuos de las operaciones), a
+      // propósito.
+      { re: /Consumo de combustibles fósiles/i, area: "Seguridad Vial y Ambiental" },
+      { re: /consumo de agua/i, area: "Seguridad Vial y Ambiental" },
+      { re: /residuos/i, area: "Seguridad Vial y Ambiental" },
+      // Lo prospectivo del clima lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /productos\/servicios sostenibles/i, area: "Finanzas" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
@@ -1241,6 +1283,10 @@ async function asegurarTenant({ db, admin, staffId }, p) {
         // Las demostraciones leen sus evidencias (encargo captura sugerida §3);
         // la columna nace apagada para que un cliente real no la herede.
         lectura_evidencias_activa: true,
+        // El generador del Suplemento, encendido en las demostraciones (encargo
+        // generador a producción §3). Solo al crear: si después el staff lo
+        // apaga en /admin/clientes, una nueva corrida no lo vuelve a encender.
+        generador_activo: true,
       })
       .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
       .single();
@@ -1536,6 +1582,9 @@ async function asegurarReporte(ctx, p, tenantId) {
       tenant_id: tenantId,
       nombre: REPORTE.nombre,
       ejercicio: REPORTE.ejercicio,
+      // Primer año de aplicación, como los demás reportes de demostración
+      // (migración 20261005130100). Sin año, el generador responde 422.
+      anio_adopcion: REPORTE.ejercicio,
       estado: "activo",
     })
     .select("id")
