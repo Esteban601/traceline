@@ -39,6 +39,15 @@ export type TipoBloque =
  */
 export type RegimenBloque = "ambos" | "varia_por_regimen";
 
+/**
+ * Clase del bloque (encargo suplemento-calidad, Paso 0, aprobado con ajustes):
+ *   · normativo             — lo exige un párrafo de NIIF S1 o S2 (`respaldo`). Siempre va.
+ *   · editorial_recomendado — no lo exige la norma; va ENCENDIDO por defecto.
+ *   · editorial_opcional    — no lo exige la norma; va APAGADO por defecto.
+ * La selección de editoriales se guarda en el documento (editoriales_incluidos).
+ */
+export type ClaseBloque = "normativo" | "editorial_recomendado" | "editorial_opcional";
+
 export type Bloque = {
   /** Clave estable. Sobrevive a una renumeración de §3; es lo que persiste documentos_bloques.clave. */
   clave: string;
@@ -54,6 +63,9 @@ export type Bloque = {
   tablas: string[];
   /** Campos de perfil_emisor que lo alimentan. */
   perfil: string[];
+  clase: ClaseBloque;
+  /** Normativo: el párrafo que lo exige. Editorial: por qué no lo exige ninguno. */
+  respaldo: string;
 };
 
 // -----------------------------------------------------------------------------
@@ -134,6 +146,8 @@ export const BLOQUES: Bloque[] = [
     numero: 1,
     seccion: "I · Introducción",
     titulo: "Carta de la Dirección",
+    clase: "editorial_opcional",
+    respaldo: "Ninguna norma pide la carta de la Dirección.",
     tipo: "T→E",
     regimen: "ambos",
     datapoints: [],
@@ -145,6 +159,8 @@ export const BLOQUES: Bloque[] = [
     numero: 2,
     seccion: "I · Introducción",
     titulo: "Presentación del informe (adopción, CNBV)",
+    clase: "normativo",
+    respaldo: "NIIF S1 72 (declaración de cumplimiento). La mención de la CNBV es regulación local.",
     tipo: "Plantilla",
     regimen: "ambos",
     datapoints: [],
@@ -156,6 +172,8 @@ export const BLOQUES: Bloque[] = [
     numero: 3,
     seccion: "I · Introducción",
     titulo: "Bases de preparación: marco y alivios transitorios",
+    clase: "normativo",
+    respaldo: "NIIF S1 E5–E6 (alivio «primero clima») y NIIF S2 C3–C5 (alivios del primer año).",
     tipo: "Plantilla",
     regimen: "varia_por_regimen",
     datapoints: [],
@@ -167,6 +185,8 @@ export const BLOQUES: Bloque[] = [
     numero: 4,
     seccion: "I · Introducción",
     titulo: "Entidad que informa, periodo y conectividad",
+    clase: "normativo",
+    respaldo: "NIIF S1 20 y 64 (misma entidad y periodo que los estados financieros); NIIF S2 32.",
     tipo: "Plantilla + T→E",
     regimen: "ambos",
     datapoints: ["NIIF S2 32"],
@@ -178,6 +198,8 @@ export const BLOQUES: Bloque[] = [
     numero: 5,
     seccion: "I · Introducción",
     titulo: "Conexiones y referencias cruzadas",
+    clase: "normativo",
+    respaldo: "NIIF S1 21–24 (información conectada) y 63 (referencias cruzadas).",
     tipo: "Plantilla",
     regimen: "ambos",
     datapoints: [],
@@ -189,6 +211,8 @@ export const BLOQUES: Bloque[] = [
     numero: 6,
     seccion: "I · Introducción",
     titulo: "Juicios, supuestos e incertidumbres",
+    clase: "normativo",
+    respaldo: "NIIF S1 74–79 (juicios e incertidumbre en la medición).",
     tipo: "D→T + Tabla",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S1 74"],
@@ -200,6 +224,8 @@ export const BLOQUES: Bloque[] = [
     numero: 7,
     seccion: "I · Introducción",
     titulo: "Materialidad: contexto y proceso",
+    clase: "editorial_recomendado",
+    respaldo: "Contexto que la emisora suele querer: S1 17–18 pide aplicar la materialidad, no describir el proceso.",
     tipo: "T→E",
     regimen: "varia_por_regimen",
     datapoints: [],
@@ -211,6 +237,8 @@ export const BLOQUES: Bloque[] = [
     numero: 8,
     seccion: "I · Introducción",
     titulo: "Horizontes temporales",
+    clase: "normativo",
+    respaldo: "NIIF S2 10(d) (horizontes de corto, mediano y largo plazo).",
     tipo: "Tabla",
     regimen: "ambos",
     datapoints: [],
@@ -222,6 +250,8 @@ export const BLOQUES: Bloque[] = [
     numero: 9,
     seccion: "I · Introducción",
     titulo: "Evaluación y priorización de riesgos",
+    clase: "normativo",
+    respaldo: "NIIF S2 25(a)(ii)–(iv) (evaluación y priorización); se solapa con el 27.",
     tipo: "D→T + Tabla",
     regimen: "ambos",
     datapoints: [],
@@ -233,6 +263,8 @@ export const BLOQUES: Bloque[] = [
     numero: 10,
     seccion: "I · Introducción",
     titulo: "Resumen de efectos financieros actuales y previstos",
+    clase: "normativo",
+    respaldo: "NIIF S2 15–16 (efectos financieros actuales y previstos).",
     tipo: "D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 16(a)", "NIIF S2 16(b)", "NIIF S2 16(c)(i)(ii)", "NIIF S2 16(d)"],
@@ -244,6 +276,8 @@ export const BLOQUES: Bloque[] = [
     numero: 11,
     seccion: "I · Introducción",
     titulo: "Nuestra historia (línea de tiempo)",
+    clase: "editorial_opcional",
+    respaldo: "Contexto de la emisora; no lo exige ningún párrafo.",
     tipo: "Tabla + T→E",
     regimen: "ambos",
     datapoints: [],
@@ -255,6 +289,8 @@ export const BLOQUES: Bloque[] = [
     numero: 12,
     seccion: "I · Introducción",
     titulo: "Modelo de negocio y cadena de valor",
+    clase: "editorial_opcional",
+    respaldo: "La norma pide los efectos sobre el modelo de negocio y la cadena de valor (bloque 13), no describirlos.",
     tipo: "T→E",
     regimen: "ambos",
     datapoints: [],
@@ -266,6 +302,8 @@ export const BLOQUES: Bloque[] = [
     numero: 13,
     seccion: "I · Introducción",
     titulo: "Efectos sobre el modelo de negocio y la cadena de valor",
+    clase: "normativo",
+    respaldo: "NIIF S2 13 (efectos sobre el modelo de negocio y la cadena de valor).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 13(a)", "NIIF S2 13(b)"],
@@ -277,6 +315,8 @@ export const BLOQUES: Bloque[] = [
     numero: 14,
     seccion: "II · Gobernanza",
     titulo: "Introducción a la sección",
+    clase: "editorial_opcional",
+    respaldo: "Texto de paso entre secciones.",
     tipo: "Plantilla",
     regimen: "ambos",
     datapoints: [],
@@ -288,6 +328,8 @@ export const BLOQUES: Bloque[] = [
     numero: 15,
     seccion: "II · Gobernanza",
     titulo: "Roles y responsabilidades del órgano de gobierno",
+    clase: "normativo",
+    respaldo: "NIIF S2 6(a), (a)(i)–(ii).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 6 (a)", "NIIF S2 6 (a)(i)", "NIIF S2 6 (a)(ii)"],
@@ -299,6 +341,8 @@ export const BLOQUES: Bloque[] = [
     numero: 16,
     seccion: "II · Gobernanza",
     titulo: "Supervisión de la estrategia, objetivos y remuneración",
+    clase: "normativo",
+    respaldo: "NIIF S2 6(a)(iii)–(v).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 6 (a)(iii)", "NIIF S2 6 (a)(iv)", "NIIF S2 6 (a)(v)"],
@@ -310,6 +354,8 @@ export const BLOQUES: Bloque[] = [
     numero: 17,
     seccion: "II · Gobernanza",
     titulo: "Papel de la gerencia y controles",
+    clase: "normativo",
+    respaldo: "NIIF S2 6(b).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 6(b)", "NIIF S2 6(b)(i)", "NIIF S2 6(b)(ii)"],
@@ -321,6 +367,8 @@ export const BLOQUES: Bloque[] = [
     numero: 18,
     seccion: "II · Gobernanza",
     titulo: "Estructura de gobierno corporativo y organigrama",
+    clase: "editorial_recomendado",
+    respaldo: "Complementa a 15–17: S2 6 pide identificar al órgano y su papel, no el organigrama.",
     tipo: "T→E + imagen",
     regimen: "ambos",
     datapoints: [],
@@ -332,6 +380,8 @@ export const BLOQUES: Bloque[] = [
     numero: 19,
     seccion: "III · Estrategia",
     titulo: "Trayectoria en sostenibilidad y clima",
+    clase: "editorial_opcional",
+    respaldo: "Contexto de la emisora; no lo exige ningún párrafo.",
     tipo: "Tabla + T→E",
     regimen: "ambos",
     datapoints: [],
@@ -343,6 +393,8 @@ export const BLOQUES: Bloque[] = [
     numero: 20,
     seccion: "III · Estrategia",
     titulo: "Contexto estratégico",
+    clase: "editorial_opcional",
+    respaldo: "S2 9 es el objetivo de la sección de estrategia, no un requisito de revelación.",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: [],
@@ -354,6 +406,8 @@ export const BLOQUES: Bloque[] = [
     numero: 21,
     seccion: "III · Estrategia",
     titulo: "Riesgos climáticos prioritarios",
+    clase: "normativo",
+    respaldo: "NIIF S2 10.",
     tipo: "D→T + Tabla",
     regimen: "ambos",
     datapoints: ["NIIF S2 10(a), (b)y(c)", "NIIF S2 10(d)"],
@@ -365,6 +419,8 @@ export const BLOQUES: Bloque[] = [
     numero: 22,
     seccion: "III · Estrategia",
     titulo: "Cambios en modelo de negocio y asignación de recursos",
+    clase: "normativo",
+    respaldo: "NIIF S2 14(a)(i)–(ii).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(i)", "NIIF S2 14(a)(ii)"],
@@ -376,6 +432,8 @@ export const BLOQUES: Bloque[] = [
     numero: 23,
     seccion: "III · Estrategia",
     titulo: "Esfuerzos directos e indirectos de reducción y adaptación",
+    clase: "normativo",
+    respaldo: "NIIF S2 14(a)(iii).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(iii)"],
@@ -387,6 +445,8 @@ export const BLOQUES: Bloque[] = [
     numero: 24,
     seccion: "III · Estrategia",
     titulo: "Oportunidades y cómo prevé alcanzar objetivos",
+    clase: "normativo",
+    respaldo: "NIIF S2 10(a) y 14(a)(v). Se solapa con 21 y 25: fusión anotada como deuda de estructura.",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: [],
@@ -398,6 +458,8 @@ export const BLOQUES: Bloque[] = [
     numero: 25,
     seccion: "III · Estrategia",
     titulo: "Recursos asignados y progreso de planes",
+    clase: "normativo",
+    respaldo: "NIIF S2 14(a)(v), 14(b) y 14(c).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(v)", "NIIF S2 14(b)", "NIIF S2 14(c)"],
@@ -409,6 +471,8 @@ export const BLOQUES: Bloque[] = [
     numero: 26,
     seccion: "III · Estrategia",
     titulo: "Resiliencia de la estrategia y análisis de escenarios",
+    clase: "normativo",
+    respaldo: "NIIF S2 22.",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 22(a)(i)", "NIIF S2 22(a)(ii)", "NIIF S2 22(a)(iii)", "NIIF S2 22(b)(i)", "NIIF S2 22(b)(ii)", "NIIF S2 22(b)(iii)"],
@@ -420,6 +484,8 @@ export const BLOQUES: Bloque[] = [
     numero: 27,
     seccion: "IV · Riesgos",
     titulo: "Gestión y mitigación de riesgos y oportunidades",
+    clase: "normativo",
+    respaldo: "NIIF S2 25.",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 25 (a)(i)a(v)", "NIIF S2 25 (a)(vi)", "NIIF S2 25 (b)", "NIIF S2 25 (c)"],
@@ -431,6 +497,8 @@ export const BLOQUES: Bloque[] = [
     numero: 28,
     seccion: "IV · Riesgos",
     titulo: "Plan de transición",
+    clase: "normativo",
+    respaldo: "NIIF S2 14(a)(iv).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 14(a)(iv)"],
@@ -442,6 +510,8 @@ export const BLOQUES: Bloque[] = [
     numero: 29,
     seccion: "V · Métricas y objetivos",
     titulo: "Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen)",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(a)(i).",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 29 (a)(i)", "NIIF S2 EI14 a E18", "NIIF S2 EI19 a EI24"],
@@ -453,6 +523,8 @@ export const BLOQUES: Bloque[] = [
     numero: 30,
     seccion: "V · Métricas y objetivos",
     titulo: "Método de medición, datos de entrada y C5",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(a)(ii)–(iii).",
     tipo: "D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 29 (a)(ii)", "NIIF S2 29 (a)(iii)"],
@@ -464,6 +536,8 @@ export const BLOQUES: Bloque[] = [
     numero: 31,
     seccion: "V · Métricas y objetivos",
     titulo: "Razones del enfoque y desagregación",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(a)(iv).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 29 (a)(iv) EI5"],
@@ -475,6 +549,8 @@ export const BLOQUES: Bloque[] = [
     numero: 32,
     seccion: "V · Métricas y objetivos",
     titulo: "Alcance 2 por ubicación e instrumentos contractuales",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(a)(v).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 29 (a)(v)"],
@@ -486,6 +562,8 @@ export const BLOQUES: Bloque[] = [
     numero: 33,
     seccion: "V · Métricas y objetivos",
     titulo: "Emisiones financiadas",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(a)(vi).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 29 (a)(vi)(1)", "NIIF S2 29 (a)(vi)(1) EI12", "NIIF S2 29 (a)(vi)(2)"],
@@ -497,9 +575,13 @@ export const BLOQUES: Bloque[] = [
     numero: 34,
     seccion: "V · Métricas y objetivos",
     titulo: "Riesgos de transición: concentración, exposición y capital",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(b), B64–B65 (riesgos de transición).",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
-    datapoints: ["NIIF S2 30", "NIIF S2 29 (b)", "NIIF S2 29 (b) · B65 (b)", "NIIF S2 29 (b) · B65 (c)"],
+    // Sin NIIF S2 30: es la exención por costo o esfuerzo para 29(b)–(d), no un
+    // requisito de revelación (clasificación del encargo suplemento-calidad).
+    datapoints: ["NIIF S2 29 (b)", "NIIF S2 29 (b) · B65 (b)", "NIIF S2 29 (b) · B65 (c)"],
     tablas: ["registros_clima_valores"],
     perfil: [],
   },
@@ -508,6 +590,8 @@ export const BLOQUES: Bloque[] = [
     numero: 35,
     seccion: "V · Métricas y objetivos",
     titulo: "Riesgos físicos: exposición y gráfica",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(c), B64–B65 (riesgos físicos).",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
     // 29 (c) es el requisito principal del bloque —cantidad y porcentaje de
@@ -523,6 +607,8 @@ export const BLOQUES: Bloque[] = [
     numero: 36,
     seccion: "V · Métricas y objetivos",
     titulo: "Oportunidades: alineación y capital",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(d) y (e).",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 29 (d)", "NIIF S2 29 (d) · B65 (b)", "NIIF S2 29 (d) · B65 (c)", "NIIF S2 29 (e)"],
@@ -534,6 +620,8 @@ export const BLOQUES: Bloque[] = [
     numero: 37,
     seccion: "V · Métricas y objetivos",
     titulo: "Precio interno del carbono y remuneración vinculada",
+    clase: "normativo",
+    respaldo: "NIIF S2 29(f) y (g).",
     tipo: "D→T",
     regimen: "ambos",
     datapoints: ["NIIF S2 29 (f) (i) y (ii)", "NIIF S2 29 (g) (i) y (ii)"],
@@ -545,6 +633,8 @@ export const BLOQUES: Bloque[] = [
     numero: 38,
     seccion: "V · Métricas y objetivos",
     titulo: "Objetivos climáticos (atributos por objetivo)",
+    clase: "normativo",
+    respaldo: "NIIF S2 33.",
     tipo: "Tabla",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 33"],
@@ -556,6 +646,8 @@ export const BLOQUES: Bloque[] = [
     numero: 39,
     seccion: "V · Métricas y objetivos",
     titulo: "Enfoque para establecer y revisar objetivos; resultados",
+    clase: "normativo",
+    respaldo: "NIIF S2 34–35.",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 34", "NIIF S2 35"],
@@ -567,6 +659,8 @@ export const BLOQUES: Bloque[] = [
     numero: 40,
     seccion: "V · Métricas y objetivos",
     titulo: "Objetivo de emisiones GEI",
+    clase: "normativo",
+    respaldo: "NIIF S2 36.",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
     datapoints: ["NIIF S2 36 (a)a(d)", "NIIF S2 36 (e)(i)a(iv)"],
@@ -582,4 +676,34 @@ export function codigosDelMapeo(): string[] {
 
 export function bloquePorClave(clave: string): Bloque | undefined {
   return BLOQUES.find((b) => b.clave === clave);
+}
+
+// -----------------------------------------------------------------------------
+// SELECCIÓN DE EDITORIALES (encargo suplemento-calidad, Paso 1).
+// -----------------------------------------------------------------------------
+
+export function esEditorial(b: Pick<Bloque, "clase">): boolean {
+  return b.clase !== "normativo";
+}
+
+/** Claves de los editoriales encendidos por defecto (los recomendados). */
+export function editorialesPorDefecto(): string[] {
+  return BLOQUES.filter((b) => b.clase === "editorial_recomendado").map((b) => b.clave);
+}
+
+/**
+ * ¿Va este bloque en un documento con esa selección? Los normativos, siempre.
+ * `incluidos === null` es un documento anterior a la selección: llevaba los 40.
+ */
+export function bloqueSeleccionado(b: Pick<Bloque, "clase" | "clave">, incluidos: string[] | null): boolean {
+  if (!esEditorial(b)) return true;
+  if (incluidos === null) return true;
+  return incluidos.includes(b.clave);
+}
+
+/** Normaliza una selección pedida: solo claves de editoriales, sin repetir. */
+export function normalizarSeleccion(pedidos: unknown): string[] {
+  const validas = new Set(BLOQUES.filter(esEditorial).map((b) => b.clave));
+  if (!Array.isArray(pedidos)) return editorialesPorDefecto();
+  return [...new Set(pedidos.filter((x): x is string => typeof x === "string" && validas.has(x)))];
 }

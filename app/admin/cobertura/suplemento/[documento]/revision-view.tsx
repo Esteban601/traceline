@@ -46,6 +46,7 @@ const META: Record<string, { label: string; tono: Tono }> = {
   borrador: { label: "Borrador", tono: "verde" },
   error: { label: "Error", tono: "rojo" },
   no_aplica: { label: "No aplica", tono: "gris" },
+  no_seleccionado: { label: "No seleccionado", tono: "gris" },
   pendiente_adjunto: { label: "Espera adjunto", tono: "ambar" },
   en_revision: { label: "En revisión", tono: "azul" },
   aprobado: { label: "Aprobado", tono: "verde" },
@@ -93,6 +94,7 @@ export function RevisionView(p: {
       p.bloques.filter(
         (b) =>
           b.estado !== "no_aplica" &&
+          b.estado !== "no_seleccionado" &&
           (b.pendientes.length > 0 || ["generando", "error", "pendiente_adjunto"].includes(b.estado))
       ),
     [p.bloques]
@@ -364,7 +366,11 @@ function BloqueCard({
 
       {abierto && (
         <div className="space-y-4 border-t border-line px-4 py-4">
-          {bloque.texto ? (
+          {bloque.estado === "no_seleccionado" ? (
+            <p className="text-sm text-muted">
+              Bloque editorial no seleccionado: no va en este documento. Se enciende al generar.
+            </p>
+          ) : bloque.texto ? (
             editando ? (
               <form action={aTexto} className="space-y-2">
                 <input type="hidden" name="documento_id" value={documentoId} />
@@ -404,12 +410,12 @@ function BloqueCard({
           )}
 
           <div className="flex flex-wrap gap-2">
-            {editable && bloque.texto && !editando && (
+            {editable && bloque.texto && !editando && bloque.estado !== "no_seleccionado" && (
               <Button size="sm" variant="secondary" onClick={() => setEditando(true)}>
                 Editar
               </Button>
             )}
-            {regenerable && bloque.estado !== "no_aplica" && (
+            {regenerable && bloque.estado !== "no_aplica" && bloque.estado !== "no_seleccionado" && (
               <Button size="sm" variant="ghost" onClick={regenerar} loading={regenerando}>
                 Regenerar
               </Button>

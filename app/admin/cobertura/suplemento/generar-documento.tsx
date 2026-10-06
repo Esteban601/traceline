@@ -37,7 +37,7 @@ const LIMITE_MS = 3 * 60 * 1000;
 
 type Estado = "listo" | "abriendo" | "generando" | "hecho" | "error";
 
-export function GenerarDocumento({ reporteId }: { reporteId: string }) {
+export function GenerarDocumento({ reporteId, editoriales }: { reporteId: string; editoriales: string[] }) {
   const [estado, setEstado] = useState<Estado>("listo");
   const [total, setTotal] = useState(0);
   const [hechos, setHechos] = useState(0);
@@ -107,7 +107,12 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
     setFallidos([]);
 
     try {
-      const res = await fetch(`/api/suplemento/${reporteId}/generar`, { method: "POST" });
+      // La selección de editoriales viaja con la petición y se guarda en el documento.
+      const res = await fetch(`/api/suplemento/${reporteId}/generar`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ editoriales }),
+      });
       const abierto = await res.json();
       if (!res.ok) throw new Error(abierto.error ?? `HTTP ${res.status}`);
 
@@ -146,7 +151,7 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
       setError(e instanceof Error ? e.message : String(e));
       setEstado("error");
     }
-  }, [reporteId, generarUno, enCola, toast, router]);
+  }, [reporteId, editoriales, generarUno, enCola, toast, router]);
 
   const pct = total ? Math.round((hechos / total) * 100) : 0;
 

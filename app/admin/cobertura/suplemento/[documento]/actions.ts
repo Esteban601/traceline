@@ -162,6 +162,7 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
     const conPendiente = (bloques ?? []).filter(
       (b) =>
         b.estado !== "no_aplica" &&
+        b.estado !== "no_seleccionado" &&
         Array.isArray(b.pendientes) &&
         (b.pendientes as { campo: string }[]).some((p) => p.campo !== "nota_revision")
     );

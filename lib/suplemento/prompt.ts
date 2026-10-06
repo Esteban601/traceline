@@ -1,4 +1,4 @@
-import { BLOQUES, type Bloque } from "@/lib/suplemento/bloques";
+import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloques";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 
 // =============================================================================
@@ -29,7 +29,7 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "a5b-v3-2026-10-04";
+export const PROMPT_VERSION = "calidad-v1-2026-10-06";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -205,7 +205,7 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 
 2. TODA CIFRA LLEVA SU FUENTE EN \`fuentes_usadas\`, nunca en el texto. Si citas un id que no se te entregó, la respuesta se rechaza entera.
 
-3. NO TE SALGAS DE TU BLOQUE. Abajo tienes el índice de los cuarenta bloques del documento. Lo que le toca a otro, no lo escribes: se repetiría en el informe. La instrucción volátil te dice qué cubre el tuyo y qué bloques cubren lo contiguo.
+3. NO TE SALGAS DE TU BLOQUE. Abajo tienes el índice de los bloques que lleva este documento. Lo que le toca a otro, no lo escribes: se repetiría en el informe. La instrucción volátil te dice qué cubre el tuyo y qué bloques cubren lo contiguo.
 
 4. REGISTRO FORMAL, TERCERA PERSONA. Nada de "nosotros" ni "creemos". Sin adjetivos promocionales: nada de "sólido", "robusto", "líder", "comprometido", "de vanguardia". La norma pide describir, no persuadir.
 
@@ -276,10 +276,16 @@ Lo que hace bien, y tienes que imitar:
 
 `;
 
-function indiceDeBloques(): string {
-  const lineas = BLOQUES.map((b) => `${b.numero}. ${b.titulo}`);
+/**
+ * El índice de los bloques QUE LLEVA ESTE DOCUMENTO: los normativos y los
+ * editoriales seleccionados (encargo suplemento-calidad). Va en la capa estable:
+ * es igual para todos los bloques del mismo documento, así que el caché se
+ * comparte dentro de la corrida.
+ */
+function indiceDeBloques(incluidos: string[] | null): string {
+  const lineas = BLOQUES.filter((b) => bloqueSeleccionado(b, incluidos)).map((b) => `${b.numero}. ${b.titulo}`);
   return [
-    "# El documento completo: los 40 bloques",
+    `# El documento completo: los ${lineas.length} bloques`,
     "",
     "Cada bloque lo escribe una llamada distinta. Esto es lo que cubre cada uno, para que no invadas el terreno de otro:",
     "",
@@ -290,7 +296,9 @@ function indiceDeBloques(): string {
 export function capaEstable(
   bloque: Bloque,
   prefs: PreferenciasEmisor,
-  requisitos: RequisitoNiif[]
+  requisitos: RequisitoNiif[],
+  /** Editoriales que lleva el documento (null = documento anterior: los 40). */
+  incluidos: string[] | null = null
 ): { texto: string }[] {
   // La denominación se copia CARÁCTER POR CARÁCTER, incluido el artículo en
   // minúscula si lo trae: "la Compañía" no es lo mismo que "La Compañía", y el
@@ -324,7 +332,7 @@ export function capaEstable(
   return [
     { texto: REGLAS },
     { texto: EJEMPLO_ESTILO },
-    { texto: indiceDeBloques() },
+    { texto: indiceDeBloques(incluidos) },
     { texto: emisor },
     { texto: req },
   ];

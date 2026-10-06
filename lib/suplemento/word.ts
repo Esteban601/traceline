@@ -375,7 +375,7 @@ export function nombreArchivo(denominacion: string, ejercicio: number, version: 
 }
 
 /**
- * Arma el .docx completo. Los bloques `no_aplica` se OMITEN —el régimen los
+ * Arma el .docx completo. Los bloques `no_aplica` y `no_seleccionado` se OMITEN —el régimen los
  * excluye, así que no existen para el lector— y los de plantilla entran como
  * cualquier otro: su texto es fijo, no vacío.
  */
@@ -383,8 +383,10 @@ export async function construirWord(
   emisor: EmisorWord,
   doc: DocumentoWord
 ): Promise<Buffer> {
+  // `no_seleccionado`: editorial que el documento no lleva. Puede conservar el
+  // texto de una tanda anterior, y por eso se filtra por estado y no por texto.
   const visibles = doc.bloques
-    .filter((b) => b.estado !== "no_aplica")
+    .filter((b) => b.estado !== "no_aplica" && b.estado !== "no_seleccionado")
     .filter((b) => (b.texto ?? "").trim().length > 0)
     .sort((a, b) => a.numero - b.numero);
 

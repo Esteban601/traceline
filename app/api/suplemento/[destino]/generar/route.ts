@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { BLOQUES } from "@/lib/suplemento/bloques";
+import { BLOQUES, bloqueSeleccionado, normalizarSeleccion } from "@/lib/suplemento/bloques";
 import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
@@ -25,16 +25,27 @@ export const runtime = "nodejs";
 //      abre una VERSIÓN NUEVA en vez de tocarlo: un documento aprobado es un
 //      entregable firmado y regenerarlo encima borraría lo que alguien revisó.
 //   2. Congela el régimen y los alivios con los que se genera.
-//   3. Inserta los 40 bloques en 'generando', salvo los que el régimen excluye,
-//      que entran directamente en 'no_aplica' y no cuestan una llamada.
+//   3. Inserta los bloques SELECCIONADOS (normativos y editoriales elegidos) en
+//      cola, salvo los que el régimen excluye, que entran en 'no_aplica'; los
+//      editoriales no elegidos quedan 'no_seleccionado'. Ninguno de los dos cuesta
+//      una llamada.
 //
 // El cliente recibe la lista y decide el orden. Dispara el 29 primero para
 // calentar el caché —su capa estable es la que comparten los cuarenta— y el
 // resto con concurrencia 3.
 // =============================================================================
 
-export async function POST(_req: Request, ctx: { params: Promise<{ destino: string }> }) {
+export async function POST(req: Request, ctx: { params: Promise<{ destino: string }> }) {
   const { destino: reporteId } = await ctx.params;
+  // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): las claves de los
+  // bloques editoriales que lleva el documento. Sin cuerpo, los recomendados.
+  let pedido: unknown = undefined;
+  try {
+    pedido = ((await req.json()) as { editoriales?: unknown } | null)?.editoriales;
+  } catch {
+    /* sin cuerpo: selección por defecto */
+  }
+  const editoriales = normalizarSeleccion(pedido);
 
   const perfil = await getPerfilActual();
   if (!perfil) return NextResponse.json({ error: "No autenticado." }, { status: 401 });
@@ -95,7 +106,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     // congelada era la única que mentía.
     await db
       .from("documentos_generados")
-      .update({ regimen, alivios: rep.alivios ?? {} })
+      .update({ regimen, alivios: rep.alivios ?? {}, editoriales_incluidos: editoriales })
       .eq("id", documentoId);
   } else {
     version = (ultimo?.version ?? 0) + 1;
@@ -110,6 +121,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
         estado: "borrador",
         regimen,
         alivios: rep.alivios ?? {},
+        editoriales_incluidos: editoriales,
         generado_por: perfil.id,
       })
       .select("id")
@@ -128,7 +140,23 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   }
   const porClave = new Map(comp.bloques.map((b) => [b.clave, b]));
 
-  const filas = BLOQUES.map((b) => {
+  // Un editorial que el documento no lleva queda `no_seleccionado`, con su fila
+  // y SIN tocar su texto: apagarlo en esta tanda no borra lo que ya se escribió.
+  // Va en su propio upsert, sin `texto`, para no pisarlo.
+  const noSeleccionados = BLOQUES.filter((b) => !bloqueSeleccionado(b, editoriales)).map((b) => ({
+    documento_id: documentoId,
+    numero: b.numero,
+    clave: b.clave,
+    titulo: b.titulo,
+    seccion: b.seccion,
+    idioma: "es",
+    estado: "no_seleccionado",
+    reclamado_en: null,
+    pendientes: [],
+    updated_at: new Date().toISOString(),
+  }));
+
+  const filas = BLOQUES.filter((b) => bloqueSeleccionado(b, editoriales)).map((b) => {
     const ev = porClave.get(b.clave);
     const noAplica = ev?.estado === "no_aplica";
     return {
@@ -163,6 +191,14 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   if (errBloques) {
     return NextResponse.json({ error: `No se pudieron crear los bloques: ${errBloques.message}` }, { status: 500 });
   }
+  if (noSeleccionados.length) {
+    const { error: errNo } = await db
+      .from("documentos_bloques")
+      .upsert(noSeleccionados, { onConflict: "documento_id,numero" });
+    if (errNo) {
+      return NextResponse.json({ error: `No se pudieron marcar los editoriales no seleccionados: ${errNo.message}` }, { status: 500 });
+    }
+  }
 
   const porGenerar = filas.filter((f) => f.estado === "en_cola").map((f) => f.numero);
 
@@ -172,7 +208,15 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     accion: "suplemento_documento_abierto",
     entidad: "documentos_generados",
     entidadId: documentoId,
-    detalle: { version, creado, regimen, por_generar: porGenerar.length, no_aplican: 40 - porGenerar.length },
+    detalle: {
+      version,
+      creado,
+      regimen,
+      por_generar: porGenerar.length,
+      no_aplican: filas.length - porGenerar.length,
+      editoriales,
+      no_seleccionados: noSeleccionados.length,
+    },
   });
 
   return NextResponse.json({
@@ -185,5 +229,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     primero: porGenerar.includes(29) ? 29 : porGenerar[0],
     porGenerar,
     noAplican: filas.filter((f) => f.estado === "no_aplica").map((f) => f.numero),
+    noSeleccionados: noSeleccionados.map((f) => f.numero),
+    editoriales,
   });
 }

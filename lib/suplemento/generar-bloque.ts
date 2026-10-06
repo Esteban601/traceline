@@ -6,6 +6,7 @@ import { ensamblarReporte, type EntregaSolicitud, type SolRow } from "@/lib/repo
 import { evaluarCompletitud, type BloqueEvaluado } from "@/lib/suplemento/completitud";
 import {
   BLOQUES,
+  bloqueSeleccionado,
   datapointsExentos,
   rubroExento,
   type Bloque,
@@ -79,6 +80,7 @@ export type MotivoFallo =
   | "cifras_sin_respaldo"
   | "pendiente_adjunto"
   | "no_aplica"
+  | "no_seleccionado"
   | "respuesta_ilegible"
   | "api_error"
   | "corte_tiempo"
@@ -156,12 +158,18 @@ export async function generarBloque(
   // --- 1. Documento, y el aislamiento ANTES de cualquier otra consulta --------
   const { data: doc } = await supabase
     .from("documentos_generados")
-    .select("id, tenant_id, reporte_id, idioma")
+    .select("id, tenant_id, reporte_id, idioma, editoriales_incluidos")
     .eq("id", documentoId)
     .maybeSingle();
 
   if (!doc) {
     return { ok: false, motivo: "documento_no_existe", detalle: "El documento no existe o no es visible." };
+  }
+
+  // Un editorial que el documento no lleva no se genera (encargo
+  // suplemento-calidad): no cuesta una llamada ni toca su fila.
+  if (!bloqueSeleccionado(bloque, doc.editoriales_incluidos ?? null)) {
+    return { ok: false, motivo: "no_seleccionado", detalle: "Este bloque editorial no está seleccionado en el documento." };
   }
 
   const { data: rep } = await supabase
@@ -275,7 +283,7 @@ export async function generarBloque(
   const tabla = constructor ? constructor({ ens, evaluado, perfil, alivios: vigentes, fuentes }) : null;
   // Después de la tabla: lo que ella cite también es fuente válida.
   const idsValidos = new Set(fuentes.map((f) => f.id));
-  const estables = capaEstable(bloque, prefs, requisitos);
+  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null);
   // Lo que respalda una cifra: los datos entregados SIN el contenido crudo de
   // las evidencias, más la tabla, los requisitos y los nombres de la emisora.
   const corpus = corpusPermitido(

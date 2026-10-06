@@ -277,6 +277,18 @@ async function marcarGenerando(
   const ahora = new Date().toISOString();
   const limite = new Date(Date.now() - LIMITE_GENERANDO_MS).toISOString();
 
+  // Un editorial que el documento no lleva no se reclama: quedaría en
+  // 'generando' sin que nadie lo genere (encargo suplemento-calidad).
+  const { data: actual } = await db
+    .from("documentos_bloques")
+    .select("estado")
+    .eq("documento_id", documentoId)
+    .eq("numero", numero)
+    .maybeSingle();
+  if (actual?.estado === "no_seleccionado") {
+    return { ok: false, error: "Ese bloque editorial no está seleccionado en el documento.", status: 422 };
+  }
+
   const { data: tomado, error } = await db
     .from("documentos_bloques")
     .update({
@@ -291,6 +303,7 @@ async function marcarGenerando(
     // como vencido: una fila en 'generando' sin fecha de reclamo es de antes de
     // que existiera la columna, y nadie la está generando.
     .or(`estado.neq.generando,reclamado_en.is.null,reclamado_en.lt.${limite}`)
+    .neq("estado", "no_seleccionado")
     .select("numero");
 
   if (error) return { ok: false, error: `No se pudo reservar el bloque: ${error.message}`, status: 500 };

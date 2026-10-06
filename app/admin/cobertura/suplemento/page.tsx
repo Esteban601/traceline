@@ -76,6 +76,18 @@ export default async function SuplementoPage({
   // dice "no me indexes", no "aquí se puede gastar en llamadas al modelo".
   // Bandera de la emisora (`tenants.generador_activo`): apagada, la página sigue
   // mostrando el semáforo pero no ofrece generar. Las rutas lo niegan igual.
+  // La selección de editoriales del último documento abierto de este reporte,
+  // para que regenerar respete lo que se eligió (encargo suplemento-calidad).
+  const { data: ultimoDoc } = await db
+    .from("documentos_generados")
+    .select("editoriales_incluidos")
+    .eq("reporte_id", reporteId)
+    .eq("tipo", "suplemento_s1s2")
+    .eq("idioma", "es")
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: repTenant } = await db
     .from("reportes")
     .select("tenants(generador_activo)")
@@ -104,10 +116,10 @@ export default async function SuplementoPage({
         anioAdopcion={res.anioAdopcion}
         aliviosActivos={aliviosActivos}
         bloques={res.bloques}
-        resumen={res.resumen}
         reporteId={reporteId}
         puedeGenerar={esStaff(perfil) && generadorActivo}
         generadorActivo={generadorActivo}
+        seleccionInicial={ultimoDoc?.editoriales_incluidos ?? null}
       />
     </Marco>
   );
