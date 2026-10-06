@@ -1,6 +1,9 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.8 · 5 de octubre de 2026.
+Versión 1.9 · 6 de octubre de 2026.
+
+**Cambios respecto a 1.8** (6 de octubre de 2026, decisión de Esteban):
+- §1: staging no tiene clientes a la fecha; Grupo Carso es un tenant de prueba con datos reales, no un cliente.
 
 **Cambios respecto a 1.7** (5 de octubre de 2026, decisión de Esteban):
 - §6: ningún job del Heroku Scheduler lleva variables en su comando. Origen: cierre del despliegue v33.
@@ -33,7 +36,7 @@ después el código.
 
 | Ambiente | Supabase ref | Heroku | Quién escribe |
 |---|---|---|---|
-| **staging** (producción de facto: 17 tenants demo + Grupo Carso real) | `ewgnvjtjhvdltvkopptn` | `traceline-staging` | Solo Esteban, con procedimiento de despliegue escrito en la especificación §10 |
+| **staging** (sin clientes a la fecha: 19 mockups, Empresa Demo y Grupo Carso, tenant de prueba con datos reales) | `ewgnvjtjhvdltvkopptn` | `traceline-staging` | Solo Esteban, con procedimiento de despliegue escrito en la especificación §10 |
 | **dev de Esteban** | `kmjkoxecxcujxixlxwlb` | — | Esteban |
 | **dev de cada colaborador** | su propio proyecto Supabase | — | Ese colaborador |
 
