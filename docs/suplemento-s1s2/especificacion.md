@@ -1,7 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.19** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.20** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.19**:
+- §10, «Cuentas de los mockups: rotación cerrada»: riesgo aceptado de forma definitiva.
 
 **Cambios respecto a 0.18**:
 - §10, «Hueco conocido de la bitácora de los mockups»: las altas que hacía `crear-demo-prospecto.mjs` no
@@ -1137,6 +1140,13 @@ entero en una copia. El primero es el del rol auditor (encargo
   (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
+
+### Cuentas de los mockups: rotación cerrada
+
+Decidido por Esteban el 6 de octubre de 2026: **riesgo aceptado de forma definitiva**. Las 124 cuentas de los
+mockups cuyas contraseñas salieron en pantalla el 1 de octubre (encargo `2026-10-01-mockup-ainda.md`, §7) no se
+rotan. La exposición fue solo en la pantalla local del custodio, y son tenants de muestra. El punto sale de los
+pendientes, y la v12 del Excel de accesos queda libre para el próximo mockup.
 
 ### Hueco conocido de la bitácora de los mockups
 
