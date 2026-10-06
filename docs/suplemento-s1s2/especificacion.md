@@ -1,7 +1,13 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.24** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.25** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.24** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Pasos 0 y 1):
+- Anexo A: clase de cada bloque (normativo, editorial recomendado u opcional) con su párrafo de respaldo; tabla
+  regenerada desde `bloques.ts`, con los códigos corregidos del catálogo (29(b) transición, 29(c) físicos) y sin
+  `NIIF S2 30` en el bloque 34.
+- §5: migración `20261006140000` (selección de editoriales).
 
 **Cambios respecto a 0.23**:
 - §10: registro de v39 (`901eae3`): sistema de alertas por correo.
@@ -469,6 +475,7 @@ filas, no como JSON.
 | `tenants.vitrina_habilitada = false` donde `es_demo = false` | La regla «Grupo Carso: vitrina apagada» se verifica por consulta | Migración de datos (`20261005122700`) |
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
+| `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
 | Tabla `correos_retenidos` | Avisos inmediatos que pasan el tope de 20 por emisora y hora; el job de 10 minutos los manda agrupados | CREATE TABLE con RLS (lectura solo staff, sin escritura con sesión) y barrera: 90 políticas (`20261006130000`) |
 | `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
 
@@ -1537,48 +1544,65 @@ código tecleado a mano no empata por igualdad de cadena.
 **Resultado: 63 códigos citados por los 40 bloques, los 63 presentes en el catálogo.**
 Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a comprobar en arranque.
 
-| # | Bloque | Tipo | Régimen | Datapoints | Tablas | Perfil |
-|---|---|---|---|---|---|---|
-| 1 | Carta de la Dirección | T→E | ambos | — | — | `carta_texto`, `carta_firmante`, `carta_cargo` |
-| 2 | Presentación del informe (adopción, CNBV) | Plantilla | ambos | — | `reportes` | `denominacion_formal`, `nombre_corto` |
-| 3 | Bases de preparación: marco y alivios transitorios | Plantilla | **varía** | — | `reportes` | — |
-| 4 | Entidad que informa, periodo y conectividad | Plantilla + T→E | ambos | `NIIF S2 32` | `reportes`, `solicitudes` | `denominacion_formal`, `entidad_que_informa`, `perimetro` |
-| 5 | Conexiones y referencias cruzadas | Plantilla | ambos | — | — | — |
-| 6 | Juicios, supuestos e incertidumbres | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
-| 7 | Materialidad: contexto y proceso | T→E | **varía** | — | — | `proceso_materialidad` |
-| 8 | Horizontes temporales | Tabla | ambos | — | — | `horizontes` |
-| 9 | Evaluación y priorización de riesgos | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
-| 10 | Resumen de efectos financieros actuales y previstos | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
-| 11 | Nuestra historia (línea de tiempo) | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
-| 12 | Modelo de negocio y cadena de valor | T→E | ambos | — | — | `modelo_negocio`, `cadena_valor` |
-| 13 | Efectos sobre el modelo de negocio y la cadena de valor | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |
-| 14 | Introducción a la sección | Plantilla | ambos | — | — | — |
-| 15 | Roles y responsabilidades del órgano de gobierno | D→T | ambos | `NIIF S2 6 (a)`<br>`NIIF S2 6 (a)(i)`<br>`NIIF S2 6 (a)(ii)` | — | — |
-| 16 | Supervisión de la estrategia, objetivos y remuneración | D→T | ambos | `NIIF S2 6 (a)(iii)`<br>`NIIF S2 6 (a)(iv)`<br>`NIIF S2 6 (a)(v)` | — | — |
-| 17 | Papel de la gerencia y controles | D→T | ambos | `NIIF S2 6(b)`<br>`NIIF S2 6(b)(i)`<br>`NIIF S2 6(b)(ii)` | — | — |
-| 18 | Estructura de gobierno corporativo y organigrama | T→E + imagen | ambos | — | — | `gobierno_texto`, `organigrama_path` |
-| 19 | Trayectoria en sostenibilidad y clima | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
-| 20 | Contexto estratégico | D→T | ambos | — | — | `horizontes` |
-| 21 | Riesgos climáticos prioritarios | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)`<br>`NIIF S2 10(d)` | `registros_clima` | `matriz_riesgos` |
-| 22 | Cambios en modelo de negocio y asignación de recursos | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
-| 23 | Esfuerzos directos e indirectos de reducción y adaptación | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
-| 24 | Oportunidades y cómo prevé alcanzar objetivos | D→T | ambos | — | `registros_clima`, `objetivos` | — |
-| 25 | Recursos asignados y progreso de planes | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
-| 26 | Resiliencia de la estrategia y análisis de escenarios | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
-| 27 | Gestión y mitigación de riesgos y oportunidades | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
-| 28 | Plan de transición | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
-| 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`, `reportes` | — |
-| 30 | Método de medición, datos de entrada y C5 | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
-| 31 | Razones del enfoque y desagregación | D→T | ambos | `NIIF S2 29 (a)(iv) EI5` | — | — |
-| 32 | Alcance 2 por ubicación e instrumentos contractuales | D→T | ambos | `NIIF S2 29 (a)(v)` | — | — |
-| 33 | Emisiones financiadas | D→T | ambos | `NIIF S2 29 (a)(vi)(1)`<br>`NIIF S2 29 (a)(vi)(1) EI12`<br>`NIIF S2 29 (a)(vi)(2)` | — | — |
-| 34 | Riesgos de transición: concentración, exposición y capital | Tabla + D→T | **varía** | `NIIF S2 30`<br>`NIIF S2 29 (b) B64 y B65 inciso (a)`<br>`NIIF S2 29 (b) B64 y B65 inciso (b)`<br>`NIIF S2 29 (b) B64 y B65 inciso (c)` | `registros_clima_valores` | — |
-| 35 | Riesgos físicos: exposición y gráfica | Tabla + D→T | **varía** | `NIIF S2 29 (c) B64 y B65 inciso (b)`<br>`NIIF S2 29 (c) B64 y B65 inciso (c)` | `registros_clima_valores` | — |
-| 36 | Oportunidades: alineación y capital | Tabla + D→T | **varía** | `NIIF S2 29 (d) B64 y B65 inciso (a)`<br>`NIIF S2 29 (d) B64 y B65 inciso (b)`<br>`NIIF S2 29 (d) B64 y B65 inciso (c)`<br>`NIIF S2 29 (e)` | `registros_clima_valores` | — |
-| 37 | Precio interno del carbono y remuneración vinculada | D→T | ambos | `NIIF S2 29 (f) (i) y (ii)`<br>`NIIF S2 29 (g) (i) y (ii)` | — | — |
-| 38 | Objetivos climáticos (atributos por objetivo) | Tabla | **varía** | `NIIF S2 33` | `objetivos` | — |
-| 39 | Enfoque para establecer y revisar objetivos; resultados | Tabla + D→T | **varía** | `NIIF S2 34`<br>`NIIF S2 35` | `objetivos_detalle` | — |
-| 40 | Objetivo de emisiones GEI | Tabla + D→T | **varía** | `NIIF S2 36 (a)a(d)`<br>`NIIF S2 36 (e)(i)a(iv)` | `objetivos_detalle`, `cuestionarios_respuestas` | — |
+| # | Bloque | Clase | Respaldo | Tipo | Régimen | Datapoints | Tablas | Perfil |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Carta de la Dirección | Editorial · opcional | Ninguna norma pide la carta de la Dirección. | T→E | ambos | — | — | `carta_texto`<br>`carta_firmante`<br>`carta_cargo` |
+| 2 | Presentación del informe (adopción, CNBV) | Normativo | NIIF S1 72 (declaración de cumplimiento). La mención de la CNBV es regulación local. | Plantilla | ambos | — | `reportes` | `denominacion_formal`<br>`nombre_corto` |
+| 3 | Bases de preparación: marco y alivios transitorios | Normativo | NIIF S1 E5–E6 (alivio «primero clima») y NIIF S2 C3–C5 (alivios del primer año). | Plantilla | **varía** | — | `reportes` | — |
+| 4 | Entidad que informa, periodo y conectividad | Normativo | NIIF S1 20 y 64 (misma entidad y periodo que los estados financieros); NIIF S2 32. | Plantilla + T→E | ambos | `NIIF S2 32` | `reportes`<br>`solicitudes` | `denominacion_formal`<br>`entidad_que_informa`<br>`perimetro` |
+| 5 | Conexiones y referencias cruzadas | Normativo | NIIF S1 21–24 (información conectada) y 63 (referencias cruzadas). | Plantilla | ambos | — | — | — |
+| 6 | Juicios, supuestos e incertidumbres | Normativo | NIIF S1 74–79 (juicios e incertidumbre en la medición). | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
+| 7 | Materialidad: contexto y proceso | Editorial · recomendado | Contexto que la emisora suele querer: S1 17–18 pide aplicar la materialidad, no describir el proceso. | T→E | **varía** | — | — | `proceso_materialidad` |
+| 8 | Horizontes temporales | Normativo | NIIF S2 10(d) (horizontes de corto, mediano y largo plazo). | Tabla | ambos | — | — | `horizontes` |
+| 9 | Evaluación y priorización de riesgos | Normativo | NIIF S2 25(a)(ii)–(iv) (evaluación y priorización); se solapa con el 27. | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
+| 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
+| 11 | Nuestra historia (línea de tiempo) | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
+| 12 | Modelo de negocio y cadena de valor | Editorial · opcional | La norma pide los efectos sobre el modelo de negocio y la cadena de valor (bloque 13), no describirlos. | T→E | ambos | — | — | `modelo_negocio`<br>`cadena_valor` |
+| 13 | Efectos sobre el modelo de negocio y la cadena de valor | Normativo | NIIF S2 13 (efectos sobre el modelo de negocio y la cadena de valor). | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |
+| 14 | Introducción a la sección | Editorial · opcional | Texto de paso entre secciones. | Plantilla | ambos | — | — | — |
+| 15 | Roles y responsabilidades del órgano de gobierno | Normativo | NIIF S2 6(a), (a)(i)–(ii). | D→T | ambos | `NIIF S2 6 (a)`<br>`NIIF S2 6 (a)(i)`<br>`NIIF S2 6 (a)(ii)` | — | — |
+| 16 | Supervisión de la estrategia, objetivos y remuneración | Normativo | NIIF S2 6(a)(iii)–(v). | D→T | ambos | `NIIF S2 6 (a)(iii)`<br>`NIIF S2 6 (a)(iv)`<br>`NIIF S2 6 (a)(v)` | — | — |
+| 17 | Papel de la gerencia y controles | Normativo | NIIF S2 6(b). | D→T | ambos | `NIIF S2 6(b)`<br>`NIIF S2 6(b)(i)`<br>`NIIF S2 6(b)(ii)` | — | — |
+| 18 | Estructura de gobierno corporativo y organigrama | Editorial · recomendado | Complementa a 15–17: S2 6 pide identificar al órgano y su papel, no el organigrama. | T→E + imagen | ambos | — | — | `gobierno_texto`<br>`organigrama_path` |
+| 19 | Trayectoria en sostenibilidad y clima | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
+| 20 | Contexto estratégico | Editorial · opcional | S2 9 es el objetivo de la sección de estrategia, no un requisito de revelación. | D→T | ambos | — | — | `horizontes` |
+| 21 | Riesgos climáticos prioritarios | Normativo | NIIF S2 10. | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)`<br>`NIIF S2 10(d)` | `registros_clima` | `matriz_riesgos` |
+| 22 | Cambios en modelo de negocio y asignación de recursos | Normativo | NIIF S2 14(a)(i)–(ii). | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
+| 23 | Esfuerzos directos e indirectos de reducción y adaptación | Normativo | NIIF S2 14(a)(iii). | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
+| 24 | Oportunidades y cómo prevé alcanzar objetivos | Normativo | NIIF S2 10(a) y 14(a)(v). Se solapa con 21 y 25: fusión anotada como deuda de estructura. | D→T | ambos | — | `registros_clima`<br>`objetivos` | — |
+| 25 | Recursos asignados y progreso de planes | Normativo | NIIF S2 14(a)(v), 14(b) y 14(c). | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
+| 26 | Resiliencia de la estrategia y análisis de escenarios | Normativo | NIIF S2 22. | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
+| 27 | Gestión y mitigación de riesgos y oportunidades | Normativo | NIIF S2 25. | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
+| 28 | Plan de transición | Normativo | NIIF S2 14(a)(iv). | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
+| 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Normativo | NIIF S2 29(a)(i). | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`<br>`reportes` | — |
+| 30 | Método de medición, datos de entrada y C5 | Normativo | NIIF S2 29(a)(ii)–(iii). | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
+| 31 | Razones del enfoque y desagregación | Normativo | NIIF S2 29(a)(iv). | D→T | ambos | `NIIF S2 29 (a)(iv) EI5` | — | — |
+| 32 | Alcance 2 por ubicación e instrumentos contractuales | Normativo | NIIF S2 29(a)(v). | D→T | ambos | `NIIF S2 29 (a)(v)` | — | — |
+| 33 | Emisiones financiadas | Normativo | NIIF S2 29(a)(vi). | D→T | ambos | `NIIF S2 29 (a)(vi)(1)`<br>`NIIF S2 29 (a)(vi)(1) EI12`<br>`NIIF S2 29 (a)(vi)(2)` | — | — |
+| 34 | Riesgos de transición: concentración, exposición y capital | Normativo | NIIF S2 29(b), B64–B65 (riesgos de transición). | Tabla + D→T | **varía** | `NIIF S2 29 (b)`<br>`NIIF S2 29 (b) · B65 (b)`<br>`NIIF S2 29 (b) · B65 (c)` | `registros_clima_valores` | — |
+| 35 | Riesgos físicos: exposición y gráfica | Normativo | NIIF S2 29(c), B64–B65 (riesgos físicos). | Tabla + D→T | **varía** | `NIIF S2 29 (c)`<br>`NIIF S2 29 (c) · B65 (b)`<br>`NIIF S2 29 (c) · B65 (c)` | `registros_clima_valores` | — |
+| 36 | Oportunidades: alineación y capital | Normativo | NIIF S2 29(d) y (e). | Tabla + D→T | **varía** | `NIIF S2 29 (d)`<br>`NIIF S2 29 (d) · B65 (b)`<br>`NIIF S2 29 (d) · B65 (c)`<br>`NIIF S2 29 (e)` | `registros_clima_valores` | — |
+| 37 | Precio interno del carbono y remuneración vinculada | Normativo | NIIF S2 29(f) y (g). | D→T | ambos | `NIIF S2 29 (f) (i) y (ii)`<br>`NIIF S2 29 (g) (i) y (ii)` | — | — |
+| 38 | Objetivos climáticos (atributos por objetivo) | Normativo | NIIF S2 33. | Tabla | **varía** | `NIIF S2 33` | `objetivos` | — |
+| 39 | Enfoque para establecer y revisar objetivos; resultados | Normativo | NIIF S2 34–35. | Tabla + D→T | **varía** | `NIIF S2 34`<br>`NIIF S2 35` | `objetivos_detalle` | — |
+| 40 | Objetivo de emisiones GEI | Normativo | NIIF S2 36. | Tabla + D→T | **varía** | `NIIF S2 36 (a)a(d)`<br>`NIIF S2 36 (e)(i)a(iv)` | `objetivos_detalle`<br>`cuestionarios_respuestas` | — |
+
+**Clases (encargo `2026-10-06-suplemento-calidad`, aprobada por el asesor el 6/10/2026; Esteban la confirma con
+Manuel).**
+- **Normativo:** 32 bloques. Lo exige un párrafo de NIIF S1 o S2 (columna «Respaldo») y siempre va.
+- **Editorial · recomendado:** 7 y 18. Lo encienden por defecto.
+- **Editorial · opcional:** 1, 11, 12, 14, 19 y 20. Lo apagan por defecto.
+
+La selección se guarda en el documento (`documentos_generados.editoriales_incluidos`). Un editorial no seleccionado
+no se genera, no va en el índice ni en el Word, y no cuenta en el semáforo. La clasificación vive en
+`lib/suplemento/bloques.ts`. Si Manuel cambia los casos 2, 7 o 24, se ajusta ahí sin tocar el mecanismo.
+
+**Deuda de estructura:** el 24 se solapa con el 21 y el 25 y podría fundirse con ellos.
+
+**Códigos corregidos del catálogo:** 29(b) son los riesgos de transición (bloque 34) y 29(c) los físicos (bloque 35).
+`NIIF S2 30` ya no está en el bloque 34: es la exención por costo o esfuerzo para 29(b)–(d), no un requisito de
+revelación. Por eso la declaración del demo «no se acoge a la exención», ligada a S2 30, deja de salir en el
+documento.
 
 ### A.1 · Bloques sin datapoints (14 de 40)
 
@@ -1640,6 +1664,6 @@ bloque en el régimen que la Fase A implementa. Entran en años subsecuentes, cu
   NIIF S1 72
 ```
 
-De NIIF S2 no queda ninguno sin bloque. Dos que la primera pasada había dejado fuera se
+De NIIF S2 queda uno sin bloque desde la clasificación del 6/10/2026: `NIIF S2 30` (la exención por costo o esfuerzo, ver arriba). Dos que la primera pasada había dejado fuera se
 reasignaron al detectarlo: `NIIF S2 30` (cantidad y porcentaje de activos vulnerables a riesgos de
 transición) al bloque 34, y `NIIF S2 32` (tipo de sector en que participa) al bloque 4.
