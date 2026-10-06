@@ -1,7 +1,14 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.25** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.26** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.25** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 2):
+- §3.2: los adjuntos del Perfil se leen (misma extracción y cola que las evidencias) y entran al generador como
+  contexto citado por archivo y página; lo construido y lo que falta de (a).
+- §4: estado de lectura de cada adjunto en el Perfil.
+- §5: migración `20261006150000` (`perfil_emisor_adjuntos_contenido`).
+- §9: A5b, frente (1), construido salvo la normalización sin resumir de textos ya redactados.
 
 **Cambios respecto a 0.24** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Pasos 0 y 1):
 - Anexo A: clase de cada bloque (normativo, editorial recomendado u opcional) con su párrafo de respaldo; tabla
@@ -277,9 +284,9 @@ segundo reporte del tenant demo con datos del ejercicio anterior. Los bloques S1
 
 ### 3.2 Adjuntos como insumo
 
-Cada sección del Perfil del emisor (§4) admite archivos de respaldo: PDF, DOCX, XLSX, PNG y JPG. En Fase A
-(paso A3) **se guardan, se descargan y se quitan; el generador no los abre**. Lo que sigue es cómo se
-convierten en insumo, y bajo qué reglas.
+Cada sección del Perfil del emisor (§4) admite archivos de respaldo: PDF, DOCX, XLSX, PNG y JPG. En A3 solo se
+guardaban, descargaban y quitaban. **Desde el encargo suplemento-calidad (Paso 2) se leen** y el generador los
+usa como contexto citado. Lo que sigue es cómo se convierten en insumo, y bajo qué reglas.
 
 **(a) Alimentan a los bloques T→E en A5.** Un bloque T→E parte de texto que el emisor ya escribió; el adjunto
 es de dónde sale ese texto cuando no está en el formulario. Dos tratamientos, según el archivo:
@@ -292,6 +299,32 @@ es de dónde sale ese texto cuando no está en el formulario. Dos tratamientos, 
 
 En los dos casos rige la regla del generador: **nada que no esté en el archivo**. Un adjunto no autoriza a
 inferir; si el dato no está, el bloque lleva su `[Pendiente: …]` como si no hubiera adjunto.
+
+**Lo construido (Paso 2 de suplemento-calidad).**
+
+- **Lectura.** `perfil_emisor_adjuntos_contenido`, tabla hermana de `evidencias_contenido`: una fila por
+  adjunto, creada `pendiente` por trigger al insertarlo, leída por la MISMA cola y la MISMA extracción
+  (`lib/evidencias/cola.ts`, bucket `documentos`). Bandera y tope son los de la lectura de evidencias
+  (`lectura_evidencias_activa`, `lecturas_mes_max`; un adjunto leído cuenta como una lectura). Límite de 60
+  páginas por documento, avisado en el Perfil («Se leyeron las primeras 60 páginas de 80»). RLS: staff y el
+  administrador del cliente de su emisora leen; nadie escribe con sesión; barrera del auditor.
+- **Selección previa.** Cada documento se corta en unidades citables (página de PDF, tramo de párrafos de Word
+  que abre en cada título, hoja, imagen) y se ordenan por parecido de términos con lo que el bloque cubre (su
+  título, su frontera, sus requisitos y sus campos del Perfil). Entran las mejores hasta 14 000 caracteres por
+  bloque y 8 000 por documento; la mejor unidad de cada documento de una sección propia del bloque entra
+  siempre. Sin llamada al modelo.
+- **Qué bloques.** Los de las secciones del Perfil de sus campos, y además: gobernanza (II) ve «gobierno»;
+  estrategia (III) ve «gobierno», «matriz», «horizontes», «modelo» y «trayectoria»; gestión de riesgos (IV) ve
+  «gobierno» y «matriz».
+- **Cita.** Ids `adj:<adjunto>:p<N>` (página), `:par<A>-<B>` (párrafos), `:tab<N>`, `:h<N>`, `:img`, con su
+  detalle legible; van en `fuentes_usadas` y la vista de revisión los enlaza al Perfil.
+- **Ninguna cifra sale de un adjunto** (regla 10 del prompt). El validador no los cuenta como respaldo: igual
+  que el contenido crudo de una evidencia, el texto lo subió la emisora pero nadie confirmó sus números. Una
+  cifra que solo está en un adjunto se rechaza; el modelo la deja en notas para el revisor.
+- **`pendiente_adjunto`** queda solo para el bloque cuyos campos están vacíos y cuyos documentos todavía no se
+  leen (en cola) o no se pudieron leer; con un documento leído, el bloque se redacta desde él.
+- **Pendiente:** el tratamiento «texto ya redactado: se normaliza y se traduce, sin resumir» de arriba no tiene
+  camino propio; un texto así entra como contexto como cualquier otro documento.
 
 **(b) Paso nuevo A10 — pre-carga asistida.** Después de A8. Los emisores llegan con documentos de análisis de
 riesgos y estudios de materialidad cuya estructura **varía por consultor**: cada despacho usa su plantilla, sus
@@ -330,7 +363,8 @@ sugerencia y el generador lo reutilizan. Dos diferencias con (c), decididas en e
   sin texto, es decir, los escaneados, y las imágenes van al modelo con visión. La paginación se conserva igual.
 - **Sin caché.** Lo que se manda al modelo es el contenido ya extraído y recortado (hasta 8 000 caracteres por
   evidencia y 30 000 por bloque), no el archivo; la sugerencia cuesta del orden de $0.007 y no lo amerita.
-- **Los adjuntos del Perfil (a) y la pre-carga A10 (b) siguen sin construir.**
+- **Los adjuntos del Perfil (a) se leen desde el Paso 2 de suplemento-calidad (arriba); la pre-carga A10 (b)
+  sigue sin construir.**
 
 ---
 
@@ -437,8 +471,9 @@ Se captura una vez por emisora y persiste entre ejercicios. Lo que cambia por ej
 **Columnas nuevas en `reportes`**: `anio_adopcion` (int), `alivios` (jsonb: {E4, E5, C3, C4, C5} booleanos).
 
 **Adjuntos por sección** (`perfil_emisor_adjuntos`): cada una de las nueve secciones admite uno o más archivos
-(PDF, DOCX, XLSX, PNG, JPG, hasta 20 MB) en `documentos/{tenant_id}/perfil/{seccion}/`. En Fase A solo se
-guardan y se descargan; su uso como insumo es §3.2.
+(PDF, DOCX, XLSX, PNG, JPG, hasta 20 MB) en `documentos/{tenant_id}/perfil/{seccion}/`. Cada archivo muestra
+el estado de su lectura: «Leído» (con el aviso de páginas si se recortó), «En lectura» o «No se pudo leer». Su uso
+como insumo es §3.2.
 
 **Quién captura**: el admin del cliente desde el portal y el staff de IRStrat desde el panel interno, sobre el
 mismo formulario. Cada guardado registra quién y cuándo. Las listas (hitos, cadena de valor) se editan como
@@ -476,6 +511,7 @@ filas, no como JSON.
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
 | `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
+| `perfil_emisor_adjuntos_contenido` (una fila por adjunto: estado de lectura, contenido extraído, páginas, costo) con trigger de encolado y relleno de los adjuntos existentes | Lectura de los adjuntos del Perfil para el generador (encargo suplemento-calidad, Paso 2) | CREATE TABLE con RLS, trigger nuevo y barrera (`20261006150000`) |
 | Tabla `correos_retenidos` | Avisos inmediatos que pasan el tope de 20 por emisora y hora; el job de 10 minutos los manda agrupados | CREATE TABLE con RLS (lectura solo staff, sin escritura con sesión) y barrera: 90 políticas (`20261006130000`) |
 | `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
 
@@ -720,7 +756,7 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 | ✅ A3 | Formulario del Perfil del emisor (portal y panel) y captura de severidad en registros de clima. Semáforo de completitud, sin IA | A2 | **Completo · 11 sep 2026** |
 | ✅ A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola | **Completo · 11 sep 2026** |
 | ✅ A5a | Los 40 bloques en régimen primer año por vía (plantilla, perfil, datos) con once tablas armadas por código; `POST /generar` con cola explícita, reclamo atómico, concurrencia 3 y corte por tiempo; vista de revisión con edición en línea, regeneración por bloque y aprobación bloqueada con pendientes; botón del semáforo para staff. Documento demo completo: 39 borradores + 1 no aplica, $7.5579, 27.7 min de cómputo | A4 | **Completo · 15 sep 2026** |
-| A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar—; (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24; (5) **solicitudes con varias capturas confirmadas entregan TODAS al prompt, con su etiqueta**. Hoy `entregaPorSolicitud` colapsa cada solicitud a un solo valor —el último confirmado— y una solicitud que resume la composición de una cartera en siete cifras le entrega al modelo una sola, elegida por el orden de inserción. Las demás viajan de contrabando en la descripción, que es prosa: el modelo las copia bien, pero nada las valida ni las suma. Cada captura lleva su etiqueta en `justificacion` y ese par (etiqueta, valor) es lo que debe llegar. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
+| A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar— (**construido** en el Paso 2 de suplemento-calidad, §3.2; la revisión es la del borrador del bloque); (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24; (5) **solicitudes con varias capturas confirmadas entregan TODAS al prompt, con su etiqueta**. Hoy `entregaPorSolicitud` colapsa cada solicitud a un solo valor —el último confirmado— y una solicitud que resume la composición de una cartera en siete cifras le entrega al modelo una sola, elegida por el orden de inserción. Las demás viajan de contrabando en la descripción, que es prosa: el modelo las copia bien, pero nada las valida ni las suma. Cada captura lleva su etiqueta en `justificacion` y ese par (etiqueta, valor) es lo que debe llegar. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
 | A6 | Word con estilos, marca de agua y anexo de trazabilidad. **A6 mínimo está hecho** (portada, índice, bloques con su referencia NIIF, tablas, marca de agua mientras no esté aprobado). Falta: (1) el **anexo de trazabilidad**; (2) **versiones por bloque con historial de ediciones humanas** — hoy `documentos_bloques` guarda un solo texto y `editado_por`/`editado_en`; una edición a mano pisa lo generado sin dejar rastro de qué decía antes, y la regeneración pisa la edición sin dejar rastro de que existió. Hace falta una tabla de versiones por bloque, con autor, fecha y origen (modelo o persona), como la que ya tienen las evidencias; (3) **confirmación antes de regenerar un bloque editado**: el botón «Regenerar» no distingue entre un bloque que nadie tocó y uno que un revisor reescribió, y en el segundo caso destruye trabajo humano sin avisar. Pasó el 15 de septiembre de 2026 con el bloque 4; el texto se conservó porque alguien se acordó de copiarlo antes | A5b | Pendiente |
 | A7 | Glosario ES↔EN y versión en inglés | A6 | Pendiente |
 | A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 | Pendiente |
