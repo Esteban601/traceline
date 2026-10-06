@@ -167,7 +167,7 @@ Las líneas base ya están en `referencia/lineas-base/v33/antes/`: los tres Exce
 
 **1. Merge del PR (Claude Code, con la autorización de Esteban por chat, CLAUDE.md §9).**
 ```sh
-gh pr merge <n> --merge          # merge commit, con el comentario de revisión del asesor y aprobación de Esteban
+gh pr merge 8 --merge            # merge commit, con el comentario de revisión del asesor y aprobación de Esteban
 cd ~/Repositorios/vert-evidencia && git fetch origin && git merge --ff-only origin/main
 git rev-parse --short HEAD origin/main       # iguales
 nvm use 22 && pnpm install --frozen-lockfile  # la copia principal toma las dependencias de v33 (scripts del paso 4)
