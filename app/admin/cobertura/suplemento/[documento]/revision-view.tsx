@@ -163,7 +163,7 @@ export function RevisionView(p: {
               </Button>
             </form>
           )}
-          {p.estado !== "aprobado" && (
+          {p.estado !== "aprobado" && p.puedeAprobar && (
             <form action={aEstado}>
               <input type="hidden" name="documento_id" value={p.documentoId} />
               <input type="hidden" name="estado" value="aprobado" />
@@ -174,7 +174,7 @@ export function RevisionView(p: {
               </Button>
             </form>
           )}
-          {bloqueantes.length > 0 && (
+          {bloqueantes.length > 0 && p.puedeAprobar && (
             <span className="text-sm text-muted">
               No se puede aprobar: {bloqueantes.length} bloque(s) con pendientes o sin generar.
             </span>
