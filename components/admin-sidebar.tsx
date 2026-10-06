@@ -297,12 +297,12 @@ export function AdminSidebar({
           >
             {iniciales(perfil.nombre)}
           </span>
-          <div className={cn("min-w-0 flex-1", etiquetaCls)}>
+          <Link href="/admin/cuenta" title="Mi cuenta" className={cn("min-w-0 flex-1 hover:underline", etiquetaCls)}>
             <div className="truncate text-sm font-medium leading-tight text-crema">{nombre}</div>
             <div className="text-xs leading-tight text-crema/70">
-              {esStaff ? `IRStrat · ${ROL_LABEL[perfil.rol]}` : ROL_LABEL[perfil.rol]}
+              {esStaff ? `IRStrat · ${ROL_LABEL[perfil.rol]}` : ROL_LABEL[perfil.rol]} · Mi cuenta
             </div>
-          </div>
+          </Link>
           {/* Salir con texto (expandido) */}
           <form action={logout} className={etiquetaCls}>
             <LogoutButton tone="invert" />
