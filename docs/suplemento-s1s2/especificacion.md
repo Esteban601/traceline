@@ -6,6 +6,7 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 **Cambios respecto a 0.14** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 6):
 - §10: registro del despliegue v33 (release v34 de Heroku, `d2124d0`).
 - §10, «Deudas conocidas»: las dos quedan resueltas por v33.
+- §10, «Ambiente de pruebas en Heroku»: `traceline-dev` se conserva, con sus config vars por nombre y su propósito.
 
 **Cambios respecto a 0.13** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 1):
 - §10, «Antes del merge a producción», punto 1: resuelto. Las 26 migraciones de `dev` que staging no tiene se
@@ -1090,6 +1091,49 @@ entero en una copia. El primero es el del rol auditor (encargo
   (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
+
+### Ambiente de pruebas en Heroku: `traceline-dev`
+
+Decidido por Esteban el 5 de octubre de 2026, al cerrar v33: la app que se creó para el ensayo de v33 se
+conserva como **ambiente de pruebas permanente**. El proyecto Supabase de ensayo (`sqpxcxewoznhpwvhxamy`) sí se
+borra; lo borra Esteban.
+
+- **Qué es.** La app de Heroku `traceline-dev` (https://traceline-dev-d4fd7a3cda04.herokuapp.com). En el repo es
+  el remoto `heroku-dev`, y la rama que se le despliega va a su `main`: `git push heroku-dev <rama>:main`.
+  `heroku` sigue siendo staging.
+- **Propósito.** Probar en un dyno real, antes de staging, lo que en local no se ve:
+  - `after()` y `maxDuration` del generador y de la cola de lectura;
+  - latencias por bloque y costo medido;
+  - subidas por URL firmada;
+  - el job del Scheduler;
+  - aislamiento multi-tenant con rechazo del servidor.
+
+  Es el ambiente de A8. No es staging: no lleva clientes reales y no se le despliega `main` de rutina.
+- **Quién despliega.** Una persona, o Claude Code con la autorización de Esteban por chat (CLAUDE.md §9 aplicado
+  por analogía). Cada despliegue se anota en el registro del encargo que lo use.
+- **Config vars** (por nombre; los valores solo en Heroku):
+
+  | Variable | Para qué |
+  |---|---|
+  | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Proyecto Supabase al que apunta (hoy, ensayo) |
+  | `ANTHROPIC_API_KEY` | Llave propia de este ambiente para el generador y la lectura de evidencias; su gasto es el de las pruebas |
+  | `CRON_SECRET` | Secreto del job de la cola (`x-cron-secret`); rotado el 5/10 tras el incidente del Paso 3 |
+  | `NEXT_PUBLIC_APP_URL` | URL propia de la app (con el hash de Heroku), para enlaces y recuperación de contraseña |
+  | `NEXT_PUBLIC_APP_NAME` | Nombre visible |
+  | `NEXT_PUBLIC_STAGING` | Banner de ambiente no productivo |
+  | `SUPLEMENTO_PRUEBA` | `1`: muestra al staff el botón de prueba del bloque 29. Solo en este ambiente |
+  | `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` | Que el build no descargue navegadores |
+
+  No lleva `RESEND_API_KEY` ni `EMAIL_FROM`: desde aquí no se manda correo.
+- **Add-ons.** `scheduler:standard`, con un único job: `POST /api/evidencias/procesar` cada 10 minutos, con el
+  header `x-cron-secret: $CRON_SECRET`. No tiene job de recordatorios.
+- **Release vigente:** v11, código `dev/ajustes-sep26` en `9d8eec6`.
+- **Pendiente de decidir (Esteban): a qué base apunta cuando se borre ensayo.** Hoy las tres variables de
+  Supabase y el Site URL de Auth son las del proyecto de ensayo. Al borrarlo, la app y su job del Scheduler se
+  quedan sin base hasta que se reapunte. Hay que elegir entre un proyecto de pruebas propio o el dev de una
+  persona; nunca staging.
+  - Si apunta al dev de una persona, aplica la regla de §1 de CLAUDE.md: cada proyecto es de una sola persona.
+  - Mientras no se decida, conviene pausar el job del Scheduler de `traceline-dev`.
 
 ### Antes del merge a producción (`dev/ajustes-sep26` → `main`)
 
