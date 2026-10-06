@@ -1,7 +1,12 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.15** · 5 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.16** · 5 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.15** (`hotfix/cron-sin-secreto`):
+- §10, «Jobs del Scheduler sin variables en el comando»: los jobs llaman a `scripts/cron/llamar.mjs`; regla
+  también en CLAUDE.md §6 (v1.8).
+- §10, «Ambiente de pruebas en Heroku»: comando del job de la cola actualizado.
 
 **Cambios respecto a 0.14** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 6):
 - §10: registro del despliegue v33 (release v34 de Heroku, `d2124d0`).
@@ -1092,6 +1097,31 @@ entero en una copia. El primero es el del rol auditor (encargo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
 
+### Jobs del Scheduler sin variables en el comando
+
+Regla desde el 5 de octubre de 2026; también en CLAUDE.md §6.
+
+- **El hallazgo.** Al cerrar v33, el log de staging mostraba el `CRON_SECRET` en texto plano en la línea
+  `heroku[scheduler.N] Starting process with command …`. El dyno manager escribe esa línea con las variables
+  de entorno ya sustituidas. Pasaba con `$CRON_SECRET` entre comillas y también dentro de `bash -c '…'`. La
+  línea `app[api]` del mismo arranque sí lo deja literal. Se comprobó solo por longitud: 64 caracteres tras el
+  header frente a los 12 de `$CRON_SECRET`, sin imprimir la línea. El secreto se rotó dos veces.
+- **La solución.** `scripts/cron/llamar.mjs <ruta>` lee `CRON_SECRET` y `NEXT_PUBLIC_APP_URL` de
+  `process.env` dentro del dyno y hace `POST /api/<ruta>` con `x-cron-secret`. Imprime solo la ruta, el
+  código HTTP y la duración. Sale con 0 si la respuesta es 2xx y con 1 si no: un código de salida no puede ser
+  el HTTP.
+- **Comandos de los jobs:**
+
+  | App | Job | Comando | Frecuencia |
+  |---|---|---|---|
+  | `traceline-staging` | Cola de lectura | `node scripts/cron/llamar.mjs evidencias/procesar` | cada 10 min |
+  | `traceline-staging` | Recordatorios | `node scripts/cron/llamar.mjs recordatorios` | diaria |
+  | `traceline-dev` | Cola de lectura | `node scripts/cron/llamar.mjs evidencias/procesar` | cada 10 min |
+
+- **Cómo se verifica.** Por conteo, con un extractor de lista blanca sobre `heroku logs`. La línea
+  `heroku[scheduler]` del arranque no debe tener nada después de `x-cron-secret` (el comando ya no lo nombra).
+  El router debe responder `POST … status=200`.
+
 ### Ambiente de pruebas en Heroku: `traceline-dev`
 
 Decidido por Esteban el 5 de octubre de 2026, al cerrar v33: la app que se creó para el ensayo de v33 se
@@ -1125,8 +1155,9 @@ borra; lo borra Esteban.
   | `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` | Que el build no descargue navegadores |
 
   No lleva `RESEND_API_KEY` ni `EMAIL_FROM`: desde aquí no se manda correo.
-- **Add-ons.** `scheduler:standard`, con un único job: `POST /api/evidencias/procesar` cada 10 minutos, con el
-  header `x-cron-secret: $CRON_SECRET`. No tiene job de recordatorios.
+- **Add-ons.** `scheduler:standard`, con un único job, cada 10 minutos: `node scripts/cron/llamar.mjs
+  evidencias/procesar` (sin variables en el comando; ver «Jobs del Scheduler sin variables en el comando»).
+  No tiene job de recordatorios.
 - **Release vigente:** v11, código `dev/ajustes-sep26` en `9d8eec6`.
 - **Pendiente de decidir (Esteban): a qué base apunta cuando se borre ensayo.** Hoy las tres variables de
   Supabase y el Site URL de Auth son las del proyecto de ensayo. Al borrarlo, la app y su job del Scheduler se
