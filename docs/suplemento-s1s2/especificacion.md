@@ -1,7 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.14** · 5 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.15** · 5 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.14** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 6):
+- §10: registro del despliegue v33 (release v34 de Heroku, `d2124d0`).
+- §10, «Deudas conocidas»: las dos quedan resueltas por v33.
 
 **Cambios respecto a 0.13** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 1):
 - §10, «Antes del merge a producción», punto 1: resuelto. Las 26 migraciones de `dev` que staging no tiene se
@@ -949,9 +953,71 @@ datos; queda cubierto por `e2e:jefe-sube-evidencia` en local y en dev.
 Reversión: volver a aplicar los cuerpos anteriores de las dos funciones (los de
 `20260820130000` y `20260826120000`). No hay datos que revertir.
 
+### staging · v33 (release v34 de Heroku) · 5 de octubre de 2026 · `d2124d0`
+
+**El generador del Suplemento, la captura sugerida y la corrección del catálogo NIIF llegan a staging.** Es
+el ciclo `dev/ajustes-sep26` completo, por el PR #8 (merge commit `d2124d0`), revisado con el asesor y aprobado
+por Esteban. Encargo: `docs/encargos/2026-10-05-generador-a-produccion.md`. El guion está en su §5.2 y el
+registro de los Pasos 0 a 5 en su §7.
+
+**Numeración.** Heroku lo publicó como **v34**. El release v33 de Heroku es «Set ANTHROPIC_API_KEY config
+vars» (código de v32, `b682627`, con la llave puesta).
+
+**Orden.**
+1. Merge del PR (Claude Code, con autorización de Esteban).
+2. Migraciones (Esteban, desde `main`).
+3. `git push heroku main` (Claude Code). La base se migró antes de que llegara el código; el código anterior
+   corre sobre la base migrada (probado en el ensayo).
+
+**Migraciones.** Aplicadas por Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`: 30 de 30,
+66 de 66 alineadas, barrera 87. Son las 26 de `dev` renumeradas a `20261005120000 + n minutos` y cuatro más:
+- `20261005122600_tenants_generador_activo`;
+- `20261005122700_vitrina_apagada_clientes_reales`;
+- `20261005130000_catalogo_repunte_riesgos_fisicos` (19 filas de mockups, ninguna de Grupo Carso);
+- `20261005130100_reportes_anio_adopcion_demo`.
+
+**Antes del despliegue.**
+- **Ensayo** en una copia de staging (`sqpxcxewoznhpwvhxamy`) con la app `traceline-dev`. A8 completo desde
+  Heroku:
+  - documento completo del demo: 40 de 40 bloques en 9.9 min por $8.93;
+  - aislamiento: 8 de 8;
+  - subida de 22.4 MB por URL firmada;
+  - cola por el Scheduler: en verde.
+- **Paso 4:**
+  - Grupo Carso intacto salvo la vitrina;
+  - Excel con 0 diferencias no esperadas;
+  - `main` sobre la base migrada: 26 ✓;
+  - e2e del auditor: 58 ✓ y 92 ✓;
+  - vitrina: en verde.
+- **`ANTHROPIC_API_KEY`** en `traceline-staging`, verificada por nombre.
+
+Verificación en staging tras el release (líneas base en `referencia/lineas-base/v33/`):
+
+| | Resultado |
+|---|---|
+| Release | ✓ v34 · Deploy `d2124d01`; `web.1` up; `/login` 200 |
+| Grupo Carso: instantánea después de migrar (Esteban) contra `antes/instantanea.txt` | ✓ 18 de 19 líneas idénticas. La de `tenants` cambia solo por `vitrina_habilitada` true → false, al md5 exacto que dio ensayo (`a3b0f51f…`) |
+| Banderas de §3 por consulta (`comprobar-v33.mjs --despues`) | ✓ 20 de 20. Mockups y Empresa Demo: generador y lectura encendidos. Grupo Carso: vitrina, generador y lectura apagados. Topes 10 y 500. Vitrina igual que antes del despliegue en las 19 de demostración (AINDA apagada) |
+| Año de adopción | ✓ 0 reportes de demostración sin año; Grupo Carso sin año |
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso contra la línea base (`comparar-excel-v33.mjs`) | ✓ 0 diferencias no esperadas en los tres. 475 esperadas en cada uno: 3 hojas renombradas, 382 celdas del índice con texto de la plantilla nueva, 88 descripciones del catálogo y 2 títulos. Además, idénticos celda por celda a los que dio ensayo con el mismo código |
+| Vitrina de Banco Base | ✓ Word y PDF 200, los dos desde el bucket, sin «Empresa Demo», 2 filas de bitácora |
+| Generador de Empresa Demo (`POST …/generar`) | ✓ 200. Deja el documento con sus bloques en cola, sin llamar al modelo; cuenta 1 de las 10 corridas del mes |
+| Logs (solo conteos) | ✓ desde v34: 0 respuestas 5xx, 0 `Error:`, sin caídas. En las 1500 líneas anteriores hay un `Error:` del 4/10 a las 18:14 UTC, de v32 |
+
+Pendiente: el job de la cola en el Scheduler de staging lo agrega Esteban en el dashboard. La primera
+corrida se comprueba por conteo de `evidencias/procesar … status=200` en los logs.
+
+Punto de reversión: `heroku releases:rollback v33 -a traceline-staging`. No es v32: un rollback restaura
+también las config vars, y v32 no tiene `ANTHROPIC_API_KEY`. Solo revierte código; las migraciones son
+aditivas y se quedan. Antes que el rollback está apagar `generador_activo` por emisora en `/admin/clientes`.
+
 ### Deudas conocidas
 
 Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
+
+> **Resueltas en v33** (5 de octubre de 2026). `service_role`: no hace falta migración; la aplicación solo
+> lee tablas existentes (verificado en staging, Paso 2 del encargo) y las tablas nuevas declaran sus grants.
+> `generaciones_mes_max`: se aplica desde v33 (corridas completas por emisora y mes, `lib/suplemento/acceso.ts`).
 
 - **Los permisos de `service_role` difieren entre local y alojado.** En los
   proyectos alojados, `service_role` tiene privilegios que el stack local no le
