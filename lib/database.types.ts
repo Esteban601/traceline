@@ -603,6 +603,7 @@ export type Database = {
           archivo_path: string | null
           costo_usd: number
           created_at: string
+          editoriales_incluidos: string[] | null
           estado: string
           generado_por: string | null
           id: string
@@ -623,6 +624,7 @@ export type Database = {
           archivo_path?: string | null
           costo_usd?: number
           created_at?: string
+          editoriales_incluidos?: string[] | null
           estado?: string
           generado_por?: string | null
           id?: string
@@ -643,6 +645,7 @@ export type Database = {
           archivo_path?: string | null
           costo_usd?: number
           created_at?: string
+          editoriales_incluidos?: string[] | null
           estado?: string
           generado_por?: string | null
           id?: string
