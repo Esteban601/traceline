@@ -31,6 +31,7 @@ import { Timeline, type EventoBitacora } from "./timeline";
 import { MarcasVerificacion } from "@/components/marcas-verificacion";
 import { cargarVerificaciones } from "@/lib/verificaciones";
 import { estadoEnGrupo } from "@/lib/difusion";
+import { fueEnviado } from "@/lib/notificaciones/resumen-diario";
 import { GrupoDifusion, type CopiaDelGrupo } from "./grupo-difusion";
 import {
   RecordatoriosVista,
@@ -229,13 +230,24 @@ export default async function SolicitudStaffPage({
   // salen de la MISMA bitácora que alimenta el timeline (no de un log aparte: el
   // rastro de un correo enviado es el mismo dato, leído de otra forma).
   const recordatoriosConfig = (recordatorios ?? []) as RecordatorioConfig[];
-  const enviosRecordatorio: EnvioRecordatorio[] = ((bitacora ?? []) as unknown as {
+  // Desde el sistema de alertas hay una fila POR DESTINATARIO (enviada, omitida
+  // o fallida) con su id y sin dirección: «Ya enviados» lee solo las que
+  // salieron, y la dirección se resuelve del perfil. Las filas anteriores
+  // traen la dirección en el detalle y se leen igual.
+  const filasProgramados = ((bitacora ?? []) as unknown as {
     id: string;
     created_at: string;
     accion: string;
     detalle: Record<string, unknown> | null;
-  }[])
-    .filter((b) => b.accion === "recordatorio_programado_enviado")
+  }[]).filter((b) => b.accion === "recordatorio_programado_enviado" && fueEnviado(b.detalle as never));
+  const idsDestinatarios = [
+    ...new Set(filasProgramados.map((b) => b.detalle?.destinatario_id as string | undefined).filter((x): x is string => !!x)),
+  ];
+  const { data: perfilesDestino } = idsDestinatarios.length
+    ? await supabase.from("perfiles_usuario").select("id, email").in("id", idsDestinatarios)
+    : { data: [] as { id: string; email: string }[] };
+  const correoDe = new Map((perfilesDestino ?? []).map((p) => [p.id, p.email]));
+  const enviosRecordatorio: EnvioRecordatorio[] = filasProgramados
     .map((b) => ({
       id: b.id,
       created_at: b.created_at,
@@ -243,7 +255,10 @@ export default async function SolicitudStaffPage({
       dias_antes: (b.detalle?.dias_antes as number | undefined) ?? null,
       fecha_disparo: (b.detalle?.fecha_disparo as string | undefined) ?? null,
       destinatarios: (b.detalle?.destinatarios as number | undefined) ?? null,
-      email: (b.detalle?.email as string | undefined) ?? null,
+      email:
+        (b.detalle?.email as string | undefined) ??
+        correoDe.get(b.detalle?.destinatario_id as string) ??
+        null,
     }));
 
   // LAS DOS VERIFICACIONES, calculadas igual que en el portal: el visto bueno del

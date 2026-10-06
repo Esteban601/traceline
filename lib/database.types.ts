@@ -353,6 +353,60 @@ export type Database = {
           },
         ]
       }
+      correos_retenidos: {
+        Row: {
+          accion: string
+          agrupado_en: string | null
+          asunto: string
+          created_at: string
+          destinatario_id: string
+          evento: Json
+          extracto: string | null
+          id: string
+          ruta: string | null
+          tenant_id: string
+        }
+        Insert: {
+          accion: string
+          agrupado_en?: string | null
+          asunto: string
+          created_at?: string
+          destinatario_id: string
+          evento: Json
+          extracto?: string | null
+          id?: string
+          ruta?: string | null
+          tenant_id: string
+        }
+        Update: {
+          accion?: string
+          agrupado_en?: string | null
+          asunto?: string
+          created_at?: string
+          destinatario_id?: string
+          evento?: Json
+          extracto?: string | null
+          id?: string
+          ruta?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correos_retenidos_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correos_retenidos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cuestionarios_respuestas: {
         Row: {
           created_at: string
@@ -1221,6 +1275,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
+          recibe_resumen_diario: boolean
           rol: Database["public"]["Enums"]["rol_usuario"]
           tenant_id: string | null
         }
@@ -1232,6 +1287,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
+          recibe_resumen_diario?: boolean
           rol: Database["public"]["Enums"]["rol_usuario"]
           tenant_id?: string | null
         }
@@ -1243,6 +1299,7 @@ export type Database = {
           email?: string
           id?: string
           nombre?: string
+          recibe_resumen_diario?: boolean
           rol?: Database["public"]["Enums"]["rol_usuario"]
           tenant_id?: string | null
         }
@@ -1950,6 +2007,7 @@ export type Database = {
         Args: { p_solicitud_id: string }
         Returns: Database["public"]["Enums"]["estado_reporte"]
       }
+      fn_set_resumen_diario: { Args: { p_recibir: boolean }; Returns: boolean }
       fn_tenant_de_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: string

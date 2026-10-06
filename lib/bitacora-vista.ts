@@ -15,6 +15,12 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   recordatorio_enviado: { label: "Recordatorio enviado", tono: "ambar" },
   recordatorio_programado_enviado: { label: "Recordatorio programado enviado", tono: "ambar" },
   aviso_observacion: { label: "Observación notificada", tono: "rojo" },
+  aviso_comentario_auditor: { label: "Aviso: comentario del auditor", tono: "ambar" },
+  aviso_respuesta_auditor: { label: "Aviso: respuesta al auditor", tono: "ambar" },
+  aviso_documento_aprobado: { label: "Aviso: Suplemento aprobado", tono: "ambar" },
+  avisos_agrupados: { label: "Avisos agrupados", tono: "ambar" },
+  resumen_diario: { label: "Resumen diario", tono: "ambar" },
+  preferencia_resumen_diario: { label: "Preferencia de resumen diario", tono: "gris" },
   solicitud_creada: { label: "Solicitud creada", tono: "verde" },
   solicitud_editada: { label: "Solicitud editada", tono: "gris" },
   solicitud_eliminada: { label: "Solicitud eliminada", tono: "rojo" },
@@ -117,6 +123,22 @@ const estadoLabel = (e: string | null): string =>
   e && e in ESTADO_META ? ESTADO_META[e as EstadoSolicitud].label : (e ?? "—");
 
 /** Resumen legible de una entrada de bitácora a partir de su detalle. */
+/** Cómo terminó un correo con `modo` (enviado / omitido / retenido / fallido). */
+function resultadoCorreo(detalle: Detalle): string {
+  switch (detalle?.modo) {
+    case "enviado":
+      return "Enviado";
+    case "omitido":
+      return `Omitido${s(detalle, "motivo") ? `: ${s(detalle, "motivo")}` : ""}`;
+    case "retenido":
+      return "Retenido por el tope de avisos por hora";
+    case "fallido":
+      return `NO SE ENVIÓ: ${s(detalle, "error") ?? "sin detalle"}`;
+    default:
+      return "";
+  }
+}
+
 export function resumenBitacora(accion: string, detalle: Detalle): string {
   switch (accion) {
     case "cambio_estado":
@@ -150,6 +172,20 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
         ? `${quien} · NO SE ENVIÓ: ${s(detalle, "error") ?? "sin detalle"}`
         : quien;
     }
+    // Correos del sistema de alertas: una fila por destinatario, con `modo`.
+    case "aviso_comentario_auditor":
+    case "aviso_respuesta_auditor":
+    case "aviso_documento_aprobado":
+    case "avisos_agrupados":
+    case "resumen_diario":
+      return resultadoCorreo(detalle);
+    case "recordatorio_programado_enviado":
+      // Las filas nuevas traen `modo`; las anteriores, `enviado`.
+      return detalle?.modo === "enviado" || detalle?.modo === "omitido" || detalle?.modo === "fallido"
+        ? [s(detalle, "titulo"), resultadoCorreo(detalle)].filter(Boolean).join(" · ")
+        : (s(detalle, "titulo") ?? "");
+    case "preferencia_resumen_diario":
+      return detalle?.recibir === false ? "Apagó su resumen diario" : "Encendió su resumen diario";
     case "solicitud_creada":
     case "solicitud_editada":
     case "solicitud_eliminada":

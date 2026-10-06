@@ -60,12 +60,12 @@ export function Header({
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="hidden text-right sm:block">
+            <Link href="/portal/cuenta" title="Mi cuenta" className="hidden text-right hover:underline sm:block">
               <div className="text-sm font-medium leading-tight text-ink">
                 {perfil.nombre.replace(/\[DEMO\]\s*/i, "")}
               </div>
-              <div className="text-xs leading-tight text-muted">{rolLabel}</div>
-            </div>
+              <div className="text-xs leading-tight text-muted">{rolLabel} · Mi cuenta</div>
+            </Link>
             <span
               className="grid size-9 place-items-center rounded-full bg-teal/10 text-xs font-semibold text-teal"
               title={perfil.nombre}

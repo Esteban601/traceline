@@ -91,3 +91,6 @@ referencia/
 # El .docx SÍ se versiona, a propósito: es el respaldo que garantiza que un
 # ambiente recién levantado tenga algo que enseñar aunque el bucket esté vacío.
 assets/vitrina/*.pdf
+
+# Transporte de prueba de correo (EMAIL_TRANSPORTE=archivo): HTML con datos, nunca se versiona.
+.correos-prueba/

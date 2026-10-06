@@ -169,14 +169,19 @@ async function crearFixture(admin, staffDb) {
 
   // Dos personas EN EL ÁREA (a las dos les toca el correo), una en otra área (no
   // le toca: es la mitad de "al área correcta"), y el administrador del cliente.
+  // Direcciones ENTREGABLES (dominio de prueba que no es reservado): desde el
+  // sistema de alertas, una `.example` se omite en cualquier transporte. La
+  // tercera del área sí es `.example`, para fijar que se omite con su propia fila.
   const usuarios = {};
   for (const [clave, def] of Object.entries({
     area1: { rol: "cliente", area: FIXTURE.area, nombre: "Responsable Sostenibilidad e2e" },
     area2: { rol: "cliente", area: FIXTURE.area, nombre: "Analista Sostenibilidad e2e" },
+    areaExample: { rol: "cliente", area: FIXTURE.area, nombre: "Buzón de prueba e2e", reservado: true },
     otraArea: { rol: "cliente", area: FIXTURE.otraArea, nombre: "Responsable Finanzas e2e" },
     adminCliente: { rol: "admin_cliente", area: null, nombre: "Administradora e2e" },
   })) {
-    const email = `${clave.toLowerCase()}.${crypto.randomUUID().slice(0, 8)}@${FIXTURE.slug}.example`;
+    const dominio = def.reservado ? `${FIXTURE.slug}.example` : `${FIXTURE.slug}-e2e.mx`;
+    const email = `${clave.toLowerCase()}.${crypto.randomUUID().slice(0, 8)}@${dominio}`;
     const { data: creado, error } = await admin.auth.admin.createUser({
       email,
       password: PASSWORD,
@@ -320,6 +325,10 @@ async function main() {
     // fecha_limite - 3 = hoy.
     const corrida = await correrCron(enDias(0));
     ok(corrida.status === 200, `el cron responde 200 (${corrida.status})`);
+    ok(
+      corrida.cuerpo?.digest?.fecha === enDias(0) && typeof corrida.cuerpo?.digest?.apagados === "number",
+      `la misma corrida trae el resumen diario nuevo, evaluado el mismo día (${corrida.cuerpo?.digest?.fecha})`
+    );
     const prog = corrida.cuerpo?.programados;
     ok(prog?.fechaEvaluada === enDias(0), `evaluó la fecha que se le pidió (${prog?.fechaEvaluada})`);
     ok(prog?.modo === "consola", `sin RESEND_API_KEY el envío es en modo consola (${prog?.modo})`);
@@ -336,15 +345,25 @@ async function main() {
       .select("accion, detalle, created_at")
       .eq("accion", "recordatorio_programado_enviado")
       .eq("entidad_id", solId);
-    const correos = (bit ?? []).map((b) => b.detalle?.email).sort();
-    const esperados = [fx.usuarios.area1.email, fx.usuarios.area2.email].sort();
+    // Una fila POR DESTINATARIO con su id y su modo, sin dirección.
+    const enviadosA = (bit ?? []).filter((b) => b.detalle?.modo === "enviado").map((b) => b.detalle?.destinatario_id).sort();
+    const esperados = [fx.usuarios.area1.id, fx.usuarios.area2.id].sort();
     ok(
-      JSON.stringify(correos) === JSON.stringify(esperados),
-      `la bitácora registra un envío por persona del área (${correos.join(", ")})`
+      JSON.stringify(enviadosA) === JSON.stringify(esperados),
+      `la bitácora registra un envío por persona del área (${enviadosA.length})`
+    );
+    const omitidaFila = (bit ?? []).find((b) => b.detalle?.destinatario_id === fx.usuarios.areaExample.id);
+    ok(
+      omitidaFila?.detalle?.modo === "omitido" && /reservado/.test(omitidaFila?.detalle?.motivo ?? ""),
+      `la dirección .example del área queda omitida, con su fila (${omitidaFila?.detalle?.modo})`
     );
     ok(
-      !correos.includes(fx.usuarios.otraArea.email),
+      !(bit ?? []).some((b) => b.detalle?.destinatario_id === fx.usuarios.otraArea.id),
       "y NADA a la persona de otra área"
+    );
+    ok(
+      (bit ?? []).every((b) => !JSON.stringify(b.detalle).includes("@")),
+      "ninguna fila guarda una dirección"
     );
     const d0 = bit?.[0]?.detalle ?? {};
     ok(
@@ -376,7 +395,7 @@ async function main() {
       .select("id", { count: "exact", head: true })
       .eq("accion", "recordatorio_programado_enviado")
       .eq("entidad_id", solId);
-    ok(bitCount === 2, `siguen siendo 2 entradas de bitácora, una por persona (${bitCount})`);
+    ok(bitCount === 3, `siguen siendo 3 entradas de bitácora, una por persona del área (${bitCount})`);
 
     // -----------------------------------------------------------------------
     bloque("5) Otro día: el mismo recordatorio no dispara");
@@ -414,7 +433,7 @@ async function main() {
       .select("id", { count: "exact", head: true })
       .eq("accion", "recordatorio_programado_enviado")
       .eq("entidad_id", solId);
-    ok(bitFinal === 2, `y no se agregó ninguna entrada nueva (${bitFinal})`);
+    ok(bitFinal === 3, `y no se agregó ninguna entrada nueva (${bitFinal})`);
 
     // -----------------------------------------------------------------------
     bloque("7) Quién puede tocar el calendario");
@@ -521,8 +540,9 @@ async function main() {
       .single();
     await admin.from("solicitudes").update({ estado: "solicitado" }).eq("id", solDigest.id);
 
+    // El resumen diario identifica a cada persona por su id (sin dirección).
     const enDigest = (cuerpo) =>
-      (cuerpo?.digest?.detalles ?? []).find((d) => d.email === fx.usuarios.otraArea.email);
+      (cuerpo?.digest?.detalles ?? []).find((d) => d.destinatarioId === fx.usuarios.otraArea.id);
 
     // (a) intento OMITIDO en la bitácora: la persona sigue en el digest.
     await admin.from("bitacora").insert({
@@ -558,7 +578,10 @@ async function main() {
         enviado: true,
       },
     });
-    const conEnviado = await correrCron(enDias(0));
+    // Otro día: con la misma fecha la persona quedaría fuera por la idempotencia
+    // del resumen (ya tiene el de hoy), no por la regla de 5 días. Bloquean el
+    // envío insertado y el resumen real que (a) le mandó.
+    const conEnviado = await correrCron(enDias(1));
     const d2 = enDigest(conEnviado.cuerpo);
     ok(
       !d2 || d2.resultado === "omitido",

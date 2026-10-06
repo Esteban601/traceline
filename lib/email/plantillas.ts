@@ -135,13 +135,22 @@ function listaSolicitudes(sols: SolicitudEmail[]): string {
 
 export type Plantilla = { subject: string; html: string };
 
+/**
+ * Asunto con la emisora al frente, como todos los avisos («Emisora · …»): quien
+ * recibe puede atender a varias. Sin emisora, el asunto queda como estaba.
+ */
+function conEmisora(emisora: string | null | undefined, asunto: string): string {
+  const e = limpiarNombre(emisora ?? "");
+  return e ? `${e} · ${asunto}` : asunto;
+}
+
 /** (a) Solicitud de información. Una o varias solicitudes para una persona. */
-export function plantillaSolicitud(nombre: string, sols: SolicitudEmail[]): Plantilla {
+export function plantillaSolicitud(nombre: string, sols: SolicitudEmail[], emisora?: string | null): Plantilla {
   const n = sols.length;
-  const subject =
-    n === 1
-      ? `Solicitud de información: ${sols[0].titulo}`
-      : `${n} solicitudes de información pendientes`;
+  const subject = conEmisora(
+    emisora,
+    n === 1 ? `Solicitud de información: ${sols[0].titulo}` : `${n} solicitudes de información pendientes`
+  );
   const intro =
     n === 1
       ? `Te solicitamos la siguiente información para el Informe Anual Sustentable. Ábrela para cargar la evidencia correspondiente:`
@@ -164,37 +173,6 @@ export function plantillaSolicitud(nombre: string, sols: SolicitudEmail[]): Plan
   };
 }
 
-/** (b) Recordatorio semanal (digest). Observaciones destacadas. */
-export function plantillaRecordatorio(nombre: string, sols: SolicitudEmail[]): Plantilla {
-  const n = sols.length;
-  const conObs = sols.filter((s) => s.esObservacion).length;
-  const subject = `Recordatorio: ${n} ${n === 1 ? "solicitud pendiente" : "solicitudes pendientes"}${
-    conObs > 0 ? ` (${conObs} con observaciones)` : ""
-  }`;
-  const intro = `Este es el resumen de la información que tienes pendiente de entregar o corregir para el Informe Anual Sustentable.`;
-  const nota =
-    conObs > 0
-      ? `<p style="font-family:${FONT};font-size:14px;color:${COLOR.rojo};margin:0 0 14px 0;line-height:1.6;">Hay ${conObs} ${
-          conObs === 1 ? "solicitud" : "solicitudes"
-        } con observaciones que requieren tu corrección (marcadas abajo).</p>`
-      : "";
-  const cuerpoHtml = `
-    ${saludo(nombre)}
-    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 12px 0;line-height:1.6;">${intro}</p>
-    ${nota}
-    ${listaSolicitudes(sols)}
-    ${boton(urlPortal(), "Revisar mis pendientes")}`;
-  return {
-    subject,
-    html: layout({
-      preheader: intro,
-      etiqueta: "Recordatorio",
-      titulo: "Tienes información pendiente",
-      cuerpoHtml,
-    }),
-  };
-}
-
 /**
  * (c) Aviso de observación sobre una solicitud específica.
  *
@@ -207,9 +185,10 @@ export function plantillaObservacion(
   nombre: string,
   sol: SolicitudEmail,
   observacion: string,
-  autor: { esIrstrat: boolean; organizacion?: string | null } = { esIrstrat: true }
+  autor: { esIrstrat: boolean; organizacion?: string | null } = { esIrstrat: true },
+  emisora?: string | null
 ): Plantilla {
-  const subject = `Observación sobre: ${sol.titulo}`;
+  const subject = conEmisora(emisora, `Observación sobre: ${sol.titulo}`);
   const quien = autor.esIrstrat
     ? "El equipo de IRStrat"
     : `El equipo de ${limpiarNombre(autor.organizacion ?? "tu organización")}`;
@@ -245,11 +224,11 @@ export function plantillaObservacion(
 export function plantillaRecordatorioProgramado(
   nombre: string,
   sol: SolicitudEmail,
-  opts: { diasAntes: number; estadoLabel: string; queFalta: string }
+  opts: { emisora?: string | null; diasAntes: number; estadoLabel: string; queFalta: string }
 ): Plantilla {
   const plazo =
     opts.diasAntes === 1 ? "Vence mañana" : `Faltan ${opts.diasAntes} días`;
-  const subject = `${plazo}: ${sol.titulo}`;
+  const subject = conEmisora(opts.emisora, `${plazo}: ${sol.titulo}`);
   const intro = `${plazo} el plazo de una solicitud del Informe Anual Sustentable.`;
   const cuerpoHtml = `
     ${saludo(nombre)}
@@ -287,7 +266,7 @@ export function plantillaInvitacion(
   nombre: string,
   opts: { url: string; expiraEn: string; cliente: string; horas: number }
 ): Plantilla {
-  const subject = `Tu acceso a ${APP_NAME}`;
+  const subject = conEmisora(opts.cliente, `Tu acceso a ${APP_NAME}`);
   const intro = `Te damos acceso al portal de evidencia de sostenibilidad de ${limpiarNombre(
     opts.cliente
   )}. Para entrar, establece tu contraseña:`;
@@ -310,5 +289,253 @@ export function plantillaInvitacion(
       titulo: "Establece tu contraseña",
       cuerpoHtml,
     }),
+  };
+}
+
+// =============================================================================
+// AVISOS INMEDIATOS (encargo sistema de alertas, Paso 1). Lo conversacional:
+// alguien escribió o espera respuesta. El asunto empieza por la emisora —quien
+// recibe puede atender a varias— y el botón lleva al objeto en el PANEL, que es
+// donde viven el canal del auditor y la revisión del documento.
+// =============================================================================
+
+export type ObjetoAviso = {
+  /** «la solicitud», «el registro climático»… — para la frase. */
+  etiqueta: string;
+  /** Título visible del objeto. */
+  titulo: string;
+  /** Ruta del panel, relativa (p. ej. `/admin/solicitudes/<id>`). */
+  ruta: string;
+};
+
+function urlPanel(ruta: string): string {
+  return `${APP_URL}${ruta}`;
+}
+
+function cita(texto: string, opts: { etiqueta: string; color: string; fondo: string }): string {
+  return `
+    <div style="font-family:${FONT};font-size:14px;color:${COLOR.ink};background:${opts.fondo};border-left:3px solid ${opts.color};border-radius:8px;padding:12px 14px;margin:4px 0 16px 0;line-height:1.6;">
+      <strong style="color:${opts.color};">${esc(opts.etiqueta)}</strong><br>${esc(texto).replace(/\n/g, "<br>")}
+    </div>`;
+}
+
+function fichaObjeto(obj: ObjetoAviso): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 8px 0;">
+    <tr>
+      <td style="padding:12px 16px;border:1px solid ${COLOR.line};border-radius:12px;background:${COLOR.surface};">
+        <div style="font-family:${FONT};font-size:12px;color:${COLOR.muted};text-transform:uppercase;letter-spacing:.06em;">${esc(obj.etiqueta)}</div>
+        <div style="font-family:${FONT};font-size:15px;font-weight:600;color:${COLOR.ink};line-height:1.4;margin-top:2px;">${esc(obj.titulo)}</div>
+      </td>
+    </tr>
+    <tr><td style="height:10px;line-height:10px;font-size:0;">&nbsp;</td></tr>
+  </table>`;
+}
+
+/** (e) El auditor externo comentó: al administrador del cliente y al staff. */
+export function plantillaComentarioAuditor(
+  nombre: string,
+  opts: { emisora: string; objeto: ObjetoAviso; texto: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const subject = `${emisora} · Comentario del auditor externo`;
+  const intro = `El auditor externo dejó un comentario sobre ${opts.objeto.etiqueta} de ${emisora}. Espera respuesta en la plataforma.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(intro)}</p>
+    ${fichaObjeto(opts.objeto)}
+    ${cita(opts.texto, { etiqueta: "Comentario:", color: COLOR.gold, fondo: COLOR.crema })}
+    ${boton(urlPanel(opts.objeto.ruta), "Ver y responder")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Auditor externo", titulo: "Hay un comentario del auditor", cuerpoHtml }),
+  };
+}
+
+/** (f) Respondieron un comentario del auditor: a quien lo escribió. */
+export function plantillaRespuestaAuditor(
+  nombre: string,
+  opts: { emisora: string; objeto: ObjetoAviso; comentario: string; respuesta: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const subject = `${emisora} · Respondieron tu comentario`;
+  const intro = `Tu comentario sobre ${opts.objeto.etiqueta} de ${emisora} tiene respuesta.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(intro)}</p>
+    ${fichaObjeto(opts.objeto)}
+    ${cita(opts.comentario, { etiqueta: "Tu comentario:", color: COLOR.muted, fondo: COLOR.crema })}
+    ${cita(opts.respuesta, { etiqueta: "Respuesta:", color: COLOR.teal, fondo: "#E6EFEC" })}
+    ${boton(urlPanel(opts.objeto.ruta), "Ver en la plataforma")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Auditor externo", titulo: "Respondieron tu comentario", cuerpoHtml }),
+  };
+}
+
+/** (g) El documento del Suplemento quedó aprobado: al administrador del cliente. */
+export function plantillaDocumentoAprobado(
+  nombre: string,
+  opts: { emisora: string; documento: string; ejercicio: number | null; ruta: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const subject = `${emisora} · Suplemento NIIF S1/S2 aprobado`;
+  const intro = `IRStrat aprobó el Suplemento NIIF S1/S2${opts.ejercicio ? ` del ejercicio ${opts.ejercicio}` : ""} de ${emisora}. Ya puedes revisarlo y descargarlo.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(intro)}</p>
+    ${fichaObjeto({ etiqueta: "Documento", titulo: limpiarNombre(opts.documento), ruta: opts.ruta })}
+    ${boton(urlPanel(opts.ruta), "Abrir el documento")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Suplemento", titulo: "Tu Suplemento está aprobado", cuerpoHtml }),
+  };
+}
+
+// =============================================================================
+// RESUMEN DIARIO (encargo sistema de alertas, Paso 2). Sustituye al digest de
+// pendientes: el mismo correo, ahora por persona y con secciones. Una sección
+// vacía no se pinta; un resumen sin secciones no se manda (eso lo decide quien
+// arma las secciones, no la plantilla).
+// =============================================================================
+
+export type ItemResumen = {
+  titulo: string;
+  /** Línea secundaria: plazo, área, «nuevo desde ayer»… */
+  nota?: string | null;
+  /** Ruta relativa (portal o panel, según quien recibe). */
+  ruta?: string | null;
+  destacado?: boolean;
+};
+
+export type SeccionResumen = {
+  clave: string;
+  titulo: string;
+  /** Una frase de qué se espera de quien lee. */
+  intro: string;
+  items: ItemResumen[];
+};
+
+const MAX_ITEMS_POR_SECCION = 10;
+
+function itemResumen(it: ItemResumen): string {
+  const titulo = it.ruta
+    ? `<a href="${esc(urlPanel(it.ruta))}" target="_blank" style="color:${COLOR.ink};text-decoration:none;">${esc(it.titulo)}</a>`
+    : esc(it.titulo);
+  return `
+    <tr>
+      <td style="padding:10px 14px;border:1px solid ${it.destacado ? COLOR.gold : COLOR.line};border-radius:10px;background:${COLOR.surface};">
+        <div style="font-family:${FONT};font-size:14px;font-weight:600;color:${COLOR.ink};line-height:1.4;">${titulo}</div>
+        ${it.nota ? `<div style="font-family:${FONT};font-size:12px;color:${COLOR.muted};margin-top:3px;">${esc(it.nota)}</div>` : ""}
+      </td>
+    </tr>
+    <tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>`;
+}
+
+function seccionResumen(s: SeccionResumen): string {
+  // Lo nuevo primero: con más de MAX ítems, la novedad no puede quedar en «y N más».
+  const ordenados = [...s.items.filter((i) => i.destacado), ...s.items.filter((i) => !i.destacado)];
+  const visibles = ordenados.slice(0, MAX_ITEMS_POR_SECCION);
+  const resto = s.items.length - visibles.length;
+  return `
+    <div style="margin:18px 0 6px 0;">
+      <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${COLOR.teal};">
+        ${esc(s.titulo)} <span style="font-weight:600;color:${COLOR.muted};">· ${s.items.length}</span>
+      </div>
+      <div style="font-family:${FONT};font-size:13px;color:${COLOR.muted};margin:3px 0 10px 0;line-height:1.5;">${esc(s.intro)}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${visibles.map(itemResumen).join("")}</table>
+      ${resto > 0 ? `<div style="font-family:${FONT};font-size:13px;color:${COLOR.muted};">y ${resto} más en la plataforma.</div>` : ""}
+    </div>`;
+}
+
+/** Resumen diario de una persona de UNA emisora (cliente, jefe, admin del cliente). */
+export function plantillaResumenDiario(
+  nombre: string,
+  opts: { emisora: string; secciones: SeccionResumen[]; rutaInicio: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const total = opts.secciones.reduce((n, s) => n + s.items.length, 0);
+  const subject = `${emisora} · Resumen diario`;
+  const intro = `Lo que tienes pendiente y lo que cambió ayer en ${emisora}.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 6px 0;line-height:1.6;">${esc(intro)}</p>
+    ${opts.secciones.map(seccionResumen).join("")}
+    <div style="height:10px;"></div>
+    ${boton(urlPanel(opts.rutaInicio), "Abrir la plataforma")}
+    <p style="font-family:${FONT};font-size:12px;color:${COLOR.muted};margin:14px 0 0 0;line-height:1.6;">
+      Recibes este resumen porque lo tienes encendido en «Mi cuenta». Puedes apagarlo ahí; los avisos
+      de comentarios y aprobaciones te seguirán llegando.
+    </p>`;
+  return {
+    subject,
+    html: layout({
+      preheader: `${total} ${total === 1 ? "elemento" : "elementos"} · ${intro}`,
+      etiqueta: "Resumen diario",
+      titulo: emisora,
+      cuerpoHtml,
+    }),
+  };
+}
+
+/** Resumen diario del staff: un solo correo con secciones por emisora real. */
+export function plantillaResumenStaff(
+  nombre: string,
+  opts: { emisoras: { nombre: string; secciones: SeccionResumen[] }[] }
+): Plantilla {
+  const n = opts.emisoras.length;
+  const subject = `${APP_NAME} · Resumen diario · ${n} ${n === 1 ? "emisora" : "emisoras"}`;
+  const intro = `Lo que espera la validación de IRStrat en ${n} ${n === 1 ? "emisora" : "emisoras"}.`;
+  const bloques = opts.emisoras
+    .map(
+      (e) => `
+    <div style="margin:22px 0 4px 0;padding-top:14px;border-top:1px solid ${COLOR.line};">
+      <div style="font-family:${FONT};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:${COLOR.gold};">Emisora</div>
+      <div style="font-family:${FONT};font-size:18px;font-weight:700;color:${COLOR.ink};margin-top:2px;">${esc(limpiarNombre(e.nombre))}</div>
+      ${e.secciones.map(seccionResumen).join("")}
+    </div>`
+    )
+    .join("");
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 6px 0;line-height:1.6;">${esc(intro)}</p>
+    ${bloques}
+    <div style="height:10px;"></div>
+    ${boton(urlPanel("/admin"), "Abrir el panel")}
+    <p style="font-family:${FONT};font-size:12px;color:${COLOR.muted};margin:14px 0 0 0;line-height:1.6;">
+      Solo emisoras reales; las de demostración no entran en este resumen. Puedes apagarlo en «Mi cuenta».
+    </p>`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Resumen diario", titulo: "Pendientes de validación", cuerpoHtml }),
+  };
+}
+
+/**
+ * (h) Avisos AGRUPADOS: los inmediatos que pasaron el tope de 20 por emisora y
+ * hora, juntos en un solo correo por destinatario (encargo sistema de alertas,
+ * Paso 3). Cada aviso conserva su asunto, un extracto y su enlace.
+ */
+export function plantillaAvisosAgrupados(
+  nombre: string,
+  opts: { emisora: string; avisos: { asunto: string; extracto: string | null; ruta: string | null }[] }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const n = opts.avisos.length;
+  const subject = `${emisora} · ${n} ${n === 1 ? "aviso" : "avisos"} de la última hora`;
+  const intro = `Hubo mucha actividad en ${emisora}: para no llenarte la bandeja, juntamos ${n} ${n === 1 ? "aviso" : "avisos"} en este correo.`;
+  const items: ItemResumen[] = opts.avisos.map((a) => ({
+    titulo: a.asunto.replace(new RegExp(`^${emisora.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · `), ""),
+    nota: a.extracto,
+    ruta: a.ruta,
+  }));
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 6px 0;line-height:1.6;">${esc(intro)}</p>
+    ${seccionResumen({ clave: "agrupados", titulo: "Avisos", intro: "Abre cada uno en la plataforma.", items })}
+    <div style="height:10px;"></div>
+    ${boton(urlPanel("/admin"), "Abrir la plataforma")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Avisos agrupados", titulo: `${n} ${n === 1 ? "aviso" : "avisos"} de ${emisora}`, cuerpoHtml }),
   };
 }

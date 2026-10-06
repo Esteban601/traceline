@@ -1,7 +1,17 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.21** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.23** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.22** (encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`, Paso 3):
+- §1: a la fecha no hay clientes en producción; Grupo Carso es un tenant de prueba con datos reales y sus banderas siguen
+  apagadas por los datos.
+- §11 nueva, «Notificaciones por correo»: la tabla completa de eventos, canales y destinatarios, con las reglas comunes
+  (omisión, bitácora, tope, resumen diario). Sustituye al inventario del 6 de octubre, que se entregó en el chat.
+- §5: dos migraciones aditivas del sistema de alertas.
+
+**Cambios respecto a 0.21**:
+- §10: registro de v38 (`003c957`): aprobar el Suplemento es solo del staff, también en el servidor.
 
 **Cambios respecto a 0.20**:
 - §10, «Los mockups solo llevan direcciones `.example`»: regla, y corrección de la cuenta de Bafar.
@@ -132,6 +142,17 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 | Estructura para primer año de adopción **y** años subsecuentes (§3.1) | Sí (estructura); año 2 se prueba en A9 | — |
 | PDF con diseño (plantilla con logo, paleta y fotos del tenant) | — | Fase B |
 | Editables InDesign / otros | — | Fase B+ |
+
+**Estado de los tenants (6 de octubre de 2026).** **A la fecha no hay clientes en producción.** Staging tiene 20
+tenants:
+- los mockups de prospecto, con `es_demo = true`;
+- Empresa Demo, el demo interno;
+- Grupo Carso (`gcarso`), un **tenant de prueba con datos reales**. No es cliente: no hay contrato ni usuarios de la
+  emisora operando.
+
+Sus banderas se quedan apagadas igual (vitrina, generador y lectura de evidencias, §10 «v33»), **por los datos**: son
+reales, y no se mandan a la API ni se exponen en la vitrina sin un contrato que lo cubra. Lo que este documento llama
+«emisora real» o `es_demo = false` es hoy solo Carso.
 | Infografías generadas | — | Fase B (gráficas desde datos sí; ilustración no) |
 | Menús GRI y SASB, Informe Anual GRI/SASB | — | Fase C |
 
@@ -444,6 +465,8 @@ filas, no como JSON.
 | `tenants.generador_activo` (boolean, default false; encendido en `es_demo`) y unidad de `tenants.generaciones_mes_max` | Bandera del generador por emisora (sus datos van a la API de Anthropic) y tope de corridas completas por mes, aplicados por las rutas de `/api/suplemento` | ADD COLUMN + comentario (`20261005122600`) |
 | `tenants.vitrina_habilitada = false` donde `es_demo = false` | La regla «Grupo Carso: vitrina apagada» se verifica por consulta | Migración de datos (`20261005122700`) |
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
+| `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
+| Tabla `correos_retenidos` | Avisos inmediatos que pasan el tope de 20 por emisora y hora; el job de 10 minutos los manda agrupados | CREATE TABLE con RLS (lectura solo staff, sin escritura con sesión) y barrera: 90 políticas (`20261006130000`) |
 | `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
 
 Todas aditivas, salvo el ajuste del bucket, que solo restringe. Los números de migración son los de la renumeración del 5 de octubre de 2026
@@ -1064,6 +1087,38 @@ impresa):
 Punto de reversión: `heroku releases:rollback v35 -a traceline-staging`. Con el código de v34 el job nuevo
 fallaría porque no encuentra el script; habría que volver temporalmente al comando con `curl`.
 
+### staging · release v38 · 6 de octubre de 2026 · `003c957`
+
+**Aprobar el Suplemento es solo del staff, también en el servidor.** Viene de `hotfix/aprobar-solo-staff` por el
+PR #14 (merge commit `003c957`). Solo código, sin migración. Encontrado durante el Paso 1 del encargo
+`2026-10-06-sistema-de-alertas`.
+
+- **El fallo.** `autorizar()` dejaba al administrador del cliente hacer cualquier cambio de estado del documento.
+  La pantalla recibía `puedeAprobar`, pero no lo usaba. El admin del cliente veía «Aprobar» y podía aprobar su
+  propio Suplemento, y un POST directo también le servía para devolverlo a borrador o sacarlo de `aprobado`.
+- **El arreglo.**
+  - `autorizar(documentoId, { soloStaff })`; `cambiarEstado` lo exige para `aprobado` y para `borrador`.
+    Pasar a revisión sigue siendo de los dos.
+  - Un documento aprobado no cambia de estado, para nadie (igual que su texto).
+  - La pantalla usa `puedeAprobar`.
+- **Antes del despliegue.** `e2e:aprobar-solo-staff`:
+  - contra el código sin arreglo, el admin del cliente aprobó el documento (el e2e detecta el hueco);
+  - con el arreglo, 7 de 7.
+
+  `tsc`, `eslint` y `verify:export` en verde.
+- **Numeración.** Heroku lo publicó como **v38**. La v37 es «Set CRON_SECRET config vars», la última
+  rotación del 5/10.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Release | ✓ v38 · Deploy `003c9570`; `web.1` up; `/login` 200 |
+| Cobertura (analista) | ✓ 200, «Cobertura de la taxonomía», sin errores de página |
+| Logs desde el release (solo conteos) | ✓ 64 líneas: 0 respuestas 5xx, 0 `Error:`, sin caídas |
+
+Punto de reversión: `heroku releases:rollback v37 -a traceline-staging`.
+
 ### Deudas conocidas
 
 Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
@@ -1387,6 +1442,59 @@ Los otros cinco (`.gitignore`, `lib/bitacora.ts`, `taxonomia-export-button.tsx`,
 `package.json`, `pnpm-lock.yaml`) son adiciones en sitios distintos del archivo.
 
 ---
+
+## 11. Notificaciones por correo
+
+Encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`. Sustituye al inventario del 6 de octubre de 2026.
+
+**Dos canales.** **Inmediato** para lo conversacional (alguien escribió o espera respuesta), disparado con `after()` desde la
+acción que produjo el evento: el correo nunca frena la pantalla ni tumba el acto. **Resumen diario** para los cambios de
+estado: un correo por persona a las 13:00 UTC (07:00 en México), por el job de recordatorios del Scheduler. El staff
+recibe un correo combinado con secciones por emisora.
+
+| Evento | Canal | Destinatarios | Acción de bitácora |
+|---|---|---|---|
+| Invitación de acceso | Inmediato | La persona invitada | `invitacion_creada` (evento de gestión) |
+| Envío de solicitud (incluida la difusión: una copia por área) | Inmediato | El responsable de cada solicitud; un correo por persona con todas las suyas | `solicitud_enviada` |
+| Observación | Inmediato | El responsable de la solicitud | `aviso_observacion` |
+| Comentario del auditor externo | Inmediato | Admins del cliente y todo el staff activo (el staff no, en emisoras de demostración) | `aviso_comentario_auditor` |
+| Respuesta a un comentario del auditor | Inmediato | El auditor que lo escribió | `aviso_respuesta_auditor` |
+| Documento del Suplemento aprobado | Inmediato | Admins del cliente | `aviso_documento_aprobado` |
+| Recordatorio programado («faltan N días») | Diario, el día `fecha_limite − días` | Usuarios activos del área y el responsable | `recordatorio_programado_enviado` |
+| Resumen diario · pendientes de entrega y observaciones | Diario, máximo uno cada 5 días por persona | El responsable | `resumen_diario` |
+| Resumen diario · validadas ayer | Diario, con novedad de ayer | El responsable y el jefe del área | `resumen_diario` |
+| Resumen diario · visto bueno pendiente | Diario, si llegó evidencia ayer | El jefe del área | `resumen_diario` |
+| Resumen diario · evidencias por validar | Diario, si llegó evidencia ayer | Origen `cliente`: admins del cliente. Origen `irstrat`: el staff, en su correo combinado, solo emisoras reales | `resumen_diario` |
+| Resumen diario · sugerencias de captura por decidir | Diario, si hubo sugerencia nueva ayer | Usuarios y jefe del área (ítems); admins del cliente (una línea por área) | `resumen_diario` |
+| Avisos inmediatos sobre el tope | Cada 10 minutos (job de la cola) | Cada destinatario con avisos retenidos, en un solo correo | `avisos_agrupados` |
+| Recuperación de contraseña | Inmediato | Quien la pide | Ninguna (Supabase Auth) |
+
+**Reglas comunes.**
+- **Nunca a direcciones reservadas ni a usuarios inactivos.** `.example`, `.test` y similares, o un perfil inactivo: no se
+  envía en ningún transporte y queda una fila con `modo = omitido` y el motivo. Lo cumplen los avisos nuevos, el resumen
+  diario y el recordatorio programado. El envío de solicitud y la observación conservan su regla anterior: omiten las
+  reservadas solo con Resend activo.
+- **Bitácora sin direcciones.** Cada correo deja una fila por destinatario, con `destinatario_id`, el evento de origen y
+  `modo` (`enviado` / `omitido` / `retenido` / `fallido`); según el caso, también `transporte`, `motivo`, `error` o
+  `resend_id`. Los cuatro correos que ya existían dejaron de guardar la dirección (decisión 6 del encargo). Las filas
+  anteriores la conservan, y las pantallas resuelven la persona por su id.
+- **Tope de los inmediatos:** 20 por emisora y hora, contando los que salieron. Pasado el tope, el aviso se guarda en
+  `correos_retenidos` (`modo = retenido`), y el job de 10 minutos (`/api/evidencias/procesar`) lo manda agrupado,
+  «Emisora · N avisos de la última hora».
+- **Resumen diario.**
+  - Una sección vacía no se pinta, y un resumen sin secciones no se manda.
+  - Las secciones nuevas salen solo con novedad del día anterior (México); cuando salen, listan todo lo pendiente de esa
+    clase, con lo nuevo primero.
+  - Es idempotente por día.
+  - El interruptor «Recibir resumen diario» está en «Mi cuenta» (portal y panel), encendido por defecto. Apagarlo no
+    apaga los inmediatos. El auditor no recibe resumen.
+  - La regla de 5 días lee la bitácora con `fueEnviado`: `modo = enviado` en las filas nuevas y `enviado` en las anteriores.
+- **Asuntos:** la emisora va al frente («Emisora · …»). El combinado del staff dice «TRACELINE · Resumen diario · N emisoras».
+- **Pruebas:** con `EMAIL_TRANSPORTE=archivo`, cada correo se escribe con su HTML en `.correos-prueba/correos.jsonl`, que
+  git ignora. Ese transporte no funciona con `NODE_ENV=production`.
+
+**Deuda.** El staff de una emisora es todo el staff activo: no existe la asignación de staff a emisora (`tenant_staff`).
+Se construye cuando haya más de una emisora real con auditor (decisión 1 del encargo).
 
 ## Anexo A: mapeo definitivo (bloque → datapoints)
 
