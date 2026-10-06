@@ -1,6 +1,9 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.7 · 4 de octubre de 2026.
+Versión 1.8 · 5 de octubre de 2026.
+
+**Cambios respecto a 1.7** (5 de octubre de 2026, decisión de Esteban):
+- §6: ningún job del Heroku Scheduler lleva variables en su comando. Origen: cierre del despliegue v33.
 
 **Cambios respecto a 1.6** (4 de octubre de 2026, decisión de Esteban):
 - §2: `test` se agrega a los prefijos de commit. Es una convención de mensajes, no un permiso.
@@ -120,6 +123,11 @@ después el código.
 - De un log que contenga credenciales no se imprime ninguna línea; solo conteos y nombres de cuenta mediante
   un extractor de lista blanca de campos (`scripts/` tiene uno).
 - Si una credencial aparece en pantalla por error: se reporta de inmediato y se rota. No se discute.
+- **Ningún job del Heroku Scheduler lleva variables en su comando**, ni con comillas ni dentro de `bash -c`.
+  El dyno manager escribe en el log `heroku[scheduler.N] Starting process with command …` con las variables
+  ya sustituidas, así que un `$CRON_SECRET` en el comando deja el secreto en texto plano en los logs. El
+  comando llama a un script que lee el entorno dentro del dyno: `node scripts/cron/llamar.mjs <ruta>`.
+  Origen: cierre del despliegue v33 (5 de octubre de 2026), con dos rotaciones de `CRON_SECRET`.
 - **Inspeccionar un archivo que contiene credenciales** (Excel de accesos, JSON de `.credenciales-demo/`, logs de
   corridas): solo se imprimen nombres de hoja, encabezados y conteos. Nunca valores de muestra de una columna,
   aunque se crea que no es la de contraseñas: primero se localiza la fila de encabezados y se identifica la
