@@ -1,7 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.17** · 5 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.18** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.17**:
+- §10, «Jobs del Scheduler…»: el disparador de los recordatorios ya está identificado. Era el job del
+  Scheduler de staging, editado por error el 5/10. Se agregan la causa y la lección. Corrige lo que 0.17 decía.
 
 **Cambios respecto a 0.16**:
 - §10: registro de v36 (`be2a3fe`, jobs sin variables en el comando).
@@ -1148,28 +1152,25 @@ Regla desde el 5 de octubre de 2026; también en CLAUDE.md §6.
   | App | Job | Comando | Frecuencia |
   |---|---|---|---|
   | `traceline-staging` | Cola de lectura | `node scripts/cron/llamar.mjs evidencias/procesar` | cada 10 min |
-  | `traceline-staging` | Recordatorios | **no existe** (ver abajo) | — |
+  | `traceline-staging` | Recordatorios | `node scripts/cron/llamar.mjs recordatorios` | diaria, 13:00 UTC |
   | `traceline-dev` | Cola de lectura | `node scripts/cron/llamar.mjs evidencias/procesar` | cada 10 min |
 
-- **Hallazgo del 5 de octubre: en el Scheduler de staging no hay job de recordatorios.** Solo existía el de la
-  cola. Aun así, los recordatorios corren:
-  - La bitácora de staging tiene `recordatorio_enviado` (2 827 filas) y `recordatorio_programado_enviado` (220)
-    desde el 21 de agosto de 2026. La última corrida es del 5 de octubre.
-  - Corren **cada día entre las 13:00:31 y las 13:00:33 UTC**, siempre sin `usuario_id`: es la corrida completa
-    de `POST /api/recordatorios` (programados y digest), no el botón del panel, que solo dispara el digest
-    con sesión.
-  - **Quién la llama no está identificado.** No es el Scheduler de staging, ni GitHub Actions (no hay
-    workflows), ni `pg_cron` declarado en migraciones, ni un cron o launchd de la máquina de Esteban. Los logs
-    de Heroku no llegan a las 13:00. Queda por revisar el Cron del dashboard de Supabase de staging
-    (`pg_cron`/`pg_net` configurados fuera de las migraciones) o un servicio externo.
-  - **Consecuencia:** ese disparador tiene una copia de `CRON_SECRET`, que se rotó dos veces el 5 de octubre.
-    Si no se actualizó, la corrida del 6 de octubre a las 13:00 UTC recibirá 401 y los recordatorios dejarán
-    de salir. Se comprueba en la bitácora el 6/10 después de las 13:00 UTC.
-  - **Propuesto:**
-    - localizarlo;
-    - crear en el Scheduler de staging el job `node scripts/cron/llamar.mjs recordatorios`, diario a las
-      13:00 UTC (la hora que ya tiene);
-    - borrar el disparador anterior, para que no corran dos.
+- **Incidente del 5 de octubre: el job de recordatorios se convirtió en el de la cola.** Staging tenía un
+  solo job, el de recordatorios (`curl` diario a las 13:00 UTC). Al configurar la cola de lectura de v33, ese
+  job **se editó** en vez de agregar uno nuevo: quedó como el job de la cola y los recordatorios dejaron de
+  tener disparador.
+  - **Cómo se encontró.** La bitácora mostraba corridas diarias a las 13:00 UTC hasta el 5/10 y ninguna el
+    6/10. En los logs del 3, 4 y 5 de octubre, cada corrida es `app[api]` (arranque) → `heroku[scheduler.N]`
+    → router `POST /api/recordatorios` 200, desde una IP de AWS distinta cada día (la salida normal de un
+    dyno). La versión 0.17 de este documento lo daba por «sin identificar», y era un error.
+  - **Efecto.** La corrida del 6 de octubre no se hizo y no se recupera (decisión de Esteban). El comando
+    viejo también escribía el secreto sustituido en la línea `heroku[scheduler]`; esos secretos ya están
+    rotados.
+  - **Corrección.** Esteban recreó el job con «Add Job» el 6/10: `node scripts/cron/llamar.mjs
+    recordatorios`, diario a las 13:00 UTC. Staging tiene ahora **dos jobs**, cola y recordatorios.
+  - **Lección.** En el dashboard del Scheduler, «agregar» y «editar» solo se distinguen por el botón: editar
+    un job existente reemplaza su comando sin aviso. **Antes y después de cada cambio se cuenta el número de
+    jobs** y se comprueba que cada uno sigue con el comando y la frecuencia que le tocan.
 - **Cómo se verifica.** Por conteo, con un extractor de lista blanca sobre `heroku logs`. La línea
   `heroku[scheduler]` del arranque no debe tener nada después de `x-cron-secret` (el comando ya no lo nombra).
   El router debe responder `POST … status=200`.
