@@ -4,6 +4,8 @@ Especificación para revisión interna. **Versión 0.23** · 6 de octubre de 202
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
 
 **Cambios respecto a 0.22** (encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`, Paso 3):
+- §1: a la fecha no hay clientes en producción; Grupo Carso es un tenant de prueba con datos reales y sus banderas siguen
+  apagadas por los datos.
 - §11 nueva, «Notificaciones por correo»: la tabla completa de eventos, canales y destinatarios, con las reglas comunes
   (omisión, bitácora, tope, resumen diario). Sustituye al inventario del 6 de octubre, que se entregó en el chat.
 - §5: dos migraciones aditivas del sistema de alertas.
@@ -140,6 +142,17 @@ Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2
 | Estructura para primer año de adopción **y** años subsecuentes (§3.1) | Sí (estructura); año 2 se prueba en A9 | — |
 | PDF con diseño (plantilla con logo, paleta y fotos del tenant) | — | Fase B |
 | Editables InDesign / otros | — | Fase B+ |
+
+**Estado de los tenants (6 de octubre de 2026).** **A la fecha no hay clientes en producción.** Staging tiene 20
+tenants:
+- los mockups de prospecto, con `es_demo = true`;
+- Empresa Demo, el demo interno;
+- Grupo Carso (`gcarso`), un **tenant de prueba con datos reales**. No es cliente: no hay contrato ni usuarios de la
+  emisora operando.
+
+Sus banderas se quedan apagadas igual (vitrina, generador y lectura de evidencias, §10 «v33»), **por los datos**: son
+reales, y no se mandan a la API ni se exponen en la vitrina sin un contrato que lo cubra. Lo que este documento llama
+«emisora real» o `es_demo = false` es hoy solo Carso.
 | Infografías generadas | — | Fase B (gráficas desde datos sí; ilustración no) |
 | Menús GRI y SASB, Informe Anual GRI/SASB | — | Fase C |
 
