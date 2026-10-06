@@ -24,6 +24,8 @@ import { UploadEvidencia } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
 import { VBAreaJefe } from "./vb-area-jefe";
 import { NoAplica } from "./no-aplica";
+import { SugerenciaBloque } from "@/components/sugerencia-bloque";
+import { cargarSugerencia } from "@/lib/evidencias/sugerencia-vista";
 
 export const metadata: Metadata = { title: "Solicitud" };
 
@@ -117,6 +119,13 @@ export default async function SolicitudPage({
     fecha_congelamiento: string | null;
   } | null;
   const reporteCongelado = reporte?.estado === "congelado";
+  // Sugerencia de la plataforma sobre la evidencia más reciente (captura
+  // sugerida). Decide quien puede capturar; la base lo vuelve a comprobar.
+  const bloqueSugerencia = await cargarSugerencia(
+    supabase,
+    { id: sol.id, unidad_esperada: sol.unidad_esperada },
+    evs[0] ? { id: evs[0].id, nombre_original: evs[0].nombre_original } : null
+  );
 
   const capsPorEvidencia = new Map<string, CapturaRow[]>();
   for (const c of caps) {
@@ -349,6 +358,12 @@ export default async function SolicitudPage({
                     Descargar
                   </a>
                 </div>
+
+                {vigente && bloqueSugerencia.sugerencia ? (
+                  <div className="mt-4">
+                    <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
+                  </div>
+                ) : null}
 
                 {ev.justificacion && (
                   <div className="mt-3 border-t border-line pt-3">

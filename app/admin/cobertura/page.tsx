@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAuditor } from "@/lib/data";
@@ -10,6 +11,7 @@ import { CoberturaView } from "./cobertura-view";
 import { InformeButton } from "./informe-button";
 import { existeArchivoVitrina } from "@/lib/vitrina";
 import { SuplementoButton } from "./suplemento-button";
+import { SuplementoVitrinaButton } from "./suplemento-vitrina-button";
 
 export const metadata: Metadata = { title: "Cobertura de taxonomía" };
 
@@ -132,20 +134,33 @@ export default async function CoberturaPage({
       // suplemento y la vitrina quedan fuera de su alcance por encargo. Que el
       // botón no se inyecte es además lo único que hay que hacer, porque el slot
       // se resuelve aquí, en el servidor.
+      //
+      // Dos botones en el mismo slot: la entrada al semáforo del generador (para
+      // toda emisora, apagada sin reporte) y la vitrina (solo demostración). El
+      // auditor no ve ninguno de los dos.
       suplemento={
-        // Y solo si la vitrina de esa emisora está encendida: un mockup puede
-        // apagarla (`tenants.vitrina_habilitada`), y la ruta la niega igual.
-        !soyAuditor &&
-        tenantDelReporte?.es_demo &&
-        tenantDelReporte.vitrina_habilitada &&
-        reporteSel ? (
-          <SuplementoButton
-            key="suplemento"
-            reporteId={reporteSel.id}
-            ejercicio={reporteSel.ejercicio}
-            pdfDisponible={pdfDisponible}
-          />
-        ) : null
+        soyAuditor ? null : (
+          <Fragment key="suplemento">
+            {/* El generador, solo si esa emisora lo tiene encendido
+                (`tenants.generador_activo`); las rutas lo niegan igual. Sin
+                reporte elegido se muestra apagado, como siempre. */}
+            {!reporteSel || tenantDelReporte?.generador_activo ? (
+              <SuplementoButton reporteId={datos.reporteSel} />
+            ) : null}
+            {/* La vitrina, solo si esa emisora la tiene encendida: un mockup
+                puede apagarla (`tenants.vitrina_habilitada`), y la ruta la niega
+                igual. El enlace al semáforo de arriba no depende de esto. */}
+            {tenantDelReporte?.es_demo &&
+            tenantDelReporte.vitrina_habilitada &&
+            reporteSel ? (
+              <SuplementoVitrinaButton
+                reporteId={reporteSel.id}
+                ejercicio={reporteSel.ejercicio}
+                pdfDisponible={pdfDisponible}
+              />
+            ) : null}
+          </Fragment>
+        )
       }
     />
   );

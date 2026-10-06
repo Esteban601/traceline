@@ -62,6 +62,23 @@ export type AccionEvento =
   | "objetivo_desactivado"
   | "objetivo_reactivado"
   | "cuestionario_respondido"
+  // Descarga del Suplemento NIIF S1/S2 como documento de Word.
+  | "suplemento_word_descargado"
+  // Edición MANUAL del texto de un bloque en la vista de revisión. Distinta de
+  // la generación: una la escribe el modelo, la otra una persona.
+  | "suplemento_bloque_editado"
+  // Perfil del emisor (Suplemento S1/S2): lo institucional que alimenta el
+  // documento. Se registra por sección para saber qué se actualizó y cuándo.
+  | "perfil_emisor_actualizado"
+  | "perfil_organigrama_subido"
+  | "perfil_adjunto_subido"
+  | "perfil_adjunto_eliminado"
+  | "reporte_regimen_actualizado"
+  // Generador del suplemento: cada bloque generado cuesta dinero y lo escribió
+  // un modelo. Queda quién, cuándo, con qué modelo y cuánto costó.
+  | "suplemento_bloque_generado"
+  | "suplemento_documento_abierto"
+  | "suplemento_documento_estado"
   // Descarga del Suplemento de vitrina del tenant de demostración.
   | "suplemento_demo_descargado"
   | "tenant_creado"
@@ -72,6 +89,18 @@ export type AccionEvento =
   // Toggle "carga por IRStrat", por cliente (solo el rol admin de la firma).
   | "tenant_carga_staff_habilitada"
   | "tenant_carga_staff_deshabilitada"
+  // Lectura de evidencias por la plataforma (captura sugerida), por cliente.
+  | "tenant_lectura_evidencias_habilitada"
+  | "tenant_lectura_evidencias_deshabilitada"
+  // Generador del suplemento, por cliente.
+  | "tenant_generador_habilitado"
+  | "tenant_generador_deshabilitado"
+  // Captura sugerida: las escribe la BASE (la cola al generar; fn_decidir_sugerencia
+  // al decidir), no la aplicación. Se declaran para que la bitácora las nombre.
+  | "sugerencia_generada"
+  | "sugerencia_confirmada"
+  | "sugerencia_corregida"
+  | "sugerencia_rechazada"
   // Áreas del cliente (catálogo por tenant).
   | "area_creada"
   | "area_editada"
@@ -113,6 +142,8 @@ export async function logEvento(
       | "registros_clima"
       | "objetivos"
       | "cuestionarios_respuestas"
+      | "perfil_emisor"
+      | "documentos_generados"
       | "tenants"
       | "areas_tenant"
       | "invitaciones";

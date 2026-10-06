@@ -35,6 +35,8 @@ export type FilaMatriz = {
   /** Copia de una difusión que el área declaró ajena, o que quien difundió retiró. */
   declinada: boolean;
   desactivada: boolean;
+  /** Tiene una sugerencia de la plataforma que este usuario puede decidir (nunca para el auditor). */
+  pendienteDecision: boolean;
 };
 
 /**
@@ -410,6 +412,11 @@ export function MatrizSolicitudes({
                               {f.declinada ? "Declinada" : "Retirada"}
                             </span>
                           )}
+                          {f.pendienteDecision && (
+                            <span className="whitespace-nowrap rounded-pill border border-teal/25 bg-teal/10 px-2 py-0.5 text-[11px] font-medium text-teal">
+                              Sugerencia por decidir
+                            </span>
+                          )}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -478,6 +485,7 @@ export function MatrizSolicitudes({
                         <span className="font-medium text-ink">{f.tenantNombre}</span>
                       )}
                       {f.area && <span>{f.area}</span>}
+                      {f.pendienteDecision && <span className="font-medium text-teal">Sugerencia por decidir</span>}
                       <span>{f.responsable ?? "Sin responsable"}</span>
                       <span className={cn(f.numVersiones === 0 && "text-muted/60")}>
                         {f.numVersiones} {f.numVersiones === 1 ? "versión" : "versiones"}

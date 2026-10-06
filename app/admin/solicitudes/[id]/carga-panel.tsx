@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { EstadoSolicitud } from "@/lib/estados";
 import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
+import { subirArchivoFirmado } from "@/lib/evidencias/subir-archivo";
 
 const initial: CargaPanelState = { ok: false, error: null, mensaje: null };
 
@@ -67,6 +68,8 @@ export function CargaPanel({
   const [unidad, setUnidad] = useState(unidadEsperada ?? "");
   const [justificacion, setJustificacion] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  // El archivo sube directo a storage (URL firmada) antes de registrar la fila.
+  const [subiendo, setSubiendo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const congelado = estado === "congelado";
@@ -134,7 +137,7 @@ export function CargaPanel({
     setFile(f);
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) {
       setLocalError("Falta el archivo: arrástralo o selecciónalo.");
@@ -156,9 +159,18 @@ export function CargaPanel({
       setLocalError("Explica el motivo del ajuste (mínimo 20 caracteres).");
       return;
     }
+    setLocalError(null);
+    setSubiendo(true);
+    const subido = await subirArchivoFirmado(solicitudId, file);
+    setSubiendo(false);
+    if (!subido.ok) {
+      setLocalError(subido.error);
+      return;
+    }
     const fd = new FormData();
     fd.set("solicitud_id", solicitudId);
-    fd.set("file", file);
+    fd.set("archivo_path", subido.path);
+    fd.set("nombre_original", file.name);
     fd.set("area_origen", area);
     fd.set("periodo_cubierto", periodo);
     fd.set("justificacion", justificacion);
@@ -357,7 +369,7 @@ export function CargaPanel({
         >
           Cancelar
         </button>
-        <Button type="submit" size="sm" loading={pending} disabled={!file}>
+        <Button type="submit" size="sm" loading={pending || subiendo} disabled={!file}>
           Cargar evidencia
         </Button>
       </div>

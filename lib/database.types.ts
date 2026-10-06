@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -179,8 +184,10 @@ export type Database = {
           evidencia_id: string
           id: string
           justificacion: string | null
+          origen: string
           periodo: string | null
           solicitud_id: string
+          sugerencia_id: string | null
           unidad: string
           valor: number
         }
@@ -191,8 +198,10 @@ export type Database = {
           evidencia_id: string
           id?: string
           justificacion?: string | null
+          origen?: string
           periodo?: string | null
           solicitud_id: string
+          sugerencia_id?: string | null
           unidad: string
           valor: number
         }
@@ -203,8 +212,10 @@ export type Database = {
           evidencia_id?: string
           id?: string
           justificacion?: string | null
+          origen?: string
           periodo?: string | null
           solicitud_id?: string
+          sugerencia_id?: string | null
           unidad?: string
           valor?: number
         }
@@ -228,6 +239,13 @@ export type Database = {
             columns: ["solicitud_id"]
             isOneToOne: false
             referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capturas_valor_sugerencia_id_fkey"
+            columns: ["sugerencia_id"]
+            isOneToOne: false
+            referencedRelation: "sugerencias_captura"
             referencedColumns: ["id"]
           },
         ]
@@ -421,6 +439,200 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_bloques: {
+        Row: {
+          clave: string
+          costo_usd: number
+          created_at: string
+          documento_id: string
+          duracion_ms: number | null
+          editado_en: string | null
+          editado_por: string | null
+          estado: string
+          fuentes: Json
+          generado_en: string
+          id: string
+          idioma: string
+          intentos: number
+          modelo: string | null
+          numero: number
+          pendientes: Json
+          prompt_version: string | null
+          reclamado_en: string | null
+          seccion: string | null
+          texto: string | null
+          titulo: string
+          tokens_entrada: number
+          tokens_entrada_cache_escritura: number
+          tokens_entrada_cache_lectura: number
+          tokens_salida: number
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          costo_usd?: number
+          created_at?: string
+          documento_id: string
+          duracion_ms?: number | null
+          editado_en?: string | null
+          editado_por?: string | null
+          estado?: string
+          fuentes?: Json
+          generado_en?: string
+          id?: string
+          idioma?: string
+          intentos?: number
+          modelo?: string | null
+          numero: number
+          pendientes?: Json
+          prompt_version?: string | null
+          reclamado_en?: string | null
+          seccion?: string | null
+          texto?: string | null
+          titulo: string
+          tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
+          tokens_salida?: number
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          costo_usd?: number
+          created_at?: string
+          documento_id?: string
+          duracion_ms?: number | null
+          editado_en?: string | null
+          editado_por?: string | null
+          estado?: string
+          fuentes?: Json
+          generado_en?: string
+          id?: string
+          idioma?: string
+          intentos?: number
+          modelo?: string | null
+          numero?: number
+          pendientes?: Json
+          prompt_version?: string | null
+          reclamado_en?: string | null
+          seccion?: string | null
+          texto?: string | null
+          titulo?: string
+          tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
+          tokens_salida?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_bloques_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_generados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_generados: {
+        Row: {
+          alivios: Json
+          aprobado_en: string | null
+          aprobado_por: string | null
+          archivo_path: string | null
+          costo_usd: number
+          created_at: string
+          estado: string
+          generado_por: string | null
+          id: string
+          idioma: string
+          regimen: string | null
+          reporte_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada: number
+          tokens_salida: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          alivios?: Json
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          archivo_path?: string | null
+          costo_usd?: number
+          created_at?: string
+          estado?: string
+          generado_por?: string | null
+          id?: string
+          idioma?: string
+          regimen?: string | null
+          reporte_id: string
+          tenant_id: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          alivios?: Json
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          archivo_path?: string | null
+          costo_usd?: number
+          created_at?: string
+          estado?: string
+          generado_por?: string | null
+          id?: string
+          idioma?: string
+          regimen?: string | null
+          reporte_id?: string
+          tenant_id?: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_generados_aprobado_por_fkey"
+            columns: ["aprobado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_generados_generado_por_fkey"
+            columns: ["generado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_generados_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_generados_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evidencias: {
         Row: {
           archivo_path: string
@@ -477,6 +689,106 @@ export type Database = {
             columns: ["subido_por"]
             isOneToOne: false
             referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidencias_contenido: {
+        Row: {
+          archivo_path: string
+          bytes: number | null
+          contenido: Json | null
+          costo_usd: number
+          created_at: string
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id: string
+          hojas: number | null
+          id: string
+          intentos: number
+          mensaje: string | null
+          modelo: string | null
+          nombre_original: string
+          paginas: number | null
+          procesado_en: string | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string | null
+          tokens_entrada: number
+          tokens_salida: number
+          truncado: boolean
+          version: number
+        }
+        Insert: {
+          archivo_path: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id: string
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original: string
+          paginas?: number | null
+          procesado_en?: string | null
+          solicitud_id: string
+          tenant_id: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+          version: number
+        }
+        Update: {
+          archivo_path?: string
+          bytes?: number | null
+          contenido?: Json | null
+          costo_usd?: number
+          created_at?: string
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_lectura"]
+          evidencia_id?: string
+          hojas?: number | null
+          id?: string
+          intentos?: number
+          mensaje?: string | null
+          modelo?: string | null
+          nombre_original?: string
+          paginas?: number | null
+          procesado_en?: string | null
+          solicitud_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          tokens_entrada?: number
+          tokens_salida?: number
+          truncado?: boolean
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidencias_contenido_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: true
+            referencedRelation: "evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidencias_contenido_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidencias_contenido_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -756,6 +1068,150 @@ export type Database = {
           },
         ]
       }
+      perfil_emisor: {
+        Row: {
+          actualizado_en: string | null
+          actualizado_por: string | null
+          cadena_valor: Json
+          carta_cargo: string | null
+          carta_firmante: string | null
+          carta_texto: string | null
+          created_at: string
+          denominacion_formal: string | null
+          entidad_que_informa: string | null
+          forma_de_referencia: string | null
+          gobierno_texto: string | null
+          hitos_corporativos: Json
+          hitos_sostenibilidad: Json
+          horizontes: Json
+          id: string
+          matriz_riesgos: Json
+          modelo_negocio: string | null
+          nombre_corto: string | null
+          organigrama_path: string | null
+          perimetro: string | null
+          proceso_materialidad: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          actualizado_por?: string | null
+          cadena_valor?: Json
+          carta_cargo?: string | null
+          carta_firmante?: string | null
+          carta_texto?: string | null
+          created_at?: string
+          denominacion_formal?: string | null
+          entidad_que_informa?: string | null
+          forma_de_referencia?: string | null
+          gobierno_texto?: string | null
+          hitos_corporativos?: Json
+          hitos_sostenibilidad?: Json
+          horizontes?: Json
+          id?: string
+          matriz_riesgos?: Json
+          modelo_negocio?: string | null
+          nombre_corto?: string | null
+          organigrama_path?: string | null
+          perimetro?: string | null
+          proceso_materialidad?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          actualizado_por?: string | null
+          cadena_valor?: Json
+          carta_cargo?: string | null
+          carta_firmante?: string | null
+          carta_texto?: string | null
+          created_at?: string
+          denominacion_formal?: string | null
+          entidad_que_informa?: string | null
+          forma_de_referencia?: string | null
+          gobierno_texto?: string | null
+          hitos_corporativos?: Json
+          hitos_sostenibilidad?: Json
+          horizontes?: Json
+          id?: string
+          matriz_riesgos?: Json
+          modelo_negocio?: string | null
+          nombre_corto?: string | null
+          organigrama_path?: string | null
+          perimetro?: string | null
+          proceso_materialidad?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_emisor_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_emisor_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perfil_emisor_adjuntos: {
+        Row: {
+          archivo_path: string
+          created_at: string
+          id: string
+          mime: string | null
+          nombre_original: string
+          seccion: string
+          subido_por: string | null
+          tamano: number | null
+          tenant_id: string
+        }
+        Insert: {
+          archivo_path: string
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nombre_original: string
+          seccion: string
+          subido_por?: string | null
+          tamano?: number | null
+          tenant_id: string
+        }
+        Update: {
+          archivo_path?: string
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nombre_original?: string
+          seccion?: string
+          subido_por?: string | null
+          tamano?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_emisor_adjuntos_subido_por_fkey"
+            columns: ["subido_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfil_emisor_adjuntos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles_usuario: {
         Row: {
           activo: boolean
@@ -892,35 +1348,56 @@ export type Database = {
       registros_clima: {
         Row: {
           activo: boolean
+          concentracion: string | null
           created_at: string
           descripcion: string | null
           horizontes: string[]
           id: string
+          impacto: number | null
+          impactos_potenciales: string | null
+          nivel: string | null
           nombre: string
           orden: number
+          probabilidad: number | null
           reporte_id: string
+          respuesta: string | null
+          severidad: number | null
           tipo: string
         }
         Insert: {
           activo?: boolean
+          concentracion?: string | null
           created_at?: string
           descripcion?: string | null
           horizontes?: string[]
           id?: string
+          impacto?: number | null
+          impactos_potenciales?: string | null
+          nivel?: string | null
           nombre: string
           orden?: number
+          probabilidad?: number | null
           reporte_id: string
+          respuesta?: string | null
+          severidad?: number | null
           tipo: string
         }
         Update: {
           activo?: boolean
+          concentracion?: string | null
           created_at?: string
           descripcion?: string | null
           horizontes?: string[]
           id?: string
+          impacto?: number | null
+          impactos_potenciales?: string | null
+          nivel?: string | null
           nombre?: string
           orden?: number
+          probabilidad?: number | null
           reporte_id?: string
+          respuesta?: string | null
+          severidad?: number | null
           tipo?: string
         }
         Relationships: [
@@ -992,6 +1469,8 @@ export type Database = {
       }
       reportes: {
         Row: {
+          alivios: Json
+          anio_adopcion: number | null
           created_at: string
           ejercicio: number
           estado: Database["public"]["Enums"]["estado_reporte"]
@@ -1001,6 +1480,8 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          alivios?: Json
+          anio_adopcion?: number | null
           created_at?: string
           ejercicio: number
           estado?: Database["public"]["Enums"]["estado_reporte"]
@@ -1010,6 +1491,8 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          alivios?: Json
+          anio_adopcion?: number | null
           created_at?: string
           ejercicio?: number
           estado?: Database["public"]["Enums"]["estado_reporte"]
@@ -1201,12 +1684,156 @@ export type Database = {
           },
         ]
       }
+      sugerencias_captura: {
+        Row: {
+          candidatos: Json
+          cita: string | null
+          cobertura: string | null
+          confianza: string | null
+          contenido_id: string
+          conversion: Json | null
+          costo_usd: number
+          created_at: string
+          decidido_en: string | null
+          decidido_por: string | null
+          error: string | null
+          estado: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id: string
+          evidencia_version: number
+          extracto: string | null
+          extracto_final: string | null
+          fuente: Json | null
+          id: string
+          modelo: string | null
+          motivo: string | null
+          motivo_rechazo: string | null
+          periodo: string | null
+          prompt_version: string | null
+          regenerada: boolean
+          segunda_opinion: Json | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada: number
+          tokens_salida: number
+          unidad: string | null
+          unidad_final: string | null
+          valor: number | null
+          valor_final: number | null
+        }
+        Insert: {
+          candidatos?: Json
+          cita?: string | null
+          cobertura?: string | null
+          confianza?: string | null
+          contenido_id: string
+          conversion?: Json | null
+          costo_usd?: number
+          created_at?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id: string
+          evidencia_version: number
+          extracto?: string | null
+          extracto_final?: string | null
+          fuente?: Json | null
+          id?: string
+          modelo?: string | null
+          motivo?: string | null
+          motivo_rechazo?: string | null
+          periodo?: string | null
+          prompt_version?: string | null
+          regenerada?: boolean
+          segunda_opinion?: Json | null
+          solicitud_id: string
+          tenant_id: string
+          tipo: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          unidad?: string | null
+          unidad_final?: string | null
+          valor?: number | null
+          valor_final?: number | null
+        }
+        Update: {
+          candidatos?: Json
+          cita?: string | null
+          cobertura?: string | null
+          confianza?: string | null
+          contenido_id?: string
+          conversion?: Json | null
+          costo_usd?: number
+          created_at?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          error?: string | null
+          estado?: Database["public"]["Enums"]["estado_sugerencia"]
+          evidencia_id?: string
+          evidencia_version?: number
+          extracto?: string | null
+          extracto_final?: string | null
+          fuente?: Json | null
+          id?: string
+          modelo?: string | null
+          motivo?: string | null
+          motivo_rechazo?: string | null
+          periodo?: string | null
+          prompt_version?: string | null
+          regenerada?: boolean
+          segunda_opinion?: Json | null
+          solicitud_id?: string
+          tenant_id?: string
+          tipo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          unidad?: string | null
+          unidad_final?: string | null
+          valor?: number | null
+          valor_final?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugerencias_captura_contenido_id_fkey"
+            columns: ["contenido_id"]
+            isOneToOne: false
+            referencedRelation: "evidencias_contenido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_evidencia_id_fkey"
+            columns: ["evidencia_id"]
+            isOneToOne: false
+            referencedRelation: "evidencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_captura_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           activo: boolean
           created_at: string
           es_demo: boolean
+          generaciones_mes_max: number
+          generador_activo: boolean
           id: string
+          lectura_evidencias_activa: boolean
+          lecturas_mes_max: number
           logo_url: string | null
           nombre: string
           prefijo_folio: string
@@ -1218,7 +1845,11 @@ export type Database = {
           activo?: boolean
           created_at?: string
           es_demo?: boolean
+          generaciones_mes_max?: number
+          generador_activo?: boolean
           id?: string
+          lectura_evidencias_activa?: boolean
+          lecturas_mes_max?: number
           logo_url?: string | null
           nombre: string
           prefijo_folio: string
@@ -1230,7 +1861,11 @@ export type Database = {
           activo?: boolean
           created_at?: string
           es_demo?: boolean
+          generaciones_mes_max?: number
+          generador_activo?: boolean
           id?: string
+          lectura_evidencias_activa?: boolean
+          lecturas_mes_max?: number
           logo_url?: string | null
           nombre?: string
           prefijo_folio?: string
@@ -1252,6 +1887,18 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       fn_current_tenant: { Args: never; Returns: string }
+      fn_decidir_sugerencia: {
+        Args: {
+          p_accion: string
+          p_extracto?: string
+          p_motivo?: string
+          p_periodo?: string
+          p_sugerencia_id: string
+          p_unidad?: string
+          p_valor?: number
+        }
+        Returns: Json
+      }
       fn_es_de_su_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_es_jefe_de_area: { Args: { p_solicitud_id: string }; Returns: boolean }
       fn_gestiona_recordatorios: {
@@ -1287,6 +1934,10 @@ export type Database = {
         Args: { p_perfil: string; p_tenant: string }
         Returns: boolean
       }
+      fn_puede_decidir_sugerencia: {
+        Args: { p_solicitud_id: string }
+        Returns: boolean
+      }
       fn_puede_ver_solicitud: {
         Args: { p_solicitud_id: string }
         Returns: boolean
@@ -1305,6 +1956,13 @@ export type Database = {
       }
     }
     Enums: {
+      estado_lectura:
+        | "pendiente"
+        | "procesando"
+        | "extraido"
+        | "error"
+        | "no_soportado"
+        | "omitido"
       estado_reporte: "activo" | "congelado"
       estado_solicitud:
         | "pendiente"
@@ -1314,6 +1972,14 @@ export type Database = {
         | "observaciones"
         | "validado"
         | "congelado"
+      estado_sugerencia:
+        | "sugerida"
+        | "sin_hallazgo"
+        | "confirmada"
+        | "corregida"
+        | "rechazada"
+        | "obsoleta"
+        | "fallida"
       norma_niif: "S1" | "S2"
       objeto_comentario_auditor:
         | "solicitud"
@@ -1355,12 +2021,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1384,11 +2050,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1409,11 +2075,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1434,11 +2100,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1451,11 +2117,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1470,6 +2136,14 @@ export const Constants = {
   },
   public: {
     Enums: {
+      estado_lectura: [
+        "pendiente",
+        "procesando",
+        "extraido",
+        "error",
+        "no_soportado",
+        "omitido",
+      ],
       estado_reporte: ["activo", "congelado"],
       estado_solicitud: [
         "pendiente",
@@ -1479,6 +2153,15 @@ export const Constants = {
         "observaciones",
         "validado",
         "congelado",
+      ],
+      estado_sugerencia: [
+        "sugerida",
+        "sin_hallazgo",
+        "confirmada",
+        "corregida",
+        "rechazada",
+        "obsoleta",
+        "fallida",
       ],
       norma_niif: ["S1", "S2"],
       objeto_comentario_auditor: [
@@ -1512,4 +2195,3 @@ export const Constants = {
     },
   },
 } as const
-

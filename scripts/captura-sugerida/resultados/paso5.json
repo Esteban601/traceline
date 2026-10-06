@@ -1,0 +1,147 @@
+[
+  {
+    "bloque": 29,
+    "estado": "borrador",
+    "texto": "**Emisiones brutas absolutas de gases de efecto invernadero**\n\n| Concepto | Valor | Unidad | Ejercicio |\n|---|---:|---|---:|\n| Inventario GEI Alcance 1 con memoria de cálculo | 12,480.5 | tCO2e | 2025 |\n| Inventario GEI Alcance 2 (ubicación y mercado) | 8,930.2 | tCO2e | 2025 |\n\n[Pendiente: denominación formal — Perfil del emisor] presenta en la tabla anterior sus emisiones brutas absolutas de gases de efecto invernadero generadas durante el ejercicio 2025, expresadas en toneladas métricas equivalentes de CO2 y desglosadas por alcance. Las cifras se presentan en términos brutos, esto es, sin considerar compensaciones ni créditos de carbono.\n\nLas emisiones de Alcance 1 comprenden las emisiones directas provenientes de fuentes que son propiedad de la Emisora o que se encuentran bajo su control, incluida la combustión de combustibles en fuentes fijas y móviles. Las emisiones de Alcance 2 comprenden las emisiones indirectas asociadas a la generación de la energía adquirida y consumida por la Emisora durante el periodo.\n\nConforme al párrafo C4 del Apéndice C de la NIIF S2, durante este primer periodo anual de aplicación la Emisora se acoge a la facilidad transitoria que la exime de revelar sus emisiones de gases de efecto invernadero de Alcance 3; en consecuencia, las cifras de emisiones brutas absolutas que se presentan corresponden únicamente a los Alcances 1 y 2.\n\nLa Emisora continuará avanzando en la medición de sus emisiones de Alcance 3, priorizando las categorías más relevantes para su actividad y su cadena de valor, con el propósito de incorporar dicha información en periodos subsecuentes.",
+    "fuentes": [
+      {
+        "id": "sol:c0000000-0000-0000-0000-000000000007",
+        "tipo": "solicitud",
+        "detalle": "Inventario GEI Alcance 1 con memoria de cálculo — entregada y validada, valor 12480.5 tCO2e"
+      },
+      {
+        "id": "sol:c0000000-0000-0000-0000-000000000008",
+        "tipo": "solicitud",
+        "detalle": "Inventario GEI Alcance 2 (ubicación y mercado) — entregada y validada, valor 8930.2 tCO2e"
+      },
+      {
+        "id": "evi:e11ca726-9eef-4863-9f83-b134588dd543:h1!C2",
+        "tipo": "evidencia",
+        "detalle": "x02_emisiones_gei.xlsx, hoja «GEI», celda C2"
+      },
+      {
+        "id": "evi:c2241265-793c-4001-bac3-4b00b0460706:tab1f3c3",
+        "tipo": "evidencia",
+        "detalle": "w02_tabla_emisiones.docx, tabla 1, fila 3, columna 3"
+      },
+      {
+        "id": "reporte:20000000-0000-0000-0000-000000000001",
+        "tipo": "reporte",
+        "detalle": "Reporte [DEMO] Informe Anual Sustentable 2025, ejercicio 2025"
+      }
+    ],
+    "pendientes": [
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: denominación formal — Perfil del emisor]"
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "La denominación formal de la emisora no está cargada en el perfil del emisor; el marcador va en la primera mención del bloque y debe sustituirse antes de aprobar."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "Existe una cifra de Alcance 3 entregada y validada (sol:c3000000-0000-0000-0000-000000000001, 15,750 tCO2e, ejercicio 2025) que el alivio C4 permite omitir; no se incluyó en el texto. El revisor decide si la emisora quiere revelarla voluntariamente."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "Inconsistencia en Alcance 3: el valor validado es 15,750 tCO2e, pero los documentos de respaldo de Alcance 1 y 2 (x02_emisiones_gei.xlsx y w02_tabla_emisiones.docx) muestran Alcance 3 2025 = 251,400 tCO2e. Además, el archivo de respaldo de la solicitud de Alcance 3 es una hoja de utilería del entorno de demostración sin datos reales. Conviene aclarar antes de cualquier revelación voluntaria."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "Inconsistencia en Alcance 2: la solicitud pide ambos métodos (ubicación y mercado) pero solo llegó una cifra; el xlsx la etiqueta como «Alcance 2 (ubicación)». El bloque 32 requerirá la cifra basada en el mercado o una aclaración."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "Los documentos de respaldo contienen cifras del ejercicio 2024 (Alcance 1: 13,105.2; Alcance 2: 9,210.4 tCO2e) que el alivio C3 permite omitir; no se incluyeron. Revelación comparativa voluntaria posible si la emisora lo desea."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "La solicitud de consumo de combustibles fósiles 2025 (sol:c0000000-0000-0000-0000-000000000012) está sin evidencia; no afecta las cifras de este bloque, pero es el sustento del dato de entrada de Alcance 1 que corresponde al bloque 30."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "La mención del alivio C4 se limitó a una frase con su consecuencia sobre las cifras de este bloque; no se mencionó C3 ni C5 para no invadir el bloque 3."
+      }
+    ],
+    "modelo": "claude-fable-5-1",
+    "prompt_version": "a5b-v3-2026-10-04",
+    "tokens_entrada": 4308,
+    "tokens_salida": 2942,
+    "costo_usd": 0.1914
+  },
+  {
+    "bloque": 16,
+    "estado": "borrador",
+    "texto": "[Pendiente: denominación formal — Perfil del emisor] cuenta con canales definidos para que el Consejo de Administración y sus comités reciban información sobre los riesgos y oportunidades relacionados con el clima y la incorporen en la supervisión de la estrategia, de las decisiones de inversión y del seguimiento de los objetivos climáticos de la Emisora.\n\nEl Comité de Sostenibilidad del Consejo recibe un informe trimestral de la Dirección de Sostenibilidad sobre los riesgos y oportunidades relacionados con el clima. De manera complementaria, la Dirección General informa al Consejo en pleno dos veces al año sobre el avance de los objetivos de reducción de emisiones, de modo que el órgano de gobierno dispone de información periódica tanto en el ámbito del comité especializado como en sesión plenaria.\n\nEn la supervisión de la estrategia, el Consejo considera los riesgos y oportunidades relacionados con el clima al aprobar el plan de inversiones anual. En ese proceso revisa los escenarios climáticos y su efecto en la disponibilidad de agua para generación, variable que condiciona la operación de las centrales hidroeléctricas de la Emisora y, con ello, la asignación de recursos de capital. En cuanto a la manera en que el Consejo considera estos riesgos y oportunidades al supervisar los procesos de gestión de riesgos y las políticas relacionadas, y a si ha considerado las compensaciones asociadas a ellos, la Emisora revela lo siguiente: [Pendiente: consideración del clima en la supervisión de los procesos de gestión de riesgos y políticas relacionadas, y si el Consejo ha considerado las compensaciones asociadas — solicitud Cómo y con qué frecuencia se informa al Consejo sobre los riesgos climáticos y cómo los considera en la estrategia].\n\nRespecto de los objetivos relacionados con el clima, el Consejo en pleno controla semestralmente el avance de los objetivos de reducción de emisiones por medio de los informes de la Dirección General. La forma en que el Consejo supervisa el establecimiento de dichos objetivos es [Pendiente: cómo supervisa el Consejo el establecimiento de los objetivos relacionados con el clima — sin solicitud asignada, requisito NIIF S2 6(a)(v)]. En relación con la remuneración, [Pendiente: si las métricas de desempeño relacionadas con el clima se incluyen en las políticas de remuneración y de qué manera — sin solicitud asignada, requisito NIIF S2 6(a)(v)].",
+    "fuentes": [
+      {
+        "id": "sol:86880bcf-3b85-4022-80e0-f9794b82b7c2",
+        "tipo": "solicitud",
+        "detalle": "[Revisión Paso 4] Cómo y con qué frecuencia se informa al Consejo sobre los riesgos climáticos — entregada y validada"
+      },
+      {
+        "id": "evi:6a40fab6-ede3-4e31-8cc1-1418120e4321:par3",
+        "tipo": "evidencia",
+        "detalle": "t02_gobierno_disperso.docx, párrafo 3"
+      },
+      {
+        "id": "evi:6a40fab6-ede3-4e31-8cc1-1418120e4321:par6",
+        "tipo": "evidencia",
+        "detalle": "t02_gobierno_disperso.docx, párrafo 6"
+      },
+      {
+        "id": "evi:6a40fab6-ede3-4e31-8cc1-1418120e4321:par8",
+        "tipo": "evidencia",
+        "detalle": "t02_gobierno_disperso.docx, párrafo 8"
+      }
+    ],
+    "pendientes": [
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: denominación formal — Perfil del emisor]"
+      },
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: consideración del clima en la supervisión de los procesos de gestión de riesgos y políticas relacionadas, y si el Consejo ha considerado las compensaciones asociadas — solicitud Cómo y con qué frecuencia se informa al Consejo sobre los riesgos climáticos y cómo los considera en la estrategia]"
+      },
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: cómo supervisa el Consejo el establecimiento de los objetivos relacionados con el clima — sin solicitud asignada, requisito NIIF S2 6(a)(v)]"
+      },
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: si las métricas de desempeño relacionadas con el clima se incluyen en las políticas de remuneración y de qué manera — sin solicitud asignada, requisito NIIF S2 6(a)(v)]"
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El perfil del emisor viene vacío y la denominación formal es un marcador; el documento de respaldo (t02_gobierno_disperso.docx, par2) nombra a 'Hidroeléctrica Demo del Norte, S.A. de C.V.'. Confirmar la denominación en el perfil antes de sustituir el marcador; no la tomé del documento por no ser fuente del perfil."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "Hay dos solicitudes con el mismo documento de respaldo: sol:3f44a437 (entregada, sin validar, sin texto confirmado) y sol:86880bcf (validada, con texto confirmado). Redacté sobre la validada y sus ids de citar_con; la primera parece duplicada de la captura sugerida y no la cité."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El datapoint NIIF S2 6(a)(iv) figura como 'cubierto', pero el documento solo acredita la consideración del clima al aprobar el plan de inversiones anual. No hay nada sobre procesos de gestión de riesgos, políticas relacionadas ni compensaciones (trade-offs), que la norma exige explícitamente. Puse un marcador combinado; valorar si se abre una solicitud específica."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "NIIF S2 6(a)(v) está sin solicitud. El par8 del documento (informe semestral de la Dirección General al Consejo sobre avance de objetivos de reducción de emisiones) cubre la parte de 'controlar los avances', y así lo redacté; faltan el establecimiento de objetivos y el vínculo con remuneración (29(g)). Si la emisora no vincula remuneración al clima, debe decirse expresamente: una negativa también es revelación."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El documento contiene información no climática (seguridad industrial, dividendo, reuniones del Comité de Auditoría) que omití por no corresponder al requisito; la mención de que la emisora opera tres centrales hidroeléctricas la usé solo como contexto cualitativo, sin cifras."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "No se mencionan los párrafos 33 a 36 ni los objetivos en sí (bloques 38 a 40); aquí solo la supervisión del Consejo. Verificar que el bloque 38/40 confirme la existencia de objetivos de reducción de emisiones a los que se alude en este bloque."
+      }
+    ],
+    "modelo": "claude-fable-5-1",
+    "prompt_version": "a5b-v3-2026-10-04",
+    "tokens_entrada": 5045,
+    "tokens_salida": 4491,
+    "costo_usd": 0.2763
+  }
+]

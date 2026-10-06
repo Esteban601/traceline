@@ -1,0 +1,95 @@
+{
+  "r": {
+    "n": 29,
+    "ok": true,
+    "estado": "borrador",
+    "docId": "f07da34d-7532-4655-be48-c1891840d9fc",
+    "ms": 37425
+  },
+  "fila": {
+    "numero": 29,
+    "estado": "borrador",
+    "modelo": "claude-fable-5-1",
+    "prompt_version": "a5b-v3-2026-10-04",
+    "duracion_ms": 33878,
+    "costo_usd": 0.2452,
+    "tokens_entrada": 3210,
+    "tokens_salida": 2995,
+    "intentos": 0,
+    "fuentes": [
+      {
+        "id": "sol:c0000000-0000-0000-0000-000000000007",
+        "tipo": "solicitud",
+        "detalle": "Inventario GEI Alcance 1 con memoria de cálculo — entregada y validada, valor 400000 tCO2e"
+      },
+      {
+        "id": "sol:c0000000-0000-0000-0000-000000000008",
+        "tipo": "solicitud",
+        "detalle": "Inventario GEI Alcance 2 (ubicación y mercado) — entregada y validada, valor 3120.4 tCO2e"
+      },
+      {
+        "id": "sol:c3000000-0000-0000-0000-000000000001",
+        "tipo": "solicitud",
+        "detalle": "Emisiones GEI Alcance 3 — total (todas las categorías) — entregada y validada, valor 15750 tCO2e"
+      },
+      {
+        "id": "evi:80d27547-453c-4edf-948c-04d5e5fe0637",
+        "tipo": "evidencia",
+        "detalle": "Matriz_Evaluacion_v3 (2).xlsx"
+      },
+      {
+        "id": "evi:d3000000-0000-0000-0000-000000000002",
+        "tipo": "evidencia",
+        "detalle": "inventario_gei_alcance2_2025_DEMO.xlsx"
+      },
+      {
+        "id": "evi:d3000000-0000-0000-0000-000000000001",
+        "tipo": "evidencia",
+        "detalle": "inventario_gei_alcance3_total_DEMO.xlsx"
+      },
+      {
+        "id": "reporte:20000000-0000-0000-0000-000000000001",
+        "tipo": "reporte",
+        "detalle": "Reporte [DEMO] Informe Anual Sustentable 2025, ejercicio 2025"
+      }
+    ],
+    "pendientes": [
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: denominación formal — Perfil del emisor]"
+      },
+      {
+        "campo": "bloque",
+        "motivo": "[Pendiente: desagregación de una categoría de Alcance 3 por los gases que la componen (CO2, CH4, N2O y otros), en toneladas métricas equivalentes de CO2 — no existe solicitud que cubra NIIF S2 EI19 a EI24]"
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El perfil del emisor viene vacío: la denominación formal y el nombre corto no están cargados en la plataforma; el texto arranca con el marcador correspondiente."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "La solicitud sol:c0000000-0000-0000-0000-000000000012 (Consumo de combustibles fósiles 2025, base para Alcance 1) está sin evidencia. No se usó en el texto, pero el Alcance 1 de 400,000 tCO2e queda sin su dato de actividad de respaldo; conviene pedirlo antes de publicar."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El respaldo de la cifra de Alcance 1 es 'Matriz_Evaluacion_v3 (2).xlsx', que por su nombre no parece ser un inventario GEI con memoria de cálculo como pide la solicitud. Verificar que el archivo efectivamente sustente la cifra."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "La solicitud de Alcance 2 pide ambos métodos (ubicación y mercado) pero llegó un solo valor (3,120.4 tCO2e) sin indicar a qué método corresponde. El bloque 32 necesitará ambas cifras; en este bloque no se afirmó el método."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El Alcance 3 llegó como un total agregado (15,750 tCO2e) sin desglose por categoría ni por gas. NIIF S2 EI19 a EI24 (desagregación de una categoría por gases) queda sin solicitud; se dejó el marcador integrado en la oración."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "El régimen indica primer año sin alivios adoptados, por lo que el Alcance 3 sí se revela. Si la emisora decidiera acogerse al alivio C4, habría que retirar la fila de Alcance 3 de la tabla y reescribir el tercer párrafo (y coordinar con el bloque 3)."
+      },
+      {
+        "campo": "nota_revision",
+        "motivo": "Revelación voluntaria posible: un desglose del Alcance 3 por las 15 categorías del GHG Protocol y la identificación de las categorías materiales, si el inventario de respaldo lo contiene."
+      }
+    ]
+  }
+}

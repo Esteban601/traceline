@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build --turbopack",
+    "lint": "eslint",
+    "start": "next start -p ${PORT:-3000}",
     "db:reset": "supabase db reset && node scripts/seed-evidencias.mjs",
     "demo:prospectos": "node scripts/crear-demo-prospecto.mjs",
     "dev": "next dev --turbopack",
@@ -13,31 +15,42 @@
     "e2e:auditor:rutas": "node scripts/e2e-auditor-rutas.mjs",
     "e2e:banner-demo": "node scripts/e2e-banner-demo.mjs",
     "e2e:cambio-password": "node scripts/e2e-cambio-password.mjs",
+    "e2e:captura-sugerida": "node scripts/e2e-captura-sugerida.mjs",
+    "e2e:captura-sugerida:ui": "node scripts/e2e-captura-sugerida-ui.mjs",
     "e2e:demo-prospectos": "node scripts/e2e-demo-prospectos.mjs",
     "e2e:difusion": "node scripts/e2e-difusion.mjs",
+    "e2e:generador-bandera": "node scripts/e2e-generador-bandera.mjs",
     "e2e:jefe-sube-evidencia": "node scripts/e2e-jefe-sube-evidencia.mjs",
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
     "e2e:vb-area": "node scripts/e2e-vb-area.mjs",
     "e2e:vitrina": "node scripts/e2e-vitrina.mjs",
     "import:gcarso-historico": "node scripts/import-gcarso-historico.mjs",
-    "lint": "eslint",
+    "verify:export": "node scripts/verify-export.mjs",
+    "seed:catalogo": "node scripts/regenerar-seed-catalogo.mjs",
     "seed:evidencias": "node scripts/seed-evidencias.mjs",
-    "start": "next start -p ${PORT:-3000}",
-    "verify:export": "node scripts/verify-export.mjs"
+    "plantilla:preparar": "node scripts/preparar-plantilla-taxonomia.mjs",
+    "verify:word": "node scripts/verify-docx.mjs"
   },
   "engines": {
     "node": "22.x"
   },
   "packageManager": "pnpm@11.2.2",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
+    "docx": "^9.7.1",
     "exceljs": "^4.4.0",
+    "heic-convert": "2.1.0",
     "jszip": "^3.10.2",
+    "mammoth": "1.13.0",
     "next": "15.5.20",
+    "pdf-lib": "1.17.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "resend": "^6.17.1"
+    "resend": "^6.17.1",
+    "sharp": "0.35.5",
+    "unpdf": "1.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -47,8 +60,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.20",
-    "pdf-lib": "^1.17.1",
     "playwright": "^1.61.1",
+    "sax": "^1.6.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

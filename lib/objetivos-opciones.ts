@@ -1,6 +1,6 @@
 // =============================================================================
 // Opciones canónicas de los objetivos (estructura oficial de la taxonomía,
-// Fondo I). Compartidas por la vista (controles) y la server action (validación),
+// hoja índice). Compartidas por la vista (controles) y la server action (validación),
 // para que ambas hablen exactamente el mismo vocabulario.
 // =============================================================================
 

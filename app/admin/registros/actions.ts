@@ -44,6 +44,49 @@ function numero(fd: FormData, k: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Los tres campos narrativos del registro. La descripción dice QUÉ es el riesgo;
+ * estos tres dicen dónde pega, qué provoca y qué se hace al respecto, que es lo
+ * que el Suplemento necesita para escribir el párrafo por riesgo en vez de solo
+ * la fila de la tabla. Los tres son opcionales: un registro recién dado de alta
+ * sigue siendo válido con el nombre y el tipo.
+ */
+function narrativa(fd: FormData): {
+  concentracion: string | null;
+  impactos_potenciales: string | null;
+  respuesta: string | null;
+} {
+  return {
+    concentracion: texto(fd, "concentracion"),
+    impactos_potenciales: texto(fd, "impactos_potenciales"),
+    respuesta: texto(fd, "respuesta"),
+  };
+}
+
+/**
+ * Priorización: probabilidad × impacto = severidad, o la severidad capturada a
+ * secas. §5 admite las dos formas porque no todos los clientes entregan los dos
+ * factores; el que solo da el puntaje no debe verse obligado a inventarlos.
+ *
+ * `nivel` NO se calcula aquí: depende de la matriz del perfil del emisor, que es
+ * de la emisora y puede cambiar. Se resuelve al pintar, contra la matriz vigente.
+ */
+function priorizacion(fd: FormData): {
+  probabilidad: number | null;
+  impacto: number | null;
+  severidad: number | null;
+} {
+  const probabilidad = numero(fd, "probabilidad");
+  const impacto = numero(fd, "impacto");
+  const capturada = numero(fd, "severidad");
+  return {
+    probabilidad,
+    impacto,
+    severidad:
+      probabilidad != null && impacto != null ? probabilidad * impacto : capturada,
+  };
+}
+
 /** tenant del reporte, para la bitácora. */
 async function tenantDeReporte(
   db: Awaited<ReturnType<typeof createClient>>,
@@ -96,7 +139,9 @@ export async function crearRegistro(
       tipo,
       nombre,
       descripcion: texto(fd, "descripcion"),
+      ...narrativa(fd),
       horizontes: horizontes(fd),
+      ...priorizacion(fd),
       orden,
     })
     .select("id")
@@ -146,7 +191,9 @@ export async function editarRegistro(
     .update({
       nombre,
       descripcion: texto(fd, "descripcion"),
+      ...narrativa(fd),
       horizontes: horizontes(fd),
+      ...priorizacion(fd),
     })
     .eq("id", registroId);
   if (error) return { ok: false, error: "No se pudo guardar el registro." };

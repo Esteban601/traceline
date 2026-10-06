@@ -8,7 +8,14 @@ import { registrarActividadAuditor } from "@/lib/auditoria";
 import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
 import { fmtFecha } from "@/lib/fechas";
-import { NOTA_VALIDACION_INTERNA, type OrigenSolicitud } from "@/lib/origen";
+import {
+  ensamblarReporte,
+  type CuestRow,
+  type ObjDetRow,
+  type ObjRow,
+  type RegRow,
+  type RegValRow,
+} from "@/lib/reporte/ensamblar";
 
 export const runtime = "nodejs";
 
@@ -17,52 +24,69 @@ export const runtime = "nodejs";
 // de sensibilidad y web-extensions). Ver reporte de fidelidad en el PR de Fase 3.
 const PLANTILLA = path.join(process.cwd(), "assets", "taxonomia-base.xlsx");
 
-const NOTA_PENDIENTE = "Pendiente de validación en plataforma";
-const NOTA_SIN = "Sin evidencia";
-// Causa de hueco distinta de las anteriores: el rubro está mapeado en la
-// plantilla pero el reporte de ESTE cliente no tiene una solicitud que lo
-// alimente. No es que falte evidencia: es que falta pedirla.
-const NOTA_SIN_SOLICITUD = "Sin solicitud en el reporte";
 const GOLD = "FF8A6D1B";
 
-type MapeoRow = {
-  hoja: string;
-  celda: string;
-  /** Años hacia atrás desde el ejercicio del reporte (0 = el del reporte). */
-  anio_offset: number | null;
-  /** Rubro canónico; se resuelve contra las solicitudes del reporte elegido. */
-  rubro_clave: string | null;
-  etiqueta: string | null;
-  celda_nota: string | null;
-};
-type CapRow = {
-  solicitud_id: string;
-  valor: number;
-  periodo: string | null;
-  confirmado: boolean;
-  created_at: string;
-};
-type RegRow = {
-  id: string;
-  reporte_id: string;
-  tipo: string;
-  nombre: string;
-  descripcion: string | null;
-  horizontes: string[] | null;
-  orden: number;
-};
-type RegValRow = {
-  registro_id: string;
-  ejercicio: number;
-  cantidad_activos: number | null;
-  porcentaje: number | null;
-  capital_gasto: number | null;
-  capital_financiacion: number | null;
-  capital_inversion: number | null;
-  created_at: string;
-};
-
 const NOTA_SIN_DATOS = "Sin datos del ejercicio";
+
+/**
+ * Hoja principal del libro: el índice de los requisitos NIIF. Se llamaba
+ * «Fondo I» —el nombre de un cliente— en una plantilla que es de la firma.
+ */
+const HOJA_TAXONOMIA = "Taxonomía NIIF S1 S2";
+
+/**
+ * LA COLUMNA D LA ESCRIBE EL EXPORT, NO LA PLANTILLA.
+ *
+ * Venía congelada en el .xlsx, cargada del mismo origen que el catálogo y con
+ * los mismos errores —incluido un párrafo sobre peajes de un cliente concreto en
+ * la fila de NIIF S1 35(c)(i)(ii)—. Corregir el catálogo en la base no corregía
+ * el libro: eran dos copias del mismo texto y solo se arreglaba una.
+ *
+ * Ahora la descripción sale de `datapoints_taxonomia` por código EXACTO, leído
+ * de la columna B de cada fila.
+ *
+ * SOLO LA PRIMERA FILA DE CADA CÓDIGO. La hoja es más fina que el catálogo: 87
+ * códigos ocupan 221 filas porque debajo del requisito vienen preguntas de
+ * captura ("No ¿Por qué?", "Si ¿Cómo se integran…?"). Esas son contenido propio
+ * de la plantilla y se dejan intactas; escribirles la descripción del catálogo
+ * las borraría y dejaría cuatro filas repitiendo el mismo texto.
+ */
+function escribirRequisitos(
+  ws: ExcelJS.Worksheet,
+  descripciones: Map<string, string>
+): { escritas: number; sinCatalogo: { fila: number; codigo: string }[] } {
+  const norm = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object" && v !== null && "richText" in v) {
+      return (v as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("").replace(/\s+/g, " ").trim();
+    }
+    return String(v).replace(/\s+/g, " ").trim();
+  };
+
+  const vistos = new Set<string>();
+  const sinCatalogo: { fila: number; codigo: string }[] = [];
+  let escritas = 0;
+
+  ws.eachRow((_fila, nf) => {
+    if (nf === 1) return;
+    const codigo = norm(ws.getCell(`B${nf}`).value);
+    if (!codigo) return;
+    if (vistos.has(codigo)) return;
+    vistos.add(codigo);
+
+    const d = descripciones.get(codigo);
+    if (d === undefined) {
+      // Se reporta en vez de dejar la celda con el texto viejo: una fila que el
+      // catálogo no reconoce es un desajuste que hay que ver, no que disimular.
+      sinCatalogo.push({ fila: nf, codigo });
+      return;
+    }
+    ws.getCell(`D${nf}`).value = d;
+    escritas++;
+  });
+
+  return { escritas, sinCatalogo };
+}
 const TIPO_LABEL: Record<string, string> = {
   riesgo_fisico: "Físico",
   riesgo_transicion: "Transición",
@@ -125,8 +149,13 @@ const REG_SECCIONES: RegSeccion[] = [
     cols: { nombre: "A", descripcion: "B", tipo: "C", horizonte: "D" },
   },
   // Hojas de valores (datos 2025 en C/D/E, 2024 en H/I/J).
+  // NIIF S2 29(c) son los riesgos FÍSICOS y 29(b) los de TRANSICIÓN. Las dos
+  // pestañas llevaban el código cruzado —la de físicos decía 29(b) y la de
+  // transición decía 30, que ni siquiera es una revelación sino la exención por
+  // costo desproporcionado—. El contenido de cada hoja siempre fue el correcto:
+  // lo que estaba mal era su etiqueta, y aquí se le escribe a la que toca.
   {
-    hoja: "NIIF S2 29(b)",
+    hoja: "NIIF S2 29(c)",
     tipos: ["riesgo_fisico"],
     filaInicio: 5,
     filaFin: 20,
@@ -134,7 +163,7 @@ const REG_SECCIONES: RegSeccion[] = [
     cols: { nombre: "A", horizonte: "B", v2025: G2025, v2024: G2024 },
   },
   {
-    hoja: "NIIF S2 30",
+    hoja: "NIIF S2 29(b)",
     tipos: ["riesgo_transicion"],
     filaInicio: 5,
     filaFin: 14,
@@ -268,38 +297,6 @@ function escribirRegistros(
 // -----------------------------------------------------------------------------
 const NOTA_SECCION = "Sección pendiente en plataforma";
 
-type ObjRow = {
-  id: string;
-  reporte_id: string;
-  ambito: string;
-  naturaleza: string;
-  nombre: string;
-  descripcion: string | null;
-  tipo: string | null;
-  metrica: string | null;
-  meta: string | null;
-  parte_entidad: string | null;
-  periodo_aplicacion: string | null;
-  periodo_base: string | null;
-  hito_intermedio: string | null;
-  tipo_objetivo: string | null;
-  alineacion_acuerdo_internacional: string | null;
-  orden: number;
-};
-type ObjDetRow = {
-  objetivo_id: string;
-  validacion_tercero: string | null;
-  procesos_revision: string | null;
-  metricas_supervision: string | null;
-  revisiones: string | null;
-  resultados: string | null;
-  analisis_tendencias: string | null;
-  gases_cubiertos: string | null;
-  alcances_cubiertos: string | null;
-  bruto_neto: string | null;
-  enfoque_descarbonizacion: string | null;
-  notas: string | null;
-};
 
 function escribirObjetivos(
   wb: ExcelJS.Workbook,
@@ -473,14 +470,6 @@ function escribirObjetivos(
 const NOTA_CUEST_PENDIENTE = "Pendiente en plataforma";
 const CUEST_FILA_INICIO = 3;
 
-type CuestRow = {
-  reporte_id: string;
-  hoja: string;
-  pregunta_orden: number;
-  respuesta: string | null;
-  tipo_dato: string | null;
-  notas: string | null;
-};
 
 function escribirCuestionarios(
   wb: ExcelJS.Workbook,
@@ -572,346 +561,120 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
-  // El reporte manda: de él salen el ejercicio (para resolver los años
-  // relativos del mapeo), el tenant (nombre de archivo) y el acotamiento de
-  // TODO lo demás. RLS ya limita al staff, pero el filtro es explícito.
-  const { data: reporte, error: repErr } = await supabase
-    .from("reportes")
-    .select(
-      "id, nombre, ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug, es_demo)"
-    )
-    .eq("id", reporteId)
-    .maybeSingle();
-
-  if (repErr) {
-    return NextResponse.json({ error: "No se pudo leer el reporte." }, { status: 500 });
-  }
-  if (!reporte) {
-    return NextResponse.json(
-      { error: "El reporte no existe o no tienes acceso a él." },
-      { status: 404 }
-    );
-  }
-
-  const [
-    { data: mapeo, error: mapErr },
-    { data: sols },
-    { data: caps },
-    { data: registros },
-    { data: regValores },
-    { data: objetivos },
-    { data: objDetalle },
-    { data: cuestionarios },
-  ] = await Promise.all([
-    // El mapeo NO se filtra por reporte: es la definición reutilizable de la
-    // plantilla. Lo que se acota es todo lo que se resuelve contra él.
-    supabase
-      .from("mapeo_export")
-      .select("hoja, celda, anio_offset, rubro_clave, etiqueta, celda_nota")
-      .eq("activo", true),
-    supabase
-      .from("solicitudes")
-      // `origen` decide QUIÉN validó (regla dura de lib/origen.ts) y por tanto si
-      // la celda lleva la nota de validación interna del cliente. `nota_alcance`
-      // es la salvedad de perímetro de la cifra, redactada para el entregable.
-      .select("id, estado, origen, rubro_taxonomia, nota_alcance")
-      .eq("reporte_id", reporteId)
-      // Las copias de difusión declinadas o retiradas quedan fuera del entregable
-      // oficial: no son una brecha de evidencia ("falta el dato") sino un "no
-      // aplica a esa área", y de todas formas una difusión nunca lleva rubro.
-      .eq("declinada", false)
-      .eq("desactivada", false),
-    // Capturas del reporte: se filtran por la solicitud embebida (!inner) en vez
-    // de traer las de todas las emisoras y descartarlas en memoria.
-    supabase
-      .from("capturas_valor")
-      .select(
-        "solicitud_id, valor, periodo, confirmado, created_at, solicitud:solicitudes!inner(reporte_id)"
-      )
-      .eq("solicitud.reporte_id", reporteId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("registros_clima")
-      .select("id, reporte_id, tipo, nombre, descripcion, horizontes, orden")
-      .eq("reporte_id", reporteId)
-      .eq("activo", true)
-      .order("orden", { ascending: true }),
-    supabase
-      .from("registros_clima_valores")
-      .select(
-        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, created_at, registro:registros_clima!inner(reporte_id)"
-      )
-      .eq("registro.reporte_id", reporteId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("objetivos")
-      .select(
-        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, alineacion_acuerdo_internacional, orden"
-      )
-      .eq("reporte_id", reporteId)
-      .eq("activo", true)
-      .order("orden", { ascending: true }),
-    supabase
-      .from("objetivos_detalle")
-      .select(
-        "objetivo_id, validacion_tercero, procesos_revision, metricas_supervision, revisiones, resultados, analisis_tendencias, gases_cubiertos, alcances_cubiertos, bruto_neto, enfoque_descarbonizacion, notas, objetivo:objetivos!inner(reporte_id)"
-      )
-      .eq("objetivo.reporte_id", reporteId),
-    supabase
-      .from("cuestionarios_respuestas")
-      .select("reporte_id, hoja, pregunta_orden, respuesta, tipo_dato, notas")
-      .eq("reporte_id", reporteId),
-  ]);
-
-  if (mapErr || !mapeo) {
-    return NextResponse.json(
-      { error: "No se pudo leer el mapeo de export." },
-      { status: 500 }
-    );
-  }
-  if (mapeo.length === 0) {
-    return NextResponse.json(
-      { error: "No hay celdas mapeadas para llenar la plantilla." },
-      { status: 422 }
-    );
-  }
-
-  // Índices auxiliares. `sols` ya viene acotado al reporte, así que estos
-  // índices no pueden alcanzar datos de otro cliente.
-  const estadoSol = new Map<string, string>();
-  const origenSol = new Map<string, OrigenSolicitud>();
-  const alcanceSol = new Map<string, string>();
-  // Rubro canónico → solicitud DE ESTE REPORTE que lo alimenta. Es la
-  // resolución del mapeo: la unicidad (reporte_id, rubro_taxonomia) en la base
-  // garantiza que haya a lo sumo una, así que no hay ambigüedad que desempatar.
-  const solPorRubro = new Map<string, string>();
-  for (const s of (sols ?? []) as {
-    id: string;
-    estado: string;
-    origen: OrigenSolicitud;
-    rubro_taxonomia: string | null;
-    nota_alcance: string | null;
-  }[]) {
-    estadoSol.set(s.id, s.estado);
-    origenSol.set(s.id, s.origen);
-    if (s.nota_alcance) alcanceSol.set(s.id, s.nota_alcance.trim());
-    if (s.rubro_taxonomia) solPorRubro.set(s.rubro_taxonomia, s.id);
-  }
-
-  // Capturas por solicitud (llegan asc → la última confirmada por periodo gana).
-  const capsPorSol = new Map<string, CapRow[]>();
-  for (const c of (caps ?? []) as CapRow[]) {
-    const arr = capsPorSol.get(c.solicitud_id) ?? [];
-    arr.push(c);
-    capsPorSol.set(c.solicitud_id, arr);
-  }
-  const ultimaConfirmada = (solId: string, ejercicio: number): number | null => {
-    const arr = capsPorSol.get(solId);
-    if (!arr) return null;
-    let v: number | null = null;
-    for (const c of arr) {
-      if (c.confirmado && c.periodo === String(ejercicio)) v = c.valor; // asc → última gana
-    }
-    return v;
-  };
-  // ¿Existe alguna captura para ese periodo (confirmada o no)? Distingue la causa
-  // real del hueco de una celda-año: hay captura del año pero sin validar (→
-  // pendiente) vs. no hay captura de ese año (→ sin evidencia).
-  const hayCapturaDe = (solId: string, ejercicio: number): boolean =>
-    (capsPorSol.get(solId) ?? []).some((c) => c.periodo === String(ejercicio));
-
-  // Valor vigente por (registro, ejercicio): la última fila insertada gana
-  // (valores llegan asc por created_at → APPEND ONLY, corrección = fila nueva).
-  const vigentePorReg = new Map<string, Map<number, RegValRow>>();
-  for (const v of (regValores ?? []) as RegValRow[]) {
-    const porAnio = vigentePorReg.get(v.registro_id) ?? new Map<number, RegValRow>();
-    porAnio.set(v.ejercicio, v);
-    vigentePorReg.set(v.registro_id, porAnio);
-  }
-
   // ---------------------------------------------------------------------------
-  // Cargar la plantilla oficial y escribir solo las celdas mapeadas.
+  // TODO el dato del reporte sale del ensamblador (lib/reporte/ensamblar.ts):
+  // las ocho consultas, la resolución rubro → valor y las tres causas de hueco.
+  // Aquí solo queda ESCRIBIR: el Excel es un destino más de ese mismo dato.
+  //
+  // La plantilla se carga ANTES para poder decirle qué hojas existen: el mapeo
+  // que apunte a una hoja ausente se ignora entero —celda, nota y conteos—, que
+  // es lo que este export ha hecho siempre.
   // ---------------------------------------------------------------------------
   try {
   const buf = await fs.readFile(PLANTILLA);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buf as unknown as ArrayBuffer);
 
-  let llenadas = 0;
-  let huecosPendiente = 0;
-  let huecosSin = 0;
-  let huecosSinSolicitud = 0;
-  let etiquetas = 0;
-  let validacionesInternas = 0;
-  let alcancesDeclarados = 0;
+  const hojasDisponibles = new Set<string>();
+  wb.eachSheet((ws) => hojasDisponibles.add(ws.name));
 
-  // Causa del hueco POR CELDA-AÑO, acumulada por celda de nota (una fila puede
-  // tener varias celdas-año vacías con causas distintas). `causas` mapea
-  // ejercicio → texto de causa, para concatenar la nota de la fila ordenada por año.
-  const notas = new Map<
-    string,
-    {
-      hoja: string;
-      celda: string;
-      causas: Map<number, string>;
-      /** La fila entera no tiene solicitud en el reporte: una nota, sin años. */
-      sinSolicitud: boolean;
-      /**
-       * Al menos un valor de la fila lo validó el propio cliente (solicitud de
-       * origen 'cliente'). Se DECLARA en la nota: el documento oficial se lee
-       * asumiendo la validación de la firma, así que la excepción es la que hay
-       * que decir. Cuando toda la fila la validó IRStrat, no se anota nada.
-       */
-      validacionInterna: boolean;
-      /**
-       * Salvedades de PERÍMETRO de las solicitudes que alimentan la fila
-       * (`solicitudes.nota_alcance`). Es un Set porque una fila puede resolverse
-       * con más de una solicitud y no tiene sentido repetir la misma aclaración.
-       */
-      alcances: Set<string>;
-    }
-  >();
+  const ens = await ensamblarReporte(supabase, reporteId, { hojasDisponibles });
+  if (!ens.ok) {
+    const respuesta = {
+      reporte_ilegible: { msg: "No se pudo leer el reporte.", status: 500 },
+      reporte_no_existe: {
+        msg: "El reporte no existe o no tienes acceso a él.",
+        status: 404,
+      },
+      mapeo_ilegible: { msg: "No se pudo leer el mapeo de export.", status: 500 },
+      mapeo_vacio: {
+        msg: "No hay celdas mapeadas para llenar la plantilla.",
+        status: 422,
+      },
+    }[ens.causa];
+    return NextResponse.json({ error: respuesta.msg }, { status: respuesta.status });
+  }
+
+  const { reporte, conteos } = ens;
+  const {
+    etiquetas,
+    llenadas,
+    huecosPendiente,
+    huecosSin,
+    huecosSinSolicitud,
+    validacionesInternas,
+    alcancesDeclarados,
+  } = conteos;
+
+  // Hojas tocadas por el mapeo, con su última fila: es donde va el pie. Se arma
+  // aquí y no en el ensamblador porque guarda la `Worksheet` viva, y el
+  // ensamblador no conoce ExcelJS a propósito.
   const hojasTocadas = new Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>();
+  for (const [hoja, ultimaFila] of ens.filaMaximaPorHoja) {
+    const ws = wb.getWorksheet(hoja);
+    if (ws) hojasTocadas.set(hoja, { ws, ultimaFila });
+  }
 
-  const filaDe = (celda: string): number => parseInt(celda.replace(/[^0-9]/g, ""), 10);
-
-  for (const m of mapeo as MapeoRow[]) {
-    const ws = wb.getWorksheet(m.hoja);
-    if (!ws) continue; // hoja ausente en la plantilla: se ignora con seguridad
-    const tocada = hojasTocadas.get(m.hoja) ?? { ws, ultimaFila: 0 };
-    tocada.ultimaFila = Math.max(tocada.ultimaFila, filaDe(m.celda));
-    hojasTocadas.set(m.hoja, tocada);
-
-    // Celda de etiqueta: texto literal (categoría verbatim / unidad).
-    if (m.etiqueta != null) {
-      ws.getCell(m.celda).value = m.etiqueta;
-      etiquetas++;
-      continue;
-    }
-
-    // Celda de valor: el rubro se resuelve contra las solicitudes del reporte y
-    // el año relativo contra su ejercicio.
-    if (!m.rubro_clave || m.anio_offset == null) continue;
-    const ejercicioCelda = reporte.ejercicio - m.anio_offset;
-    const solicitudId = solPorRubro.get(m.rubro_clave);
-
-    const clave = m.celda_nota ? `${m.hoja}!${m.celda_nota}` : null;
-    const entradaNota = () => {
-      const entry = notas.get(clave!) ?? {
-        hoja: m.hoja,
-        celda: m.celda_nota!,
-        causas: new Map<number, string>(),
-        sinSolicitud: false,
-        validacionInterna: false,
-        alcances: new Set<string>(),
-      };
-      notas.set(clave!, entry);
-      return entry;
-    };
-
-    // El reporte de este cliente no pide este rubro: la celda queda vacía con su
-    // propia causa, distinta de "falta evidencia" (aquí falta la solicitud).
-    if (!solicitudId) {
-      if (clave) entradaNota().sinSolicitud = true;
-      continue;
-    }
-
-    // La salvedad de perímetro acompaña a la FILA en cuanto la resuelve esta
-    // solicitud, tenga o no valor ese año: describe qué comprende la cifra de la
-    // fila, no el resultado de una celda concreta.
-    const alcance = alcanceSol.get(solicitudId);
-    if (clave && alcance) entradaNota().alcances.add(alcance);
-
-    const estado = estadoSol.get(solicitudId);
-    const valor = estado === "validado" ? ultimaConfirmada(solicitudId, ejercicioCelda) : null;
-
-    if (valor != null) {
-      const cell = ws.getCell(m.celda);
-      cell.value = valor;
+  // Celdas resueltas: etiqueta (texto literal) o valor (cifra con su formato).
+  for (const c of ens.celdas) {
+    const ws = wb.getWorksheet(c.hoja);
+    if (!ws) continue;
+    const cell = ws.getCell(c.celda);
+    if (c.tipo === "etiqueta") {
+      cell.value = c.texto;
+    } else {
+      cell.value = c.valor;
       cell.numFmt = "#,##0.###";
-      llenadas++;
-      // Trazabilidad de la FUENTE de la validación. Se marca la NOTA una vez,
-      // aunque la fila tenga varias celdas-año validadas por el mismo lado.
-      if (clave && origenSol.get(solicitudId) === "cliente") {
-        const nota = entradaNota();
-        if (!nota.validacionInterna) {
-          nota.validacionInterna = true;
-          validacionesInternas++;
-        }
-      }
-    } else if (clave) {
-      // Regla dura: valor no validado/ausente NO entra. La causa se decide POR
-      // CELDA-AÑO: hay captura de ese periodo pero sin validar (→ pendiente) vs.
-      // no hay captura de ese periodo (→ sin evidencia). Cada causa lleva su año.
-      const causa = hayCapturaDe(solicitudId, ejercicioCelda)
-        ? `${NOTA_PENDIENTE} (${ejercicioCelda})`
-        : `${NOTA_SIN} (${ejercicioCelda})`;
-      entradaNota().causas.set(ejercicioCelda, causa);
     }
   }
 
-  // Escribir las notas/brechas: se concatenan las causas de las celdas vacías de
-  // la fila, ordenadas por año. Si la fila no tiene celdas vacías, no hay nota.
-  for (const n of notas.values()) {
+  // Notas de brecha/perímetro. Sin texto no se escribe: sobreescribir con ""
+  // borraría lo que la plantilla oficial ya trae en esa celda.
+  for (const n of ens.notas) {
+    if (!n.texto) continue;
     const ws = wb.getWorksheet(n.hoja);
     if (!ws) continue;
-
-    // Sin solicitud en el reporte: la fila entera está vacía por la misma razón,
-    // así que va UNA nota sin desglose por año (repetirla por columna sería ruido).
-    // Se ANTEPONE en vez de sustituir: hoy una celda de nota corresponde a un
-    // solo rubro, pero si mañana el mapeo apuntara dos rubros a la misma nota, no
-    // se pueden perder las causas por año del rubro que sí está.
-    const partes: string[] = [];
-    if (n.sinSolicitud) {
-      partes.push(NOTA_SIN_SOLICITUD);
-      huecosSinSolicitud++;
-    }
-
-    const anios = [...n.causas.keys()].sort((a, b) => a - b);
-    for (const a of anios) {
-      partes.push(n.causas.get(a)!);
-      if (n.causas.get(a)!.startsWith(NOTA_PENDIENTE)) huecosPendiente++;
-      else huecosSin++;
-    }
-
-    // Orden de lectura para un revisor: primero lo que FALTA (las brechas), luego
-    // qué COMPRENDE lo que sí está (el perímetro) y al final quién lo validó.
-    for (const a of n.alcances) {
-      partes.push(a);
-      alcancesDeclarados++;
-    }
-    if (n.validacionInterna) partes.push(NOTA_VALIDACION_INTERNA);
-
-    // Sin partes no se escribe: sobreescribir con "" borraría lo que la
-    // plantilla oficial ya trae en esa celda.
-    if (partes.length > 0) ws.getCell(n.celda).value = partes.join("; ");
+    ws.getCell(n.celda).value = n.texto;
   }
 
-  // Registros de riesgos/oportunidades (escritura posicional en 4 hojas).
+  // Escritura POSICIONAL. Se queda aquí y no en el ensamblador porque no es
+  // resolución de dato: es layout del Excel. El número de registros y de
+  // objetivos es variable y se escribe en slots correlativos de cada hoja, así
+  // que estas tres funciones necesitan la `Worksheet` y el orden de las filas.
+  // Índice de requisitos: la columna D sale del catálogo, no de la plantilla.
+  const hojaIndice = wb.getWorksheet(HOJA_TAXONOMIA);
+  const requisitos = hojaIndice
+    ? escribirRequisitos(hojaIndice, ens.descripcionesDatapoint)
+    : { escritas: 0, sinCatalogo: [] as { fila: number; codigo: string }[] };
+  if (!hojaIndice) {
+    console.warn(`[export] la plantilla no trae la hoja «${HOJA_TAXONOMIA}».`);
+  }
+  for (const h of requisitos.sinCatalogo) {
+    // Una fila que el catálogo no reconoce queda VACÍA y se dice en el log. Es
+    // preferible a dejarla con el texto viejo, que es lo que se está corrigiendo.
+    console.warn(
+      `[export] ${HOJA_TAXONOMIA} fila ${h.fila}: el código «${h.codigo}» no está en datapoints_taxonomia.`
+    );
+  }
+
   const registrosEscritos = escribirRegistros(
     wb,
-    (registros ?? []) as RegRow[],
-    vigentePorReg,
+    ens.registros,
+    ens.vigentePorRegistro,
     hojasTocadas,
     reporte.ejercicio
   );
 
   // Objetivos climáticos y de sostenibilidad (5 hojas: S1 51 + S2 33/34/35/36).
-  const detallePorObj = new Map<string, ObjDetRow>();
-  for (const d of (objDetalle ?? []) as ObjDetRow[]) detallePorObj.set(d.objetivo_id, d);
   const objetivosEscritos = escribirObjetivos(
     wb,
-    (objetivos ?? []) as ObjRow[],
-    detallePorObj,
+    ens.objetivos,
+    ens.detallePorObjetivo,
     hojasTocadas
   );
 
   // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
-  const cuestionariosEscritos = escribirCuestionarios(
-    wb,
-    (cuestionarios ?? []) as CuestRow[],
-    hojasTocadas
-  );
+  const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas);
 
   // Pie discreto en cada hoja llenada. La marca [DEMO] SOLO para el tenant de
   // demostración: estampar "[DEMO]" en el entregable oficial de una emisora real
@@ -951,7 +714,8 @@ export async function GET(request: Request) {
       `validacion_interna=${validacionesInternas} alcance=${alcancesDeclarados} ` +
       `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
-      `cuestionarios=${cuestionariosEscritos} archivo=${filename}`
+      `cuestionarios=${cuestionariosEscritos} requisitos=${requisitos.escritas} ` +
+      `requisitos_sin_catalogo=${requisitos.sinCatalogo.length} archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {

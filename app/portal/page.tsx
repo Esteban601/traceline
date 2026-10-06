@@ -7,6 +7,7 @@ import { ListaSolicitudes, type SolicitudResumen } from "./lista-solicitudes";
 import { ProgresoReporte } from "./progreso-reporte";
 import { accionCliente } from "./estado-cliente";
 import { cuentaEnAvance } from "@/lib/difusion";
+import { conteoPorArea, pendientesDeDecision } from "@/lib/evidencias/pendientes";
 
 export const metadata: Metadata = { title: "Tablero" };
 
@@ -25,7 +26,16 @@ export default async function TableroPage() {
     throw new Error("No se pudieron cargar las solicitudes.");
   }
 
-  const solicitudes = (data ?? []) as SolicitudResumen[];
+  // Sugerencias de la plataforma que este usuario puede decidir (captura sugerida).
+  const pendientesDecision = await pendientesDeDecision(supabase, perfil);
+  const solicitudes = ((data ?? []) as SolicitudResumen[]).map((s) => ({
+    ...s,
+    pendiente_decision: pendientesDecision.has(s.id),
+  }));
+  const avisoDecision = conteoPorArea(
+    solicitudes.filter((s) => s.pendiente_decision).map((s) => s.area_asignada)
+  );
+  const totalDecision = avisoDecision.reduce((n, a) => n + a.n, 0);
   // Las copias de difusión que el área declaró ajenas —o que quien difundió
   // retiró— NO cuentan: ni en los indicadores, ni en la barra de avance, ni en el
   // denominador. Dejarlas dentro haría que un área terminara su trabajo con la
@@ -80,6 +90,18 @@ export default async function TableroPage() {
           ))}
         </div>
       </section>
+
+      {totalDecision > 0 && (
+        <p className="rounded-card border border-teal/25 bg-teal/5 px-4 py-3 text-sm text-ink">
+          <span className="font-medium">
+            {totalDecision === 1
+              ? "1 sugerencia de la plataforma espera tu decisión"
+              : `${totalDecision} sugerencias de la plataforma esperan tu decisión`}
+          </span>
+          {avisoDecision.length > 1 ? `: ${avisoDecision.map((a) => `${a.area} ${a.n}`).join(" · ")}` : ""}. Ábrelas para
+          confirmar, corregir o rechazar la cifra propuesta.
+        </p>
+      )}
 
       <ListaSolicitudes
         solicitudes={solicitudes}

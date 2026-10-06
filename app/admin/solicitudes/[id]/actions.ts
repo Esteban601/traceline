@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
+import { procesarLecturaDeEvidencia } from "@/lib/evidencias/cola";
+import { verificarObjetoSubido } from "@/lib/evidencias/objeto-subido";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getPerfilActual,
@@ -321,11 +323,6 @@ export type CargaPanelState = {
   mensaje?: string | null;
 };
 
-function nombreSeguro(nombre: string): string {
-  const base = nombre.normalize("NFKD").replace(/[^\w.\- ]+/g, "").trim();
-  return base.replace(/\s+/g, "_").slice(0, 120) || "archivo";
-}
-
 export async function subirEvidenciaPanel(
   _prev: CargaPanelState,
   formData: FormData
@@ -339,15 +336,14 @@ export async function subirEvidenciaPanel(
   const periodoCubierto = String(formData.get("periodo_cubierto") ?? "").trim();
   const areaOrigen = String(formData.get("area_origen") ?? "").trim();
   const justificacion = String(formData.get("justificacion") ?? "").trim();
-  const file = formData.get("file");
+  // El archivo ya está en storage: lo subió el navegador con una URL firmada
+  // (lib/evidencias/subida-firmada.ts). Esta acción solo registra la fila.
+  const archivoPath = String(formData.get("archivo_path") ?? "");
+  const nombreOriginal = String(formData.get("nombre_original") ?? "").trim();
 
   if (!solicitudId) return { ok: false, error: "Solicitud no válida." };
-  if (!(file instanceof File) || file.size === 0) {
+  if (!archivoPath || !nombreOriginal) {
     return { ok: false, error: "Selecciona o arrastra un archivo." };
-  }
-  // El cliente ya lo detiene; el servidor es el que manda (lib/evidencias/limite-subida.ts).
-  if (excedeLimite(file.size)) {
-    return { ok: false, error: MENSAJE_ARCHIVO_GRANDE };
   }
   if (!periodoCubierto) {
     return { ok: false, error: "Indica el periodo cubierto por la evidencia." };
@@ -412,22 +408,17 @@ export async function subirEvidenciaPanel(
     };
   }
 
-  const path = `${reporte.tenant_id}/${solicitudId}/${Date.now()}-${nombreSeguro(file.name)}`;
-
-  const { error: upErr } = await db.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type || "application/octet-stream",
-    upsert: false,
-  });
-  if (upErr) {
-    return { ok: false, error: `No se pudo subir el archivo: ${upErr.message}` };
-  }
+  // Que exista, que sea de la carpeta de esta solicitud y que pese 25 MB o menos.
+  const path = archivoPath;
+  const objeto = await verificarObjetoSubido(db, path, `${reporte.tenant_id}/${solicitudId}/`);
+  if (!objeto.ok) return { ok: false, error: objeto.error };
 
   const { data: ev, error: evErr } = await db
     .from("evidencias")
     .insert({
       solicitud_id: solicitudId,
       archivo_path: path,
-      nombre_original: file.name,
+      nombre_original: nombreOriginal,
       periodo_cubierto: periodoCubierto,
       area_origen: areaOrigen,
       subido_por: perfil.id,
@@ -460,6 +451,10 @@ export async function subirEvidenciaPanel(
       error: `No se registró la evidencia: ${evErr?.message ?? "error desconocido"}`,
     };
   }
+
+  // Lectura de la evidencia en segundo plano (captura sugerida); ver la acción
+  // del portal. Si no termina, la recoge el cron /api/evidencias/procesar.
+  after(() => procesarLecturaDeEvidencia(ev.id).then(() => undefined));
 
   // Captura de valor si la solicitud es cuantitativa y se dio un valor.
   let avisoCaptura: string | null = null;

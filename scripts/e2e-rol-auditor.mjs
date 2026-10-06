@@ -26,6 +26,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
+import fs from "node:fs";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
 const URL_SB = URL;
@@ -40,6 +41,10 @@ const PASSWORD = "Demo2025!";
 // Contra una copia de staging el auditor es de utilería y lleva contraseña
 // propia, que llega por el entorno del subshell y no se escribe en ningún lado.
 const PASSWORD_AUDITOR = process.env.E2E_PASSWORD_AUDITOR || PASSWORD;
+// Contra una copia de staging las cuentas del seed están rotadas: E2E_CREDENCIALES
+// apunta al JSON que deja scripts/despliegue/rotar-cuentas-seed.mjs. No se imprime.
+const CREDENCIALES = process.env.E2E_CREDENCIALES ? JSON.parse(fs.readFileSync(process.env.E2E_CREDENCIALES, "utf8")) : {};
+const claveDe = (email) => CREDENCIALES[email]?.password ?? PASSWORD;
 const TENANT_DEMO = "10000000-0000-0000-0000-000000000001";
 const REPORTE_DEMO = "20000000-0000-0000-0000-000000000001";
 const AUDITOR_ID = "a0000000-0000-0000-0000-000000000007";
@@ -91,7 +96,7 @@ async function esperarStack(segundos = 60) {
 
 async function sesion(email) {
   const c = createClient(URL, ANON, { auth: { persistSession: false } });
-  const password = email === CUENTAS.auditor ? PASSWORD_AUDITOR : PASSWORD;
+  const password = email === CUENTAS.auditor ? PASSWORD_AUDITOR : claveDe(email);
   const { error } = await c.auth.signInWithPassword({ email, password });
   if (error) throw new Error(`login ${email}: ${error.message}`);
   return c;

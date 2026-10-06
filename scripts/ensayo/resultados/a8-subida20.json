@@ -1,0 +1,16 @@
+{
+  "mb": 22.439505577087402,
+  "subida_ms": 7357,
+  "contenido": {
+    "estado": "extraido",
+    "paginas": 5,
+    "truncado": false,
+    "costo_usd": 0.0148,
+    "modelo": "claude-sonnet-5-5",
+    "error": null,
+    "mensaje": null,
+    "procesado_en": "2026-10-05T23:51:21.933+00:00",
+    "created_at": "2026-10-05T23:51:15.629832+00:00"
+  },
+  "sugerencia": null
+}

@@ -212,6 +212,118 @@ export async function cambiarActivoTenant(
  * después NO retira esas marcas: el toggle habilita la capacidad, nunca oculta
  * la autoría.
  */
+// -----------------------------------------------------------------------------
+// Generador del suplemento, por cliente (encargo 2026-10-05-generador-a-produccion).
+//
+// El generador manda los datos de la emisora a la API de Anthropic. En clientes
+// reales empieza APAGADO y se enciende cuando su contrato de encargado nombra a
+// Anthropic. Acción del administrador de IRStrat, con bitácora. Apagarlo no
+// borra los documentos ya generados; las rutas dejan de generar y de entregar
+// el Word para esa emisora.
+// -----------------------------------------------------------------------------
+export async function cambiarGenerador(
+  tenantId: string,
+  habilitar: boolean
+): Promise<AccionTenantState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+  if (!esAdminIrstrat(perfil)) {
+    return { ok: false, error: "Encender o apagar el generador del suplemento es una acción de administrador de IRStrat." };
+  }
+  if (!tenantId) return { ok: false, error: "Cliente no válido." };
+
+  const db = await createClient();
+  const { data: tenant } = await db
+    .from("tenants")
+    .select("id, nombre, generador_activo")
+    .eq("id", tenantId)
+    .single();
+  if (!tenant) return { ok: false, error: "No se encontró el cliente." };
+  if (tenant.generador_activo === habilitar) {
+    return { ok: false, error: habilitar ? "El generador ya estaba encendido." : "El generador ya estaba apagado." };
+  }
+
+  const { error } = await db.from("tenants").update({ generador_activo: habilitar }).eq("id", tenantId);
+  if (error) return { ok: false, error: "No se pudo actualizar el generador." };
+
+  await logEvento(db, {
+    tenantId,
+    usuarioId: perfil.id,
+    accion: habilitar ? "tenant_generador_habilitado" : "tenant_generador_deshabilitado",
+    entidad: "tenants",
+    entidadId: tenantId,
+    detalle: { nombre: tenant.nombre },
+  });
+
+  revalidatePath("/admin/clientes");
+  revalidatePath("/admin/cobertura");
+  return {
+    ok: true,
+    error: null,
+    mensaje: habilitar
+      ? `El generador del suplemento quedó encendido para ${limpiarNombreTenant(tenant.nombre)}.`
+      : `El generador del suplemento de ${limpiarNombreTenant(tenant.nombre)} quedó apagado. Los documentos ya generados se conservan.`,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Lectura de evidencias por la plataforma (captura sugerida), por cliente.
+//
+// El contenido de las evidencias viaja a la API de Anthropic para leerlo y
+// sugerir la captura. En clientes reales empieza APAGADA y se enciende solo
+// cuando su contrato de encargado nombra a Anthropic como sub-encargado
+// (encargo 2026-10-04 §3). Acción del administrador de IRStrat, con bitácora.
+// Apagarla no borra lo ya leído ni las sugerencias; las lecturas nuevas quedan
+// en «omitido».
+// -----------------------------------------------------------------------------
+export async function cambiarLecturaEvidencias(
+  tenantId: string,
+  habilitar: boolean
+): Promise<AccionTenantState> {
+  const perfil = await getPerfilActual();
+  if (!perfil || !esStaff(perfil)) {
+    return { ok: false, error: "Acción reservada al equipo de IRStrat." };
+  }
+  if (!esAdminIrstrat(perfil)) {
+    return { ok: false, error: "Encender o apagar la lectura de evidencias es una acción de administrador de IRStrat." };
+  }
+  if (!tenantId) return { ok: false, error: "Cliente no válido." };
+
+  const db = await createClient();
+  const { data: tenant } = await db
+    .from("tenants")
+    .select("id, nombre, lectura_evidencias_activa")
+    .eq("id", tenantId)
+    .single();
+  if (!tenant) return { ok: false, error: "No se encontró el cliente." };
+  if (tenant.lectura_evidencias_activa === habilitar) {
+    return { ok: false, error: habilitar ? "La lectura de evidencias ya estaba encendida." : "La lectura de evidencias ya estaba apagada." };
+  }
+
+  const { error } = await db.from("tenants").update({ lectura_evidencias_activa: habilitar }).eq("id", tenantId);
+  if (error) return { ok: false, error: "No se pudo actualizar la lectura de evidencias." };
+
+  await logEvento(db, {
+    tenantId,
+    usuarioId: perfil.id,
+    accion: habilitar ? "tenant_lectura_evidencias_habilitada" : "tenant_lectura_evidencias_deshabilitada",
+    entidad: "tenants",
+    entidadId: tenantId,
+    detalle: { nombre: tenant.nombre },
+  });
+
+  revalidatePath("/admin/clientes");
+  return {
+    ok: true,
+    error: null,
+    mensaje: habilitar
+      ? `La plataforma leerá las evidencias nuevas de ${limpiarNombreTenant(tenant.nombre)} y sugerirá su captura.`
+      : `La lectura de evidencias de ${limpiarNombreTenant(tenant.nombre)} quedó apagada. Lo ya leído y lo ya decidido se conservan.`,
+  };
+}
+
 export async function cambiarCargaStaff(
   tenantId: string,
   habilitar: boolean

@@ -73,10 +73,11 @@ export function CoberturaView({
   /** Botón "PDF de cobertura" (abre el informe para imprimir), inyectado desde el servidor. */
   informe?: React.ReactNode;
   /**
-   * Botón "Suplemento S1 y S2", inyectado desde el servidor. Llega ya resuelto
-   * —o no llega— porque quién puede verlo depende de `tenants.es_demo`, que es
-   * un dato del servidor: decidirlo aquí obligaría a mandar la bandera al
-   * cliente para pintar un botón que la mayoría no debe ver.
+   * Botones del Suplemento S1 y S2, inyectados desde el servidor: la entrada al
+   * semáforo del generador y, en emisoras de demostración, la vitrina. Llegan ya
+   * resueltos —o no llegan— porque quién puede verlos depende del rol (el
+   * auditor no ve ninguno) y de `tenants.es_demo`, que son datos del servidor:
+   * decidirlo aquí obligaría a mandar las banderas al cliente.
    */
   suplemento?: React.ReactNode;
 }) {

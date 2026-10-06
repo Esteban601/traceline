@@ -32,8 +32,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-# ...pero sí versionamos la plantilla de ejemplo
+# ...pero sí versionamos las plantillas de ejemplo. Van SIN valores: el patrón
+# `.env*` de arriba las atraparía, y una plantilla que nadie puede versionar no
+# sirve de nada. Cualquier archivo nuevo con valores reales (.env.local y sus
+# variantes) sigue ignorado por no estar en esta lista.
 !.env.example
+!.env.local.example
 
 # Supabase (CLI + Docker local)
 # Se VERSIONAN: supabase/config.toml, supabase/migrations/**, supabase/seed.sql
@@ -67,20 +71,23 @@ logos-demo/
 # al repo: una contraseña versionada es una contraseña publicada.
 .credenciales-demo/
 
-# Archivos de vitrina: el documento de muestra NO se versiona.
-#
-# Viven en el bucket privado `vitrina` de Supabase, que es de donde los lee la
-# aplicación; `assets/vitrina/` solo es el respaldo local para desarrollar. Son
-# entregables que cambian sin relación con el código, pesan, y versionarlos
-# convierte cada actualización de diseño en un commit y un despliegue.
-#
-# El .docx sí está versionado a propósito: es el respaldo que garantiza que un
-# ambiente recién levantado tenga algo que enseñar. El PDF no, porque el
-# definitivo lo produce diseño y sube al bucket.
-assets/vitrina/suplemento-demo.pdf
-
-# Normas (IFRS, GRI…) e informes de referencia: no se versionan (CLAUDE.md §2 y
-# §4; se citan por párrafo). Aquí y no solo en .git/info/exclude, para que
-# ningún clon pueda commitearlos por descuido.
-referencia/
+# Texto oficial de NIIF S1 y S2 (IFRS Foundation), en español e inglés. Material
+# con licencia: se consulta para auditar el catálogo de datapoints, no se
+# redistribuye. Versionarlo lo publicaría con el repositorio.
 normas/
+
+# Informes de referencia de terceros (CADU y los que vengan): material con
+# licencia que se consulta para calibrar el estilo del generador, no se
+# redistribuye. Misma razón que normas/.
+referencia/
+
+# Archivos de vitrina en PDF: no se versionan.
+#
+# El informe con diseño vive en el bucket privado `vitrina` de Supabase, que es
+# de donde lo lee la aplicación; `assets/vitrina/` solo es el respaldo local
+# para desarrollar. Es un entregable que cambia sin relación con el código y lo
+# produce diseño: versionarlo convierte cada revisión de maqueta en un commit.
+#
+# El .docx SÍ se versiona, a propósito: es el respaldo que garantiza que un
+# ambiente recién levantado tenga algo que enseñar aunque el bucket esté vacío.
+assets/vitrina/*.pdf

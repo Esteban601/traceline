@@ -400,7 +400,7 @@ tipo de métrica, validación por tercero, método de cálculo, datos, limitacio
 supuestos) queda documentada aquí para el sprint futuro que la habilite.
 
 **Hoja no construida — `NIIF S2 29(a)(iv)`:** está en el índice de la taxonomía
-(hoja 'Fondo I') pero la plantilla base **no incluye una hoja de llenado** para
+(hoja 'Taxonomía NIIF S1 S2') pero la plantilla base **no incluye una hoja de llenado** para
 ella. Es una **decisión de negocio pendiente**: no se construye hasta definir su
 estructura de captura; se deja registrada aquí para no perder la traza.
 

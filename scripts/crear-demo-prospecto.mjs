@@ -445,6 +445,271 @@ const PROSPECTOS = [
       { re: /Categoría 11-Uso de los productos vendidos/i, area: "Comercialización" },
     ],
   },
+  {
+    slug: "clepsa",
+    nombre: "Libramiento Elevado de Puebla (CLEPSA)",
+    prefijo: "LEP",
+    logo: "clepsa.png",
+    // Seis áreas, no cinco: una concesionaria de peaje separa quien cobra y
+    // opera de quien conserva la estructura, y la seguridad vial es una función
+    // con nombre propio. El script no impone un número — genera un usuario por
+    // área—, así que este prospecto trae ocho cuentas en vez de siete.
+    areas: [
+      "Operación y Peaje",
+      "Conservación y Mantenimiento",
+      "Seguridad Vial",
+      "Recursos Humanos",
+      "Finanzas",
+      "Cumplimiento",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operación y Peaje",
+      Finanzas: "Finanzas",
+      // En una concesionaria el expediente del Consejo y el plan de transición
+      // los lleva Cumplimiento: es el área que responde ante el concedente y
+      // ante el grupo, y la que ya vive de acreditar obligaciones.
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Cumplimiento",
+    },
+    mueve: [
+      // Lo que cierra una autopista elevada —derrumbe, inundación, viento— es
+      // materia de seguridad vial antes que de reporte ambiental. Es además la
+      // única entrega de la escena que le da movimiento a esa área: la plantilla
+      // no trae ninguna solicitud de siniestralidad.
+      { re: /Riesgos físicos climáticos/i, area: "Seguridad Vial" },
+      // La estructura y su huella operativa son de quien la conserva: el diésel
+      // de la maquinaria, el capex ambiental, el agua, los residuos de obra y
+      // los bienes de capital del propio viaducto.
+      { re: /Consumo de combustibles fósiles/i, area: "Conservación y Mantenimiento" },
+      { re: /Inversiones y gastos ambientales/i, area: "Conservación y Mantenimiento" },
+      { re: /Categoría 2-Bienes de capital/i, area: "Conservación y Mantenimiento" },
+      { re: /Consumo de agua/i, area: "Conservación y Mantenimiento" },
+      { re: /disposición de residuos/i, area: "Conservación y Mantenimiento" },
+    ],
+  },
+  {
+    slug: "banco-base",
+    nombre: "Banco Base",
+    prefijo: "BASE",
+    logo: "banco-base.png",
+    areas: [
+      "Operaciones y Administración",
+      "Crédito y Banca",
+      "Riesgos",
+      "Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operaciones y Administración",
+      Finanzas: "Finanzas",
+      // En un grupo financiero el expediente del Consejo lo arma Cumplimiento:
+      // es quien ya responde ante el regulador y lleva el registro formal.
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Cumplimiento",
+    },
+    // Mismo criterio que TRATON, Afirme y Fondo de Fondos: en banca lo material
+    // no es la huella de las sucursales, es la cartera y el balance.
+    mueve: [
+      // Riesgos es la segunda línea de defensa: le toca el riesgo físico y todo
+      // lo prospectivo —el plan de transición y los escenarios—, que la
+      // plantilla pide por Dirección. Sin esto el área se quedaría con una sola
+      // solicitud y en el mockup se leería como un área de adorno.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos" },
+      { re: /Plan de transición climática/i, area: "Riesgos" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos" },
+      // La Categoría 15 es la cartera: la huella del banco es a quién le presta,
+      // no su consumo eléctrico. Va con el área que origina el crédito, junto
+      // con el ingreso de productos sostenibles que ella misma coloca.
+      { re: /productos\/servicios sostenibles/i, area: "Crédito y Banca" },
+      { re: /Categoría 15-Inversiones/i, area: "Crédito y Banca" },
+    ],
+  },
+  {
+    slug: "montepio",
+    nombre: "Montepío Luz Saviñón",
+    prefijo: "MLS",
+    logo: "montepio.png",
+    areas: [
+      "Operación de Sucursales",
+      "Crédito Prendario y Valuación",
+      "Riesgos",
+      "Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      // La operación es la red de sucursales: es donde está el consumo, la
+      // flota de traslado de valores y las bóvedas.
+      Operaciones: "Operación de Sucursales",
+      Finanzas: "Finanzas",
+      // Institución de asistencia privada y emisora de deuda: quien responde
+      // ante la autoridad y lleva el expediente formal del Patronato es
+      // Cumplimiento, igual que en Banco Base.
+      "Gobierno Corporativo": "Cumplimiento",
+      Dirección: "Cumplimiento",
+    },
+    // Casa de empeño: lo material no es la huella de las sucursales sino la
+    // prenda —su valuación, su custodia y su almacenamiento—, y la cartera de
+    // inversión que respalda la emisión de deuda.
+    mueve: [
+      // Riesgos es la segunda línea de defensa, como en los demás financieros:
+      // el riesgo físico sobre la red y todo lo prospectivo. Sin esto el área
+      // se quedaría con una sola solicitud y se leería como adorno.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos" },
+      { re: /Plan de transición climática/i, area: "Riesgos" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos" },
+      // El área que valúa la prenda es la que coloca el préstamo y la que
+      // conoce la cartera de inversión: el ingreso sostenible y la Categoría 15
+      // son suyos, no de Finanzas, que solo los consolida.
+      { re: /productos\/servicios sostenibles/i, area: "Crédito Prendario y Valuación" },
+      { re: /Categoría 15-Inversiones/i, area: "Crédito Prendario y Valuación" },
+    ],
+  },
+  {
+    slug: "megacable",
+    nombre: "Megacable",
+    prefijo: "MEGA",
+    logo: "megacable.png",
+    areas: [
+      "Operación de Red",
+      "Infraestructura y Energía",
+      "Comercial y Atención a Clientes",
+      "Tecnología y Ciberseguridad",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operación de Red",
+      Finanzas: "Finanzas",
+      // En una operadora cotizada el expediente del Consejo lo arma Finanzas,
+      // que es quien ya prepara el reporte a la Bolsa. No hay un área de
+      // cumplimiento separada en este mockup.
+      "Gobierno Corporativo": "Finanzas",
+      Dirección: "Finanzas",
+    },
+    // Telecomunicaciones: lo material es la RED —su energía y su exposición
+    // física—, no el consumo de las oficinas. Las tres áreas técnicas se
+    // reparten la huella según quién opera cada cosa.
+    mueve: [
+      // Tecnología opera los centros de datos, la cabecera y los nodos: ahí
+      // está el grueso del consumo eléctrico y ahí pega el riesgo físico.
+      // Sin estas dos, el área se quedaría con la Categoría 15 y ninguna
+      // entrega, y en el mockup se leería como un área de adorno.
+      { re: /Riesgos físicos climáticos/i, area: "Tecnología y Ciberseguridad" },
+      { re: /Consumo de energía eléctrica/i, area: "Tecnología y Ciberseguridad" },
+      { re: /Categoría 15-Inversiones/i, area: "Tecnología y Ciberseguridad" },
+      // Infraestructura lleva la planta física: plantas de emergencia, flota de
+      // instalación y mantenimiento, y lo prospectivo de la red.
+      { re: /Consumo de combustibles fósiles/i, area: "Infraestructura y Energía" },
+      { re: /Consumo eléctrico corporativo/i, area: "Infraestructura y Energía" },
+      { re: /Plan de transición climática/i, area: "Infraestructura y Energía" },
+      { re: /Análisis de escenarios climáticos/i, area: "Infraestructura y Energía" },
+      // El ingreso de productos sostenibles lo coloca quien atiende al
+      // suscriptor, no quien lo consolida.
+      { re: /productos\/servicios sostenibles/i, area: "Comercial y Atención a Clientes" },
+    ],
+  },
+  {
+    slug: "rotoplas",
+    nombre: "Rotoplas",
+    prefijo: "ROTO",
+    logo: "rotoplas.png",
+    areas: [
+      "Operaciones y Manufactura",
+      "Cadena de Suministro",
+      "Comercial e Innovación",
+      "Riesgos y Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      Operaciones: "Operaciones y Manufactura",
+      Finanzas: "Finanzas",
+      // En una emisora industrial el expediente del Consejo, la política de
+      // derechos humanos y el apetito de riesgo viven juntos en un área de
+      // riesgos y cumplimiento; no hay una dirección de sostenibilidad aparte.
+      "Gobierno Corporativo": "Riesgos y Cumplimiento",
+      Dirección: "Riesgos y Cumplimiento",
+    },
+    // Soluciones de agua: lo material es la MANUFACTURA de tinacos, tuberías y
+    // equipos —resina, energía de las plantas y la distribución del producto—,
+    // no el consumo de las oficinas. Las plantas se quedan con Alcance 1 y 2;
+    // lo que depende de proveedores y fletes se va a quien los contrata.
+    mueve: [
+      // Compras lleva la resina y los fletes: ahí está el grueso del Alcance 3
+      // de un fabricante de plástico. Sin estas tres, Cadena de Suministro se
+      // quedaría sin una sola solicitud y en el mockup se leería como adorno.
+      { re: /Alcance 3 — total/i, area: "Cadena de Suministro" },
+      { re: /Categoría 1-Bienes y servicios adquiridos/i, area: "Cadena de Suministro" },
+      { re: /Categoría 4-Transporte/i, area: "Cadena de Suministro" },
+      // Lo prospectivo del clima —sequía e inundación sobre las plantas, la
+      // ruta de transición y los escenarios— lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      // El ingreso de soluciones sostenibles (purificación, tratamiento,
+      // captación) lo coloca quien diseña y vende el portafolio.
+      { re: /productos\/servicios sostenibles/i, area: "Comercial e Innovación" },
+      // Las inversiones son de Tesorería, no de la planta.
+      { re: /Categoría 15-Inversiones/i, area: "Finanzas" },
+    ],
+  },
+  {
+    // Administrador de fondos de capital privado de energía e infraestructura
+    // (CKD AINDACK 18A). Encargo docs/encargos/2026-10-01-mockup-ainda.md.
+    slug: "ainda",
+    nombre: "AINDA Energía & Infraestructura",
+    // AIND y no AINDA: el formato de folio es ^[A-Z]{3,4}$ y no se amplía por
+    // un mockup (encargo §7).
+    prefijo: "AIND",
+    logo: "ainda.png",
+    // Un administrador de fondos no tiene un informe de emisora que enseñar con
+    // la vitrina del Suplemento: se apaga. Y lleva un auditor externo, para que
+    // el prospecto vea el aseguramiento desde dentro.
+    vitrina: false,
+    auditor: true,
+    areas: [
+      "Inversiones y Portafolio",
+      "Gestión de Activos",
+      "Riesgos y Cumplimiento",
+      "Relación con Inversionistas",
+      "Recursos Humanos",
+      "Finanzas y Administración",
+    ],
+    mapa: {
+      RH: "Recursos Humanos",
+      // Lo operativo de un fondo de infraestructura es la operación de los
+      // activos en cartera: plantas, carreteras, líneas.
+      Operaciones: "Gestión de Activos",
+      Finanzas: "Finanzas y Administración",
+      "Gobierno Corporativo": "Riesgos y Cumplimiento",
+      // Hacia los inversionistas —LPs, tenedores del CKD— habla la dirección.
+      Dirección: "Relación con Inversionistas",
+    },
+    mueve: [
+      // En un fondo, el Alcance 3 que importa son las emisiones FINANCIADAS
+      // (Categoría 15): se arman desde la cartera, igual que el ingreso de
+      // activos sostenibles. Sin estas tres, Inversiones y Portafolio quedaría
+      // vacía.
+      { re: /Alcance 3 — total/i, area: "Inversiones y Portafolio" },
+      { re: /Categoría 15-Inversiones/i, area: "Inversiones y Portafolio" },
+      { re: /productos\/servicios sostenibles/i, area: "Inversiones y Portafolio" },
+      // Lo prospectivo del clima sobre la cartera lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Efectos financieros de riesgos climáticos/i, area: "Finanzas y Administración" },
+      // El Comité Técnico del CKD y su composición se reportan a los tenedores.
+      { re: /Composición y responsabilidades del Consejo/i, area: "Relación con Inversionistas" },
+      { re: /Competencias del Consejo/i, area: "Relación con Inversionistas" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
@@ -540,7 +805,7 @@ const ESCENA = [
   //
   //   Composición del Consejo   → gobernanza: NIIF S2 6(a)
   //   Competencias del Consejo  → gobernanza: NIIF S1 27(a)(ii), NIIF S2 6(a)(ii)
-  //   Riesgos físicos           → estrategia: NIIF S2 10 · métricas: NIIF S2 29(b)
+  //   Riesgos físicos           → estrategia: NIIF S2 10 · métricas: NIIF S2 29(c)
   //   Política de der. humanos  → riesgos: NIIF S1 44(a)(i)a(v)  ← el ÚNICO
   //                               datapoint del pilar Riesgos con solicitud
   //
@@ -634,7 +899,7 @@ const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
 // El proyecto de ensayo lleva datos reales copiados de staging (especificación
 // §10, «Ensayo de despliegue»). Se rechaza por constante, no por lista: aunque
 // su ref aparezca en DEV_REFS_AUTORIZADOS o se confirme con DEMO_TARGET_OK.
-const REF_ENSAYO = "ndodorukqqyzhinahmrm";
+const REF_ENSAYO = "sqpxcxewoznhpwvhxamy";
 const refsEnsayo = [REF_ENSAYO, env.ENSAYO_REF].filter(Boolean);
 if (refsEnsayo.some((r) => (SUPABASE_URL ?? "").includes(r))) {
   console.error("\n❌ El destino es el proyecto de ensayo. Este script no corre ahí.\n");
@@ -688,7 +953,19 @@ const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
 // El rol `admin` de IRStrat, no `analista`: marcar un tenant como de
 // demostración es acción de administrador (trg_tenant_es_demo).
 const ADMIN_EMAIL = env.ADMIN_EMAIL || "admin@irstrat.example";
-const ADMIN_PASSWORD = env.ADMIN_PASSWORD || "Demo2025!";
+// SIN valor por defecto. La contraseña del seed dejó de servir en staging al
+// rotarse las cuentas del seed (despliegue v29, 30/09/2026), y un default que en
+// un destino entra y en otro no esconde de qué cuenta se trata. Se pasa en el
+// entorno de la ejecución —en local, la del seed; en staging, la de
+// .credenciales-demo/seed-<ref>.json leída dentro del subshell— y no se imprime.
+const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error(
+    `\n❌ Falta ADMIN_PASSWORD (la de ${ADMIN_EMAIL} en este destino). Pásala en el entorno\n` +
+      "   de la ejecución; el script ya no asume la contraseña del seed.\n"
+  );
+  process.exit(2);
+}
 
 const args = process.argv.slice(2);
 const REHACER = args.includes("--rehacer");
@@ -866,6 +1143,28 @@ async function limpiar({ db, admin }, p) {
     );
   }
 
+  // Un mockup con auditor (`auditor: true`) deja rastro que NO se borra desde la
+  // aplicación: comentarios_auditor y auditor_actividad son append-only y sus
+  // llaves al tenant y al perfil son `on delete restrict`. Sin esta guarda el
+  // retiro fallaba a la mitad —reportes y archivos ya borrados, el tenant no—.
+  // Se comprueba ANTES de tocar nada; retirarlo exige decidir qué pasa con ese
+  // registro de auditoría, y esa decisión no la toma el script.
+  const rastro = [];
+  for (const tabla of ["comentarios_auditor", "auditor_actividad"]) {
+    const { count, error } = await db
+      .from(tabla)
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id);
+    if (error) throw new Error(`no se pudo revisar ${tabla} de ${p.slug}: ${error.message}`);
+    if (count) rastro.push(`${tabla}: ${count}`);
+  }
+  if (rastro.length) {
+    throw new Error(
+      `${p.slug} tiene registro de auditoría (${rastro.join(", ")}). No se borra nada: ` +
+        "ese registro es append-only y retirarlo es una decisión, no un paso del script."
+    );
+  }
+
   const { data: reportes } = await db.from("reportes").select("id").eq("tenant_id", tenant.id);
   for (const r of reportes ?? []) {
     const { data: sols } = await db.from("solicitudes").select("id").eq("reporte_id", r.id);
@@ -914,10 +1213,13 @@ async function limpiar({ db, admin }, p) {
 // -----------------------------------------------------------------------------
 async function asegurarTenant({ db, admin, staffId }, p) {
   const nuevo = [];
+  // `vitrina: false` en la entrada apaga la vitrina del Suplemento para este
+  // mockup (`tenants.vitrina_habilitada`); sin la clave, queda encendida.
+  const vitrina = p.vitrina !== false;
 
   let { data: tenant } = await db
     .from("tenants")
-    .select("id, nombre, es_demo, logo_url")
+    .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
     .eq("slug", p.slug)
     .maybeSingle();
 
@@ -935,8 +1237,12 @@ async function asegurarTenant({ db, admin, staffId }, p) {
         // Apagado: en el mockup la evidencia la carga el área desde su portal,
         // que es lo que el prospecto va a ver hacer a su gente.
         staff_puede_cargar: false,
+        vitrina_habilitada: vitrina,
+        // Las demostraciones leen sus evidencias (encargo captura sugerida §3);
+        // la columna nace apagada para que un cliente real no la herede.
+        lectura_evidencias_activa: true,
       })
-      .select("id, nombre, es_demo, logo_url")
+      .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
       .single();
     if (error) throw new Error(`tenant ${p.slug}: ${error.message}`);
     tenant = data;
@@ -960,6 +1266,15 @@ async function asegurarTenant({ db, admin, staffId }, p) {
       `${p.slug} existe y NO está marcado como demostración. No se toca: ` +
         "un mockup no puede convivir con un cliente real en el mismo slug."
     );
+  } else if (tenant.vitrina_habilitada !== vitrina) {
+    // Idempotente también aquí: la entrada manda. Se alinea y se anota.
+    const { error } = await db
+      .from("tenants")
+      .update({ vitrina_habilitada: vitrina })
+      .eq("id", tenant.id);
+    if (error) throw new Error(`vitrina de ${p.slug}: ${error.message}`);
+    tenant.vitrina_habilitada = vitrina;
+    nuevo.push(`vitrina ${vitrina ? "encendida" : "apagada"}`);
   }
 
   // Áreas: solo las que falten (el catálogo puede haberse editado a mano).
@@ -1057,6 +1372,17 @@ function plantillaUsuarios(p, areaDelJefe) {
     rol: "admin_cliente",
     area: null,
   });
+  // `auditor: true`: un auditor externo de utilería sobre el mockup, para que el
+  // prospecto vea el rol de aseguramiento desde dentro (solo lectura, comenta,
+  // descarga). Sin área: el auditor ve el tenant entero.
+  if (p.auditor) {
+    cuentas.push({
+      email: `auditor@${p.slug}.example`,
+      nombre: `Auditoría externa · ${p.nombre}`,
+      rol: "auditor",
+      area: null,
+    });
+  }
   return cuentas;
 }
 

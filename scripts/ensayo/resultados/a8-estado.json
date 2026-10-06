@@ -1,0 +1,210 @@
+{
+  "tenants": [
+    {
+      "id": "f695f236-eb23-410e-b457-cea3483c4308",
+      "slug": "afirme",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "278a2931-44fa-4d44-a34a-7eeb88dc855c",
+      "slug": "ainda",
+      "es_demo": true,
+      "vitrina_habilitada": false,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "ce3a9af6-317f-4935-9a21-792576136854",
+      "slug": "bafar",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "447d8d21-a5df-4e75-adf9-006ad5427810",
+      "slug": "banco-base",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "0e557c55-42a2-42fd-9596-d42d41a251da",
+      "slug": "cadu",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "95cc5b42-57f5-454d-9583-cd95a1384713",
+      "slug": "clepsa",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "10000000-0000-0000-0000-000000000001",
+      "slug": "empresa-demo-sab",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "659069cd-5981-4490-b688-19cc84589740",
+      "slug": "fibra-inn",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "b4d121b5-f589-45ee-8cfe-2b7be2b7cbbd",
+      "slug": "fondo-de-fondos",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "98e1c8c3-fcad-46b1-bf9b-7d6097063cff",
+      "slug": "frisa",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "30b74096-35bc-4f94-9090-19f0eed050f2",
+      "slug": "gav",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "13d91b17-1099-48fd-8e61-f2ce8b437281",
+      "slug": "gcarso",
+      "es_demo": false,
+      "vitrina_habilitada": false,
+      "generador_activo": false,
+      "lectura_evidencias_activa": false,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "a7eac589-9746-493a-abad-09cde3d23c93",
+      "slug": "gcc",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "362a7912-101c-4ff0-bbe5-3aff3a828f81",
+      "slug": "inmobilia",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "31cda1d2-c8ab-422b-9e4b-d2f5f20852e5",
+      "slug": "megacable",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "c729c2bb-2afc-4538-a8de-dff00328be4c",
+      "slug": "montepio",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "0302c8fd-e69a-40c4-ba49-60533703ebfd",
+      "slug": "odonnell",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "487bd7e1-c08b-4a8b-b74b-caeab2d0ce38",
+      "slug": "planigrupo",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "de2fe0db-aeff-4a0e-857b-ded467effff3",
+      "slug": "rotoplas",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    },
+    {
+      "id": "1a4644df-8b35-4854-ae84-e9c2598b68c7",
+      "slug": "traton-fs",
+      "es_demo": true,
+      "vitrina_habilitada": true,
+      "generador_activo": true,
+      "lectura_evidencias_activa": true,
+      "generaciones_mes_max": 10,
+      "lecturas_mes_max": 500
+    }
+  ],
+  "repDemo": {
+    "id": "20000000-0000-0000-0000-000000000001",
+    "nombre": "[DEMO] Informe Anual Sustentable 2025",
+    "ejercicio": 2025,
+    "anio_adopcion": null
+  }
+}

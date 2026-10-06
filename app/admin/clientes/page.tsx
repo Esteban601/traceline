@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { requiereStaff } from "@/lib/data";
+import { inicioDeMes } from "@/lib/evidencias/tope";
 import { ClientesView, type ClienteFila } from "./clientes-view";
 
 export const metadata: Metadata = { title: "Clientes" };
@@ -15,11 +16,12 @@ export default async function ClientesPage() {
 
   const db = await createClient();
 
-  const [{ data: tenants }, { data: areas }, { data: perfiles }, { data: reportes }] =
+  const desde = inicioDeMes();
+  const [{ data: tenants }, { data: areas }, { data: perfiles }, { data: reportes }, { data: leidas }, { data: regeneradas }, { data: corridas }] =
     await Promise.all([
       db
         .from("tenants")
-        .select("id, nombre, slug, prefijo_folio, logo_url, activo, staff_puede_cargar, es_demo, created_at")
+        .select("id, nombre, slug, prefijo_folio, logo_url, activo, staff_puede_cargar, lectura_evidencias_activa, lecturas_mes_max, generador_activo, generaciones_mes_max, es_demo, created_at")
         .order("activo", { ascending: false })
         .order("nombre", { ascending: true }),
       db
@@ -29,6 +31,11 @@ export default async function ClientesPage() {
         .order("orden", { ascending: true }),
       db.from("perfiles_usuario").select("tenant_id").not("tenant_id", "is", null),
       db.from("reportes").select("tenant_id"),
+      // Lecturas del mes, con la misma cuenta que aplica el tope (lib/evidencias/tope.ts).
+      db.from("evidencias_contenido").select("tenant_id").eq("estado", "extraido").gte("procesado_en", desde),
+      db.from("sugerencias_captura").select("tenant_id").eq("regenerada", true).gte("created_at", desde),
+      // Corridas completas del suplemento del mes, con la cuenta del tope (lib/suplemento/acceso.ts).
+      db.from("bitacora").select("tenant_id").eq("accion", "suplemento_documento_abierto").gte("created_at", desde),
     ]);
 
   const areasPorTenant = new Map<string, string[]>();
@@ -48,6 +55,8 @@ export default async function ClientesPage() {
   };
   const usuariosPorTenant = contar(perfiles as { tenant_id: string | null }[] | null);
   const reportesPorTenant = contar(reportes as { tenant_id: string | null }[] | null);
+  const lecturasPorTenant = contar([...(leidas ?? []), ...(regeneradas ?? [])]);
+  const corridasPorTenant = contar((corridas ?? []) as { tenant_id: string | null }[]);
 
   const clientes: ClienteFila[] = (
     (tenants ?? []) as {
@@ -58,6 +67,10 @@ export default async function ClientesPage() {
       logo_url: string | null;
       activo: boolean;
       staff_puede_cargar: boolean;
+      lectura_evidencias_activa: boolean;
+      lecturas_mes_max: number;
+      generador_activo: boolean;
+      generaciones_mes_max: number;
       es_demo: boolean;
       created_at: string;
     }[]
@@ -69,6 +82,12 @@ export default async function ClientesPage() {
     logoUrl: t.logo_url,
     activo: t.activo,
     staffPuedeCargar: t.staff_puede_cargar,
+    lecturaActiva: t.lectura_evidencias_activa,
+    lecturasMes: lecturasPorTenant.get(t.id) ?? 0,
+    lecturasMax: t.lecturas_mes_max,
+    generadorActivo: t.generador_activo,
+    corridasMes: corridasPorTenant.get(t.id) ?? 0,
+    corridasMax: t.generaciones_mes_max,
     esDemo: t.es_demo,
     createdAt: t.created_at,
     areas: areasPorTenant.get(t.id) ?? [],

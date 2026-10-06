@@ -1,0 +1,1249 @@
+# TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
+
+Especificación para revisión interna. **Versión 0.14** · 5 de octubre de 2026.
+Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.13** (encargo `docs/encargos/2026-10-05-generador-a-produccion.md`, Paso 1):
+- §10, «Antes del merge a producción», punto 1: resuelto. Las 26 migraciones de `dev` que staging no tiene se
+  renumeraron a `20261005120000 + n minutos`, con el mismo orden y contenido. El historial del proyecto dev se
+  reconcilió con `migration repair` (`scripts/despliegue/renumerar-historial.sh`).
+- §5: números nuevos, más tres migraciones:
+  - `tenants.generador_activo`, con la unidad de `generaciones_mes_max` y su aplicación;
+  - vitrina apagada en clientes reales;
+  - repunte de enlaces de riesgos físicos separado de la corrección del catálogo.
+- Corrección: eran ocho migraciones de captura sugerida, no nueve, y 26 en total, no 27. La novena que se contó,
+  `20261004170000`, es la del hotfix v32.1, que ya estaba en staging.
+
+**Cambios respecto a 0.12** (después del merge de captura sugerida en `dev`, PR #6):
+- §10: el punto previo al merge pasa a llamarse «Antes del merge a producción» y tiene dos partes. La primera
+  es el orden de migraciones, que ahora suma las ocho de captura sugerida (decía «nueve»; corregido en 0.14), más antiguas que la de v32.1. La
+  segunda es la verificación de que ninguna evidencia de staging supera 25 MB.
+
+**Cambios respecto a 0.11** (al cerrar el encargo de captura sugerida, `docs/encargos/2026-10-04-captura-sugerida.md`):
+- §3.2 (d): el insumo de las evidencias de las solicitudes ya está construido; difiere de (c) en cómo se lee el PDF
+  y en el caché.
+- §3.3 nueva: captura sugerida (lectura de evidencias, sugerencia con fuente verificada, decisión humana,
+  generador con citas a evidencias y validador de cifras).
+- §5: ocho migraciones del encargo (decía «nueve»; corregido en 0.14).
+
+**Cambios respecto a 0.10**:
+- §10: registro de v32.1, solo base: el jefe de área puede entregar evidencia. Migración aplicada y verificada
+  en staging el 5 de octubre de 2026.
+- §10: regla nueva del guion, «Líneas base del despliegue»: van en `referencia/lineas-base/<release>/`.
+
+**Cambios respecto a 0.9** (después de los releases v31 y v32):
+- §10: registro de v31 (vitrina por emisora) y v32 (subida de evidencias de más de 1 MB).
+- §10: nueva sección «Deudas conocidas»: los permisos de `service_role` difieren entre local y alojado, y
+  `generaciones_mes_max` no se aplica en ningún sitio.
+
+**Cambios respecto a 0.8** (después de los releases v29 y v30 y del merge de `main` en `dev/ajustes-sep26`):
+- §10: registro de los releases v29 (rol auditor) y v30 (registro del auditor sin IP), y el conflicto del
+  merge marcado como resuelto.
+- §10: punto a resolver antes del merge de `dev` a `main`: 17 migraciones de `dev`, y la reparación de la
+  barrera, son más antiguas que las de staging. Se resuelve con `--include-all` o renumerando (01/10/2026).
+
+**Cambios respecto a 0.7** (antes del primer cambio de esquema en staging desde julio):
+- §10: nueva sección «Ensayo de despliegue». Proyecto `traceline-ensayo` con datos reales copiados de
+  staging, temporal. La copia la ejecuta una persona, y el proyecto queda fuera de `DEV_REFS_AUTORIZADOS`.
+
+**Cambios respecto a 0.6** (al cerrar A5a, con el documento de 40 bloques corrido de extremo a extremo):
+- El generador se reparte en tres vías según de dónde sale el texto —plantilla, perfil, datos— y once bloques
+  llevan tabla armada por código antes de llamar al modelo (§6).
+- Cola explícita, reclamo atómico y corte por tiempo con reloj propio (§6). Tres migraciones nuevas (§5).
+- Dos reglas más de prompt: el marcador de pendiente no se anuncia y va integrado en su oración.
+- `NIIF S2 10(d)` se cubre desde `perfil.horizontes`; el bloque 21 remite al 8 en vez de repetirlo.
+- A5a marcado como completo, con fecha, y A5b acotado (§9).
+- **E5 es alcance, no exención**: solo C4 apaga bloques (§6). Migración `20260921120000` (§5).
+- A6 mínimo entregado; A6 completo y A5b acotados con lo que faltó al poblar el demo (§9).
+
+**Cambios respecto a 0.5** (al cerrar A4):
+- Esfuerzo de razonamiento configurable por tipo de bloque, con todo en `high` (§6).
+- A1 a A4 marcados como completos, con fecha (§9).
+
+**Cambios respecto a 0.4** (tras la prueba de extremo a extremo de A4 sobre el bloque 29):
+- Orquestación asíncrona: la ruta reserva el bloque y responde; la generación corre en `after()`. Los tres
+  textos de la primera versión tardaron 20–40 s, y el router de Heroku corta a los 30.
+- Modelo por TIPO de bloque, no uno solo para todo.
+- Cinco reglas nuevas de prompt (§6). Ninguno de los tres textos de la primera versión era publicable.
+- Tabla de precios verificada, con fecha.
+- Dos migraciones más en §5.
+
+**Cambios respecto a 0.3** (tras construir el semáforo de A3b y cruzarlo con los datos reales):
+- Los bloques 6, 10, 22, 23, 27 y 28 dejan de citar `cuestionarios_respuestas`: no existe hoja narrativa que los
+  alimente. Su fuente son los datapoints de sus solicitudes, resueltos leyendo las evidencias documentales
+  (§3.2 b bis). Anexo A corregido.
+
+**Cambios respecto a 0.1** (tras revisión contra el código):
+- El Perfil del emisor tiene tabla propia por tenant; `cuestionarios_respuestas` no sirve (CHECK de hojas, una respuesta por pregunta, cascada al reporte).
+- Bloques 4, 5 y 7 pasan a Plantilla + Perfil: sus párrafos NIIF no existen en el catálogo de 91 datapoints. Bloque 10 usa S2 16(a)–(d). Bloque 35 corrige incisos.
+- El mapeo bloque → datapoint es una tabla explícita de códigos exactos; los códigos del catálogo tienen espaciado irregular y no se buscan por igualdad de cadena.
+- Caché de prompt, salida estructurada con esquema y streaming forman parte del diseño, no de la optimización.
+- Aprobación bloqueada mientras queden pendientes.
+- Incorporadas las cinco decisiones de negocio (§8): perfil capturado por cliente y por IRStrat; severidad configurable por tenant; aprobación por cualquiera de los dos; sin tope de presupuesto por documento; segundo año de adopción planeado desde ahora.
+- Los 40 bloques resultan de expandir los ~35 apartados de CADU (dos bloques se separan en tabla + prosa; se añaden 29(f)–(g) que CADU omite).
+
+---
+
+## 1. Qué entrega la Fase A
+
+| Entrega | Incluido | Fuera de Fase A |
+|---|---|---|
+| Botón "Excel de taxonomía" (renombrado) | Sí | — |
+| Menú "Taxonomía S1 / S2" (renombrado) | Sí | — |
+| Botón "Suplemento S1 y S2" | Sí | — |
+| Verificación de completitud antes de generar (semáforo por bloque) | Sí | — |
+| Generación del contenido por bloques con la API de Claude | Sí | — |
+| Trazabilidad: cada bloque guarda de qué solicitudes, capturas y registros salió | Sí | — |
+| Revisión y edición por bloque, regeneración individual, aprobación | Sí | — |
+| Exportación a Word (.docx) con estilos, tablas y anexo de trazabilidad | Sí | — |
+| Versión en inglés (traducción del texto aprobado, con glosario) | Sí | — |
+| Registro de quién generó, cuándo, con qué datos y a qué costo | Sí | — |
+| Estructura para primer año de adopción **y** años subsecuentes (§3.1) | Sí (estructura); año 2 se prueba en A9 | — |
+| PDF con diseño (plantilla con logo, paleta y fotos del tenant) | — | Fase B |
+| Editables InDesign / otros | — | Fase B+ |
+| Infografías generadas | — | Fase B (gráficas desde datos sí; ilustración no) |
+| Menús GRI y SASB, Informe Anual GRI/SASB | — | Fase C |
+
+Regla no negociable del generador: **cero dato inventado**. Donde falte información, el texto dice
+`[Pendiente: <solicitud o campo>]`. Nunca prosa plausible. Un documento con pendientes no se puede aprobar.
+
+---
+
+## 2. Lo que el documento de CADU revela sobre las fuentes
+
+De los ~35 apartados del suplemento de CADU (40 bloques tras expandir):
+
+- **≈ 50 %** sale de datos que TRACELINE ya recaba (datapoints, capturas, registros de clima, objetivos, cuestionarios).
+- **≈ 15 %** sale de datos que TRACELINE recaba pero le falta un campo (§5: severidad de riesgos).
+- **≈ 35 %** es información institucional o de configuración que hoy no existe en la plataforma: carta de la Dirección, historia, modelo de negocio y cadena de valor, organigrama, proceso de materialidad, alivios adoptados, horizontes temporales, datos de la entidad que informa.
+
+Ese 35 % se resuelve con el **Perfil del emisor** (§4). Sin él, el generador marca pendiente. No redacta.
+
+---
+
+## 3. Los bloques
+
+Tipos de generación:
+
+- **D→T** (datos a texto): Claude redacta a partir de datos estructurados. Solo puede usar lo que recibe.
+- **T→E** (texto institucional a edición): el emisor escribe, Claude corrige estilo y terminología y traduce. No agrega hechos.
+- **Tabla**: se arma directo desde datos, sin IA. Claude solo redacta la frase introductoria.
+- **Plantilla**: texto fijo con variables (entidad, ejercicio, alivios), sin IA.
+
+Los códigos de la columna "Datapoints" se listan **tal como están en `datapoints_taxonomia.codigo`** en un archivo
+de mapeo (`lib/suplemento/bloques.ts`), uno por uno. La columna aquí es indicativa; el mapeo definitivo se
+construye en A2 cruzando contra los 91 códigos reales y se anexa a esta especificación.
+
+### Sección I · Introducción
+
+| # | Bloque | Fuente en TRACELINE | Tipo | Si falta |
+|---|---|---|---|---|
+| 1 | Carta de la Dirección | Perfil: texto, firmante, cargo | T→E | Bloque omitido con aviso |
+| 2 | Presentación del informe (adopción, CNBV) | `reportes.ejercicio`, tenant, `reportes.anio_adopcion` | Plantilla | — |
+| 3 | Bases de preparación: marco y alivios transitorios | `reportes.alivios` (E4, E5, C3, C4, C5) | Plantilla condicional | Pendiente |
+| 4 | Entidad que informa, periodo y conectividad | Perfil: denominación, entidad que informa, perímetro; `reportes.ejercicio`; `solicitudes.nota_alcance` | Plantilla + T→E | Pendiente |
+| 5 | Conexiones y referencias cruzadas | Texto fijo | Plantilla | — |
+| 6 | Juicios, supuestos e incertidumbres (tabla) | Datapoint S1 74; `capturas_valor.justificacion` | D→T + Tabla | Fila pendiente |
+| 7 | Materialidad: contexto y proceso | Perfil: texto del proceso de materialidad | T→E | Pendiente |
+| 8 | Horizontes temporales (tabla) | Perfil: 3 horizontes con definición y justificación | Tabla | Pendiente |
+| 9 | Evaluación y priorización de riesgos | `registros_clima` con **severidad** (§5) y matriz del tenant | D→T + Tabla | Sin severidad: solo conteo por tipo |
+| 10 | Resumen de efectos financieros actuales y previstos | Datapoints S2 16(a)–(d); capturas; cuestionario | D→T | Pendiente |
+| 11 | Nuestra historia (línea de tiempo) | Perfil: hitos corporativos | Tabla + T→E | Bloque omitido |
+| 12 | Modelo de negocio y cadena de valor | Perfil: texto + etapas | T→E | Bloque omitido |
+| 13 | Efectos sobre el modelo de negocio y la cadena de valor | Datapoints S2 13; `registros_clima` | D→T | Pendiente |
+
+### Sección II · Gobernanza
+
+| # | Bloque | Fuente | Tipo | Si falta |
+|---|---|---|---|---|
+| 14 | Introducción a la sección | Texto fijo | Plantilla | — |
+| 15 | Roles y responsabilidades del órgano de gobierno | Datapoints S2 6(a)(i)–(ii) | D→T | Pendiente |
+| 16 | Supervisión de la estrategia, objetivos y remuneración | Datapoints S2 6(a)(iii)–(v) | D→T | Pendiente |
+| 17 | Papel de la gerencia y controles | Datapoints S2 6(b) | D→T | Pendiente |
+| 18 | Estructura de gobierno corporativo + organigrama | Perfil: texto + imagen | T→E + imagen | Bloque sin imagen |
+
+### Sección III · Nuestra estrategia
+
+| # | Bloque | Fuente | Tipo | Si falta |
+|---|---|---|---|---|
+| 19 | Trayectoria en sostenibilidad y clima (hitos) | Perfil: hitos de sostenibilidad | Tabla + T→E | Bloque omitido |
+| 20 | Contexto estratégico | Reutiliza #8 y #13 | D→T | — |
+| 21 | Riesgos climáticos prioritarios (tabla + profundización) | `registros_clima` tipo riesgo: descripción, horizontes, **severidad**; datapoints S2 10(a)–(d) | D→T + Tabla | Pendiente por registro |
+| 22 | Cambios en modelo de negocio y asignación de recursos | Datapoints S2 14(a)(i)–(ii); cuestionario | D→T | Pendiente |
+| 23 | Esfuerzos directos e indirectos de reducción y adaptación | Datapoints S2 14(a)(iii); cuestionario | D→T | Pendiente |
+| 24 | Oportunidades y cómo prevé alcanzar objetivos | `registros_clima` tipo oportunidad; `objetivos` | D→T | Pendiente |
+| 25 | Recursos asignados y progreso de planes | Datapoints S2 14(a)(iv)–(v) | D→T | Pendiente |
+| 26 | Resiliencia de la estrategia y análisis de escenarios | `cuestionarios_respuestas` hojas S2 22(b)(i) y (ii) | D→T | Pendiente por pregunta |
+
+### Sección IV · Riesgos
+
+| # | Bloque | Fuente | Tipo | Si falta |
+|---|---|---|---|---|
+| 27 | Gestión y mitigación de riesgos y oportunidades | Datapoints S2 25(a)–(c) | D→T | Pendiente |
+| 28 | Plan de transición | Datapoints S2 14(a)(iv); cuestionario | D→T | Pendiente |
+
+### Sección V · Métricas y objetivos
+
+| # | Bloque | Fuente | Tipo | Si falta |
+|---|---|---|---|---|
+| 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | `capturas_valor` rubros GEI; `reportes.alivios` (C4) | Tabla + D→T | Celda pendiente |
+| 30 | Método de medición, datos de entrada y C5 | Datapoints S2 29(a)(ii)–(iii) | D→T | Pendiente |
+| 31 | Razones del enfoque y desagregación | Datapoint S2 29(a)(iv) | D→T | Pendiente |
+| 32 | Alcance 2 por ubicación e instrumentos contractuales | Datapoint S2 29(a)(v) | D→T | Pendiente |
+| 33 | Emisiones financiadas | Datapoint S2 29(a)(vi) | D→T / N-A | Pendiente |
+| 34 | Riesgos de transición: concentración, exposición y capital | Datapoints S2 29(b); `registros_clima_valores` | Tabla + D→T | Fila pendiente |
+| 35 | Riesgos físicos: exposición y gráfica | Datapoints S2 29(c) incisos existentes en catálogo; `registros_clima_valores` | Tabla + gráfica + D→T | Fila pendiente |
+| 36 | Oportunidades: alineación y capital | Datapoints S2 29(d)–(e); `registros_clima_valores` | Tabla + D→T | Fila pendiente |
+| 37 | Precio interno del carbono y remuneración vinculada | Datapoints S2 29(f)–(g) | D→T | Pendiente |
+| 38 | Objetivos climáticos (ocho atributos por objetivo) | `objetivos` | Tabla | Pendiente por atributo |
+| 39 | Enfoque para establecer y revisar objetivos; resultados | `objetivos_detalle` | Tabla + D→T | Pendiente |
+| 40 | Objetivo de emisiones GEI | `objetivos_detalle`; cuestionario S2 36(e) | Tabla + D→T | Pendiente |
+
+### 3.1 Régimen por ejercicio
+
+Cada bloque tiene una variante por **régimen**, resuelto desde `reportes.anio_adopcion` y `reportes.alivios`:
+
+| Régimen | Cuándo | Qué cambia |
+|---|---|---|
+| **Primer año** (CADU 2025) | ejercicio = año de adopción | Bloque 3 enumera alivios adoptados; sin comparativos (C3); Alcance 3 omitido si C4; método distinto a GHG Protocol si C5; solo clima si E5; S1 en lo pertinente |
+| **Años subsecuentes** | ejercicio > año de adopción | Bloque 3 se reduce a marco regulatorio; bloques 29, 34–36, 38–40 incorporan columna comparativa (`anio_offset = 1`, ya soportado por el ensamblador); Alcance 3 obligatorio con categorías (bloque 29 se expande); si E5 ya no aplica, entran los datapoints S1 de sostenibilidad general (bloques 6, 7 y 10 se amplían) |
+
+La Fase A implementa ambas variantes en el mapeo y la plantilla; la prueba de años subsecuentes (A9) usa un
+segundo reporte del tenant demo con datos del ejercicio anterior. Los bloques S1 puros que no apliquen se marcan
+"no aplicable en este ejercicio", no se omiten en silencio.
+
+---
+
+### 3.2 Adjuntos como insumo
+
+Cada sección del Perfil del emisor (§4) admite archivos de respaldo: PDF, DOCX, XLSX, PNG y JPG. En Fase A
+(paso A3) **se guardan, se descargan y se quitan; el generador no los abre**. Lo que sigue es cómo se
+convierten en insumo, y bajo qué reglas.
+
+**(a) Alimentan a los bloques T→E en A5.** Un bloque T→E parte de texto que el emisor ya escribió; el adjunto
+es de dónde sale ese texto cuando no está en el formulario. Dos tratamientos, según el archivo:
+
+- **Texto ya redactado** (una carta, una descripción del modelo de negocio en un DOCX): se **normaliza y se
+  traduce, sin resumir**. El emisor escribió lo que quería decir; acortarlo es editorializar sobre un texto
+  que va firmado.
+- **Documentos largos** (una política de riesgos de 40 páginas, un acta): se **derivan** con **cita de adjunto
+  y página**. La cita no es cortesía: es lo que permite que un revisor abra el archivo y compruebe la frase.
+
+En los dos casos rige la regla del generador: **nada que no esté en el archivo**. Un adjunto no autoriza a
+inferir; si el dato no está, el bloque lleva su `[Pendiente: …]` como si no hubiera adjunto.
+
+**(b) Paso nuevo A10 — pre-carga asistida.** Después de A8. Los emisores llegan con documentos de análisis de
+riesgos y estudios de materialidad cuya estructura **varía por consultor**: cada despacho usa su plantilla, sus
+nombres de columna y su escala. Transcribirlos a mano es el trabajo que hoy hace que estos campos se queden
+vacíos.
+
+A10 extrae de esos documentos hacia un **esquema fijo** — `nombre`, `tipo`, `horizonte`, `probabilidad`,
+`impacto`, `descripcion` — y devuelve, por cada campo, la **página de origen** y un **nivel de confianza**. Con
+eso propone registros de clima y campos del Perfil, y **no inserta nada**: el resultado se revisa **fila por
+fila** y se acepta o se descarta una a una. La revisión humana no es una salvaguarda opcional del paso; es el
+paso.
+
+**(b bis) La misma tubería sirve para las evidencias de las solicitudes cualitativas.** Una solicitud
+cualitativa no entrega una cifra: entrega un documento —una política, un acta, un procedimiento— y su requisito
+NIIF se resuelve **leyendo esa evidencia**, no consultando una tabla. Por eso los bloques 6, 10, 22, 23, 27 y 28
+**no citan `cuestionarios_respuestas`**: no hay hoja narrativa que los alimente, y su fuente son los datapoints
+que sus solicitudes cubren. El generador abre esas evidencias con el mismo tratamiento de (a) —texto redactado
+se normaliza sin resumir; documento largo se deriva con cita de archivo y página— y bajo la misma regla: nada
+que no esté en el archivo. Las únicas hojas de cuestionario que existen son las tres de la plantilla oficial
+(`S2 22(b)(i)`, `S2 22(b)(ii)`, `S2 36(e)`), y alimentan solo a los bloques 26 y 40.
+
+**(c) Requisito técnico.** La extracción necesita texto:
+
+- **DOCX y XLSX se convierten a texto en el servidor.** No hay forma de mandarlos al modelo tal cual.
+- **PDF se manda nativo**, que conserva la paginación — y sin paginación no hay cita de página, que es el
+  requisito de (a) y de (b).
+- **Caché obligatorio en la porción del archivo.** Un estudio de materialidad son decenas de miles de tokens y
+  se consulta varias veces: una por bloque que lo cite, más cada reintento de la revisión fila por fila. Sin
+  caché, el mismo documento se paga entero cada vez.
+
+**(d) Construido para las evidencias de las solicitudes** (encargo de captura sugerida, octubre de 2026; detalle
+en §3.3). El archivo se lee **una sola vez por versión** y su contenido se guarda (`evidencias_contenido`); la
+sugerencia y el generador lo reutilizan. Dos diferencias con (c), decididas en el encargo:
+
+- **El PDF con texto se extrae en el servidor** (pdf.js), con su número de página, sin costo. Solo las páginas
+  sin texto, es decir, los escaneados, y las imágenes van al modelo con visión. La paginación se conserva igual.
+- **Sin caché.** Lo que se manda al modelo es el contenido ya extraído y recortado (hasta 8 000 caracteres por
+  evidencia y 30 000 por bloque), no el archivo; la sugerencia cuesta del orden de $0.007 y no lo amerita.
+- **Los adjuntos del Perfil (a) y la pre-carga A10 (b) siguen sin construir.**
+
+---
+
+### 3.3 Captura sugerida
+
+Encargo `docs/encargos/2026-10-04-captura-sugerida.md` (Pasos 0 a 6, con su registro en §7). Capturar deja de ser
+teclear y pasa a ser confirmar, y **ninguna cifra llega al Excel ni al informe sin que una persona la confirme**.
+
+**Lectura.** Al registrar una evidencia (portal o panel), un trigger encola su lectura y la cola la procesa en
+segundo plano; `/api/evidencias/procesar` (cron) recoge lo pendiente.
+- **Formatos.** Excel y CSV: celdas con hoja y referencia. PDF: texto por página; las páginas escaneadas se leen
+  con visión. Word: párrafos y tablas numerados. Imágenes (HEIC convertido): visión.
+- **No soportados.** `.xls` y `.doc` quedan «no soportado», con el mensaje de guardarlos como `.xlsx` o `.docx`.
+- **Límites.** 25 MB por archivo y 60 páginas (se avisa si se recorta).
+- **Bandera y tope por emisora.**
+  - `tenants.lectura_evidencias_activa`: apagada en clientes reales hasta que su contrato de encargado nombre a
+    Anthropic. La mueve el administrador de IRStrat en `/admin/clientes`, con confirmación y bitácora.
+  - `tenants.lecturas_mes_max` (500): tope de lecturas al mes. Una sugerencia va incluida en su lectura;
+    regenerarla por `/api/evidencias/sugerir` cuenta como una lectura.
+
+**Subida.** El archivo va directo a storage con URL firmada; la server action solo registra la fila después de
+verificar la ruta y el tamaño. El bucket rechaza más de 25 MB aunque la firma sea válida. El `bodySizeLimit` de
+26 MB (v32) se queda como red.
+
+**Sugerencia** (`sugerencias_captura`). Se genera sobre la evidencia más reciente de la solicitud, con Sonnet 5.5
+y salida estructurada.
+- **Numérica.** Propone la cifra, la unidad y el periodo, con hasta tres candidatos alternos y la conversión
+  cuando la solicitud espera otra unidad; el factor sale de una tabla propia, no del modelo. Fable 5.1 da segunda
+  opinión cuando la confianza es baja.
+- **De texto.** Propone un extracto literal de hasta 150 palabras en uno o varios fragmentos, más una línea de qué
+  cubre y qué no del requisito según sus códigos de la taxonomía.
+- **La fuente se verifica en código.** La celda, página, párrafo o tabla citada tiene que existir; la cita tiene
+  que estar ahí literalmente y su número tiene que ser el valor. Lo que no pasa se descarta.
+- **Estados.**
+  - `sugerida` y `sin_hallazgo` se muestran. `sin_hallazgo` dice «No se encontró la cifra en esta evidencia» o
+    «Esta evidencia no cubre el requisito», con la línea de qué falta.
+  - `fallida` es un error técnico y no se muestra.
+  - Una versión nueva de la evidencia deja la sugerencia `obsoleta`; lo ya decidido se conserva.
+- **Resultado sobre el conjunto de prueba.** 21 de 21 cifras con su fuente correcta y 6 de 6 extractos.
+
+**Decisión** (`fn_decidir_sugerencia`, una transacción). Confirmar, corregir o rechazar.
+- **Qué queda.** Una cifra aceptada crea la captura como una manual, con `origen = 'sugerida'` y su
+  `sugerencia_id`. Un extracto aceptado se queda en la sugerencia; el Excel solo recibe números. La bitácora
+  registra `sugerencia_confirmada`, `_corregida` y `_rechazada`, y `sugerencia_generada` sin usuario.
+- **Quién decide: quien hoy puede capturar.** Responsable y jefe de su área, coordinador y administrador del
+  cliente; el staff solo con «carga por IRStrat». El auditor ve las sugerencias y la base le niega decidir.
+- **Dónde se ve.** En el detalle de la solicitud, bajo la evidencia vigente. La matriz y el tablero del portal
+  marcan «Sugerencia por decidir» y cuentan por área, nunca para el auditor.
+
+**Generador.** Cada solicitud del bloque lleva su `documento_de_respaldo`: el contenido extraído, con un id
+citable por página, párrafo, tabla u hoja (`evi:<evidencia>:p2`, `:par3`…), y el `texto_confirmado` si lo hay.
+- **Contexto, no fuente de cifras.** El respaldo de cada cifra confirmada que nació de una sugerencia (archivo y
+  hoja con celda, página, o tabla con fila y columna) se agrega a `fuentes_usadas` por código.
+- **Validador de cifras** (`lib/suplemento/cifras.ts`). Rechaza toda cifra del texto que no esté en los datos
+  confirmados: capturas confirmadas, tabla, extractos confirmados y demás datos entregados. El contenido crudo de
+  las evidencias no cuenta. El modelo recibe un reproche y tiene un reintento; si insiste, el bloque queda en
+  error `cifras_sin_respaldo`.
+- Versión de prompt `a5b-v3-2026-10-04`.
+
+**Costos medidos** (precios verificados el 4 de octubre de 2026):
+
+| Concepto | Costo |
+|---|---|
+| Lectura de Excel, Word o PDF con texto | $0 |
+| Lectura de un PDF escaneado | ~$0.0065 |
+| Lectura de una imagen | ~$0.0047 |
+| Sugerencia numérica (Sonnet) | ~$0.0067 |
+| Sugerencia numérica con segunda opinión (Fable) | ~$0.065; 3 de 36 en las pruebas |
+| Sugerencia de texto | ~$0.0068 |
+
+**Estimación por emisora con 37 solicitudes** (las del demo: 26 cuantitativas y 11 de texto), una evidencia cada
+una:
+
+| Caso | Supuesto | Total |
+|---|---|---|
+| Típico | 15 % de escaneados, 5 % de imágenes, una de cada doce con segunda opinión | ~$0.40 por ronda; ~$0.60 con nuevas versiones y regeneraciones |
+| Peor | todo escaneado y todo con segunda opinión | ~$2.30 |
+
+Al generador, el documento de respaldo le agrega hasta unos 8 000 tokens de entrada en cada bloque que tenga
+evidencias: del orden de $0.5 a $2 más por corrida completa. Se mide en la próxima.
+
+## 4. Perfil del emisor (nuevo)
+
+Se captura una vez por emisora y persiste entre ejercicios. Lo que cambia por ejercicio vive en `reportes`.
+
+**Tabla `perfil_emisor`** (1:1 con `tenants`):
+
+| Campo | Tipo | Alimenta |
+|---|---|---|
+| denominacion_formal, nombre_corto, forma_de_referencia ("la Compañía", "la Emisora", "el Grupo", …) | text | todos |
+| entidad_que_informa, perimetro (texto) | text | 4 |
+| carta_texto, carta_firmante, carta_cargo | text | 1 |
+| proceso_materialidad | text | 7 |
+| horizontes | jsonb: [{plazo, definicion, justificacion}] × 3 | 8, 20 |
+| hitos_corporativos | jsonb: [{anio, texto}] | 11 |
+| hitos_sostenibilidad | jsonb: [{anio, texto}] | 19 |
+| modelo_negocio | text | 12 |
+| cadena_valor | jsonb: [{etapa, descripcion}] | 12 |
+| gobierno_texto | text | 18 |
+| organigrama_path | text (ruta en bucket `documentos`) | 18 |
+| matriz_riesgos | jsonb: {escala_max, niveles: [{nombre, min, max}]} | 9, 21 |
+| actualizado_por, actualizado_en | uuid, timestamptz | auditoría |
+
+**Columnas nuevas en `reportes`**: `anio_adopcion` (int), `alivios` (jsonb: {E4, E5, C3, C4, C5} booleanos).
+
+**Adjuntos por sección** (`perfil_emisor_adjuntos`): cada una de las nueve secciones admite uno o más archivos
+(PDF, DOCX, XLSX, PNG, JPG, hasta 20 MB) en `documentos/{tenant_id}/perfil/{seccion}/`. En Fase A solo se
+guardan y se descargan; su uso como insumo es §3.2.
+
+**Quién captura**: el admin del cliente desde el portal y el staff de IRStrat desde el panel interno, sobre el
+mismo formulario. Cada guardado registra quién y cuándo. Las listas (hitos, cadena de valor) se editan como
+filas, no como JSON.
+
+---
+
+## 5. Cambios aditivos al esquema
+
+| Cambio | Motivo | Migración |
+|---|---|---|
+| `registros_clima.probabilidad`, `.impacto`, `.severidad` (numéricos, nullable) y `.nivel` (text) | La priorización de CADU es probabilidad × impacto en escala 0–25 con cuatro niveles. La matriz varía por cliente, así que se guardan los tres números y el nivel se calcula contra `perfil_emisor.matriz_riesgos`; si el cliente solo entrega el puntaje, probabilidad e impacto quedan nulos | ADD COLUMN |
+| `reportes.anio_adopcion`, `reportes.alivios` | Régimen por ejercicio (§3.1) | ADD COLUMN |
+| Tabla `perfil_emisor` | §4 | CREATE TABLE + RLS por tenant |
+| Tabla `documentos_generados` | Versiones, estado, idioma, auditoría, costo total | CREATE TABLE + RLS |
+| Tabla `documentos_bloques` | Un renglón por bloque, versión e idioma: texto, estado, `fuentes` (ids), pendientes, tokens, costo, modelo, `prompt_version`, editado_por | CREATE TABLE + RLS |
+| `documentos_bloques.tokens_entrada_cache_escritura`, `.tokens_entrada_cache_lectura`, `.duracion_ms` | Un solo `tokens_entrada` no permite reconstruir el costo: escritura de caché, lectura y entrada sin cachear se cobran a precios distintos. `duracion_ms` es lo que decide si un bloque cabe en los 30 s del router | ADD COLUMN (`20261005120800`) |
+| `documentos_bloques.estado` amplía su CHECK a `('borrador','generando','error','en_revision','aprobado')` | La orquestación asíncrona necesita `generando`; un fallo guardado como `borrador` sin texto es indistinguible de un bloque que nadie generó | DROP + ADD CONSTRAINT (`20261005120900`) |
+| Bucket `documentos` (privado) | Word y organigrama, ruta `{tenant_id}/…` | Storage + políticas |
+| `tenants.generaciones_mes_max` (int, default 10) | Salvaguarda contra uso accidental o abusivo del botón; no es tope de presupuesto | ADD COLUMN |
+| `documentos_bloques.estado` suma `'no_aplica'` y `'pendiente_adjunto'` | Un bloque que el régimen excluye y otro que espera un adjunto no son errores ni borradores vacíos: sin estado propio, el revisor los perseguía como fallos | DROP + ADD CONSTRAINT (`20261005121300`) |
+| `documentos_bloques.estado` suma `'en_cola'`, y `documentos_bloques.reclamado_en` (timestamptz, nullable) | Insertar los 40 bloques como `generando` hacía que todos los POST recibieran 409 y que los últimos de la cola vencieran esperando turno. `en_cola` dice que nadie lo ha tomado; `reclamado_en` es desde cuándo corre el vencimiento y lo que hace atómico el reclamo | DROP + ADD CONSTRAINT + ADD COLUMN (`20261005121400`) |
+| `documentos_bloques.intentos` (smallint, default 0) | Cuenta los cortes por tiempo de la tanda actual. Sin memoria del intento, un bloque que siempre excede la ventana se reencola para siempre; al segundo corte pasa a `error` | ADD COLUMN (`20261005121500`) |
+| `registros_clima.concentracion`, `.impactos_potenciales`, `.respuesta` (text, nullable) | El bloque 21 solo podía producir la tabla resumen: le faltaba con qué escribir el párrafo por riesgo de CADU pp. 23–24 —dónde se concentra la exposición, qué efectos concretos se prevén y qué está haciendo la emisora al respecto—. Se capturan en `/admin/registros` | ADD COLUMN (`20261005121600`) |
+
+| Tabla `evidencias_contenido`, enum `estado_lectura`, `tenants.lectura_evidencias_activa` y `.lecturas_mes_max`, trigger de encolado | Captura sugerida (§3.3): el contenido de cada versión de evidencia, leído una vez | CREATE TABLE + ADD COLUMN (`20261005121800`) |
+| Tabla `sugerencias_captura`, enum `estado_sugerencia` | Sugerencias y sus decisiones | CREATE TABLE (`20261005121900`) |
+| `sugerencias_captura.regenerada` | La regeneración cuenta contra el tope | ADD COLUMN (`20261005122000`) |
+| Valor `sin_hallazgo` de `estado_sugerencia` | Estado visible para «no encontrada» y «no cubre» | ALTER TYPE ADD VALUE (`20261005122100`) |
+| `fn_decidir_sugerencia`, `fn_puede_decidir_sugerencia`, `capturas_valor.origen` y `.sugerencia_id`, `sugerencias_captura.extracto_final` | La decisión en una transacción y el origen de la captura | ADD COLUMN + funciones (`20261005122200`, corregida en `20261005122500`) |
+| Límite de 25 MB en el bucket `evidencias` | La subida directa ya no pasa por la server action | UPDATE de la configuración del bucket (`20261005122300`), más restrictivo |
+| Trigger `trg_evidencia_obsoleta_sugerencias` | La versión nueva deja obsoleta la sugerencia en el mismo INSERT | Trigger nuevo (`20261005122400`) |
+| `tenants.generador_activo` (boolean, default false; encendido en `es_demo`) y unidad de `tenants.generaciones_mes_max` | Bandera del generador por emisora (sus datos van a la API de Anthropic) y tope de corridas completas por mes, aplicados por las rutas de `/api/suplemento` | ADD COLUMN + comentario (`20261005122600`) |
+| `tenants.vitrina_habilitada = false` donde `es_demo = false` | La regla «Grupo Carso: vitrina apagada» se verifica por consulta | Migración de datos (`20261005122700`) |
+| Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
+| `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
+
+Todas aditivas, salvo el ajuste del bucket, que solo restringe. Los números de migración son los de la renumeración del 5 de octubre de 2026
+(`20261005120000 + n minutos`, §10, «Antes del merge a producción»); se aplican en staging con v33. Nada de lo que hoy usan staging ni
+los 16 tenants cambia de forma.
+
+---
+
+## 6. Arquitectura
+
+**Ensamblado de datos.** El export a Excel (`export-taxonomia/route.ts`, 967 líneas) mezcla dos cosas: la
+resolución rubro → valor por reporte con tres causas de faltante, que es reutilizable, y el layout posicional
+de las cuatro hojas de registros de clima, que es específico del Excel. La primera se extrae a
+`lib/reporte/ensamblar.ts`; la segunda se queda en el route. Excel, Suplemento y (Fase B) PDF consumen el
+mismo ensamblador. Prueba de A1: el Excel generado antes y después es idéntico **celda por celda** (valores y
+notas) contra el arnés `verify:export` existente (104 asserts); no byte a byte, porque el paquete XLSX lleva
+marcas de tiempo.
+
+**Mapeo bloque → datapoints.** `lib/suplemento/bloques.ts`: por bloque, lista de códigos exactos del catálogo,
+tablas y campos que lo alimentan, tipo, variante por régimen. Se valida en arranque que todo código listado
+exista en `datapoints_taxonomia`; si no, el servidor lo reporta.
+
+**Aislamiento.** El ensamblado corre en servidor con `service_role`; todas las consultas filtran por
+`reporte_id` y se valida que el reporte pertenezca al tenant de la sesión antes de armar cualquier prompt.
+Prueba obligatoria: generación simultánea con dos tenants y verificación de que ningún id cruza.
+
+**Orquestación (medida en A4, no estimada).** Las cinco corridas del bloque 29 tardaron entre 20 y 59 segundos.
+El router de Heroku corta a los 30, así que **esperar la generación dentro de la petición no es viable**. El flujo es:
+
+1. `POST /api/suplemento/{documento}/bloque/{n}` reserva el bloque en estado **`generando`** y responde **202 de
+   inmediato**, sin esperar al modelo.
+2. La generación corre en `after()` —después de enviada la respuesta— y persiste el bloque al terminar.
+3. El cliente consulta `GET` de la misma ruta **cada 2 s** hasta que el estado deje de ser `generando`.
+4. Un bloque en `generando` **más de 3 minutos** lo pasa a `error` con motivo `tiempo excedido` la propia
+   consulta, y queda reintentable: si el dyno se reinició a media generación, nadie más va a cerrarlo.
+
+Una segunda petición sobre un bloque que ya se está generando responde 409: dos generaciones simultáneas del
+mismo bloque se pisan y se pagan las dos. Si el navegador se cierra, lo generado queda.
+
+**Cola explícita y reclamo atómico (A5a).** Los 40 bloques no se insertan en `generando` sino en **`en_cola`**,
+con `reclamado_en` nulo. La diferencia no es cosmética: insertarlos como `generando` hacía que los cuarenta POST
+del orquestador recibieran 409, que no se generara nada, y que a los tres minutos la consulta marcara «tiempo
+excedido» a trece bloques que nadie había tocado. `en_cola` significa que nadie lo ha tomado; `reclamado_en` es
+desde cuándo corre el vencimiento.
+
+El reclamo es **un solo `UPDATE … RETURNING`**, no un lee-y-luego-escribe:
+
+```sql
+update documentos_bloques set estado='generando', reclamado_en=now()
+ where documento_id=$1 and numero=$2
+   and (estado <> 'generando' or reclamado_en is null or reclamado_en < now() - interval '3 minutes')
+returning numero;
+```
+
+Cero filas devueltas significa que otra petición lo tiene, y ese POST no genera. Verificado con dos POST
+simultáneos al mismo bloque: un 202, un 409, una fila, y **un solo cargo de tokens** —comprobado por la fila del
+bloque y por la bitácora, que registra una entrada por generación consumada—.
+
+**Corte por tiempo con reloj propio.** El `timeout` del SDK cubre el establecimiento de la respuesta, no la
+duración del stream: un bloque tardó 305 s con un `timeout` de 150 s y no abortó nunca. El corte real es un
+`AbortController` con `setTimeout` de 150 s cuyo `signal` se pasa a la petición, de modo que el aborto alcanza
+al stream a mitad de camino. Va por debajo del vencimiento de 3 minutos para que el fallo llegue con su motivo
+en vez de con el síntoma, y `maxRetries` queda en 0 porque el reintento del SDK convertía el corte efectivo en
+300 s.
+
+Al cortar, el bloque **vuelve a `en_cola`** y suma un `intentos`; el orquestador lo reintenta una vez; al segundo
+corte pasa a `error`. Un bloque lento no es un bloque roto, pero uno que nunca cabe en la ventana no puede
+reencolarse para siempre. `intentos` vuelve a 0 al acertar, al encolar desde `/generar`, y cuando alguien pulsa
+«Regenerar» en la vista de revisión —que manda `{ reiniciarIntentos: true }`, porque empezar de nuevo a mano no
+es el segundo intento de la tanda anterior—. La velocidad en tokens por segundo se **deriva** de
+`tokens_salida / duracion_ms` y se muestra por bloque: es lo que distingue un bloque largo de uno lento, y la
+mediana de 78.6 tok/s del documento demo hizo evidente que el de 11.6 era carga del API.
+
+**Saldo agotado es definitivo y no es un fallo del bloque.** Un `credit balance is too low` no se arregla
+reintentando, y seguir con los otros treinta y nueve produce treinta y nueve errores idénticos que tapan la
+causa. Tiene motivo propio, `sin_saldo`, y devuelve el bloque a `en_cola` —no a `error`—: el estado dice la
+verdad, que espera turno, y el motivo dice por qué. Marcarlo error mandaba a alguien a buscar un problema en el
+prompt que no existía.
+
+**Tres vías, no una.** No todos los bloques salen del modelo. `lib/suplemento/vias.ts` los reparte:
+*plantilla* (2, 3, 5, 14) es texto fijo con variables y **no llama al modelo** —cuestan $0 y tardan 0 ms—;
+*perfil* (1, 4, 7, 11, 12, 18, 19) redacta desde `perfil_emisor`; *datos* (los 29 restantes) sale de la
+evidencia, y once de ellos llevan **tabla armada por código** antes de la llamada (`lib/suplemento/tablas.ts`).
+
+**E5 ES ALCANCE, NO EXENCIÓN.** El alivio NIIF S1 E5 permite que el primer informe se limite a los riesgos y
+oportunidades relacionados con el clima. Eso **no deroga la NIIF S1** ni convierte sus requisitos en inaplicables:
+S1 sigue aplicando *en lo pertinente* a ese alcance. Hasta el 15 de septiembre de 2026 el evaluador lo trataba como
+exención —saltaba todo datapoint `NIIF S1` y ponía en `no_aplica` los bloques cuyos requisitos eran todos de S1—, y
+eso hacía dos daños: pintaba de verde requisitos que nadie había cubierto, y dejaba sin fuente a los bloques de
+gobernanza y de juicios, que son precisamente requisitos de S1 que el clima necesita. Corregido: **solo C4 apaga
+bloques**. E5 viaja al prompt como bandera de alcance en la capa volátil (`banderaAlcanceE5()`), con la instrucción
+de acotar los requisitos generales de S1 al clima en vez de omitirlos.
+
+**Fuentes alternativas.** Un requisito puede contestarlo un campo institucional en vez de una solicitud:
+`NIIF S2 10(d)` —qué horizontes se evaluaron y por qué esos— es exactamente `perfil.horizontes`, capturado en el
+bloque 8. Con el campo lleno el requisito cuenta como cubierto y el bloque **remite** al que lo desarrolla. Antes
+de esto, el bloque 21 abría un pendiente por un dato que el documento ya trae escrito unas páginas antes, y se
+le exigía a la emisora entregar dos veces lo mismo.
+
+**Prompt por bloque.** Diseñado para caché: primero lo estable —rol, reglas, ejemplo de estilo, índice de los 40
+bloques, preferencias del emisor y los requisitos NIIF del bloque— con marca de caché; después lo volátil
+—fronteras del bloque, tabla ya armada, datos en JSON con ids, régimen e instrucción de extensión—. Salida
+**estructurada con esquema**: `{texto, fuentes_usadas[], pendientes[], notas_revision[]}`.
+
+**Las cinco reglas, escritas después de leer los tres primeros textos.** Ninguno era publicable:
+
+1. **Voz del emisor.** `texto` es la revelación de la emisora, lista para publicarse. Prohibido dentro de él:
+   *solicitud, evidencia, expediente, entregado, recibido, validado, IRStrat, plataforma, bloque, datapoint*,
+   ids y uuids, y toda narración de cómo se recabó el dato. Un inversionista que lee «el inventario fue
+   entregado y validado» está leyendo nuestra cocina, no su información a revelar. Única excepción, para el
+   revisor: `[Pendiente: <qué falta> — <solicitud o campo>]`, con formato uniforme. **El servidor rechaza y
+   reintenta** si aparece vocabulario prohibido fuera del marcador.
+2. **Fronteras del bloque.** La capa estable lleva el índice completo de los 40 bloques con una línea de qué
+   cubre cada uno; la volátil dice qué cubre este y qué cubren los contiguos, para no repetirlo. El bloque 29 no
+   explica los alivios (bloque 3) ni el método de medición ni C5 (bloque 30). Las fronteras viven en una tabla
+   explícita, `lib/suplemento/fronteras.ts`: dónde se corta entre «qué emitimos» y «cómo lo medimos» es una
+   decisión editorial, no se deduce del título.
+3. **Tabla primero.** En bloques `Tabla + D→T` la tabla la arma el CÓDIGO desde los datos verificados; el modelo
+   la recibe ya construida y redacta la prosa que la introduce y comenta. Una cifra que pasa por el modelo puede
+   salir redondeada o «corregida». Máximo una mención de cada cifra en prosa, y solo si aporta algo que la tabla
+   no dice. Longitud objetivo en la instrucción volátil: para el bloque 29, de 120 a 250 palabras.
+4. **Decisiones del emisor.** Campo `notas_revision[]`, que **no se publica**. Ahí van los juicios que el
+   redactor no debe resolver: datos disponibles que un alivio exime (el Alcance 3 bajo C4), inconsistencias
+   entre lo pedido y lo entregado, revelaciones voluntarias posibles. El texto no incluye esos datos; la nota se
+   los ofrece al revisor.
+5. **Denominación exacta.** `forma_de_referencia` y `denominacion_formal` se copian carácter por carácter,
+   incluido el artículo en minúscula.
+
+**Dos reglas más, escritas al leer el bloque 21 de la primera corrida completa (A5a).** El marcador de pendiente
+ya existía; lo que faltaba era cómo se coloca:
+
+6. **El marcador ocupa el lugar del dato y no se anuncia.** Prohibido escribir una frase que prometa algo que
+   luego resulta ser un marcador —«la calificación asignada se presenta a continuación» seguido de un
+   pendiente—. Si el dato no está, la oración lo dice donde iría el dato y no promete nada alrededor. Un
+   borrador que anuncia una tabla inexistente, publicado sin revisar, miente.
+7. **Va integrado en su oración, nunca agrupado al final.** Mal: tres párrafos de texto y luego tres marcadores
+   seguidos. Bien: «Las emisiones de Alcance 2 ascendieron a [Pendiente: …] toneladas métricas equivalentes de
+   CO2.» El revisor tiene que ver el hueco donde está, no en una lista al cierre.
+
+La capa estable lleva además un **ejemplo de estilo**: el bloque equivalente de un informe real, con el nombre
+de la emisora sustituido por «la Compañía» y las cifras por marcadores.
+
+El servidor rechaza cualquier respuesta que cite un id que no se le entregó, que use vocabulario de proceso
+interno, o cuyos marcadores no lleven el formato pedido. Reintenta **una** vez explicando el error concreto: un
+reintento que solo dice «hubo un error» repite el mismo fallo.
+
+**Modelo, por TIPO de bloque** (`lib/suplemento/modelos.ts`, configurable). La comparación de A4 sobre el mismo
+bloque 29 con los mismos datos:
+
+| Tipo de bloque | Modelo | Por qué |
+|---|---|---|
+| `D→T`, `T→E` y sus combinaciones | `claude-fable-5-1` | Hay que decidir qué dice una cifra, qué se calla por un alivio y dónde falta un dato. Sonnet 5 fue correcto pero no detectó que el Alcance 2 llegó sin desagregar entre ubicación y mercado, y metió los ids de las fuentes dentro de la prosa. |
+| `Plantilla`, `Tabla` | `claude-sonnet-5` | Redactar sobre un guion fijo, frases que introducen una tabla que armó el código, normalización de estilo. Sin juicio que tomar, y seis veces más barato. |
+
+**Precios verificados el 11 de septiembre de 2026** contra `platform.claude.com/docs/en/about-claude/pricing`.
+La constante lleva la fecha para que se note cuándo dejó de ser cierta. Dólares por millón de tokens:
+
+| Modelo | Entrada | Escritura de caché (5 min) | Lectura de caché | Salida |
+|---|---:|---:|---:|---:|
+| `claude-fable-5-1` | $10 | $12.50 | **$0.25** (0.025x, no 0.1x) | $50 |
+| `claude-opus-5` | $5 | $6.25 | $0.50 | $25 |
+| `claude-sonnet-5` | $2 | $2.50 | $0.20 | $10 |
+| `claude-haiku-4-5` | $1 | $1.25 | $0.10 | $5 |
+
+No hay tope de presupuesto por documento (decisión §8.4), pero el costo se registra por bloque con su desglose
+—entrada sin cachear, escritura de caché y lectura de caché se cobran a precios distintos— y se acumula por
+documento. **Los tokens de salida incluyen el razonamiento**, que en Fable 5.1 está siempre activo: el bloque 29
+generó 1 245 caracteres de texto con 4 666 tokens de salida facturados.
+
+Medido en A4 sobre el bloque 29 con el prompt v3: **$0.13 con el caché caliente**, 26.9 s de llamada y 32.7 s
+de reloj de punta a punta. La capa estable son 4 213 tokens y se reutiliza en los cuarenta bloques.
+
+**Esfuerzo de razonamiento, configurable por tipo de bloque** (`ESFUERZO_POR_TIPO` en `modelos.ts`).
+Verificado el 11 de septiembre de 2026 contra `platform.claude.com/docs/en/build-with-claude/effort`:
+`output_config.effort` acepta cinco niveles —`low`, `medium`, `high`, `xhigh`, `max`—, el valor por defecto de
+Fable 5.1 es `high`, y pasar `"high"` explícitamente es idéntico a omitirlo. El esfuerzo afecta a **todos** los
+tokens de salida, incluido el razonamiento, que es donde está el costo: en A4 el bloque 29 gastó 2 038 tokens de
+salida para 1 245 caracteres de texto.
+
+**Hoy están los nueve tipos en `high`.** La tabla existe para poder medir un barrido de esfuerzo sobre los
+mismos bloques, no para adivinar ahora cuál conviene; bajar a `medium` los bloques de plantilla es la primera
+prueba que vale la pena. Antes de moverlos, dos cosas:
+
+- **Variar el esfuerzo invalida el caché de prompt.** Los cuarenta bloques comparten prefijo —reglas, ejemplo de
+  estilo, índice, emisora— y ese prefijo se cachea *entre* bloques. Con dos niveles de esfuerzo, cada uno
+  mantiene su propia copia: se paga la escritura dos veces por documento, no cuarenta. Es asumible, pero hay que
+  contarlo en la comparación o el barrido dirá que el nivel barato sale caro.
+- Existe un cambio de esfuerzo **por mensaje** que sí conserva el caché (beta
+  `mid-conversation-output-config-2026-07-01`), pero sirve para variar el nivel dentro de una conversación.
+  Aquí cada bloque es una llamada de un solo turno, así que no aplica.
+
+**Word.** Librería `docx` en `dependencies`. Portada, índice, secciones, encabezados con referencia NIIF (según
+preferencia del tenant), tablas, notas al pie con la fuente de cada cifra, anexo de trazabilidad
+(bloque → solicitudes → evidencias). Marca de agua "BORRADOR GENERADO, PENDIENTE DE REVISIÓN" hasta la aprobación.
+
+**Inglés.** Se traduce el texto **aprobado** en español, bloque a bloque, con el glosario ES↔EN como restricción.
+No se generan en paralelo desde los datos.
+
+**Dependencias nuevas.** SDK de Anthropic, `docx`. Variable `ANTHROPIC_API_KEY` en Heroku y `.env.local`, una llave
+por ambiente.
+
+---
+
+## 7. Flujo de usuario
+
+1. En Cobertura, junto a "Excel de taxonomía", el botón **"Suplemento S1 y S2"**. Visible para staff y admin del cliente.
+2. Pantalla previa: **semáforo de 40 bloques**. Verde: datos completos. Amarillo: saldrá con pendientes (lista qué
+   solicitud o campo del Perfil falta, con enlace). Gris: no aplicable en este régimen. Botón "Generar".
+3. Generación con progreso bloque a bloque. Se puede salir; se retoma.
+4. Vista de revisión: cada bloque con texto, fuentes (enlaces a solicitud y evidencia), "Regenerar" y edición en
+   línea. Estados: *Borrador generado → En revisión → Aprobado*.
+5. "Descargar Word" disponible desde Borrador, con marca de agua. **"Aprobar" bloqueado mientras exista al menos
+   un `[Pendiente]`**; la pantalla lista cuáles.
+6. Aprobación: puede hacerla el admin del cliente o el staff de IRStrat (decisión §8.3). Se registra quién.
+7. "Generar versión en inglés" solo sobre un documento Aprobado.
+8. Registro visible para staff: quién generó, quién aprobó, cuándo, versión, costo, modelo.
+
+Preferencias del tenant (en `perfil_emisor`), una vez, editables: forma de referencia a la entidad; denominación
+formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la carta.
+
+---
+
+## 8. Decisiones de negocio (tomadas el 10 de septiembre de 2026)
+
+| # | Decisión | Resolución | Efecto en el diseño |
+|---|---|---|---|
+| 1 | Quién captura el Perfil del emisor | Cliente e IRStrat, ambos | Un formulario, dos accesos (portal y panel), auditoría de quién guardó |
+| 2 | Severidad de riesgos | Varía por cliente según su propia matriz | Puntaje, probabilidad e impacto por registro; rangos y niveles configurables por tenant (`matriz_riesgos`) |
+| 3 | Quién aprueba | Admin del cliente o IRStrat | Sin regla nueva de autorización; el rol admin_cliente ya entra al panel. Se registra quién aprobó |
+| 4 | Presupuesto | Sin tope por documento | Se mantiene el límite de generaciones por mes como salvaguarda operativa, no económica. El límite de gasto vive en la Consola |
+| 5 | Segundo año de adopción | Se planea desde ahora | Régimen por ejercicio en mapeo y plantilla (§3.1); prueba en A9 |
+
+---
+
+## 9. Orden de construcción
+
+| Paso | Contenido | Dependencias | Estado |
+|---|---|---|---|
+| ✅ A1 | Renombres (botón, menú). Extraer `lib/reporte/ensamblar.ts` del export; el Excel lo consume; prueba celda por celda con `verify:export` | Ninguna | **Completo · 10 sep 2026** |
+| ✅ A2 | Migraciones aditivas (§5) en dev. Mapeo `lib/suplemento/bloques.ts` cruzado contra los 91 códigos reales, con validación en arranque. Anexar el mapeo a esta especificación | A1 | **Completo · 10 sep 2026** |
+| ✅ A3 | Formulario del Perfil del emisor (portal y panel) y captura de severidad en registros de clima. Semáforo de completitud, sin IA | A2 | **Completo · 11 sep 2026** |
+| ✅ A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola | **Completo · 11 sep 2026** |
+| ✅ A5a | Los 40 bloques en régimen primer año por vía (plantilla, perfil, datos) con once tablas armadas por código; `POST /generar` con cola explícita, reclamo atómico, concurrencia 3 y corte por tiempo; vista de revisión con edición en línea, regeneración por bloque y aprobación bloqueada con pendientes; botón del semáforo para staff. Documento demo completo: 39 borradores + 1 no aplica, $7.5579, 27.7 min de cómputo | A4 | **Completo · 15 sep 2026** |
+| A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar—; (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24; (5) **solicitudes con varias capturas confirmadas entregan TODAS al prompt, con su etiqueta**. Hoy `entregaPorSolicitud` colapsa cada solicitud a un solo valor —el último confirmado— y una solicitud que resume la composición de una cartera en siete cifras le entrega al modelo una sola, elegida por el orden de inserción. Las demás viajan de contrabando en la descripción, que es prosa: el modelo las copia bien, pero nada las valida ni las suma. Cada captura lleva su etiqueta en `justificacion` y ese par (etiqueta, valor) es lo que debe llegar. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
+| A6 | Word con estilos, marca de agua y anexo de trazabilidad. **A6 mínimo está hecho** (portada, índice, bloques con su referencia NIIF, tablas, marca de agua mientras no esté aprobado). Falta: (1) el **anexo de trazabilidad**; (2) **versiones por bloque con historial de ediciones humanas** — hoy `documentos_bloques` guarda un solo texto y `editado_por`/`editado_en`; una edición a mano pisa lo generado sin dejar rastro de qué decía antes, y la regeneración pisa la edición sin dejar rastro de que existió. Hace falta una tabla de versiones por bloque, con autor, fecha y origen (modelo o persona), como la que ya tienen las evidencias; (3) **confirmación antes de regenerar un bloque editado**: el botón «Regenerar» no distingue entre un bloque que nadie tocó y uno que un revisor reescribió, y en el segundo caso destruye trabajo humano sin avisar. Pasó el 15 de septiembre de 2026 con el bloque 4; el texto se conservó porque alguien se acordó de copiarlo antes | A5b | Pendiente |
+| A7 | Glosario ES↔EN y versión en inglés | A6 | Pendiente |
+| A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 | Pendiente |
+| A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 | Pendiente |
+| A10 | Pre-carga asistida desde documentos de análisis de riesgos y estudios de materialidad: extracción a esquema fijo con página de origen y confianza por campo, y revisión fila por fila antes de insertar (§3.2b) | A8 | Pendiente |
+
+Todo en `dev/ajustes-sep26` contra `traceline-dev`. Nada toca staging hasta que Manuel vea A8.
+
+---
+
+## 10. Despliegues
+
+### staging · release v27 · 17 de septiembre de 2026 · `c50dd83`
+
+**Qué se desplegó: la vitrina, no el generador.** Cuatro commits sobre `b71a2bf`
+(release v26), traídos por fast-forward desde `hotfix/suplemento-vitrina`, sin
+commit de merge. Nada del generador del Suplemento —ni A5a ni A6— viaja en este
+release: sigue en `dev/ajustes-sep26`.
+
+Contenido:
+
+- Los cuatro botones de Cobertura renombrados sin verbo, y «Suplemento S1 y S2»
+  en el estilo oscuro que antes tenía la matriz.
+- El botón solo aparece cuando `tenants.es_demo` es verdadero. En staging eso son
+  **15 de los 16 tenants**: la emisora de demostración y los catorce mockups de
+  prospecto. Es intencional, cada uno recibe el documento con su propio nombre.
+- Diálogo con dos opciones. El Word se sirve desde el bucket privado `vitrina`
+  de Supabase con `service_role` y, si no está ahí, desde `assets/vitrina/`.
+- Al servir el Word se sustituye «Empresa Demo, S.A.B. de C.V.» por el nombre
+  del tenant que descarga. **Es de vitrina y desaparece** cuando cada emisora
+  genere su propio documento y el nombre salga de su Perfil.
+- Cada descarga queda en la bitácora con quién, qué emisora, qué formato y de
+  dónde salió el archivo.
+
+**Cómo se enciende el PDF el jueves.** La opción «Informe con diseño (PDF)» sale
+deshabilitada con la leyenda «En preparación» porque el objeto no existe todavía.
+Para activarla basta con **subir `suplemento-demo.pdf` al bucket `vitrina` desde
+el dashboard de Supabase**: sin commit, sin despliegue y sin reinicio. La
+comprobación se hace en cada petición contra el listado del bucket. Verificado en
+dev haciendo el ciclo entero —apagada, subir, habilitada, quitar, apagada— con el
+servidor corriendo. Para apagarla otra vez, se borra el objeto.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Admin de CLEPSA: cuatro botones, diálogo, PDF en «En preparación» | ✓ |
+| Word descargado con «Libramiento Elevado de Puebla (CLEPSA)» × 36, sin rastro de «Empresa Demo» | ✓ |
+| Bitácora con `origen: bucket` | ✓ |
+| Grupo Carso (`es_demo` falso): sin botón de Suplemento | ✓ a nivel de dato y de ruta (404); no observado en pantalla, porque staging no tiene cuenta que vea ese tenant |
+| Excel de taxonomía de un mockup, intacto | ✓ 376 050 bytes |
+| Consola del navegador limpia | ✓ |
+
+**El PDF quedó activo el 17 de septiembre de 2026 a las 14:17**, subido al bucket
+`vitrina` de staging: 5 445 827 bytes, 21 páginas. La opción se encendió sola,
+**sin desplegar, sin reiniciar y sin commit**, que era justo lo que el diseño
+buscaba. Verificado con la cuenta de CLEPSA: opción habilitada y descarga de
+5 445 827 bytes con firma `%PDF-`, y `origen: bucket` en la bitácora.
+
+Punto de reversión: `heroku releases:rollback v26`.
+
+### staging · release v28 · 17 de septiembre de 2026 · `2bd951c`
+
+Un solo commit sobre v27, por fast-forward desde `hotfix/vitrina-textos`: el
+diálogo explica qué personaliza cada formato y qué no.
+
+**El PDF lleva el contenido de Empresa Demo para las quince emisoras, y es una
+decisión tomada, no una carencia.** El Word se sirve con el nombre de quien
+descarga; el PDF no, porque sustituir texto dentro de un PDF exige re-tipografiar
+la línea y un renglón descuadrado en el documento con el que se vende es peor que
+un nombre ajeno. Al llegar la maqueta real se comprobó que dice «Empresa Demo,
+S.A.B. de C.V.» cuarenta y una veces en el cuerpo, así que las catorce emisoras
+de vitrina reciben un Word con su nombre y un informe con diseño que no.
+
+Se decidió servirlo igual para todas y **decirlo en el diálogo**, antes de la
+descarga: decirlo cuesta dos renglones, que un prospecto abra el informe y
+encuentre el nombre de otra emisora cuesta la reunión. **No se prevé una versión
+genérica del PDF**; el informe propio de cada emisora llegará cuando genere su
+suplemento y el nombre salga de su Perfil.
+
+Los textos, tal como quedan:
+
+- **Contenido en Word** — «Generado a partir de la información de la plataforma,
+  con el nombre de tu emisora.»
+- **Informe con diseño (PDF)** — «Muestra de la maquetación sobre el contenido de
+  una emisora de ejemplo (Empresa Demo). El informe de tu emisora se producirá
+  con su propia identidad al generar el suplemento.»
+
+Verificación tras el release, con la cuenta de CLEPSA: los dos textos en
+pantalla, Word con «Libramiento Elevado de Puebla (CLEPSA)» × 36 y sin rastro de
+«Empresa Demo», PDF de 5 445 827 bytes, dos entradas de bitácora con
+`origen: bucket`, consola limpia. Punto de reversión: `heroku releases:rollback v27`.
+
+### staging · release v29 · 30 de septiembre de 2026 · `cc033df`
+
+**El rol auditor**: el primer cambio de esquema en staging desde julio. Viene de
+`hotfix/rol-auditor` por el PR #1 (merge commit `42dcfc3`), más tres commits de
+documentación y herramientas en `main`. Guion y registro completos en el encargo
+`docs/encargos/2026-09-29-rol-auditor.md`, §5.1, §5.2 y §7.
+
+Contenido:
+
+- Rol `auditor`, de solo lectura, con barrera restrictiva
+  `fn_aplicar_barrera_auditor()` (69 políticas) y canal propio de comentarios.
+- `auditor_actividad`, con su pantalla `/admin/auditoria` solo para el
+  administrador de IRStrat.
+- Cinco migraciones `20260929*`, todas aditivas.
+
+Antes de tocar staging se ensayó el despliegue entero en `traceline-ensayo`, con
+este resultado:
+
+- Las migraciones, aplicadas dos veces.
+- `e2e:auditor` 57 ✓ y `e2e:auditor:rutas` 90 ✓, con un auditor de utilería
+  sobre Empresa Demo que se borró al terminar.
+- Los Excel de CLEPSA, Banco Base y Grupo Carso, idénticos celda por celda.
+- Grupo Carso, idéntico en filas y md5, sin ningún rol cambiado.
+- El código de `main` anterior, verificado sobre la base ya migrada.
+
+Orden en staging:
+
+1. Rotación de las **7 cuentas del seed** que entraban con la contraseña versionada.
+2. Línea base.
+3. Migraciones.
+4. `git push heroku main`.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Migraciones | 33 de 33, barrera 69, enum `auditor` presente (verificado por Esteban con psql) |
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso, frente a la línea base | ✓ idénticos celda por celda |
+| Vitrina de Banco Base (Word y PDF) | ✓ 200, `origen: bucket`, Word sin «Empresa Demo» |
+| Instantánea de Grupo Carso (18 tablas + storage, filas y md5) y roles de todos los usuarios | ✓ intacta (Esteban) |
+| Logs de Heroku | ✓ sin errores (Esteban) |
+
+**Fallo de la verificación automática, corregido después.** `migrar-remoto.sh`
+falló en el paso «migration list» con «no se leyó ninguna fila», aunque las
+migraciones sí se aplicaron. La causa: la CLI 2.109 imprime la tabla con los
+valores entre comillas invertidas cuando la ejecuta una persona, y JSON cuando
+la ejecuta un agente. Se corrigió en `8a5a922`.
+
+Punto de reversión: `heroku releases:rollback v28`.
+
+### staging · release v30 · 1 de octubre de 2026 · `56ee50b`
+
+**El registro de actividad del auditor ya no guarda la dirección IP**, por
+protección de datos y a petición del cliente. Viene de `hotfix/auditor-sin-ip`
+por el PR #2 (merge commit `56ee50b`).
+
+- La migración `20261001120000_auditor_actividad_sin_ip` anula las IP ya
+  guardadas y añade `CHECK (ip IS NULL)`. Son dos excepciones aprobadas a la
+  regla de migraciones aditivas, anotadas en el encargo §7. Los respaldos de
+  Supabase conservan las IP hasta que caducan (7 días).
+- La columna no se elimina.
+
+**El código se desplegó antes que la migración, al revés que en v29, y fue a
+propósito.** El código de v29 escribe la IP, y con el `CHECK` puesto ese insert
+falla. Como el registro falla abierto, la actividad del auditor se habría dejado
+de registrar sin que nada se cayera. Ensayado en `traceline-ensayo` con una fila
+de prueba con IP: se aplicó 1 migración, quedaron 34 de 34 y `count(ip)` pasó de
+1 a 0.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Migración (Esteban, en su terminal) | 34 de 34, barrera 69; `auditor_actividad`: 0 filas, 0 con IP |
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso, frente a los del v29 | ✓ idénticos celda por celda, salvo la fecha del pie («30 sep» → «1 oct», 14 celdas por libro; la línea base era del día anterior) |
+| Vitrina de Banco Base (Word y PDF) | ✓ 200, `origen: bucket` |
+
+Lo que no se probó en staging:
+
+- `auditor_actividad` no tenía ninguna fila en staging, así que el registro sin
+  IP no se ha visto en producción. Se verá en la primera sesión de la cuenta de
+  Deloitte.
+- No se repitieron la instantánea de Grupo Carso ni el conteo de errores en los
+  logs.
+
+Punto de reversión: `heroku releases:rollback v29`. Una vez aplicada la
+migración, revertir el código deja de registrar la actividad del auditor
+mientras v29 esté arriba, así que se corrige hacia adelante.
+
+### staging · release v31 · 1 de octubre de 2026 · `d53ae68`
+
+**La vitrina del Suplemento se enciende por emisora** con
+`tenants.vitrina_habilitada`, en lugar de depender de `es_demo`. Viene de
+`hotfix/vitrina-por-tenant` por el PR #3 (merge commit `d53ae68`), dentro del
+encargo `docs/encargos/2026-10-01-mockup-ainda.md` (guion en §5.1).
+
+- Migración `20261001140000_tenants_vitrina_habilitada`, aditiva. La corrió
+  Esteban antes del código: la columna quedó en staging, con 19 de 19 tenants
+  con la vitrina encendida.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Excel de taxonomía de CLEPSA, Banco Base y Grupo Carso, frente a los del v30 | ✓ idénticos celda por celda |
+| Vitrina de Banco Base (Word y PDF) | ✓ 200, `origen: bucket` |
+| Cobertura | ✓ 200 sin errores de página; botón de vitrina en Banco Base y no en Grupo Carso |
+
+Punto de reversión: `heroku releases:rollback v30`.
+
+### staging · release v32 · 4 de octubre de 2026 · `b682627`
+
+**Las evidencias de más de 1 MB vuelven a subir.** Viene de
+`hotfix/limite-subida` por el PR #4 (merge commit `b682627`). Sin migración.
+
+- **El fallo.** La subida pasa por una server action, y Next la limita a 1 MB
+  por defecto. En v31, un PDF de 1.45 MB subido desde el portal devolvía 500 y
+  el usuario veía «Algo salió mal», sin que se escribiera nada. Se encontró al
+  preparar el Paso 1 del encargo de captura sugerida.
+- **El arreglo.**
+  - `experimental.serverActions.bodySizeLimit = "26mb"`.
+  - Un límite propio de 25 MB por evidencia (`lib/evidencias/limite-subida.ts`).
+    El portal y el panel lo comprueban al elegir el archivo, con el mensaje «El
+    archivo supera 25 MB; comprímalo o divídalo.», y las dos acciones lo
+    vuelven a comprobar en el servidor.
+- **En local.**
+  - 1.45 MB: sube.
+  - 30 MB: se rechaza al elegirlo, sin petición al servidor.
+  - No hay e2e del portal para la subida.
+- La solución de fondo es la subida directa a storage con URL firmada, en el
+  Paso 4 del encargo `docs/encargos/2026-10-04-captura-sugerida.md`.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Subida de 1.45 MB con `operaciones@empresademo.example` en la solicitud `c0000000-…-0006` de Empresa Demo | ✓ POST 200; las evidencias pasan de 2 a 3 (`prueba-1.45MB.pdf`, v3). Se deja, es demo |
+| Excel de taxonomía de CLEPSA frente al del v31 | ✓ idéntico: 3234 celdas en 16 hojas, salvo la fecha del pie (14 celdas) |
+| `/login` | ✓ 200 |
+
+No se repitieron Banco Base, Grupo Carso, la vitrina ni la revisión de logs.
+
+Punto de reversión: `heroku releases:rollback v31`.
+
+### staging · v32.1 (solo base) · 4 de octubre de 2026 · `b2c3731`
+
+**El jefe de área puede entregar evidencia.** Viene de
+`hotfix/jefe-sube-evidencia` por el PR #5 (merge commit `b2c3731`). No hay
+release de Heroku: el cambio es solo de base, y el código desplegado (v32) no
+cambia.
+
+- **El fallo, en `main` desde la difusión (`20260826120000`).** El jefe de área
+  no podía subir evidencia a una solicitud en «pendiente», «solicitado» o
+  «validado».
+  - `fn_evidencia_after_insert` mueve el estado con la sesión de quien sube.
+  - `fn_valida_vb_area` solo deja al jefe cambiar el visto bueno y `declinada`,
+    así que rechazaba la carga entera.
+  - Lo encontró el e2e del Paso 4 de captura sugerida.
+- **La corrección**, migración `20261004170000_jefe_area_sube_evidencia`, que
+  reemplaza el cuerpo de las dos funciones:
+  - la carga marca su cambio de estado con `app.estado_por_evidencia`;
+  - el trigger del visto bueno deja pasar ese cambio y nada más.
+  - Un UPDATE directo del estado por el jefe se sigue rechazando: primero por
+    la regla de origen y, aislado, por la del visto bueno.
+- **Verificación antes del despliegue:**
+  - aplicada dos veces en local y en dev;
+  - `e2e:jefe-sube-evidencia` 13 de 13;
+  - regresión con el código de `main` en verde: vb-area 43, difusión 40,
+    auditor 58, auditor-rutas 92.
+- **Despliegue:** Esteban corre `scripts/despliegue/migrar-remoto.sh staging`,
+  primero para revisar y después con `--aplicar`. Debe quedar pendiente solo
+  `20261004170000` y la barrera debe dar 69.
+
+Migración aplicada en staging por Esteban el 5 de octubre de 2026 con
+`migrar-remoto.sh`: 36 de 36, barrera 69, staging al día. Sin release de Heroku:
+el código desplegado sigue siendo v32.
+
+Verificación en staging tras la migración:
+
+| | Resultado |
+|---|---|
+| Migraciones y barrera (Esteban) | ✓ 36 de 36, barrera 69 |
+| Excel de taxonomía de CLEPSA | ✓ 16 hojas y 3 234 posiciones de cuadrícula, igual que en v32 (parcial, ver abajo) |
+| `/login` | ✓ 200 |
+
+**El Excel de CLEPSA no se pudo comparar celda por celda con el de v32**: esa
+línea base se borró con la carpeta de despliegue (`~/despliegue-rol-auditor`)
+antes de esta comprobación. Se comparó la forma del libro (hojas y cuadrícula),
+que coincide, y el libro descargado hoy queda como línea base del próximo
+despliegue en `referencia/lineas-base/v32.1/clepsa.xlsx` (regla «Líneas base del
+despliegue», abajo). La migración solo reemplaza dos funciones de trigger de la carga de
+evidencia; el export no las usa.
+
+No se probó en staging que el jefe de área suba evidencia, porque escribiría
+datos; queda cubierto por `e2e:jefe-sube-evidencia` en local y en dev.
+
+Reversión: volver a aplicar los cuerpos anteriores de las dos funciones (los de
+`20260820130000` y `20260826120000`). No hay datos que revertir.
+
+### Deudas conocidas
+
+Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
+
+- **Los permisos de `service_role` difieren entre local y alojado.** En los
+  proyectos alojados, `service_role` tiene privilegios que el stack local no le
+  da con las migraciones del repo. Por ejemplo, en local no puede leer
+  `evidencias`.
+  - **Consecuencia:** `scripts/poblar-demo.mjs` solo corre contra proyectos
+    alojados (el dev de cada persona). Por eso `npm run verify:export` necesita
+    un servidor apuntado al proyecto dev; contra el stack local sale con código
+    2 y lo avisa (`4ad63ba`).
+  - **No se amplían permisos para emparejarlos.**
+  - **A decidir en el merge de `dev/ajustes-sep26` a `main`:** si los grants
+    de `service_role` que hoy da por hecho el alojado se declaran en una
+    migración, para que local, dev y staging queden iguales por código y no por
+    configuración de la plataforma.
+- **`tenants.generaciones_mes_max` no se aplica.** La columna existe (§5,
+  default 10), pero ningún camino del generador la consulta. Se dejó así en la
+  decisión 3 del Paso 0 del encargo de captura sugerida. El tope nuevo de
+  lecturas (`lecturas_mes_max`) sí se aplica en la cola de lectura. Queda
+  decidir si se aplica o se retira del diseño.
+
+### Líneas base del despliegue (regla del guion)
+
+Vigente desde el 5 de octubre de 2026, por decisión de Esteban. Origen: la línea base del Excel de v32 vivía en
+`~/despliegue-rol-auditor`, se borró con esa carpeta y la comprobación de v32.1 tuvo que quedarse en la forma
+del libro (§10, v32.1).
+
+- **Dónde.** `referencia/lineas-base/<release>/` en la copia del repositorio de quien despliega, por ejemplo
+  `referencia/lineas-base/v33/`. `referencia/` está en `.gitignore`. Antes de copiar se verifica con
+  `git check-ignore` (CLAUDE.md §2). No se guardan en el home, ni en el scratchpad de una sesión de Claude Code,
+  ni en otra carpeta temporal.
+- **Qué.**
+  - Los Excel de taxonomía que compara el guion, como `<slug>.xlsx` (hoy `clepsa`, `banco-base` y `gcarso`).
+  - Las instantáneas, `instantanea-antes.txt` e `instantanea-despues.txt`, cuando el release las lleva.
+  - Si hay antes y después en el mismo release, van en `antes/` y `despues/`.
+- **Cuánto se guardan.** No se borran al cerrar el despliegue: la línea base del release siguiente es el
+  después del anterior. Contienen datos reales (Grupo Carso), por eso viven solo en `referencia/` y nunca entran
+  a git ni salen de la máquina.
+- **Cómo se compara.**
+  - Con `scripts/ensayo/comparar-excel.mjs`, celda por celda.
+  - El pie del libro lleva la fecha de generación; si la línea base es de otro día, se normaliza antes de
+    comparar.
+  - El registro dice qué se comparó: celdas con contenido, o forma del libro (hojas y cuadrícula).
+- **La primera:** `referencia/lineas-base/v32.1/clepsa.xlsx`, descargada de staging el 5 de octubre de 2026
+  tras la migración de v32.1.
+
+### Ensayo de despliegue
+
+Antes de un release que cambia el esquema de staging, el despliegue se ensaya
+entero en una copia. El primero es el del rol auditor (encargo
+`docs/encargos/2026-09-29-rol-auditor.md`, §5.1, en `hotfix/rol-auditor`).
+
+- **Qué es.** Un proyecto Supabase aparte, `traceline-ensayo` (ref
+  `ndodorukqqyzhinahmrm`), donde se restaura staging, se aplican las migraciones
+  del release y se corren los e2e antes de tocar staging.
+- **Lleva datos reales.** La copia trae el schema `public` con sus datos, las
+  filas de `auth.users` y `auth.identities` y los metadatos de `storage.objects`
+  (sin bytes). Eso incluye Grupo Carso y las cuentas reales. En ensayo rigen las
+  mismas reglas que en staging: no se crean datos de demostración ni prospectos,
+  no se cambia el rol de ningún usuario real, y lo que crean los e2e se hace
+  sobre un mockup, nunca sobre Grupo Carso, y se borra al terminar.
+- **Es temporal.** El proyecto se borra tras el despliegue que ensayó. El borrado
+  lo hace una persona desde el dashboard y queda anotado en el registro del
+  despliegue.
+- **La copia la ejecuta una persona.** `scripts/ensayo/copiar-staging.sh` recibe
+  `STAGING_DB_URL` y `ENSAYO_DB_URL` como variables de entorno de esa ejecución.
+  La contraseña de staging no se escribe en ningún archivo ni pasa por Claude
+  Code. El script no imprime URLs y termina comparando conteos tabla por tabla.
+- **Barreras.** Ensayo **no** entra en `DEV_REFS_AUTORIZADOS`. Tiene su variable
+  propia, `ENSAYO_REF` en `.env.local`, que solo lee la barrera de migraciones
+  (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
+  `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
+  de ensayo por constante, aparezca o no en alguna lista.
+
+### Antes del merge a producción (`dev/ajustes-sep26` → `main`)
+
+Lo que hay que resolver o verificar antes de ese merge y de su despliegue. Hoy no se toca: son riesgos conocidos,
+no fallos presentes.
+
+#### 1. Orden de migraciones
+
+Anotado el 1 de octubre de 2026 y ampliado el 5 de octubre de 2026.
+
+> **Resuelto el 5 de octubre de 2026 por renumeración** (encargo `2026-10-05-generador-a-produccion`, Paso 1).
+> - **La renumeración.** Las 26 migraciones de `dev` que staging no tenía se renombraron a `20261005120000 + n
+>   minutos`, en el mismo orden y con el mismo contenido. La única excepción es la sección 5 de la corrección del
+>   catálogo, que pasó a `20261005130000`.
+> - **Verificación del esquema.** Una aplicación limpia en local con el orden nuevo da el mismo esquema que la
+>   aplicación histórica (`pg_dump --schema-only` normalizado), sin diferencias como conjunto. La única
+>   diferencia de orden es la posición física de `tenants.generaciones_mes_max`, que ahora se agrega después de
+>   `vitrina_habilitada`; la aplicación lee las columnas por nombre.
+> - **Historial de dev.** Se reconcilió con `scripts/despliegue/renumerar-historial.sh`, que corre
+>   `migration repair` sin volver a ejecutar SQL. El proyecto de cualquier colaborador usa el mismo script.
+> - **Lo de abajo es el problema como se anotó.**
+
+- **El problema.** `dev` lleva **17 migraciones de septiembre** (`20260910120000` a `20260921120000`) que son más
+  antiguas que todo lo que ya está aplicado en staging:
+  - las `20260929*` de v29;
+  - `20261001120000` de v30;
+  - `20261001140000` de v31, si se despliega antes.
+
+  Lo mismo pasa con `20261001130000_barrera_auditor_reparacion`, que vive solo en `dev` y queda por debajo de
+  `20261001140000`.
+
+  **Y con las ocho de captura sugerida** (`20261004120000` a `20261004160200`, mezcladas en `dev` con el PR #6):
+  son más antiguas que `20261004170000_jefe_area_sube_evidencia`, que ya está en staging desde v32.1. En total,
+  26 migraciones de `dev` quedan por debajo de la última de staging (decía 27; corregido en 0.14).
+- **Qué falla y por qué.** `scripts/despliegue/migrar-remoto.sh` corre `supabase db push` sin `--include-all` a
+  propósito, para que una migración vieja no se aplique fuera de orden sin que nadie lo decida. Así que ese
+  despliegue va a fallar en la revisión.
+- **Cómo se resuelve**, antes de ese merge y con un ensayo en una copia de staging:
+  - **`--include-all`, deliberado.** Hay que confirmar que ninguna de las 17 dependa de algo que las `20260929*`
+    cambiaron.
+  - **Renumerar**: darles timestamps posteriores al último de staging. Antes hay que comprobar que ningún proyecto
+    dev las tenga ya aplicadas con su número actual; el de Esteban sí las tiene.
+- **Detalle:** en el encargo `docs/encargos/2026-10-01-mockup-ainda.md` §6.
+
+#### 2. Ninguna evidencia existente en staging supera 25 MB
+
+Anotado el 5 de octubre de 2026, al mezclar captura sugerida en `dev`.
+
+- **Por qué.** Con la captura sugerida, el límite de 25 MB pasa a valer en tres lugares: la firma de la subida, el
+  bucket `evidencias` (`20261005122300`) y la cola de lectura, que deja en «omitido» un archivo mayor.
+  - La migración del bucket no toca los objetos que ya existen.
+  - Antes de desplegar hay que saber si alguna emisora ya trabaja con archivos más grandes. Esas emisoras no
+    podrían subir una versión nueva del mismo archivo, y conviene avisarles antes.
+- **Qué se corre.** Esteban, en su terminal, con la URL de la base de staging cargada con `read -rs`. La consulta
+  es de solo lectura sobre `storage.objects` y no imprime nombres de archivo ni rutas, solo conteos por emisora:
+  ```sql
+  select (storage.foldername(name))[1] as tenant_id,
+         count(*) as evidencias_mayores_25mb,
+         max((metadata->>'size')::bigint) as mayor_bytes
+    from storage.objects
+   where bucket_id = 'evidencias'
+     and (metadata->>'size')::bigint > 26214400
+   group by 1;
+  ```
+- **Qué se espera:** cero filas. Si hay filas, antes del merge se decide con cada emisora afectada: avisarle,
+  dividir o comprimir los archivos, o subir el límite para ella. No se resuelve en silencio.
+
+### Conflicto pendiente para el merge de `dev/ajustes-sep26`
+
+> **Resuelto el 1 de octubre de 2026** en el merge `d3cea13`, como se decidió
+> abajo. Salieron seis conflictos, no siete:
+> - `taxonomia-export-button.tsx` se mezcló solo.
+> - `app/admin/registros/page.tsx` sí conflictuó, solo en los imports.
+> - `package.json` llevaba `jszip` en las dos secciones. Se dejó solo en
+>   `dependencies`, porque la vitrina lo usa en producción y Heroku poda las
+>   `devDependencies`. `pnpm-lock.yaml` se regeneró.
+
+Las dos ramas salieron de `b71a2bf` y tocan siete archivos comunes. Seis se
+resuelven leyendo el diff; el séptimo no, y conviene saberlo antes de abrirlo:
+
+**`app/admin/cobertura/suplemento-button.tsx` es un archivo distinto en cada
+rama, con el mismo nombre.** En `main` es el diálogo de descarga de la vitrina
+—cliente, con `fetch` y dos opciones—; en `dev` es un enlace al semáforo del
+Suplemento. Git lo reportará como «añadido en ambas» y quedarse con uno cualquiera
+rompe la otra función **en silencio**, porque ambos compilan.
+
+> **Resolución decidida:** se conservan los dos. El de la vitrina, que es el
+> temporal, se renombra a **`suplemento-vitrina-button.tsx`** y el de `dev`
+> mantiene el nombre `suplemento-button.tsx`, porque es el que se queda. Hay que
+> actualizar el import en `page.tsx`, que en `main` apunta al de vitrina.
+
+**`app/admin/cobertura/cobertura-view.tsx`** conflictúa en el mismo sitio por
+motivos distintos: `dev` monta `<SuplementoButton reporteId={reporteId} />`
+dentro de la vista, y `main` recibe un nodo `suplemento` inyectado desde el
+servidor, porque decidir ahí quién lo ve exigiría mandar `es_demo` al cliente.
+
+> **Resolución decidida:** gana el **slot de `main`** —la prop `suplemento?:
+> React.ReactNode`—, que es el que respeta la frontera cliente/servidor. El
+> enlace al semáforo que `dev` monta en línea pasa a inyectarse por ese mismo
+> slot desde `page.tsx`, que es quien ya sabe si la emisora es de vitrina. Así
+> la vista no decide quién ve qué y no hace falta mandarle `es_demo` al cliente.
+
+Los otros cinco (`.gitignore`, `lib/bitacora.ts`, `taxonomia-export-button.tsx`,
+`package.json`, `pnpm-lock.yaml`) son adiciones en sitios distintos del archivo.
+
+---
+
+## Anexo A: mapeo definitivo (bloque → datapoints)
+
+Generado en A2 cruzando `lib/suplemento/bloques.ts` contra los **91 códigos NIIF** de
+`datapoints_taxonomia` en traceline-dev. Los códigos se resolvieron uno a uno y se emiten verbatim:
+el catálogo tiene espaciado irregular (`NIIF S2 6 (a)(i)` lleva espacio, `NIIF S2 6(b)` no), así que un
+código tecleado a mano no empata por igualdad de cadena.
+
+**Resultado: 63 códigos citados por los 40 bloques, los 63 presentes en el catálogo.**
+Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a comprobar en arranque.
+
+| # | Bloque | Tipo | Régimen | Datapoints | Tablas | Perfil |
+|---|---|---|---|---|---|---|
+| 1 | Carta de la Dirección | T→E | ambos | — | — | `carta_texto`, `carta_firmante`, `carta_cargo` |
+| 2 | Presentación del informe (adopción, CNBV) | Plantilla | ambos | — | `reportes` | `denominacion_formal`, `nombre_corto` |
+| 3 | Bases de preparación: marco y alivios transitorios | Plantilla | **varía** | — | `reportes` | — |
+| 4 | Entidad que informa, periodo y conectividad | Plantilla + T→E | ambos | `NIIF S2 32` | `reportes`, `solicitudes` | `denominacion_formal`, `entidad_que_informa`, `perimetro` |
+| 5 | Conexiones y referencias cruzadas | Plantilla | ambos | — | — | — |
+| 6 | Juicios, supuestos e incertidumbres | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
+| 7 | Materialidad: contexto y proceso | T→E | **varía** | — | — | `proceso_materialidad` |
+| 8 | Horizontes temporales | Tabla | ambos | — | — | `horizontes` |
+| 9 | Evaluación y priorización de riesgos | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
+| 10 | Resumen de efectos financieros actuales y previstos | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
+| 11 | Nuestra historia (línea de tiempo) | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
+| 12 | Modelo de negocio y cadena de valor | T→E | ambos | — | — | `modelo_negocio`, `cadena_valor` |
+| 13 | Efectos sobre el modelo de negocio y la cadena de valor | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |
+| 14 | Introducción a la sección | Plantilla | ambos | — | — | — |
+| 15 | Roles y responsabilidades del órgano de gobierno | D→T | ambos | `NIIF S2 6 (a)`<br>`NIIF S2 6 (a)(i)`<br>`NIIF S2 6 (a)(ii)` | — | — |
+| 16 | Supervisión de la estrategia, objetivos y remuneración | D→T | ambos | `NIIF S2 6 (a)(iii)`<br>`NIIF S2 6 (a)(iv)`<br>`NIIF S2 6 (a)(v)` | — | — |
+| 17 | Papel de la gerencia y controles | D→T | ambos | `NIIF S2 6(b)`<br>`NIIF S2 6(b)(i)`<br>`NIIF S2 6(b)(ii)` | — | — |
+| 18 | Estructura de gobierno corporativo y organigrama | T→E + imagen | ambos | — | — | `gobierno_texto`, `organigrama_path` |
+| 19 | Trayectoria en sostenibilidad y clima | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
+| 20 | Contexto estratégico | D→T | ambos | — | — | `horizontes` |
+| 21 | Riesgos climáticos prioritarios | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)`<br>`NIIF S2 10(d)` | `registros_clima` | `matriz_riesgos` |
+| 22 | Cambios en modelo de negocio y asignación de recursos | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
+| 23 | Esfuerzos directos e indirectos de reducción y adaptación | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
+| 24 | Oportunidades y cómo prevé alcanzar objetivos | D→T | ambos | — | `registros_clima`, `objetivos` | — |
+| 25 | Recursos asignados y progreso de planes | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
+| 26 | Resiliencia de la estrategia y análisis de escenarios | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
+| 27 | Gestión y mitigación de riesgos y oportunidades | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
+| 28 | Plan de transición | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
+| 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`, `reportes` | — |
+| 30 | Método de medición, datos de entrada y C5 | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
+| 31 | Razones del enfoque y desagregación | D→T | ambos | `NIIF S2 29 (a)(iv) EI5` | — | — |
+| 32 | Alcance 2 por ubicación e instrumentos contractuales | D→T | ambos | `NIIF S2 29 (a)(v)` | — | — |
+| 33 | Emisiones financiadas | D→T | ambos | `NIIF S2 29 (a)(vi)(1)`<br>`NIIF S2 29 (a)(vi)(1) EI12`<br>`NIIF S2 29 (a)(vi)(2)` | — | — |
+| 34 | Riesgos de transición: concentración, exposición y capital | Tabla + D→T | **varía** | `NIIF S2 30`<br>`NIIF S2 29 (b) B64 y B65 inciso (a)`<br>`NIIF S2 29 (b) B64 y B65 inciso (b)`<br>`NIIF S2 29 (b) B64 y B65 inciso (c)` | `registros_clima_valores` | — |
+| 35 | Riesgos físicos: exposición y gráfica | Tabla + D→T | **varía** | `NIIF S2 29 (c) B64 y B65 inciso (b)`<br>`NIIF S2 29 (c) B64 y B65 inciso (c)` | `registros_clima_valores` | — |
+| 36 | Oportunidades: alineación y capital | Tabla + D→T | **varía** | `NIIF S2 29 (d) B64 y B65 inciso (a)`<br>`NIIF S2 29 (d) B64 y B65 inciso (b)`<br>`NIIF S2 29 (d) B64 y B65 inciso (c)`<br>`NIIF S2 29 (e)` | `registros_clima_valores` | — |
+| 37 | Precio interno del carbono y remuneración vinculada | D→T | ambos | `NIIF S2 29 (f) (i) y (ii)`<br>`NIIF S2 29 (g) (i) y (ii)` | — | — |
+| 38 | Objetivos climáticos (atributos por objetivo) | Tabla | **varía** | `NIIF S2 33` | `objetivos` | — |
+| 39 | Enfoque para establecer y revisar objetivos; resultados | Tabla + D→T | **varía** | `NIIF S2 34`<br>`NIIF S2 35` | `objetivos_detalle` | — |
+| 40 | Objetivo de emisiones GEI | Tabla + D→T | **varía** | `NIIF S2 36 (a)a(d)`<br>`NIIF S2 36 (e)(i)a(iv)` | `objetivos_detalle`, `cuestionarios_respuestas` | — |
+
+### A.1 · Bloques sin datapoints (14 de 40)
+
+No es una laguna: es el ~30 % institucional de §2. Su fuente es el perfil del emisor o una plantilla,
+y sin perfil capturado el generador los marca como pendientes en vez de redactarlos.
+
+| # | Bloque | De dónde sale |
+|---|---|---|
+| 1 | Carta de la Dirección | `carta_texto`, `carta_firmante`, `carta_cargo` |
+| 2 | Presentación del informe (adopción, CNBV) | `denominacion_formal`, `nombre_corto` |
+| 3 | Bases de preparación: marco y alivios transitorios | `reportes` |
+| 5 | Conexiones y referencias cruzadas | texto fijo |
+| 7 | Materialidad: contexto y proceso | `proceso_materialidad` |
+| 8 | Horizontes temporales | `horizontes` |
+| 9 | Evaluación y priorización de riesgos | `matriz_riesgos` |
+| 11 | Nuestra historia (línea de tiempo) | `hitos_corporativos` |
+| 12 | Modelo de negocio y cadena de valor | `modelo_negocio`, `cadena_valor` |
+| 14 | Introducción a la sección | texto fijo |
+| 18 | Estructura de gobierno corporativo y organigrama | `gobierno_texto`, `organigrama_path` |
+| 19 | Trayectoria en sostenibilidad y clima | `hitos_sostenibilidad` |
+| 20 | Contexto estratégico | `horizontes` |
+| 24 | Oportunidades y cómo prevé alcanzar objetivos | `registros_clima`, `objetivos` |
+
+### A.2 · Códigos del catálogo sin bloque (28 de 91)
+
+Tampoco es una laguna, y conviene decir por qué: **los 28 son de NIIF S1 general**. Con el alivio
+**E5 ("primero clima") el primer año solo se informa de clima**, así que estos datapoints no tienen
+bloque en el régimen que la Fase A implementa. Entran en años subsecuentes, cuando E5 deja de aplicar
+(§3.1) — y ahí es donde los bloques 6, 7 y 10 se amplían. Ninguno queda huérfano por descuido.
+
+```
+  IFRS S1 2023-06-26 40 a
+  NIIF S1 27(a)
+  NIIF S1 27(a)(i)
+  NIIF S1 27(a)(ii)
+  NIIF S1 27(a)(iii)
+  NIIF S1 27(a)(iv)
+  NIIF S1 27(a)(v)
+  NIIF S1 27(b)
+  NIIF S1 27(b)(i)
+  NIIF S1 30(a)y(b)
+  NIIF S1 30(c)
+  NIIF S1 32(a)
+  NIIF S1 32(b)
+  NIIF S1 33(a)
+  NIIF S1 33(b)
+  NIIF S1 33(c)
+  NIIF S1 35(a)
+  NIIF S1 35(b)
+  NIIF S1 35(c)(i)(ii)
+  NIIF S1 35(d)
+  NIIF S1 41
+  NIIF S1 44 (a)(i)a(v)
+  NIIF S1 44 (a)(vi)
+  NIIF S1 44 (b)
+  NIIF S1 44 (c)
+  NIIF S1 46 a 50
+  NIIF S1 51
+  NIIF S1 72
+```
+
+De NIIF S2 no queda ninguno sin bloque. Dos que la primera pasada había dejado fuera se
+reasignaron al detectarlo: `NIIF S2 30` (cantidad y porcentaje de activos vulnerables a riesgos de
+transición) al bloque 34, y `NIIF S2 32` (tipo de sector en que participa) al bloque 4.
