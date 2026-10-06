@@ -29,7 +29,9 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "calidad-v1-2026-10-06";
+// calidad-v2: documentos del Perfil del emisor como contexto citado (regla 10)
+// y documento sugerido dentro de «qué falta» del marcador (Paso 2).
+export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -41,7 +43,7 @@ export type RequisitoNiif = { codigo: string; descripcion: string };
 
 export type FuenteEntregada = {
   id: string;
-  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia";
+  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia" | "documento";
   detalle: string;
 };
 
@@ -84,6 +86,7 @@ export const VOCABULARIO_PROHIBIDO = [
   "perfil:",
   "reporte:",
   "evi:",
+  "adj:",
 ];
 
 /** El marcador de pendiente, con formato uniforme. Es lo único que se permite. */
@@ -193,6 +196,8 @@ Donde falte un dato, escribe exactamente:
 
 \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`
 
+Cuando haya un documento de la emisora que resolvería el hueco, nómbralo DENTRO de «qué falta», entre paréntesis y con la forma «documento sugerido: …»: \`[Pendiente: integrantes del comité que supervisa los asuntos climáticos (documento sugerido: acta de instalación del comité o estatutos sociales) — Perfil del emisor, Gobierno corporativo]\`. Sugiere documentos que una emisora tiene (acta, estatutos, reglamento, política, informe, inventario), no los inventes con nombre propio.
+
 Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes no es un marcador y el servidor lo rechaza: el revisor los retira buscando los corchetes, y sin ellos la frase se publicaría tal cual. Ese marcador es para el revisor interno y se retira antes de aprobar el documento; es el único lugar donde puedes nombrar una solicitud o un campo. Fuera de él, el texto no admite ese vocabulario.
 
 **El marcador OCUPA EL LUGAR DEL DATO. No lo anuncies.** Nunca escribas una frase que prometa algo que luego resulta ser un marcador: nada de «la calificación asignada se presenta a continuación» seguido de un pendiente, ni «el detalle se describe más adelante» si ese detalle falta. Si el dato no está, la oración lo dice en el sitio donde iría el dato y no promete nada alrededor. Un borrador que anuncia una tabla inexistente, publicado sin revisar, miente.
@@ -218,6 +223,8 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 8. SI TE DAN UNA TABLA YA ARMADA, la tabla dice las cifras. Tu prosa la introduce y comenta lo que la tabla no puede decir. Menciona una cifra en prosa solo si aporta algo que la tabla no dice, y nunca dos veces.
 
 9. EL DOCUMENTO DE RESPALDO ES CONTEXTO, NO FUENTE DE CIFRAS. Una solicitud puede traer \`documento_de_respaldo\`: el texto leído del archivo que la sustenta, con un id entre corchetes por página, párrafo, tabla u hoja (\`[evi:…]\`). Úsalo para describir con precisión lo que la emisora hace —procesos, responsables, frecuencias, alcance— y pon en \`fuentes_usadas\` el id exacto de la página o párrafo de donde lo tomaste. Pero NINGUNA CIFRA sale de ahí: las cifras vienen solo de \`valor\`, de la tabla, de \`texto_confirmado\` o de los demás datos entregados, y una cifra que solo aparece en el documento se rechaza. Si trae \`texto_confirmado\`, ese texto ya lo revisó la emisora: es la base preferida para redactar; cítalo con los ids de \`citar_con\`. Los ids van en \`fuentes_usadas\`, nunca en el texto.
+
+10. LOS DOCUMENTOS DE LA EMISORA SON CONTEXTO CITADO, NO FUENTE DE CIFRAS. Puede venir una sección «Documentos de la emisora»: extractos de los documentos que la emisora adjuntó a su perfil —estatutos, códigos, actas, reglamentos, organigramas—, ya seleccionados por pertinencia para este bloque, con un id entre corchetes por página o tramo (\`[adj:…]\`). Úsalos para describir lo que la emisora tiene y hace —qué órgano supervisa, qué comité existe y qué le corresponde, cómo se informa, qué política aplica— y pon en \`fuentes_usadas\` el id exacto de cada página o tramo del que tomaste algo. Si un campo del perfil está vacío y su contenido está en un documento, redáctalo desde el documento. Igual que en la regla 9: NINGUNA CIFRA sale de ahí (número de sesiones, de consejeros, porcentajes, montos, fechas de una sesión); si la revelación la necesita, va un marcador de pendiente. Lo que el documento no dice no se completa, y si un documento aparece como «no se pudo leer», lo que dependía de él es un pendiente que lo nombra.
 
 # Qué va en \`notas_revision\` y qué no
 
@@ -351,6 +358,8 @@ export type DatosVolatiles = {
   /** Qué cubre este bloque y qué cubren los contiguos, para no invadirlos. */
   fronteras: { cubre: string; noCubre: { numeros: number[]; que: string }[] };
   extension: string;
+  /** Extractos de los documentos del Perfil, ya seleccionados (adjuntos-bloque.ts). */
+  documentos?: string | null;
 };
 
 /**
@@ -433,6 +442,16 @@ export function capaVolatil(v: DatosVolatiles): string {
     JSON.stringify(v.datos, null, 1),
     "```",
     "",
+    ...(v.documentos
+      ? [
+          "# Documentos de la emisora",
+          "",
+          "Extractos de los documentos que la emisora adjuntó a su perfil, elegidos por pertinencia a este bloque. Contexto que se cita por su id; ninguna cifra sale de aquí (regla 10).",
+          "",
+          v.documentos,
+          "",
+        ]
+      : []),
     "# Extensión y forma",
     "",
     v.extension,
@@ -449,7 +468,7 @@ export const ESQUEMA_SALIDA = {
     texto: {
       type: "string" as const,
       description:
-        "La revelación de la emisora, publicable tal cual. Prosa corrida, sin markdown, sin vocabulario de proceso interno. Los huecos van como [Pendiente: qué falta — de qué solicitud o campo].",
+        "La revelación de la emisora, publicable tal cual. Prosa corrida, sin markdown, sin vocabulario de proceso interno. Los huecos van como [Pendiente: qué falta (documento sugerido: …, si lo hay) — de qué solicitud o campo].",
     },
     fuentes_usadas: {
       type: "array" as const,

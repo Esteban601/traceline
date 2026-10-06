@@ -36,6 +36,7 @@ import {
 import { fronteraDe } from "@/lib/suplemento/fronteras";
 import { TABLAS } from "@/lib/suplemento/tablas";
 import { cargarEvidenciasDelBloque, respaldoDeCifras, type EvidenciaDelBloque, type RespaldoDeCifra } from "@/lib/suplemento/evidencias-bloque";
+import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque } from "@/lib/suplemento/adjuntos-bloque";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
@@ -224,12 +225,21 @@ export async function generarBloque(
 
   // Evidencias de las solicitudes del bloque: contenido ya extraído y extractos
   // confirmados (captura sugerida, Paso 5). Contexto y citas, no cifras.
-  const [evid, respaldos] = await Promise.all([
+  // Documentos del Perfil del emisor (suplemento-calidad, Paso 2): las partes
+  // más pertinentes a lo que este bloque cubre. Contexto y citas, no cifras.
+  const consulta = [
+    bloque.titulo,
+    fronteraDe(bloque.numero).cubre,
+    ...requisitos.map((r) => r.descripcion),
+    ...bloque.perfil.map((c) => ETIQUETA_CAMPO[c] ?? c),
+  ].join("\n");
+  const [evid, respaldos, adjuntos] = await Promise.all([
     cargarEvidenciasDelBloque(supabase, [...evaluado.solicitudes]),
     respaldoDeCifras(supabase, [...evaluado.solicitudes], ens.reporte.ejercicio),
+    cargarAdjuntosDelBloque(supabase, doc.tenant_id, bloque, consulta),
   ]);
   const { fuentes, datos } = armarDatos(bloque, ens, evaluado, perfil, requisitos, evid.porSolicitud, respaldos.porSolicitud);
-  for (const f of [...evid.fuentes, ...respaldos.fuentes]) if (!fuentes.some((x) => x.id === f.id)) fuentes.push(f);
+  for (const f of [...evid.fuentes, ...respaldos.fuentes, ...adjuntos.fuentes]) if (!fuentes.some((x) => x.id === f.id)) fuentes.push(f);
 
   // --- 3. ¿Hace falta el modelo? --------------------------------------------
   const via = viaDe(bloque.numero);
@@ -268,7 +278,7 @@ export async function generarBloque(
       .from("perfil_emisor_adjuntos")
       .select("seccion")
       .eq("tenant_id", doc.tenant_id);
-    const espera = esperaAdjunto(bloque, perfil, new Set((adj ?? []).map((a) => a.seccion)));
+    const espera = esperaAdjunto(bloque, perfil, new Set((adj ?? []).map((a) => a.seccion)), adjuntos);
     if (espera) {
       if (!opciones.sinPersistir) {
         await persistirEstado(supabase, documentoId, bloque, doc.idioma, "pendiente_adjunto", espera);
@@ -307,6 +317,7 @@ export async function generarBloque(
     tabla,
     fronteras: fronteraDe(bloque.numero),
     extension: opciones.extension ?? extensionDeBloque(bloque.numero),
+    documentos: documentosParaPrompt(adjuntos),
   });
 
   // La marca de caché va en el ÚLTIMO bloque estable: el caché cubre todo el
@@ -448,7 +459,7 @@ export async function generarBloque(
       reproches.push(
         `Estas cifras del texto no están en los datos confirmados: ${sinRespaldo.join(", ")}.\n` +
           `Las cifras solo pueden salir de \`valor\` de las solicitudes, de la tabla ya armada, de \`texto_confirmado\` o de los demás datos entregados. ` +
-          `El contenido de \`documento_de_respaldo\` es contexto: una cifra que solo aparece ahí no la ha confirmado nadie. ` +
+          `El contenido de \`documento_de_respaldo\` y el de los documentos de la emisora es contexto: una cifra que solo aparece ahí no la ha confirmado nadie. ` +
           `Tampoco calcules diferencias, porcentajes ni totales. Quita la cifra o, si hace falta, pon en su lugar un marcador [Pendiente: … — …].`
       );
     }
@@ -909,17 +920,22 @@ async function resolverPlantilla(
 }
 
 /**
- * ¿Este bloque del Perfil espera a que el generador sepa leer adjuntos?
+ * ¿Este bloque del Perfil tiene que esperar a sus documentos?
  *
- * Solo si TODOS sus campos están vacíos y alguno tiene archivo en su sección. Si
- * hay al menos un campo con texto, el bloque se redacta con lo que hay y el
- * resto va como pendiente: media revelación es mejor que ninguna, y el revisor
- * ve qué falta.
+ * Solo si TODOS sus campos están vacíos, alguno tiene archivo en su sección y
+ * NINGUNO de esos archivos está leído. Con un documento leído, el bloque se
+ * redacta desde él (suplemento-calidad, Paso 2). Si hay al menos un campo con
+ * texto, el bloque se redacta con lo que hay y el resto va como pendiente:
+ * media revelación es mejor que ninguna, y el revisor ve qué falta.
+ *
+ * Esperar no cuesta una llamada: un bloque cuyo único contenido es un archivo
+ * que aún está en la cola —o que no se puede leer— solo produciría marcadores.
  */
 function esperaAdjunto(
   bloque: Bloque,
   perfil: Record<string, unknown> | null,
-  seccionesConAdjunto: Set<string>
+  seccionesConAdjunto: Set<string>,
+  adjuntos: AdjuntosDelBloque
 ): { campo: string; motivo: string }[] | null {
   if (bloque.perfil.length === 0) return null;
   const conTexto = (v: unknown) =>
@@ -930,11 +946,18 @@ function esperaAdjunto(
 
   const conArchivo = vacios.filter((campo) => seccionesConAdjunto.has(SECCION_DE_CAMPO[campo] ?? ""));
   if (conArchivo.length === 0) return null;
+  if (conArchivo.some((campo) => adjuntos.seccionesLeidas.has(SECCION_DE_CAMPO[campo] ?? ""))) return null;
 
-  return conArchivo.map((campo) => ({
-    campo,
-    motivo: `${ETIQUETA_CAMPO[campo] ?? campo}: vacío en el Perfil, pero su sección tiene un documento del que se derivará en A5b.`,
-  }));
+  return conArchivo.map((campo) => {
+    const seccion = SECCION_DE_CAMPO[campo] ?? "";
+    const sinLeer = adjuntos.sinLeer.find((s) => s.seccion === seccion);
+    const porque = adjuntos.seccionesEnCola.has(seccion)
+      ? "su documento está en lectura; el bloque se podrá generar en cuanto termine"
+      : sinLeer
+        ? `su documento no se pudo leer (${sinLeer.archivo}: ${sinLeer.mensaje ?? sinLeer.estado})`
+        : "su documento no se ha leído";
+    return { campo, motivo: `${ETIQUETA_CAMPO[campo] ?? campo}: vacío en el Perfil; ${porque}.` };
+  });
 }
 
 /** Guarda un bloque que no produce texto: no aplica, o espera un adjunto. */

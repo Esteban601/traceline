@@ -605,7 +605,7 @@ export async function evaluarCompletitud(
         faltantes.push({
           causa: "derivable_de_adjunto",
           etiqueta,
-          detalle: "Vacío, pero la sección tiene un archivo del que podrá derivarse (A5).",
+          detalle: "Vacío, pero la sección tiene un documento: el bloque se redacta desde él cuando está leído.",
           enlace: enlacePerfil(seccion),
         });
       } else {

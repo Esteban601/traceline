@@ -478,6 +478,8 @@ function Enlace({ id }: { id: string }) {
     : tipo === "obj" ? "/admin/objetivos"
     : tipo === "cue" ? "/admin/cuestionarios"
     : tipo === "perfil" ? "/admin/perfil"
+    // Documento del Perfil (adj:<adjunto>:<lugar>): sus archivos están en el Perfil.
+    : tipo === "adj" ? "/admin/perfil"
     : null;
   if (!href) return <code className="text-xs text-muted">{id}</code>;
   return (
