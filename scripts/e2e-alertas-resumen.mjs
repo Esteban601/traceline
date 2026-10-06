@@ -85,6 +85,10 @@ async function entrar(email) {
   return page;
 }
 const tOrig = sql(`select es_demo from public.tenants where id = '${TENANT}'`) === "t";
+// El tope de 20 avisos por emisora y hora (Paso 3) cuenta los avisos de la
+// última hora, y las corridas previas de los e2e los dejan: se corren atrás dos
+// horas los de Empresa Demo para empezar con la ventana limpia. Solo en local.
+sql(`update public.bitacora set created_at = created_at - interval '2 hours' where tenant_id = '${TENANT}' and accion in ('aviso_comentario_auditor','aviso_respuesta_auditor','aviso_documento_aprobado','avisos_agrupados') and created_at > now() - interval '1 hour'`);
 
 try {
   // ── Utilería
