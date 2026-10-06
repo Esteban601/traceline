@@ -1144,7 +1144,7 @@ Verificación en staging tras el release (solo conteos y booleanos sobre los log
 | Logs desde el release | ✓ 76 líneas: 0 respuestas 5xx, 0 `Error:`, sin caídas |
 | Job de 10 minutos | ✓ 22:01 UTC: arranque con `node scripts/cron/llamar.mjs evidencias/procesar`, `POST` 200; vacía los retenidos antes de la cola (0 pendientes) |
 | `correos_retenidos` | ✓ El staff la lee (RLS); 0 filas |
-| Comentario del auditor de prueba en Empresa Demo | Pendiente: staging no tiene auditor en Empresa Demo, y la cuenta de utilería la crea una persona (CLAUDE.md §7) |
+| Comentario del auditor de prueba en Empresa Demo | ✓ Con un auditor de utilería creado por la API de administración (autorizado por Esteban por chat). Aviso del comentario: 1 fila, al admin del cliente, `omitido` (dirección `.example`; la emisora es de demostración, así que no se avisa al staff). Aviso de la respuesta del admin del cliente: 1 fila, al auditor, `omitido`. Ninguna fila guarda una dirección. Después se borraron el comentario con su respuesta, las 5 filas de actividad del auditor y la cuenta. Los conteos de perfiles, `auth.users`, comentarios, actividad, retenidos, solicitudes y evidencias quedaron iguales; la bitácora sumó 2, las dos filas de aviso |
 | Primer resumen diario | Pendiente: 7/10, 13:00 UTC; se verifica por conteo de `resumen_diario` |
 
 Punto de reversión: `heroku releases:rollback v38 -a traceline-staging`. Revierte solo el código; las migraciones son
