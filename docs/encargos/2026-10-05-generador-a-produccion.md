@@ -56,7 +56,7 @@ El generador necesita una bandera por tenant si hoy no la tiene; si no existe, s
 2. Verificaciones previas sobre staging (solo lectura) y decisión de `service_role`. Parada con resultados.
 3. Proyecto de ensayo (Esteban lo crea y pasa el ref; copia por el script con las URL en su terminal) y A8 en `traceline-dev` apuntando a ensayo. Parada con tiempos, costos y aislamiento.
 4. Ensayo completo en copia, línea base, informe. Parada.
-5. PR de `dev/ajustes-sep26` a `main`, revisado con el asesor. Guion v33 en §5.1 con los comandos exactos. Parada.
+5. PR de `dev/ajustes-sep26` a `main`, revisado con el asesor. Guion v33 en §5.2 con los comandos exactos (§5.1 quedó ocupado por el guion del Paso 3). Parada.
 6. Despliegue v33: merge y push por Claude Code (CLAUDE.md v1.6/v1.7), migraciones por Esteban antes del push, verificaciones, banderas, registro. Limpieza.
 
 ### 5.1 Guion del Paso 3 · copia de staging a ensayo y app `traceline-dev`
@@ -138,6 +138,125 @@ heroku logs -a traceline-dev -n 300 | grep -c -E 'status=5[0-9]{2}|Error:'   # 0
   - Las páginas de Cobertura y del generador cargan sin errores de consola.
   - Las banderas de ensayo valen lo de §3, verificado por consulta.
 
+### 5.2 Guion v33 · despliegue a staging
+
+Release de Heroku: **v34**. Al poner `ANTHROPIC_API_KEY` en `traceline-staging`, Heroku creó el release v33
+(«Set ANTHROPIC_API_KEY config vars», código `b682627`). Seguimos llamando «v33» a este despliegue en el
+encargo y en la especificación §10, pero Heroku lo numerará v34. Ningún comando imprime una URL, una llave
+ni una contraseña. Los comandos de staging se corren desde la copia `~/Repositorios/vert-evidencia`, que es
+la que tiene `.env.staging.local` y `.credenciales-demo/`. `<dev>` es `../vert-evidencia-dev`, la rama que
+trae los scripts del ensayo. Tras el merge, los scripts están también en `main`, y se pueden correr desde
+la copia principal sin `<dev>/`.
+
+**Orden y por qué.** La base se migra antes de que llegue el código: el código de `dev` necesita las columnas
+nuevas, y el código actual de `main` corre sobre la base migrada (probado en el Paso 4 con `verificar-main`).
+`migrar-remoto.sh staging` exige que `HEAD` sea `origin/main`. Por eso el PR se mezcla primero, cosa que no
+despliega nada porque Heroku no despliega solo; después Esteban migra desde `main`, y al final va el
+`git push heroku main`.
+
+**0. Antes (Claude Code, solo lectura).**
+```sh
+cd ~/Repositorios/vert-evidencia
+heroku config -a traceline-staging --json | python3 -c "import json,sys; d=json.load(sys.stdin); print('ANTHROPIC_API_KEY' in d and bool(d['ANTHROPIC_API_KEY']))"   # True (verificado el 5/10)
+heroku releases -a traceline-staging -n 1        # v33 · Set ANTHROPIC_API_KEY config vars
+(set -a; source .env.staging.local; set +a; NODE_PATH=<dev>/node_modules \
+  node <dev>/scripts/despliegue/comprobar-v33.mjs --antes referencia/lineas-base/v33/antes \
+  --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json)   # vitrina por emisora → antes/vitrina.json
+```
+Las líneas base ya están en `referencia/lineas-base/v33/antes/`: los tres Excel y `instantanea.txt` (19 líneas).
+
+**1. Merge del PR (Claude Code, con la autorización de Esteban por chat, CLAUDE.md §9).**
+```sh
+gh pr merge <n> --merge          # merge commit, con el comentario de revisión del asesor y aprobación de Esteban
+cd ~/Repositorios/vert-evidencia && git fetch origin && git merge --ff-only origin/main
+git rev-parse --short HEAD origin/main       # iguales
+nvm use 22 && pnpm install --frozen-lockfile  # la copia principal toma las dependencias de v33 (scripts del paso 4)
+```
+
+**2. Migraciones contra staging (Esteban, en su terminal).**
+```sh
+cd ~/Repositorios/vert-evidencia && git status --short && git rev-parse --short HEAD   # limpio, = origin/main
+read -rs STAGING_DB_URL && export STAGING_DB_URL     # se pega sin eco
+bash scripts/despliegue/migrar-remoto.sh staging              # revisar: 30 pendientes, exactamente ESPERADAS
+bash scripts/despliegue/migrar-remoto.sh staging --aplicar    # pide escribir el ref; al final: nada pendiente,
+                                                              # 66 de 66 alineadas, barrera 87
+/opt/homebrew/opt/postgresql@17/bin/psql "$STAGING_DB_URL" -X -A -t -f scripts/ensayo/instantanea-v33.sql \
+  > referencia/lineas-base/v33/despues/instantanea-v33.txt
+unset STAGING_DB_URL
+```
+- **Carso, resultado esperado.** `diff referencia/lineas-base/v33/antes/instantanea.txt referencia/lineas-base/v33/despues/instantanea-v33.txt`
+  debe dar **una sola línea distinta**: `tenants|1|a3b0f51ff13b96e6e45e83de1d55603b`. Es `vitrina_habilitada`
+  pasando de true a false (migración `122700`), el mismo md5 que dio ensayo.
+  - Cualquier otra línea distinta es actividad de Grupo Carso entre la línea base (5/10, 17:57) y la migración.
+    Se revisa por `created_at` antes de seguir.
+  - Si no se explica así, se detiene el despliegue: el código no ha salido y no hay nada que revertir en Heroku.
+- **Scheduler de staging (Esteban, en el dashboard).** Job nuevo para la cola, igual al de `traceline-dev`:
+  `curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" https://traceline-staging-70ce5b369e7c.herokuapp.com/api/evidencias/procesar`,
+  cada 10 minutos. El secreto va por la variable, nunca literal en el comando.
+
+**3. Despliegue (Claude Code, con la autorización de Esteban por chat).**
+```sh
+cd ~/Repositorios/vert-evidencia && git rev-parse --short HEAD origin/main      # iguales
+git push heroku main
+heroku releases -a traceline-staging -n 2        # v34 · Deploy <sha de main>
+heroku ps -a traceline-staging                   # web.1: up
+```
+
+**4. Comprobaciones (Claude Code; solo lectura y descargas, salvo lo marcado).**
+```sh
+cd ~/Repositorios/vert-evidencia
+C=.credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json
+APP=https://traceline-staging-70ce5b369e7c.herokuapp.com
+D=referencia/lineas-base/v33/despues
+
+# a) Logs: solo conteos.
+curl -s -o /dev/null -w "%{http_code}\n" $APP/login                                    # 200
+heroku logs -a traceline-staging -n 1500 | grep -c -E 'status=5[0-9]{2}'                # 0
+heroku logs -a traceline-staging -n 1500 | grep -c -E 'Error:|Unhandled'                # 0
+
+# b) Banderas de §3 por consulta, año de adopción y catálogo para el clasificador.
+(set -a; source .env.staging.local; set +a; node scripts/despliegue/comprobar-v33.mjs --despues $D --credenciales $C)
+
+# c) Excel de las tres emisoras contra la línea base: solo diferencias esperadas.
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/ensayo/descargar-excel.mjs --credenciales $C $D/excel clepsa banco-base gcarso)
+git show b2c3731:assets/taxonomia-base.xlsx > $D/plantilla-v32.xlsx
+git show origin/main:assets/taxonomia-base.xlsx > $D/plantilla-v33.xlsx
+for s in clepsa banco-base gcarso; do
+  node scripts/ensayo/comparar-excel-v33.mjs referencia/lineas-base/v33/antes/$s.xlsx $D/excel/$s.xlsx \
+    --plantilla-antes $D/plantilla-v32.xlsx --plantilla-despues $D/plantilla-v33.xlsx --catalogo $D/catalogo.json
+done                                                       # cada uno: 0 no esperadas (en ensayo: 475 esperadas)
+
+# d) Vitrina de Banco Base (escribe dos filas de bitácora del mockup, a propósito).
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/despliegue/comprobar-vitrina.mjs $D/vitrina banco-base --credenciales $C)
+
+# e) Generador de Empresa Demo (ESCRIBE: abre el documento con sus bloques en cola, sin llamar al modelo;
+#    cuenta 1 de las 10 corridas del mes).
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/despliegue/comprobar-v33.mjs --generar --credenciales $C)   # POST generar → 200
+```
+- **Grupo Carso, además:** el resultado del paso 2 (una sola línea distinta) y, en b), Carso con vitrina,
+  generador y lectura apagados.
+- **Cola:** cuando haya corrido el job del Scheduler, `heroku logs -a traceline-staging -n 1500 | grep -c 'evidencias/procesar.*status=200'`
+  debe dar ≥ 1. Es un conteo; no se imprime ninguna línea.
+
+**5. Registro.** Claude Code escribe la entrada de v33 en la especificación §10 (release, sha, migraciones,
+resultados de 4), anota el despliegue en §7 de este encargo y hace push a `origin`.
+
+**Rollback (lo ejecuta Esteban).** Solo de código. La base queda migrada, y `main` anterior corre sobre ella
+(Paso 4):
+```sh
+heroku releases:rollback v33 -a traceline-staging
+```
+- **Es `v33`, no `v32`.** Un rollback de Heroku restaura también las config vars del release de destino, y
+  v32 no tiene `ANTHROPIC_API_KEY`. v33 es el código de v32 (`b682627`) con la llave puesta.
+- Si v34 cambia de número porque se añadió otra config var antes del push, el destino es el release
+  inmediatamente anterior al `Deploy`.
+- Las migraciones no se revierten: son aditivas.
+- Si el problema es del generador, antes que el rollback está la bandera: se apaga `generador_activo` por
+  emisora en `/admin/clientes`.
+
+**Ensayo.** El proyecto `sqpxcxewoznhpwvhxamy` y la app `traceline-dev` siguen vivos hasta después de v33. Se
+borran en la limpieza del Paso 6.
+
 ## 6. Riesgos
 
 - Renumerar migraciones ya aplicadas en dev y en los proyectos de los colaboradores: dev y el proyecto de Quique (si existe) deberán marcarse con `migration repair` o recrearse; se documenta el procedimiento.
@@ -157,3 +276,4 @@ heroku logs -a traceline-dev -n 300 | grep -c -E 'status=5[0-9]{2}|Error:'   # 0
 | 2026-10-05 | PR #7 mezclado (`d8ddbd9`); repunte de riesgos físicos aprobado para v33 (19 filas de mockups, ninguna de Grupo Carso). `start` y `lint` restaurados en `package.json` (`b431b42`; se perdieron al resolver el merge `d3cea13`). Ensayo `sqpxcxewoznhpwvhxamy` (Esteban): la copia de staging dejó 29 tablas idénticas; las 29 migraciones se aplicaron en 17 s y quedaron 65 de 65 con barrera 87. **Paso 3 (A8)** con `scripts/ensayo/a8-heroku.mjs`. **Línea base** en `referencia/lineas-base/v33/antes/`: Excel de CLEPSA, Banco Base y Grupo Carso desde staging. **Despliegue** de `dev/ajustes-sep26` a `traceline-dev` (v11): arranca con `pnpm start`, `/login` responde 200, sin errores en los logs tras el despliegue; slug de 181 MB frente a 157 MB de staging. **Banderas** de las 20 emisoras conforme a §3. **Bloque 29** desde Heroku: 37.4 s de reloj, 33.9 s en el servidor, $0.2452, primer intento; `after()` funciona en el dyno. **Documento completo** del demo: 40 de 40 bloques en borrador, 9.9 min, sin fallos ni cortes por tiempo, mediana de 41.8 s por bloque (p90 56.8 s, máxima 61.1 s), **$8.93**. **Aislamiento**, 8 de 8 con rechazo del servidor: el administrador de CLEPSA recibe 404 o 403 en el bloque, la generación, el Word, la consulta de bloque y la descarga de evidencias de Empresa Demo; por RLS ve 0 filas de contenido, sugerencias y capturas ajenas; la base le rechaza decidir una sugerencia ajena; la ruta de regeneración responde 401 sin el secreto. **Evidencia de 22.4 MB** por URL firmada desde el portal en Heroku: 7.4 s; la cola la leyó con `after()` en 6 s ($0.0148); consola limpia | **Incidente (error propio):** al leer el log del Scheduler filtré con lista negra (`secret|key|token`) y salió en pantalla parte del `CRON_SECRET` de `traceline-dev`, que el comando del job lleva literal en un header `Authorization: Bearer`. Reportado de inmediato; la rotación la hace Esteban. El job, además, llama con GET (405) y manda el secreto en `Authorization` en vez de `x-cron-secret`; comando corregido propuesto: `curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" …`. **Hallazgo para v33:** `reportes.anio_adopcion` llega vacía en los 20 reportes de staging, y sin ella el generador responde 422; en ensayo se declaró solo para Empresa Demo (2025). Falta decidir cómo se declara en los mockups. **Pendiente:** la prueba de la cola por el Scheduler, cuando el job esté corregido y el secreto rotado |
 | 2026-10-05 | Secreto de `traceline-dev` rotado y job del Scheduler corregido por Esteban (POST, `x-cron-secret`, cada 10 min). **A8, cola por el Scheduler** (`a8-heroku.mjs cron`): una evidencia registrada sin pasar por la app (CSV de Empresa Demo) quedó pendiente y el job la dejó en `extraido` a los 2.8 min, sin error. **A8 cerrado.** **`anio_adopcion`:** migración `20261005130100_reportes_anio_adopcion_demo` (`73ccee0`): en los reportes de emisoras `es_demo` sin año, `anio_adopcion = ejercicio`; Grupo Carso no se toca y queda sin año hasta que la emisora lo declare. Aplicada en local, dev y ensayo (66 de 66, barrera 87). En ensayo, `POST generar` del reporte de CLEPSA responde 200 (régimen de primer año, 40 bloques en cola), ya no 422 | **Decisión que tomé:** declarar el año de adopción de los mockups igual al ejercicio del reporte (primer año de aplicación), por migración de datos acotada a `es_demo`. Queda en ensayo un documento de CLEPSA con 40 bloques en cola, sin generar |
 | 2026-10-05 | **Paso 4 · ensayo completo en la copia** (`sqpxcxewoznhpwvhxamy`; resultados en `referencia/lineas-base/v33/ensayo/`, ignorado). **Migraciones:** 66 de 66; la segunda pasada no aplicó nada; barrera 87. **Grupo Carso:** `scripts/ensayo/instantanea-v33.sql` (la de siempre, restando del jsonb las columnas que v33 agrega a `tenants`, `reportes`, `capturas_valor` y `registros_clima`) frente a la línea base de staging de Esteban (19 líneas). 18 de 19 idénticas; `tenants` difiere solo en `vitrina_habilitada` true → false (migración `122700`, esperada): con ese campo puesto en true, el md5 coincide con la línea base. Al terminar el Paso 4, la instantánea es idéntica a la del inicio. **Excel de CLEPSA, Banco Base y Grupo Carso**, en tres puntos: A = línea base de staging; B = código de `main` (`b2c3731`, worktree local en :3002) sobre la base migrada; C = código de `dev` en `traceline-dev`. **A = B, idénticos celda por celda en los tres.** A → C con `scripts/ensayo/comparar-excel-v33.mjs`: **0 diferencias no esperadas en los tres** y 475 esperadas en cada uno: 3 hojas renombradas («Fondo I» → «Taxonomía NIIF S1 S2», «NIIF S2 30» → «NIIF S2 29(b)», «NIIF S2 29(b)» → «NIIF S2 29(c)»); 382 celdas del índice que son texto de la plantilla de `dev` (filas insertadas que desplazan el resto); 88 descripciones del índice (col. D) que salen del catálogo; 2 títulos de hoja. Una celda es esperada solo si antes vale lo que la plantilla de `main` y después lo que la plantilla de `dev` o el catálogo de la base. Prueba negativa: un libro alterado en tres celdas (un dato, una descripción, un ODS) da 3 no esperadas. Los datos de las emisoras no cambian en ninguna hoja. **`main` sobre la base migrada** (intervalo entre migrar y desplegar, y reversión de código): `verificar-main.mjs`, 26 ✓ (5 roles, 22 pantallas, 4 escrituras), sin errores en el log del servidor; limpieza con `--limpiar` y `borrar-verificar-main.sql`, y conteos iguales. **Auditor de utilería** (`scripts/ensayo/crear-utileria.mjs`: id del seed, Empresa Demo, «[ENSAYO] …», contraseña aleatoria solo en el entorno): `e2e:auditor` 58 ✓ y `e2e:auditor:rutas` 92 ✓ contra `traceline-dev` (panel en lectura, rechazos del servidor); `borrar-utileria.sql` y los 33 conteos, idénticos a los de antes. **Vitrina** de Banco Base desde `traceline-dev`: Word y PDF 200, sin «Empresa Demo», 2 filas de bitácora, nada sin sustituir. **Otros e2e:** los que tienen guarda de solo stack local (captura sugerida, `generador-bandera`, jefe, vitrina, prospectos) no se forzaron contra la copia. Su cobertura en Heroku es la de A8 (aislamiento 8 de 8, cola, subida) y corrieron en verde en local en el Paso 1 | **Decisiones que tomé:** (1) B con `main` en un worktree local contra ensayo, como en el ensayo del rol auditor, y no empujando `main` a `traceline-dev`: con el remoto en `dev` habría hecho falta un push forzado o un commit sintético. (2) «e2e completos» lo leí como en §5.1 d del guion del rol auditor (auditor y rutas, con utilería). (3) `E2E_CREDENCIALES` en los dos e2e del auditor y en `verificar-main`, porque en la copia las cuentas del seed están rotadas. (4) Subí `suplemento-demo.pdf` (local, mismo tamaño que el de staging) al bucket `vitrina` de ensayo: la copia trae las filas de storage sin bytes y el PDF no se versiona; la primera corrida dio 503 por eso, no por v33. **Error propio, corregido:** la guarda de `borrar-utileria.sql` exigía que no hubiera filas de auditoría de otros autores, y la copia de staging trae 10 (9 de actividad y 1 comentario). Abortó sin borrar nada. Ahora solo aborta si una fila de la utilería quedó fuera de Empresa Demo; las ajenas no se tocan. **Efecto residual en ensayo:** `e2e:auditor:rutas` deja bytes de prueba en dos objetos de evidencia de Empresa Demo (en la copia no tenían bytes); los conteos no cambian |
+| 2026-10-05 | Paso 4 aprobado. **Paso 5.** `main` (v32.1) mezclado en `dev/ajustes-sep26` (`e867f96`). Único conflicto, `scripts/despliegue/migrar-remoto.sh`: `ESPERADAS` queda con la lista de v33, 30 entradas, comprobada igual a las migraciones posteriores a `20261004170000`. **Build de producción** local con los servidores apagados: en verde, con 3 advertencias de variables sin usar que ya existían. `tsc` limpio; `eslint` 0 errores y 5 advertencias; `verify:export` en verde contra dev (app servida con ese build en :3005 y apagada al terminar). `traceline-staging` ya tiene `ANTHROPIC_API_KEY` (comprobado por nombre, no vacía). Ponerla creó el release **v33** de Heroku, así que el despliegue será v34. **Guion v33** en §5.2. Nuevo `scripts/despliegue/comprobar-v33.mjs` (banderas de §3 por consulta, año de adopción, catálogo para el clasificador, `POST generar` de Empresa Demo), probado contra ensayo: 20 de 20 emisoras conforme, 0 reportes de demostración sin año, catálogo por REST idéntico al de psql (98 códigos), `generar` → 200 | **Decisiones que tomé:** (1) El orden del guion es merge del PR → migraciones (Esteban) → `git push heroku main`, no migraciones → merge. `migrar-remoto.sh staging` exige `HEAD = origin/main`, y el merge no despliega nada; la base se sigue migrando antes de que llegue el código. (2) El rollback va a **v33**, no a v32: `releases:rollback` restaura las config vars del release de destino, y v32 no tiene `ANTHROPIC_API_KEY`. (3) El guion va en §5.2 porque §5.1 ya es el del Paso 3. (4) Para el build apagué el servidor de Esteban en :3000 (`npm run dev:local`); hay que volver a levantarlo. (5) La instantánea de Carso después de migrar la corre Esteban en el paso 2, porque `.env.staging.local` no trae la URL de la base. El resultado esperado queda fijado: solo la línea de `tenants` cambia, al md5 que dio ensayo. (6) El job de la cola en el Scheduler de staging lo pone Esteban en el dashboard (paso 2 del guion) |
