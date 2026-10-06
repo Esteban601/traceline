@@ -1,7 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.18** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.19** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.18**:
+- §10, «Hueco conocido de la bitácora de los mockups»: las altas que hacía `crear-demo-prospecto.mjs` no
+  quedaron en bitácora hasta el 6/10; no se rellenan.
 
 **Cambios respecto a 0.17**:
 - §10, «Jobs del Scheduler…»: el disparador de los recordatorios ya está identificado. Era el job del
@@ -1133,6 +1137,28 @@ entero en una copia. El primero es el del rol auditor (encargo
   (`scripts/ensayo/migrar-ensayo.sh`). `.env.ensayo.local` lleva solo
   `ENSAYO_DB_URL`. `poblar-demo.mjs` y `crear-demo-prospecto.mjs` rechazan el ref
   de ensayo por constante, aparezca o no en alguna lista.
+
+### Hueco conocido de la bitácora de los mockups
+
+Anotado el 6 de octubre de 2026. **No se rellena** (decisión de Esteban).
+
+- **Qué falta.** `scripts/crear-demo-prospecto.mjs` escribía sus filas de alta con un `insert` directo en
+  `bitacora`. `authenticated` no tiene INSERT sobre esa tabla desde `20260704172202_rls_politicas`, y el
+  script no comprobaba el error, así que el insert fallaba en silencio. Faltan en staging:
+  - `tenant_creado`;
+  - `usuario_creado`;
+  - `reporte_creado_desde_plantilla`.
+- **Alcance.** Los **19 mockups** creados por el script, del 25 de agosto (GAV, Tratón, Fibra Inn, Afirme,
+  Inmobilia) al 6 de octubre de 2026 (PINFRA), comprobado en staging: ninguno tiene `tenant_creado` ni
+  `reporte_creado_desde_plantilla`.
+  - El resto de su historia sí está: evidencias, capturas y cambios de estado los escriben triggers y
+    funciones de la base.
+  - Los `usuario_creado` que aparecen en Empresa Demo y en Bafar vienen de altas por el panel.
+- **La fecha de alta de cada mockup** se lee de `tenants.created_at`, no de la bitácora.
+- **Corregido** en `fix(prospectos): bitácora por fn_log_evento`: el script registra por `fn_log_evento`, como
+  `logEvento()` de la aplicación, y si falla lo dice con ❌ en la salida. Probado en el stack local: 1
+  `tenant_creado`, 8 `usuario_creado` y 1 `reporte_creado_desde_plantilla`, todas con el usuario de staff;
+  una segunda corrida no duplica.
 
 ### Jobs del Scheduler sin variables en el comando
 

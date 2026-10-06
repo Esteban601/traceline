@@ -1253,6 +1253,27 @@ async function limpiar({ db, admin }, p) {
 // -----------------------------------------------------------------------------
 // Tenant, áreas y logo
 // -----------------------------------------------------------------------------
+/**
+ * Fila de bitácora por `fn_log_evento`, la misma vía que `logEvento()` de la
+ * aplicación (lib/bitacora.ts). `authenticated` no tiene INSERT sobre `bitacora`
+ * (revocado en 20260704172202_rls_politicas): el `insert` directo que había aquí
+ * fallaba en silencio y ningún mockup tiene sus filas de alta (especificación
+ * §10, «Hueco conocido de la bitácora de los mockups»). Un fallo no aborta la
+ * corrida —el script es idempotente y una segunda no repetiría el alta—, pero
+ * se dice con ❌, que el extractor de la corrida cuenta.
+ */
+async function registrarEvento(db, { tenantId, usuarioId, accion, entidad, entidadId, detalle }) {
+  const { error } = await db.rpc("fn_log_evento", {
+    p_tenant_id: tenantId,
+    p_usuario_id: usuarioId,
+    p_accion: accion,
+    p_entidad: entidad,
+    p_entidad_id: entidadId,
+    p_detalle: detalle,
+  });
+  if (error) console.error(`  ❌ bitácora ${accion}: ${error.message}`);
+}
+
 async function asegurarTenant({ db, admin, staffId }, p) {
   const nuevo = [];
   // `vitrina: false` en la entrada apaga la vitrina del Suplemento para este
@@ -1293,12 +1314,12 @@ async function asegurarTenant({ db, admin, staffId }, p) {
     if (error) throw new Error(`tenant ${p.slug}: ${error.message}`);
     tenant = data;
     nuevo.push("tenant");
-    await db.from("bitacora").insert({
-      tenant_id: tenant.id,
-      usuario_id: staffId,
+    await registrarEvento(db, {
+      tenantId: tenant.id,
+      usuarioId: staffId,
       accion: "tenant_creado",
       entidad: "tenants",
-      entidad_id: tenant.id,
+      entidadId: tenant.id,
       detalle: {
         nombre: p.nombre,
         slug: p.slug,
@@ -1467,12 +1488,12 @@ async function asegurarUsuarios({ db, admin, staffId }, p, tenantId, areaDelJefe
       activo: true,
     });
     if (pErr) throw new Error(`perfil ${c.email}: ${pErr.message}`);
-    await db.from("bitacora").insert({
-      tenant_id: tenantId,
-      usuario_id: staffId,
+    await registrarEvento(db, {
+      tenantId,
+      usuarioId: staffId,
       accion: "usuario_creado",
       entidad: "perfiles_usuario",
-      entidad_id: creado.user.id,
+      entidadId: creado.user.id,
       detalle: { nombre: c.nombre, email: c.email, rol: c.rol, area: c.area },
     });
     credenciales.push({ ...c, password, existente: false });
@@ -1638,12 +1659,12 @@ async function asegurarReporte(ctx, p, tenantId) {
     }
   }
 
-  await db.from("bitacora").insert({
-    tenant_id: tenantId,
-    usuario_id: ctx.staffId,
+  await registrarEvento(db, {
+    tenantId,
+    usuarioId: ctx.staffId,
     accion: "reporte_creado_desde_plantilla",
     entidad: "reportes",
-    entidad_id: reporte.id,
+    entidadId: reporte.id,
     detalle: {
       nombre: REPORTE.nombre,
       ejercicio: REPORTE.ejercicio,
