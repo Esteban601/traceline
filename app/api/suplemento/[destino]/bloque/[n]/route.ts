@@ -96,8 +96,9 @@ export async function POST(
     try {
       r = await generarBloque(db, resuelto.documentoId, numero, { modelo });
     } catch (e) {
-      const detalle = e instanceof Error ? `${e.message}` : String(e);
-      console.error(`[suplemento] bloque ${numero} lanzó:`, e);
+      const detalle = motivoSeguro(e instanceof Error ? e.message : String(e));
+      // Solo el mensaje, saneado: el objeto de error puede arrastrar cabeceras.
+      console.error(`[suplemento] bloque ${numero} lanzó: ${detalle}`);
       await db
         .from("documentos_bloques")
         .update({
@@ -164,6 +165,29 @@ export async function POST(
       );
     }
 
+    // CUALQUIER OTRO FALLO SE DICE YA. Un error de la API (llave rechazada, 4xx,
+    // 5xx), un reporte ilegible o una validación que generarBloque no guardó
+    // dejaban el bloque en 'generando' hasta el vencimiento de tres minutos, sin
+    // una línea en el log: el síntoma («tiempo excedido», costo 0) no decía nada
+    // de la causa. Si el bloque sigue en 'generando' después de un fallo, pasa a
+    // 'error' con su motivo, saneado, y queda una línea en el log.
+    if (!r.ok && r.motivo !== "sin_saldo" && r.motivo !== "corte_tiempo") {
+      const motivo = motivoSeguro(`${r.motivo}: ${r.detalle}`);
+      const { data: marcado } = await db
+        .from("documentos_bloques")
+        .update({
+          estado: "error",
+          reclamado_en: null,
+          pendientes: [{ campo: "generacion", motivo }],
+          updated_at: new Date().toISOString(),
+        })
+        .eq("documento_id", resuelto.documentoId)
+        .eq("numero", numero)
+        .eq("estado", "generando")
+        .select("numero");
+      console.error(`[suplemento] bloque ${numero}: fallo ${motivo}${marcado?.length ? " → error" : ""}`);
+    }
+
     await logEvento(db, {
       tenantId: resuelto.tenantId,
       usuarioId: perfil.id,
@@ -180,7 +204,7 @@ export async function POST(
             pendientes: r.pendientes.length,
             notas_revision: r.notasRevision.length,
           }
-        : { bloque: numero, modelo, fallo: r.motivo, detalle: r.detalle },
+        : { bloque: numero, modelo, fallo: r.motivo, detalle: motivoSeguro(r.detalle) },
     });
   });
 
@@ -395,4 +419,18 @@ async function resolverDocumento(
   }
   void leerAlivios(rep.alivios);
   return { documentoId: creado.id, tenantId: creado.tenant_id };
+}
+
+/**
+ * Motivo de un fallo, apto para la base, la bitácora y el log: sin nada con
+ * forma de llave de API y recortado. El SDK no incluye la llave en sus
+ * mensajes, pero un mensaje no se publica a ciegas.
+ */
+function motivoSeguro(texto: string): string {
+  const limpio = texto
+    .replace(/sk-ant-[A-Za-z0-9_-]+/g, "[llave]")
+    .replace(/(x-api-key|authorization)\s*[:=]\s*\S+/gi, "$1: [oculto]")
+    .replace(/\s+/g, " ")
+    .trim();
+  return limpio.length > 300 ? `${limpio.slice(0, 300)}…` : limpio;
 }

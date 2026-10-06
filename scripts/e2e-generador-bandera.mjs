@@ -16,6 +16,11 @@
 //   3. La pantalla: con la bandera apagada, Cobertura no ofrece el generador y
 //      la página del generador no ofrece generar; /admin/clientes muestra el
 //      interruptor con el consumo del mes.
+//   4. Con E2E_LLAVE_INVALIDA=1 (la app levantada a propósito con una
+//      ANTHROPIC_API_KEY inválida): un error de la API pasa el bloque a 'error'
+//      en segundos, con el motivo y sin la llave, costo 0 — nunca al corte de
+//      tres minutos (encargo suplemento-calidad). Este paso SÍ intenta llamar al
+//      modelo; con una llave válida costaría, por eso va detrás de la variable.
 // Restaura las banderas de Empresa Demo al terminar.
 // =============================================================================
 import { createServerClient } from "@supabase/ssr";
@@ -109,6 +114,33 @@ try {
   if (doc2 && !doc) {
     const w = await ruta("GET", `/api/suplemento/${doc2.id}/word`);
     ok(w.status === 403, `GET word con la bandera apagada → ${w.status}`);
+  }
+
+  // 4. Error de la API: a 'error' de inmediato.
+  if (process.env.E2E_LLAVE_INVALIDA === "1") {
+    console.log("Error de la API (llave inválida)");
+    await banderas({ generador_activo: true, generaciones_mes_max: 999 });
+    const ab = await ruta("POST", `/api/suplemento/${REPORTE}/generar`, { editoriales: [] });
+    const abierto = await ab.json().catch(() => ({}));
+    ok(ab.status === 200, `se abre el documento (${ab.status})`);
+    const t0 = Date.now();
+    const lanzado = await ruta("POST", `/api/suplemento/${abierto.documentoId}/bloque/29`, {});
+    ok(lanzado.status === 202, `el bloque 29 se reserva (${lanzado.status})`);
+    let b = null;
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      const c = await ruta("GET", `/api/suplemento/${abierto.documentoId}/bloque/29`);
+      b = await c.json().catch(() => null);
+      if (b && b.estado !== "generando") break;
+    }
+    const segundos = (Date.now() - t0) / 1000;
+    const motivo = JSON.stringify(b?.pendientes ?? []);
+    ok(b?.estado === "error" && segundos < 20, `el bloque queda en 'error' en ${segundos.toFixed(1)} s (no al corte de 3 minutos)`);
+    ok(/api_error/.test(motivo) && /(authentication|401|invalid)/i.test(motivo), "con el motivo de la API (autenticación)");
+    ok(!/sk-ant/.test(motivo), "sin exponer la llave");
+    ok(Number(b?.costo_usd ?? 0) === 0, `costo ${b?.costo_usd ?? 0}`);
+  } else {
+    console.log("(error de la API: se omite; corre con E2E_LLAVE_INVALIDA=1 y la app con una llave inválida)");
   }
 } finally {
   await banderas({ generador_activo: original.generador_activo, generaciones_mes_max: original.generaciones_mes_max });
