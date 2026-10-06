@@ -312,3 +312,102 @@ export function plantillaInvitacion(
     }),
   };
 }
+
+// =============================================================================
+// AVISOS INMEDIATOS (encargo sistema de alertas, Paso 1). Lo conversacional:
+// alguien escribió o espera respuesta. El asunto empieza por la emisora —quien
+// recibe puede atender a varias— y el botón lleva al objeto en el PANEL, que es
+// donde viven el canal del auditor y la revisión del documento.
+// =============================================================================
+
+export type ObjetoAviso = {
+  /** «la solicitud», «el registro climático»… — para la frase. */
+  etiqueta: string;
+  /** Título visible del objeto. */
+  titulo: string;
+  /** Ruta del panel, relativa (p. ej. `/admin/solicitudes/<id>`). */
+  ruta: string;
+};
+
+function urlPanel(ruta: string): string {
+  return `${APP_URL}${ruta}`;
+}
+
+function cita(texto: string, opts: { etiqueta: string; color: string; fondo: string }): string {
+  return `
+    <div style="font-family:${FONT};font-size:14px;color:${COLOR.ink};background:${opts.fondo};border-left:3px solid ${opts.color};border-radius:8px;padding:12px 14px;margin:4px 0 16px 0;line-height:1.6;">
+      <strong style="color:${opts.color};">${esc(opts.etiqueta)}</strong><br>${esc(texto).replace(/\n/g, "<br>")}
+    </div>`;
+}
+
+function fichaObjeto(obj: ObjetoAviso): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 8px 0;">
+    <tr>
+      <td style="padding:12px 16px;border:1px solid ${COLOR.line};border-radius:12px;background:${COLOR.surface};">
+        <div style="font-family:${FONT};font-size:12px;color:${COLOR.muted};text-transform:uppercase;letter-spacing:.06em;">${esc(obj.etiqueta)}</div>
+        <div style="font-family:${FONT};font-size:15px;font-weight:600;color:${COLOR.ink};line-height:1.4;margin-top:2px;">${esc(obj.titulo)}</div>
+      </td>
+    </tr>
+    <tr><td style="height:10px;line-height:10px;font-size:0;">&nbsp;</td></tr>
+  </table>`;
+}
+
+/** (e) El auditor externo comentó: al administrador del cliente y al staff. */
+export function plantillaComentarioAuditor(
+  nombre: string,
+  opts: { emisora: string; objeto: ObjetoAviso; texto: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const subject = `${emisora} · Comentario del auditor externo`;
+  const intro = `El auditor externo dejó un comentario sobre ${opts.objeto.etiqueta} de ${emisora}. Espera respuesta en la plataforma.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(intro)}</p>
+    ${fichaObjeto(opts.objeto)}
+    ${cita(opts.texto, { etiqueta: "Comentario:", color: COLOR.gold, fondo: COLOR.crema })}
+    ${boton(urlPanel(opts.objeto.ruta), "Ver y responder")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Auditor externo", titulo: "Hay un comentario del auditor", cuerpoHtml }),
+  };
+}
+
+/** (f) Respondieron un comentario del auditor: a quien lo escribió. */
+export function plantillaRespuestaAuditor(
+  nombre: string,
+  opts: { emisora: string; objeto: ObjetoAviso; comentario: string; respuesta: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const subject = `${emisora} · Respondieron tu comentario`;
+  const intro = `Tu comentario sobre ${opts.objeto.etiqueta} de ${emisora} tiene respuesta.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(intro)}</p>
+    ${fichaObjeto(opts.objeto)}
+    ${cita(opts.comentario, { etiqueta: "Tu comentario:", color: COLOR.muted, fondo: COLOR.crema })}
+    ${cita(opts.respuesta, { etiqueta: "Respuesta:", color: COLOR.teal, fondo: "#E6EFEC" })}
+    ${boton(urlPanel(opts.objeto.ruta), "Ver en la plataforma")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Auditor externo", titulo: "Respondieron tu comentario", cuerpoHtml }),
+  };
+}
+
+/** (g) El documento del Suplemento quedó aprobado: al administrador del cliente. */
+export function plantillaDocumentoAprobado(
+  nombre: string,
+  opts: { emisora: string; documento: string; ejercicio: number | null; ruta: string }
+): Plantilla {
+  const emisora = limpiarNombre(opts.emisora);
+  const subject = `${emisora} · Suplemento NIIF S1/S2 aprobado`;
+  const intro = `IRStrat aprobó el Suplemento NIIF S1/S2${opts.ejercicio ? ` del ejercicio ${opts.ejercicio}` : ""} de ${emisora}. Ya puedes revisarlo y descargarlo.`;
+  const cuerpoHtml = `
+    ${saludo(nombre)}
+    <p style="font-family:${FONT};font-size:15px;color:${COLOR.ink};margin:0 0 16px 0;line-height:1.6;">${esc(intro)}</p>
+    ${fichaObjeto({ etiqueta: "Documento", titulo: limpiarNombre(opts.documento), ruta: opts.ruta })}
+    ${boton(urlPanel(opts.ruta), "Abrir el documento")}`;
+  return {
+    subject,
+    html: layout({ preheader: intro, etiqueta: "Suplemento", titulo: "Tu Suplemento está aprobado", cuerpoHtml }),
+  };
+}

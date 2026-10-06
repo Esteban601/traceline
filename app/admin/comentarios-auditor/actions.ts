@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esAuditor } from "@/lib/data";
 import { puedeResponderAuditor, type ObjetoAuditado } from "@/lib/comentarios-auditor";
 import { registrarActividadAuditor } from "@/lib/auditoria";
+import { avisarComentarioAuditor, avisarRespuestaAuditor } from "@/lib/notificaciones/inmediatos";
 
 export type ComentarioState = { ok: boolean; error?: string | null };
 
@@ -49,13 +51,17 @@ export async function comentarComoAuditor(
   }
 
   const db = await createClient();
-  const { error } = await db.from("comentarios_auditor").insert({
-    objeto_tipo: tipo,
-    objeto_id: objetoId,
-    tenant_id: perfil.tenant_id,
-    autor_id: perfil.id,
-    texto,
-  });
+  const { data: creado, error } = await db
+    .from("comentarios_auditor")
+    .insert({
+      objeto_tipo: tipo,
+      objeto_id: objetoId,
+      tenant_id: perfil.tenant_id,
+      autor_id: perfil.id,
+      texto,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     // El trigger rechaza un objeto inexistente o de otra emisora con
@@ -69,6 +75,10 @@ export async function comentarComoAuditor(
     objetoTipo: tipo,
     objetoId,
   });
+
+  // Aviso inmediato al administrador del cliente y al staff, después de
+  // responder: el correo no frena la pantalla del auditor.
+  after(() => avisarComentarioAuditor(creado.id));
 
   revalidatePath("/admin", "layout");
   return { ok: true, error: null };
@@ -127,6 +137,9 @@ export async function responderComentarioAuditor(
     // RLS filtró la fila: existe pero no es de su emisora.
     return { ok: false, error: "No se pudo guardar la respuesta." };
   }
+
+  // Aviso inmediato al auditor que escribió el comentario.
+  after(() => avisarRespuestaAuditor(id));
 
   revalidatePath("/admin", "layout");
   return { ok: true, error: null };
