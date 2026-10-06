@@ -710,6 +710,48 @@ const PROSPECTOS = [
       { re: /Competencias del Consejo/i, area: "Relación con Inversionistas" },
     ],
   },
+  {
+    slug: "pinfra",
+    nombre: "PINFRA",
+    prefijo: "PINF",
+    logo: "pinfra.png",
+    // Concesionaria de autopistas de peaje, con planta de asfalto y terminal
+    // portuaria en Altamira. Emisora: la vitrina se queda encendida (sin la
+    // clave) y no lleva auditor.
+    areas: [
+      "Operación de Autopistas y Peaje",
+      "Conservación y Construcción",
+      "Seguridad Vial y Ambiental",
+      "Riesgos y Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      Operaciones: "Operación de Autopistas y Peaje",
+      RH: "Recursos Humanos",
+      Finanzas: "Finanzas",
+      "Gobierno Corporativo": "Riesgos y Cumplimiento",
+      Dirección: "Riesgos y Cumplimiento",
+    },
+    mueve: [
+      // El Alcance 3 de una concesionaria lo domina la cadena de obra y
+      // suministro: insumos, asfalto y su transporte.
+      { re: /Alcance 3 — total/i, area: "Conservación y Construcción" },
+      { re: /Categoría 1-Bienes y servicios adquiridos/i, area: "Conservación y Construcción" },
+      { re: /Categoría 4-Transporte/i, area: "Conservación y Construcción" },
+      // La gestión ambiental: combustibles, agua y residuos. `residuos` también
+      // atrapa la Categoría 5 del Alcance 3 (residuos de las operaciones), a
+      // propósito.
+      { re: /Consumo de combustibles fósiles/i, area: "Seguridad Vial y Ambiental" },
+      { re: /consumo de agua/i, area: "Seguridad Vial y Ambiental" },
+      { re: /residuos/i, area: "Seguridad Vial y Ambiental" },
+      // Lo prospectivo del clima lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /productos\/servicios sostenibles/i, area: "Finanzas" },
+    ],
+  },
 ];
 
 const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
@@ -1211,6 +1253,27 @@ async function limpiar({ db, admin }, p) {
 // -----------------------------------------------------------------------------
 // Tenant, áreas y logo
 // -----------------------------------------------------------------------------
+/**
+ * Fila de bitácora por `fn_log_evento`, la misma vía que `logEvento()` de la
+ * aplicación (lib/bitacora.ts). `authenticated` no tiene INSERT sobre `bitacora`
+ * (revocado en 20260704172202_rls_politicas): el `insert` directo que había aquí
+ * fallaba en silencio y ningún mockup tiene sus filas de alta (especificación
+ * §10, «Hueco conocido de la bitácora de los mockups»). Un fallo no aborta la
+ * corrida —el script es idempotente y una segunda no repetiría el alta—, pero
+ * se dice con ❌, que el extractor de la corrida cuenta.
+ */
+async function registrarEvento(db, { tenantId, usuarioId, accion, entidad, entidadId, detalle }) {
+  const { error } = await db.rpc("fn_log_evento", {
+    p_tenant_id: tenantId,
+    p_usuario_id: usuarioId,
+    p_accion: accion,
+    p_entidad: entidad,
+    p_entidad_id: entidadId,
+    p_detalle: detalle,
+  });
+  if (error) console.error(`  ❌ bitácora ${accion}: ${error.message}`);
+}
+
 async function asegurarTenant({ db, admin, staffId }, p) {
   const nuevo = [];
   // `vitrina: false` en la entrada apaga la vitrina del Suplemento para este
@@ -1241,18 +1304,22 @@ async function asegurarTenant({ db, admin, staffId }, p) {
         // Las demostraciones leen sus evidencias (encargo captura sugerida §3);
         // la columna nace apagada para que un cliente real no la herede.
         lectura_evidencias_activa: true,
+        // El generador del Suplemento, encendido en las demostraciones (encargo
+        // generador a producción §3). Solo al crear: si después el staff lo
+        // apaga en /admin/clientes, una nueva corrida no lo vuelve a encender.
+        generador_activo: true,
       })
       .select("id, nombre, es_demo, logo_url, vitrina_habilitada")
       .single();
     if (error) throw new Error(`tenant ${p.slug}: ${error.message}`);
     tenant = data;
     nuevo.push("tenant");
-    await db.from("bitacora").insert({
-      tenant_id: tenant.id,
-      usuario_id: staffId,
+    await registrarEvento(db, {
+      tenantId: tenant.id,
+      usuarioId: staffId,
       accion: "tenant_creado",
       entidad: "tenants",
-      entidad_id: tenant.id,
+      entidadId: tenant.id,
       detalle: {
         nombre: p.nombre,
         slug: p.slug,
@@ -1421,12 +1488,12 @@ async function asegurarUsuarios({ db, admin, staffId }, p, tenantId, areaDelJefe
       activo: true,
     });
     if (pErr) throw new Error(`perfil ${c.email}: ${pErr.message}`);
-    await db.from("bitacora").insert({
-      tenant_id: tenantId,
-      usuario_id: staffId,
+    await registrarEvento(db, {
+      tenantId,
+      usuarioId: staffId,
       accion: "usuario_creado",
       entidad: "perfiles_usuario",
-      entidad_id: creado.user.id,
+      entidadId: creado.user.id,
       detalle: { nombre: c.nombre, email: c.email, rol: c.rol, area: c.area },
     });
     credenciales.push({ ...c, password, existente: false });
@@ -1536,6 +1603,9 @@ async function asegurarReporte(ctx, p, tenantId) {
       tenant_id: tenantId,
       nombre: REPORTE.nombre,
       ejercicio: REPORTE.ejercicio,
+      // Primer año de aplicación, como los demás reportes de demostración
+      // (migración 20261005130100). Sin año, el generador responde 422.
+      anio_adopcion: REPORTE.ejercicio,
       estado: "activo",
     })
     .select("id")
@@ -1589,12 +1659,12 @@ async function asegurarReporte(ctx, p, tenantId) {
     }
   }
 
-  await db.from("bitacora").insert({
-    tenant_id: tenantId,
-    usuario_id: ctx.staffId,
+  await registrarEvento(db, {
+    tenantId,
+    usuarioId: ctx.staffId,
     accion: "reporte_creado_desde_plantilla",
     entidad: "reportes",
-    entidad_id: reporte.id,
+    entidadId: reporte.id,
     detalle: {
       nombre: REPORTE.nombre,
       ejercicio: REPORTE.ejercicio,
