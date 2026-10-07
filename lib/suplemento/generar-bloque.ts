@@ -669,9 +669,21 @@ export async function generarBloque(
   salida.texto = normalizado.texto;
   // Glosario (Paso 5.4): cada variante pasa a su canónico y la discrepancia va a
   // las notas, en «defecto_insumo». Sin reintento: es una sustitución exacta.
+  // La tabla armada por código también: trae nombres tal como están en los datos
+  // (en el demo, «Dirección de Crédito» en el detalle de un objetivo, bloque 39).
+  let tablaFinal = tabla;
   if (insumo) {
     const g = aplicarGlosario(salida.texto, glosario);
     salida.texto = g.texto;
+    if (tabla) {
+      const gt = aplicarGlosario(tabla, glosario);
+      tablaFinal = gt.texto;
+      for (const c of gt.cambios) {
+        const previo = g.cambios.find((x) => x.variante === c.variante);
+        if (previo) previo.veces += c.veces;
+        else g.cambios.push(c);
+      }
+    }
     for (const c of g.cambios) {
       (salida.notas_clasificadas ??= []).push({
         cubeta: "defecto_insumo",
@@ -704,7 +716,7 @@ export async function generarBloque(
       pendientes: salida.pendientes.map((p) => ({ campo: "bloque", motivo: p })),
       notasRevision: salida.notas_revision,
       notasClasificadas: salida.notas_clasificadas ?? null,
-      tabla,
+      tabla: tablaFinal,
       modelo,
       uso,
       costo,
