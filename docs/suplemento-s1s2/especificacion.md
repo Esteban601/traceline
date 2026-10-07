@@ -1,7 +1,14 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.27** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.28** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.27** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 4):
+- §5: migración `20261006170000` (historial de versiones por bloque y versiones aprobadas).
+- §6: historial, confirmación antes de regenerar una edición humana, Word aprobado con sus versiones y figura
+  del organigrama.
+- §9: A6 completo, frentes (2) y (3) hechos; queda el anexo de trazabilidad.
+- El suplemento sigue fuera del alcance del auditor (decisión de Esteban, 6 de octubre de 2026).
 
 **Cambios respecto a 0.26** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 3):
 - §3.2: texto del emisor sin reescribir en bloques editoriales (lo que estaba pendiente de (a)).
@@ -523,6 +530,7 @@ filas, no como JSON.
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
 | `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
+| `documentos_bloques_versiones` (solo altas, por trigger), `documentos_bloques.origen_texto` y `.restaurada_de`, `documentos_generados.versiones_aprobadas` (jsonb) | Historial de versiones por bloque, restauración y versiones aprobadas (encargo suplemento-calidad, Paso 4; A6) | CREATE TABLE con RLS y barrera, triggers nuevos, ADD COLUMN nullable, relleno de la versión 1 (`20261006170000`) |
 | `documentos_generados.textos_literales` (jsonb, NULL = ninguno) y `documentos_bloques.texto_del_emisor` (boolean, default false) | Texto del emisor sin reescribir en bloques editoriales (encargo suplemento-calidad, Paso 3) | ADD COLUMN nullable y con default (`20261006160000`) |
 | `observaciones_coherencia` (una fila por pasada: estado, observaciones, descartadas, tokens y costo), con índice único parcial de una pasada en curso por documento | Pasada de coherencia del documento (encargo suplemento-calidad, Paso 3) | CREATE TABLE con RLS y barrera (`20261006160100`) |
 | `perfil_emisor_adjuntos_contenido` (una fila por adjunto: estado de lectura, contenido extraído, páginas, costo) con trigger de encolado y relleno de los adjuntos existentes | Lectura de los adjuntos del Perfil para el generador (encargo suplemento-calidad, Paso 2) | CREATE TABLE con RLS, trigger nuevo y barrera (`20261006150000`) |
@@ -558,6 +566,28 @@ bloque al que apunta; el código lo comprueba y descarta la que no lo cumpla. Se
 `observaciones_coherencia` con su costo, una pasada en curso por documento. La revisión la muestra como lista,
 y el staff puede volver a correrla. No edita ningún bloque. Modelo del generador con esfuerzo `medium`
 (`COHERENCIA_ESFUERZO` lo cambia); en el demo cuesta ~$1.3 y tarda ~3.5 min.
+
+**Historial de versiones por bloque (Paso 4).** `documentos_bloques_versiones` guarda cada texto que tuvo un
+bloque —generación, edición manual, texto literal del emisor y restauración— con texto, autor, fecha, fuentes,
+pendientes y versión del prompt. Lo escribe un trigger sobre `documentos_bloques`, así que ningún camino se lo
+salta; quien escribe marca el origen en `origen_texto`. Es de solo altas: sin escritura para usuarios y un
+trigger que rechaza UPDATE y DELETE salvo el borrado en cascada del documento. La revisión muestra el historial
+de cada bloque con «ver cambios» (diff por palabras contra la actual) y «restaurar». La restauración entra como
+versión nueva y conserva la marca de edición si la versión restaurada la tenía. Lo leen staff y el
+administrador del cliente; **el auditor no**: el suplemento sigue fuera de su alcance.
+
+**Confirmación antes de pisar una edición humana (CLAUDE.md §5).** Regenerar un bloque cuyo texto lleva una
+edición (`editado_en`) responde 428 sin `confirmarEdicion`. La pantalla avisa «se perderá la edición de X del
+día Y; queda en el historial» antes de mandarla. Regenerar el documento entero sobre bloques editados responde
+428 con la lista, sin tocar nada, hasta que se confirma. El 428 no se confunde con el 409 de «otro proceso lo
+tomó».
+
+**Versiones aprobadas y Word.** Al aprobar, `documentos_generados.versiones_aprobadas` fija la versión de cada
+bloque, `{numero: {id, version}}`. El Word de un documento aprobado se arma con esas versiones, aunque la fila
+cambiara después. Todo Word lleva propiedades personalizadas: documento, versión, estado, fecha de aprobación y
+«versiones aprobadas» o «versiones de bloque» (`5:v4 18:v1 …`). Los bloques «T→E + imagen» (el 18) insertan la
+imagen del Perfil (`organigrama_path`) después de su primer párrafo, centrada y con pie «Figura N. Estructura de
+gobierno».
 
 **Aislamiento.** El ensamblado corre en servidor con `service_role`; todas las consultas filtran por
 `reporte_id` y se valida que el reporte pertenezca al tenant de la sesión antes de armar cualquier prompt.
@@ -781,7 +811,7 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 | ✅ A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola | **Completo · 11 sep 2026** |
 | ✅ A5a | Los 40 bloques en régimen primer año por vía (plantilla, perfil, datos) con once tablas armadas por código; `POST /generar` con cola explícita, reclamo atómico, concurrencia 3 y corte por tiempo; vista de revisión con edición en línea, regeneración por bloque y aprobación bloqueada con pendientes; botón del semáforo para staff. Documento demo completo: 39 borradores + 1 no aplica, $7.5579, 27.7 min de cómputo | A4 | **Completo · 15 sep 2026** |
 | A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar— (**construido** en el Paso 2 de suplemento-calidad, §3.2; la revisión es la del borrador del bloque); (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24; (5) **solicitudes con varias capturas confirmadas entregan TODAS al prompt, con su etiqueta**. Hoy `entregaPorSolicitud` colapsa cada solicitud a un solo valor —el último confirmado— y una solicitud que resume la composición de una cartera en siete cifras le entrega al modelo una sola, elegida por el orden de inserción. Las demás viajan de contrabando en la descripción, que es prosa: el modelo las copia bien, pero nada las valida ni las suma. Cada captura lleva su etiqueta en `justificacion` y ese par (etiqueta, valor) es lo que debe llegar. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
-| A6 | Word con estilos, marca de agua y anexo de trazabilidad. **A6 mínimo está hecho** (portada, índice, bloques con su referencia NIIF, tablas, marca de agua mientras no esté aprobado). Falta: (1) el **anexo de trazabilidad**; (2) **versiones por bloque con historial de ediciones humanas** — hoy `documentos_bloques` guarda un solo texto y `editado_por`/`editado_en`; una edición a mano pisa lo generado sin dejar rastro de qué decía antes, y la regeneración pisa la edición sin dejar rastro de que existió. Hace falta una tabla de versiones por bloque, con autor, fecha y origen (modelo o persona), como la que ya tienen las evidencias; (3) **confirmación antes de regenerar un bloque editado**: el botón «Regenerar» no distingue entre un bloque que nadie tocó y uno que un revisor reescribió, y en el segundo caso destruye trabajo humano sin avisar. Pasó el 15 de septiembre de 2026 con el bloque 4; el texto se conservó porque alguien se acordó de copiarlo antes | A5b | Pendiente |
+| A6 | Word con estilos, marca de agua y anexo de trazabilidad. **Frentes (2) y (3) hechos en el Paso 4 de suplemento-calidad** (historial con restauración, confirmación antes de regenerar una edición, versiones aprobadas en el Word; §6); queda el (1), anexo de trazabilidad. **A6 mínimo está hecho** (portada, índice, bloques con su referencia NIIF, tablas, marca de agua mientras no esté aprobado). Falta: (1) el **anexo de trazabilidad**; (2) **versiones por bloque con historial de ediciones humanas** — hoy `documentos_bloques` guarda un solo texto y `editado_por`/`editado_en`; una edición a mano pisa lo generado sin dejar rastro de qué decía antes, y la regeneración pisa la edición sin dejar rastro de que existió. Hace falta una tabla de versiones por bloque, con autor, fecha y origen (modelo o persona), como la que ya tienen las evidencias; (3) **confirmación antes de regenerar un bloque editado**: el botón «Regenerar» no distingue entre un bloque que nadie tocó y uno que un revisor reescribió, y en el segundo caso destruye trabajo humano sin avisar. Pasó el 15 de septiembre de 2026 con el bloque 4; el texto se conservó porque alguien se acordó de copiarlo antes | A5b | Pendiente |
 | A7 | Glosario ES↔EN y versión en inglés | A6 | Pendiente |
 | A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 | Pendiente |
 | A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 | Pendiente |
