@@ -515,6 +515,7 @@ export type Database = {
           reclamado_en: string | null
           seccion: string | null
           texto: string | null
+          texto_del_emisor: boolean
           titulo: string
           tokens_entrada: number
           tokens_entrada_cache_escritura: number
@@ -543,6 +544,7 @@ export type Database = {
           reclamado_en?: string | null
           seccion?: string | null
           texto?: string | null
+          texto_del_emisor?: boolean
           titulo: string
           tokens_entrada?: number
           tokens_entrada_cache_escritura?: number
@@ -571,6 +573,7 @@ export type Database = {
           reclamado_en?: string | null
           seccion?: string | null
           texto?: string | null
+          texto_del_emisor?: boolean
           titulo?: string
           tokens_entrada?: number
           tokens_entrada_cache_escritura?: number
@@ -611,6 +614,7 @@ export type Database = {
           regimen: string | null
           reporte_id: string
           tenant_id: string
+          textos_literales: Json | null
           tipo: string
           tokens_entrada: number
           tokens_salida: number
@@ -632,6 +636,7 @@ export type Database = {
           regimen?: string | null
           reporte_id: string
           tenant_id: string
+          textos_literales?: Json | null
           tipo?: string
           tokens_entrada?: number
           tokens_salida?: number
@@ -653,6 +658,7 @@ export type Database = {
           regimen?: string | null
           reporte_id?: string
           tenant_id?: string
+          textos_literales?: Json | null
           tipo?: string
           tokens_entrada?: number
           tokens_salida?: number
@@ -1121,6 +1127,97 @@ export type Database = {
             columns: ["objetivo_id"]
             isOneToOne: true
             referencedRelation: "objetivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observaciones_coherencia: {
+        Row: {
+          bloques_revisados: number
+          costo_usd: number
+          created_at: string
+          descartadas: number
+          documento_id: string
+          duracion_ms: number
+          error: string | null
+          estado: string
+          id: string
+          modelo: string | null
+          observaciones: Json
+          origen: string
+          prompt_version: string | null
+          solicitado_por: string | null
+          tenant_id: string
+          terminado_en: string | null
+          tokens_entrada: number
+          tokens_entrada_cache_escritura: number
+          tokens_entrada_cache_lectura: number
+          tokens_salida: number
+        }
+        Insert: {
+          bloques_revisados?: number
+          costo_usd?: number
+          created_at?: string
+          descartadas?: number
+          documento_id: string
+          duracion_ms?: number
+          error?: string | null
+          estado?: string
+          id?: string
+          modelo?: string | null
+          observaciones?: Json
+          origen?: string
+          prompt_version?: string | null
+          solicitado_por?: string | null
+          tenant_id: string
+          terminado_en?: string | null
+          tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
+          tokens_salida?: number
+        }
+        Update: {
+          bloques_revisados?: number
+          costo_usd?: number
+          created_at?: string
+          descartadas?: number
+          documento_id?: string
+          duracion_ms?: number
+          error?: string | null
+          estado?: string
+          id?: string
+          modelo?: string | null
+          observaciones?: Json
+          origen?: string
+          prompt_version?: string | null
+          solicitado_por?: string | null
+          tenant_id?: string
+          terminado_en?: string | null
+          tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
+          tokens_salida?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observaciones_coherencia_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_generados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "observaciones_coherencia_solicitado_por_fkey"
+            columns: ["solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "observaciones_coherencia_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
