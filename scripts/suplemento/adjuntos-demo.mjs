@@ -14,6 +14,10 @@
 //   · estatutos-sociales.pdf — 80 páginas, para el límite de 60: lo que va
 //     después de la página 60 (el «Comité de Innovación Financiera», que solo
 //     existe ahí) no debe llegar nunca al generador.
+//   · acta-gobierno.pdf — acta de la sesión del Consejo que creó el comité. Si
+//     ya hay un adjunto con ese nombre cuya lectura terminó en `error` (el del
+//     demo era un archivo de texto de 90 bytes con extensión .pdf), se quita
+//     —objeto y fila— y se sube este en su lugar (Paso 3).
 //
 // Inserta las filas en perfil_emisor_adjuntos (el trigger las encola) y, si se
 // da `baseUrl` de una app LOCAL, llama a su /api/evidencias/procesar para
@@ -122,6 +126,26 @@ const ACTA = [
 ];
 
 // -----------------------------------------------------------------------------
+// Acta del Consejo que creó el comité (reemplaza el acta ilegible del demo)
+// -----------------------------------------------------------------------------
+const ACTA_CONSEJO = [
+  `Acta de la sesión ordinaria del Consejo de Administración de ${EMISORA}, celebrada en la Ciudad de México el 27 de febrero de 2025. Documento de utilería con datos ficticios.`,
+  "# Orden del día",
+  "I. Informe del Director General sobre la marcha del negocio. II. Propuesta de creación del Comité de Sostenibilidad y Riesgos Climáticos. III. Política de Financiamiento Sostenible. IV. Designación de delegados.",
+  "# I. Informe del Director General",
+  "El Director General presentó el informe sobre la marcha del negocio e incluyó, por primera vez, una sección sobre los riesgos relacionados con el clima elaborada por la Dirección de Riesgos: la exposición de la cartera a riesgos físicos en las regiones con mayor incidencia de inundaciones y sequías, y la exposición a riesgos de transición en los sectores intensivos en carbono. El Consejo tomó conocimiento del informe.",
+  "# II. Creación del Comité de Sostenibilidad y Riesgos Climáticos",
+  "Con fundamento en los estatutos sociales, que facultan al Consejo para constituir los comités que estime convenientes, se propuso crear un comité auxiliar que dé seguimiento a los asuntos de sostenibilidad y, en particular, a los riesgos y oportunidades relacionados con el clima, sin sustituir las funciones del Comité de Riesgos ni las del Comité de Auditoría y Prácticas Societarias.",
+  "ACUERDO 1. Se crea el Comité de Sostenibilidad y Riesgos Climáticos, integrado por tres consejeros, de los cuales dos serán independientes, y presidido por una consejera independiente con experiencia en finanzas sostenibles. El Comité informará al Consejo sobre los riesgos y oportunidades relacionados con el clima al menos dos veces al año y someterá su reglamento a la aprobación de su sesión de instalación.",
+  "ACUERDO 2. La Dirección de Riesgos y la Dirección de Sostenibilidad asistirán a las sesiones del Comité como invitadas permanentes y le presentarán la información que requiera.",
+  "# III. Política de Financiamiento Sostenible",
+  "El Consejo revisó el avance de la Política de Financiamiento Sostenible aprobada en 2024 y solicitó que el nuevo Comité proponga, en su primer informe, los objetivos de cartera sostenible y los indicadores con que se dará seguimiento a su cumplimiento.",
+  "ACUERDO 3. Se encomienda al Comité de Sostenibilidad y Riesgos Climáticos la propuesta de objetivos climáticos para su aprobación por el Consejo.",
+  "# IV. Delegados",
+  "ACUERDO 4. Se designa al Secretario del Consejo como delegado para formalizar los acuerdos de esta sesión.",
+];
+
+// -----------------------------------------------------------------------------
 // Estatutos sociales (80 páginas). Las cláusulas de gobierno van en las
 // primeras páginas; el relleno numera artículos genéricos hasta pasar de 80, y
 // el Comité de Innovación Financiera aparece SOLO después de la página 60.
@@ -222,7 +246,22 @@ async function codigoDeEtica() {
 // -----------------------------------------------------------------------------
 const { data: perfil } = await db.from("perfil_emisor").select("organigrama_path").eq("tenant_id", TENANT).maybeSingle();
 const { data: existentes } = await db.from("perfil_emisor_adjuntos").select("nombre_original").eq("tenant_id", TENANT);
-const ya = new Set((existentes ?? []).map((a) => a.nombre_original));
+// El acta ilegible del demo se quita para que la sustituya la de utilería.
+const { data: ilegibles } = await db
+  .from("perfil_emisor_adjuntos_contenido")
+  .select("adjunto_id, archivo_path")
+  .eq("tenant_id", TENANT)
+  .eq("nombre_original", "acta-gobierno.pdf")
+  .eq("estado", "error");
+for (const a of ilegibles ?? []) {
+  const { error: eObj } = await db.storage.from("documentos").remove([a.archivo_path]);
+  if (eObj) throw new Error(`quitar acta ilegible: ${eObj.message}`);
+  const { error: eFila } = await db.from("perfil_emisor_adjuntos").delete().eq("id", a.adjunto_id);
+  if (eFila) throw new Error(`quitar acta ilegible: ${eFila.message}`);
+  console.log("- acta-gobierno.pdf ilegible: quitada (objeto y fila)");
+}
+const quitadas = new Set((ilegibles ?? []).length ? ["acta-gobierno.pdf"] : []);
+const ya = new Set((existentes ?? []).map((a) => a.nombre_original).filter((n) => !quitadas.has(n)));
 
 const archivos = [];
 if (perfil?.organigrama_path) {
@@ -237,6 +276,7 @@ archivos.push({
   mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   buffer: await codigoDeEtica(),
 });
+archivos.push({ nombre: "acta-gobierno.pdf", mime: "application/pdf", buffer: await pdfDeTexto("Acta de sesión del Consejo de Administración", ACTA_CONSEJO) });
 archivos.push({ nombre: "acta-comite-sostenibilidad.pdf", mime: "application/pdf", buffer: await pdfDeTexto("Acta de sesión", ACTA) });
 const est = await estatutos();
 archivos.push({ nombre: "estatutos-sociales.pdf", mime: "application/pdf", buffer: est.buffer });
