@@ -37,6 +37,8 @@ export type BloqueRevision = {
   tokensSalida: number;
   editadoEn: string | null;
   editadoPor: string | null;
+  /** Texto del emisor copiado literal de un adjunto, sin pasar por el modelo (Paso 3). */
+  textoDelEmisor: boolean;
 };
 
 const VACIO: EstadoAccion = { ok: false, error: null, mensaje: null };
@@ -71,6 +73,8 @@ export function RevisionView(p: {
   puedeAprobar: boolean;
   /** `tenants.generador_activo`: con el generador apagado no se ofrece regenerar (la ruta lo niega igual). */
   generadorActivo: boolean;
+  /** Observaciones de la pasada de coherencia (Paso 3), debajo del resumen. */
+  panelCoherencia?: React.ReactNode;
 }) {
   const [sEstado, aEstado] = useActionState(cambiarEstado, VACIO);
   const toast = useToast();
@@ -202,6 +206,8 @@ export function RevisionView(p: {
           </details>
         )}
       </Card>
+
+      {p.panelCoherencia}
 
       {secciones.map((sec) => (
         <section key={sec.nombre}>
@@ -350,7 +356,7 @@ function BloqueCard({
           <span className="block truncate text-sm font-medium text-ink">{bloque.titulo}</span>
           <span className="block truncate text-xs text-muted">
             {bloque.texto ? `${bloque.texto.length.toLocaleString("es-MX")} caracteres` : "sin texto"}
-            {bloque.modelo ? ` · ${bloque.modelo}` : ""}
+            {bloque.textoDelEmisor ? " · copiado del archivo, sin modelo" : bloque.modelo ? ` · ${bloque.modelo}` : ""}
             {bloque.promptVersion ? ` · ${bloque.promptVersion}` : ""}
             {bloque.costoUsd > 0 ? ` · $${bloque.costoUsd.toFixed(4)}` : ""}
             {tokensPorSegundo(bloque) !== null
@@ -359,6 +365,7 @@ function BloqueCard({
             {bloque.editadoEn ? ` · editado por ${bloque.editadoPor ?? "alguien"}` : ""}
           </span>
         </span>
+        {bloque.textoDelEmisor && <Chip tono="azul">Texto del emisor</Chip>}
         {bloque.pendientes.length > 0 && <Chip tono="ambar">{bloque.pendientes.length} pend.</Chip>}
         <Chip tono={meta.tono}>{meta.label}</Chip>
         <span aria-hidden className={cn("shrink-0 text-muted transition", abierto && "rotate-90")}>›</span>

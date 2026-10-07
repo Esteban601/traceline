@@ -71,6 +71,22 @@ if (abierto.primero !== undefined && !(await uno(abierto.primero))) fallos.push(
 await Promise.all(Array.from({ length: 3 }, async () => { for (;;) { const n = cola.shift(); if (n === undefined) return; if (!(await uno(n))) fallos.push(n); } }));
 for (const n of [...fallos]) { if (await uno(n)) fallos.splice(fallos.indexOf(n), 1); }
 
+// Pasada de coherencia al final, como la pantalla (Paso 3): se espera y se cuenta.
+const pc = await api("POST", `/api/suplemento/${abierto.documentoId}/coherencia`, { origen: "fin_de_generacion" });
+let coherencia = { http: pc.status };
+if (pc.status === 202) {
+  const hasta = Date.now() + 8 * 60 * 1000;
+  while (Date.now() < hasta) {
+    await new Promise((res) => setTimeout(res, 5000));
+    const c = await api("GET", `/api/suplemento/${abierto.documentoId}/coherencia`);
+    const d = c.ok ? await c.json() : null;
+    if (d && d.estado !== "generando") {
+      coherencia = { estado: d.estado, observaciones: (d.observaciones ?? []).length, descartadas: d.descartadas, costoUsd: Number(d.costo_usd), segundos: Math.round(d.duracion_ms / 1000), error: d.error };
+      break;
+    }
+  }
+}
+
 const { data: bloques } = await db.from("documentos_bloques").select("numero, estado, costo_usd, tokens_entrada, tokens_salida, pendientes").eq("documento_id", abierto.documentoId);
 const porEstado = {};
 for (const b of bloques) porEstado[b.estado] = (porEstado[b.estado] ?? 0) + 1;
@@ -97,6 +113,7 @@ const resumen = {
   tokensEntrada: bloques.reduce((s, b) => s + (b.tokens_entrada ?? 0), 0),
   tokensSalida: bloques.reduce((s, b) => s + (b.tokens_salida ?? 0), 0),
   minutos: Number(((Date.now() - inicio) / 60000).toFixed(1)),
+  coherencia,
   word: w.status,
 };
 fs.writeFileSync(path.join(carpeta, `${seleccion}.json`), JSON.stringify(resumen, null, 1));

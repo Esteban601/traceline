@@ -37,7 +37,16 @@ const LIMITE_MS = 3 * 60 * 1000;
 
 type Estado = "listo" | "abriendo" | "generando" | "hecho" | "error";
 
-export function GenerarDocumento({ reporteId, editoriales }: { reporteId: string; editoriales: string[] }) {
+export function GenerarDocumento({
+  reporteId,
+  editoriales,
+  literales = {},
+}: {
+  reporteId: string;
+  editoriales: string[];
+  /** Editoriales que llevan el texto del emisor sin reescribir: {clave: adjunto}. */
+  literales?: Record<string, string>;
+}) {
   const [estado, setEstado] = useState<Estado>("listo");
   const [total, setTotal] = useState(0);
   const [hechos, setHechos] = useState(0);
@@ -111,7 +120,7 @@ export function GenerarDocumento({ reporteId, editoriales }: { reporteId: string
       const res = await fetch(`/api/suplemento/${reporteId}/generar`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ editoriales }),
+        body: JSON.stringify({ editoriales, literales }),
       });
       const abierto = await res.json();
       if (!res.ok) throw new Error(abierto.error ?? `HTTP ${res.status}`);
@@ -142,6 +151,20 @@ export function GenerarDocumento({ reporteId, editoriales }: { reporteId: string
         quedan = await enCola(docId, fallos);
       }
 
+      // 4 · Pasada de coherencia sobre el documento completo (Paso 3). Corre en
+      // el servidor; no se espera aquí: sus observaciones aparecen en la
+      // revisión cuando termina. Si el documento quedó con fallos se corre
+      // igual: revisa lo que sí salió.
+      if (!cancelado.current) {
+        fetch(`/api/suplemento/${docId}/coherencia`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ origen: "fin_de_generacion" }),
+        }).catch(() => {
+          /* la revisión ofrece correrla a mano */
+        });
+      }
+
       setFallidos(quedan);
       setEstado(quedan.length ? "error" : "hecho");
       if (quedan.length === 0) toast.success("Documento generado.");
@@ -151,7 +174,7 @@ export function GenerarDocumento({ reporteId, editoriales }: { reporteId: string
       setError(e instanceof Error ? e.message : String(e));
       setEstado("error");
     }
-  }, [reporteId, editoriales, generarUno, enCola, toast, router]);
+  }, [reporteId, editoriales, literales, generarUno, enCola, toast, router]);
 
   const pct = total ? Math.round((hechos / total) * 100) : 0;
 

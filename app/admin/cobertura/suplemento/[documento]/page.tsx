@@ -6,6 +6,7 @@ import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { EmptyState } from "@/components/ui/empty-state";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
+import { CoherenciaPanel, type ObservacionVista, type PasadaVista } from "./coherencia-panel";
 import { RevisionView, type BloqueRevision } from "./revision-view";
 
 export const metadata: Metadata = { title: "Revisión del suplemento" };
@@ -60,7 +61,7 @@ export default async function RevisionPage({
     db
       .from("documentos_bloques")
       .select(
-        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
+        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, texto_del_emisor, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
       )
       .eq("documento_id", documentoId)
       .order("numero"),
@@ -84,8 +85,31 @@ export default async function RevisionPage({
       tokensSalida: b.tokens_salida,
       editadoEn: b.editado_en,
       editadoPor: (b.editado as unknown as { nombre: string } | null)?.nombre ?? null,
+      textoDelEmisor: b.texto_del_emisor,
     };
   });
+
+  // Última pasada de coherencia del documento (Paso 3).
+  const { data: pasada } = await db
+    .from("observaciones_coherencia")
+    .select("estado, observaciones, descartadas, bloques_revisados, costo_usd, duracion_ms, modelo, error, created_at")
+    .eq("documento_id", documentoId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const pasadaVista: PasadaVista | null = pasada
+    ? {
+        estado: pasada.estado as PasadaVista["estado"],
+        observaciones: (Array.isArray(pasada.observaciones) ? pasada.observaciones : []) as unknown as ObservacionVista[],
+        descartadas: pasada.descartadas,
+        bloquesRevisados: pasada.bloques_revisados,
+        costoUsd: Number(pasada.costo_usd ?? 0),
+        duracionMs: pasada.duracion_ms,
+        modelo: pasada.modelo,
+        error: pasada.error,
+        creadaEn: pasada.created_at,
+      }
+    : null;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -105,6 +129,13 @@ export default async function RevisionPage({
         bloques={bloques}
         puedeAprobar={esStaff(perfil)}
         generadorActivo={tenant?.generador_activo ?? false}
+        panelCoherencia={
+          <CoherenciaPanel
+            documentoId={documentoId}
+            inicial={pasadaVista}
+            puedeRevisar={esStaff(perfil) && (tenant?.generador_activo ?? false)}
+          />
+        }
       />
     </div>
   );
