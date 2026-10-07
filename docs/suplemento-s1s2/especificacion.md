@@ -1,6 +1,18 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.32** · 7 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.33** · 7 de octubre de 2026.
+
+**Cambios respecto a 0.32** (cierre del Paso 5b, correcciones aprobadas por Esteban):
+- §6, validador cruzado: valida remisiones (`remisiones.ts`). Solo se remite al bloque dueño del hecho y si lo afirma;
+  un destino ausente, un pendiente o el hecho de otro bloque se rechazan. Regla 12 del prompt (`hechos-v4-2026-10-07`).
+- §6, libro (`libro-v10-2026-10-07`):
+  - dueño por taxonomía (la fuente responde a un solo bloque) y, si no, por los requisitos del catálogo cuando la
+    ventaja es clara; el modelo decide lo que queda;
+  - contradicciones con tres votos consolidados por par de hechos;
+  - prueba de estabilidad con dos métricas: conjunto (≤ 2 %) y mismo dueño (≥ 98 %).
+- La ruta del bloque acepta `esfuerzo` para el A/B (solo el equipo de IRStrat); el default sigue en high.
+- Catálogo partido en incisos: rama `feat/catalogo-incisos`, pendiente de la revisión de los códigos. Al desplegarla,
+  **el Excel de taxonomía cambia en filas (+18): es una diferencia esperada**.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
 
 **Cambios respecto a 0.31** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5b, segunda revisión
