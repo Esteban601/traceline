@@ -15,6 +15,7 @@ import { dividir } from "../../lib/suplemento/hechos/oraciones.ts";
 import { validarCobertura } from "../../lib/suplemento/hechos/bloque.ts";
 import { separarAnclas } from "../../lib/suplemento/hechos/anclas.ts";
 import { cambiosNegados, incisosInexactos } from "../../lib/suplemento/hechos/validadores.ts";
+import { remisionesSinDueno } from "../../lib/suplemento/hechos/remisiones.ts";
 
 let fallas = 0;
 const check = (ok, nombre, detalle = "") => {
@@ -98,6 +99,21 @@ check(incisosInexactos(["Las fuentes de financiación (16(c)(i)) quedan pendient
 const rangos = new Map([["h1", "narrativo"], ["h2", "perfil"]]);
 const narr = validarCobertura([fila(REQ[0], "cubierto", { hechos: ["h1"] }), fila(REQ[1], "cubierto", { hechos: ["h1", "h2"] }), buena[2]], REQ, 15, new Set(["h1", "h2"]), null, conMarcador, rangos);
 check(narr.length === 1 && /solo con hechos narrativos/.test(narr[0]), "un requisito cubierto solo con la Carta se rechaza; acompañada, pasa", narr.join("; "));
+
+// --- Remisiones: solo al dueño del hecho, y si lo afirma ----------------------
+const TIT = [{ numero: 4, titulo: "Entidad que informa, periodo y conectividad" }, { numero: 12, titulo: "Modelo de negocio y cadena de valor" }, { numero: 16, titulo: "Supervisión de la estrategia, objetivos y remuneración" }, { numero: 33, titulo: "Emisiones financiadas" }, { numero: 36, titulo: "Oportunidades: alineación y capital" }];
+const HL = [
+  { id: "a", dueno: 12, enunciado: "La cartera de crédito total ascendió a 86,400 millones con su composición por sector económico." },
+  { id: "b", dueno: 16, enunciado: "El Consejo aprobó los límites de concentración en sectores intensivos en carbono considerando el riesgo de transición." },
+];
+const rem = (textos, anclados = new Map([[12, new Set(["a"])]])) => remisionesSinDueno(textos, TIT, new Set(textos.map((t) => t.numero)), HL, anclados, ["Empresa Demo"]);
+const t12 = { numero: 12, texto: "La cartera de crédito total asciende a 86,400 millones, con su composición por sector económico." };
+check(rem([{ numero: 36, texto: "La cartera de crédito total y su composición se describen en la sección de modelo de negocio y cadena de valor." }, t12]).length === 0, "remitir al dueño que lo afirma vale");
+check(rem([{ numero: 36, texto: "La cartera de crédito total y su composición se describen en la sección de entidad que informa, periodo y conectividad." }, t12, { numero: 4, texto: "La entidad que informa es Empresa Demo." }])[0]?.motivo === "otro_dueno", "remitir a quien no es dueño se rechaza y se nombra al dueño");
+check(rem([{ numero: 4, texto: "El tratamiento de las emisiones financiadas se describe en la sección de emisiones financiadas." }])[0]?.motivo === "destino_ausente", "remitir a un bloque que no está en el documento se rechaza");
+const pend = rem([{ numero: 22, texto: "Las consideraciones del Consejo al aprobar los límites de concentración se describen en la sección de supervisión de la estrategia, objetivos y remuneración." }, { numero: 16, texto: "El Consejo informa. [Pendiente: órgano que aprobó los límites de concentración y sus consideraciones — solicitud X]" }], new Map());
+check(pend[0]?.motivo === "remite_a_pendiente", "remitir a un pendiente se rechaza", pend.map((r) => r.motivo).join());
+check(rem([{ numero: 1, texto: "El detalle se describe en las secciones correspondientes de este informe." }]).length === 0, "una remisión genérica no se juzga");
 
 console.log(fallas ? `\n✗ ${fallas} fallas` : "\n✓ Verificador del libro OK");
 process.exit(fallas ? 1 : 0);

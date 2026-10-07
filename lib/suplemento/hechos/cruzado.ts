@@ -4,6 +4,8 @@ import type { Database } from "@/lib/database.types";
 import { BLOQUES } from "@/lib/suplemento/bloques";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
 import { numerosDe } from "@/lib/evidencias/fuente";
+import { leerGlosario } from "@/lib/suplemento/glosario";
+import { remisionesSinDueno } from "./remisiones";
 
 // =============================================================================
 // VALIDADOR CRUZADO SOBRE EL LIBRO (Paso 5b, segunda revisión externa, punto 1).
@@ -20,7 +22,10 @@ import { numerosDe } from "@/lib/evidencias/fuente";
 //   · afirma_excluyente: un bloque afirma un hecho que el libro dejó en
 //     contradicción excluyente (debió ir como pendiente);
 //   · remision_a_plantilla: un bloque remite a un bloque de plantilla (2, 3, 5,
-//     14), que no desarrolla nada y no recibe remisiones (punto 12).
+//     14), que no desarrolla nada y no recibe remisiones (punto 12);
+//   · remision_sin_dueno: un bloque remite a otro que no es dueño del hecho
+//     remitido, que no lo afirma, que lo deja pendiente o que no está en el
+//     documento (corrección aprobada al cerrar el 5b; remisiones.ts).
 //
 // Cada discrepancia trae la corrección que se le pasa al bloque discrepante en
 // su reintento (opciones.correccion de generarBloque).
@@ -28,7 +33,7 @@ import { numerosDe } from "@/lib/evidencias/fuente";
 
 type Db = SupabaseClient<Database>;
 
-export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla";
+export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno";
 
 export type Discrepancia = {
   bloque: number;
@@ -64,13 +69,16 @@ const RE_REMISION = /(?:como se (?:describe|indica|detalla|señala|explica|prese
 export async function validarCruzado(db: Db, documentoId: string): Promise<Discrepancia[]> {
   const { data: filas } = await db
     .from("documentos_bloques")
-    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado")
+    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, documento:documentos_generados(tenant_id)")
     .eq("documento_id", documentoId)
     .order("numero");
   const bloques = (filas ?? []).filter((b) => b.texto && b.estado !== "no_aplica" && !b.texto_del_emisor);
   const libroId = bloques.find((b) => b.libro_id)?.libro_id;
   if (!libroId) return [];
-  const { data: hs } = await db.from("hechos").select("id, clave, enunciado, valor, unidad, estado, veredicto, grupo_conflicto").eq("libro_id", libroId);
+  const { data: hs } = await db
+    .from("hechos")
+    .select("id, clave, enunciado, valor, unidad, estado, veredicto, grupo_conflicto, bloque_dueno, rango_fuente")
+    .eq("libro_id", libroId);
   const hecho = new Map((hs ?? []).map((h) => [h.id, h]));
   const anclas = (b: (typeof bloques)[number]) => ((b.anclas ?? []) as unknown as AnclaGuardada[]);
 
@@ -180,6 +188,48 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
         correccion: `Afirmas ${a.h.valor}${a.h.unidad ? ` ${a.h.unidad}` : ""} para «${a.h.enunciado.slice(0, 120)}», y el bloque ${primero.bloque} afirma ${primero.h.valor}${primero.h.unidad ? ` ${primero.h.unidad}` : ""} para el mismo dato. Remite a esa sección en lugar de dar la cifra, o márcalo pendiente si tu fuente la contradice.`,
       });
     }
+  }
+
+  // --- 5. Remisiones: solo al dueño del hecho, y si lo afirma -----------------
+  const tenantId = (bloques[0]?.documento as unknown as { tenant_id: string } | null)?.tenant_id;
+  const { data: perfil } = tenantId
+    ? await db.from("perfil_emisor").select("denominacion_formal, forma_de_referencia, glosario").eq("tenant_id", tenantId).maybeSingle()
+    : { data: null };
+  const nombres = [
+    perfil?.denominacion_formal ?? "",
+    perfil?.forma_de_referencia ?? "",
+    ...leerGlosario(perfil?.glosario).flatMap((e) => [e.canonico, ...e.variantes]),
+  ].filter(Boolean);
+  const anclados = new Map(bloques.map((b) => [b.numero, new Set(anclas(b).flatMap((a) => a.hechos.map((x) => x.hecho).filter((x): x is string => !!x)))]));
+  const remisiones = remisionesSinDueno(
+    bloques.filter((b) => b.estado === "borrador").map((b) => ({ numero: b.numero, texto: b.texto ?? "" })),
+    BLOQUES,
+    new Set(bloques.filter((b) => b.estado === "borrador").map((b) => b.numero)),
+    (hs ?? []).filter((h) => h.estado !== "descartado").map((h) => ({ id: h.id, dueno: h.bloque_dueno, enunciado: h.enunciado, narrativo: h.rango_fuente === "narrativo" })),
+    anclados,
+    nombres
+  );
+  for (const r of remisiones) {
+    const destino = `al bloque ${r.destino} («${tituloDe(r.destino)}»)`;
+    const que = r.contenido.replace(/^(?:y\s+)?/, "");
+    const correccion =
+      r.motivo === "destino_ausente"
+        ? `Remites «${que}» ${destino}, que no está en este documento. Redáctalo aquí con tus hechos o márcalo pendiente.`
+        : r.motivo === "remite_a_pendiente"
+          ? `Remites «${que}» ${destino}, que lo deja pendiente. No remitas a un pendiente: redáctalo aquí si tienes el hecho o márcalo pendiente.`
+          : r.motivo === "destino_no_lo_afirma" || r.dueno == null
+            ? `Remites «${que}» ${destino}, que no lo desarrolla en su texto. Redáctalo aquí si tienes el hecho o márcalo pendiente.`
+            : r.dueno === r.bloque
+              ? `Remites «${que}» ${destino}, pero el hecho es de este bloque: redáctalo aquí.`
+              : `Remites «${que}» ${destino}, pero el dueño de ese hecho es el bloque ${r.dueno} («${tituloDe(r.dueno!)}»). Remite a ese bloque o redáctalo aquí si tienes el hecho.`;
+    out.push({
+      bloque: r.bloque,
+      tipo: "remision_sin_dueno",
+      otroBloque: r.destino,
+      cita: r.clausula.slice(0, 200),
+      detalle: `Remite a ${r.destino} (${r.motivo.replace(/_/g, " ")}${r.dueno != null ? `; dueño ${r.dueno}` : ""}): «${que.slice(0, 140)}».`,
+      correccion,
+    });
   }
   return out;
 }

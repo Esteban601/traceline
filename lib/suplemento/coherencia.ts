@@ -316,8 +316,8 @@ export async function completarPasada(supabase: Cliente, pasadaId: string, docum
     // Lo que el validador cruzado (Paso 5b) sigue viendo después del reintento
     // del orquestador también llega al revisor, con origen «codigo».
     const cruzadas: Observacion[] = (await validarCruzado(supabase, documentoId)).map((d) => ({
-      tipo: d.tipo === "remision_a_plantilla" ? "referencia_cruzada" : "contradiccion",
-      gravedad: d.tipo === "remision_a_plantilla" ? "baja" : d.tipo === "afirma_excluyente" ? "media" : "alta",
+      tipo: d.tipo === "remision_a_plantilla" || d.tipo === "remision_sin_dueno" ? "referencia_cruzada" : "contradiccion",
+      gravedad: d.tipo === "remision_a_plantilla" ? "baja" : d.tipo === "afirma_excluyente" || d.tipo === "remision_sin_dueno" ? "media" : "alta",
       bloques: [d.bloque, ...(d.otroBloque != null ? [d.otroBloque] : [])],
       bloque_de_la_cita: d.bloque,
       cita: d.cita,

@@ -35,7 +35,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v3-2026-10-07";
+export const PROMPT_VERSION_HECHOS = "hechos-v4-2026-10-07";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -258,7 +258,7 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
    · «compatible» o «secuencia»: son ciertas a la vez (el Comité propone y el Consejo aprueba; la propuesta, la creación y la instalación son momentos de una misma cronología). Redacta con la \`conciliacion\` que trae —puedes ajustar la sintaxis, no el contenido— y deja una nota breve «decision_emisor» con etiqueta «por_conciliar». NO va marcador.
    Los hechos sin \`contradiccion\` no están en conflicto: no declares contradicciones por tu cuenta ni pongas pendientes por diferencias entre ellos.
 
-12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea. Si tu texto lo necesita, remite en una frase («como se describe en la sección de …») sin repetir su contenido ni sus cifras.
+12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea, con el número y el título del bloque DUEÑO. Si tu texto lo necesita, remite en una frase a ESE bloque («como se describe en la sección de …») sin repetir su contenido ni sus cifras. Solo se remite al dueño del hecho: no remitas a un bloque del que no recibiste una referencia sobre ese contenido. Si el hecho es tuyo, o no hay referencia de ningún dueño, redáctalo aquí o pon un marcador de pendiente. El código verifica cada remisión.
 
 13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Requisitos de tu bloque», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.
 
