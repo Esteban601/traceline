@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { BLOQUES } from "@/lib/suplemento/bloques";
 import { MODELO_POR_DEFECTO, costoUsd, type ClaveModelo, type Esfuerzo, type Uso } from "@/lib/suplemento/modelos";
+import { numerosDe } from "@/lib/evidencias/fuente";
 
 // =============================================================================
 // PASADA DE COHERENCIA DEL SUPLEMENTO — encargo suplemento-calidad, Paso 3 (d).
@@ -40,7 +41,8 @@ const LIMITE_MS = 6 * 60 * 1000;
 const GENERANDO_ABANDONADA_MS = 10 * 60 * 1000;
 
 export const TIPOS = ["terminologia", "repeticion", "referencia_cruzada", "anuncio_de_pendiente", "contradiccion"] as const;
-export type TipoObservacion = (typeof TIPOS)[number];
+// «cifra_inconsistente» la produce el CÓDIGO (Paso 5.4), no el modelo.
+export type TipoObservacion = (typeof TIPOS)[number] | "cifra_inconsistente";
 
 export const ETIQUETA_TIPO: Record<TipoObservacion, string> = {
   terminologia: "Terminología",
@@ -48,6 +50,7 @@ export const ETIQUETA_TIPO: Record<TipoObservacion, string> = {
   referencia_cruzada: "Referencia cruzada",
   anuncio_de_pendiente: "Anuncia lo que termina en pendiente",
   contradiccion: "Contradicción entre bloques",
+  cifra_inconsistente: "Cifra inconsistente (verificado por código)",
 };
 
 export type Observacion = {
@@ -62,6 +65,8 @@ export type Observacion = {
   sugerencia: string;
   /** Algún bloque involucrado es texto del emisor: no se propone reescribirlo. */
   afecta_texto_del_emisor: boolean;
+  /** «codigo» si la observación la produjo la verificación determinista. */
+  origen?: "modelo" | "codigo";
 };
 
 export type BloqueParaCoherencia = {
@@ -307,6 +312,7 @@ export async function completarPasada(supabase: Cliente, pasadaId: string, docum
       .eq("tenant_id", doc!.tenant_id)
       .maybeSingle();
     const bloques = await bloquesDelDocumento(supabase, documentoId);
+    const deCodigo = await cifrasInconsistentes(supabase, documentoId, bloques);
     const r = await revisarCoherencia(
       bloques,
       { denominacionFormal: perfil?.denominacion_formal ?? null, formaDeReferencia: perfil?.forma_de_referencia ?? null },
@@ -327,10 +333,107 @@ export async function completarPasada(supabase: Cliente, pasadaId: string, docum
       await fin({ ...metricas, estado: "error", error: r.error.slice(0, 300) });
       return;
     }
-    await fin({ ...metricas, estado: "lista", observaciones: r.observaciones, descartadas: r.descartadas, error: null });
+    await fin({ ...metricas, estado: "lista", observaciones: [...deCodigo, ...r.observaciones], descartadas: r.descartadas, error: null });
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     console.error(`[coherencia] documento ${documentoId.slice(0, 8)}: ${error.slice(0, 300)}`);
     await fin({ estado: "error", error: error.slice(0, 300) });
   }
+}
+
+// -----------------------------------------------------------------------------
+// MISMO HECHO, MISMA CIFRA (verificación determinista, Paso 5.4).
+//
+// Sobre los hechos del libro que citan los bloques (cada fuente de tipo «hecho»
+// guarda su fuente original y su extracto):
+//   · dos bloques que citan hechos de la MISMA clave con cifras distintas;
+//   · una cifra de un hecho en contradicción que el texto publica fuera de un
+//     marcador [Pendiente: …].
+// Sin modelo. Las observaciones salen con origen «codigo» y la cita es el
+// fragmento real del texto donde está la cifra.
+// -----------------------------------------------------------------------------
+const RE_NUMERO = /(?<![\p{L}\p{N}.,])\d+(?:[.,'’]\d+)*(?![\p{L}\p{N}])/gu;
+
+function citaDeCifra(texto: string, valor: number): string | null {
+  const limpio = texto.replace(/\[Pendiente:[^\]]*\]/g, (m) => " ".repeat(m.length));
+  for (const m of limpio.matchAll(RE_NUMERO)) {
+    if (numerosDe(m[0]).some((n) => Math.abs(n - valor) <= Math.abs(valor) * 1e-9 + 1e-9)) {
+      const i = m.index ?? 0;
+      return texto.slice(Math.max(0, i - 60), Math.min(texto.length, i + m[0].length + 60)).replace(/\s+/g, " ").trim();
+    }
+  }
+  return null;
+}
+
+export async function cifrasInconsistentes(supabase: Cliente, documentoId: string, bloques: BloqueParaCoherencia[]): Promise<Observacion[]> {
+  const { data: filas } = await supabase.from("documentos_bloques").select("numero, fuentes, libro_id").eq("documento_id", documentoId);
+  const libros = (filas ?? []).map((f) => f.libro_id).filter((x): x is string => !!x);
+  if (!libros.length) return [];
+  const libroId = libros.sort((a, b) => libros.filter((x) => x === b).length - libros.filter((x) => x === a).length)[0];
+  const { data: hechos } = await supabase
+    .from("hechos")
+    .select("id, clave, valor, unidad, fuente_id, extracto, estado, grupo_conflicto")
+    .eq("libro_id", libroId)
+    .not("valor", "is", null);
+  if (!hechos?.length) return [];
+  const porFuente = new Map(hechos.map((h) => [`${h.fuente_id}|${h.extracto}`, h]));
+  const texto = new Map(bloques.map((b) => [b.numero, b.texto]));
+  const emisor = new Map(bloques.map((b) => [b.numero, b.textoDelEmisor]));
+
+  // Hechos con cifra que cita cada bloque.
+  const citados = new Map<number, typeof hechos>();
+  for (const f of filas ?? []) {
+    if (!texto.has(f.numero)) continue;
+    const lista = ((f.fuentes ?? []) as { tipo: string; id: string; detalle: string }[])
+      .filter((x) => x.tipo === "hecho")
+      .map((x) => porFuente.get(`${x.id}|${/«([\s\S]*)»\s*$/.exec(x.detalle)?.[1] ?? ""}`))
+      .filter((h): h is (typeof hechos)[number] => !!h);
+    if (lista.length) citados.set(f.numero, lista);
+  }
+
+  const out: Observacion[] = [];
+  // 1. Misma clave, cifras distintas entre bloques.
+  const porClave = new Map<string, { numero: number; valor: number }[]>();
+  for (const [n, hs] of citados) for (const h of hs) porClave.set(h.clave, [...(porClave.get(h.clave) ?? []), { numero: n, valor: Number(h.valor) }]);
+  for (const [clave, usos] of porClave) {
+    const valores = [...new Set(usos.map((u) => u.valor))];
+    const bloquesUso = [...new Set(usos.map((u) => u.numero))];
+    if (valores.length < 2 || bloquesUso.length < 2) continue;
+    const primero = usos.find((u) => citaDeCifra(texto.get(u.numero) ?? "", u.valor));
+    if (!primero) continue;
+    out.push({
+      tipo: "cifra_inconsistente",
+      gravedad: "alta",
+      bloques: bloquesUso.sort((a, b) => a - b),
+      bloque_de_la_cita: primero.numero,
+      cita: citaDeCifra(texto.get(primero.numero)!, primero.valor)!,
+      observacion: `El mismo dato (${clave}) sale con cifras distintas en el documento: ${usos.map((u) => `${u.valor} en el bloque ${u.numero}`).join(", ")}.`,
+      sugerencia: "Confirmar con la emisora cuál es la cifra y usar la misma en todos los bloques; si las fuentes difieren, va un marcador de pendiente.",
+      afecta_texto_del_emisor: bloquesUso.some((n) => emisor.get(n)),
+      origen: "codigo",
+    });
+  }
+  // 2. Cifras en contradicción publicadas fuera de un marcador.
+  for (const h of hechos.filter((x) => x.estado === "en_conflicto")) {
+    const valor = Number(h.valor);
+    if (Math.abs(valor) < 10 || (valor >= 1900 && valor <= 2100)) continue; // años y cifras chicas: demasiado ruido
+    const grupo = new Set(hechos.filter((x) => x.grupo_conflicto && x.grupo_conflicto === h.grupo_conflicto).map((x) => x.clave));
+    for (const [n, hs] of citados) {
+      if (!hs.some((x) => grupo.has(x.clave) || x.id === h.id)) continue;
+      const cita = citaDeCifra(texto.get(n) ?? "", valor);
+      if (!cita) continue;
+      out.push({
+        tipo: "cifra_inconsistente",
+        gravedad: "alta",
+        bloques: [n],
+        bloque_de_la_cita: n,
+        cita,
+        observacion: `La cifra ${valor}${h.unidad ? ` ${h.unidad}` : ""} está en contradicción en el libro de hechos (${h.clave}) y el bloque ${n} la publica fuera de un marcador de pendiente.`,
+        sugerencia: "Sustituirla por un marcador de pendiente hasta que la emisora concilie las fuentes.",
+        afecta_texto_del_emisor: !!emisor.get(n),
+        origen: "codigo",
+      });
+    }
+  }
+  return out;
 }

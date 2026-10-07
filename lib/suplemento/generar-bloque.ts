@@ -24,7 +24,7 @@ import {
 } from "@/lib/suplemento/modelos";
 import {
   ESQUEMA_SALIDA,
-  ESQUEMA_SALIDA_HECHOS,
+  ESQUEMA_SALIDA_HECHOS_V2,
   PROMPT_VERSION,
   PROMPT_VERSION_HECHOS,
   capaEstable,
@@ -42,6 +42,9 @@ import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque }
 import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
 import { libroVigente } from "@/lib/suplemento/hechos/libro";
 import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
+import { rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
+import { aplicarGlosario, leerGlosario } from "@/lib/suplemento/glosario";
+import { defectosDeInsumo } from "@/lib/suplemento/prevuelo";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
@@ -235,6 +238,12 @@ export async function generarBloque(
   // ni adjuntos completos. Sin libro, el camino de antes.
   const libro = await libroVigente(supabase, doc.reporte_id);
   const insumo = libro ? await insumoDelBloque(supabase, libro.id, bloque, doc.editoriales_incluidos ?? null) : null;
+  // Glosario del emisor, matriz y defectos de insumo de nivel documento (Paso 5.4).
+  const glosario = leerGlosario(perfil?.glosario);
+  const matriz = (perfil?.matriz_riesgos ?? null) as Matriz;
+  const defectosDocumento = libro
+    ? defectosDeInsumo(((await supabase.from("libros_hechos").select("resumen").eq("id", libro.id).single()).data?.resumen ?? null) as never, matriz)
+    : [];
 
   // Evidencias de las solicitudes del bloque: contenido ya extraído y extractos
   // confirmados (captura sugerida, Paso 5). Contexto y citas, no cifras.
@@ -368,7 +377,7 @@ export async function generarBloque(
     : datos;
   // Después de la tabla: lo que ella cite también es fuente válida.
   const idsValidos = new Set(fuentesModelo.map((f) => f.id));
-  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null, insumo ? "hechos" : "datos");
+  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null, insumo ? "hechos" : "datos", glosario);
   // Lo que respalda una cifra: los datos entregados SIN el contenido crudo de
   // las evidencias, más la tabla, los requisitos y los nombres de la emisora.
   // En modo libro, solo los hechos validados o del Perfil (regla 10).
@@ -396,6 +405,8 @@ export async function generarBloque(
     fronteras: fronteraDe(bloque.numero),
     extension: opciones.extension ?? extensionDeBloque(bloque.numero),
     documentos: insumo ? null : documentosParaPrompt(adjuntos),
+    requisitos: insumo ? requisitos : null,
+    defectosDocumento,
   });
 
   // La marca de caché va en el ÚLTIMO bloque estable: el caché cubre todo el
@@ -451,7 +462,7 @@ export async function generarBloque(
           // a omitirlo, y deja el barrido de esfuerzo a un cambio de una línea
           // en ESFUERZO_POR_TIPO.
           effort: opciones.esfuerzo ?? esfuerzoDeTipo(bloque.tipo),
-          format: { type: "json_schema", schema: insumo ? ESQUEMA_SALIDA_HECHOS : ESQUEMA_SALIDA },
+          format: { type: "json_schema", schema: insumo ? ESQUEMA_SALIDA_HECHOS_V2 : ESQUEMA_SALIDA },
         },
         },
         // LÍMITE DURO. Sin él, un stream que se atasca deja la petición colgada
@@ -525,8 +536,23 @@ export async function generarBloque(
           parseada.texto
         )
       : [];
+    // Validadores deterministas del modo libro (Paso 5.4): rangos contra la
+    // matriz del Perfil y hechos de otros bloques reescritos en vez de remitidos.
+    const rangos = insumo ? rangosIncoherentes(parseada.texto, matriz) : [];
+    const reescritas = insumo
+      ? referenciasReescritas(
+          parseada.texto,
+          insumo.referencias,
+          [...insumo.hechos.map((h) => `${h.enunciado} ${h.extracto}`), ...requisitos.map((r) => r.descripcion), prefs.denominacionFormal ?? "", prefs.formaDeReferencia ?? ""],
+          [...glosario.flatMap((e) => [e.canonico, ...e.variantes]), prefs.denominacionFormal ?? "", prefs.nombreCorto ?? "", prefs.formaDeReferencia ?? ""]
+        )
+      : [];
+    const deterministas = [
+      ...rangos.map((r) => `Rango incoherente con la matriz de riesgos del Perfil: ${r}.`),
+      ...reescritas.map((r) => `El texto reescribe un hecho que desarrolla el bloque ${r.bloque} («${r.frase}…»): remite a él en una línea, sin repetir su contenido.`),
+    ];
 
-    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0 && cobertura.length === 0) {
+    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0 && cobertura.length === 0 && deterministas.length === 0) {
       salida = parseada;
       break;
     }
@@ -567,6 +593,11 @@ export async function generarBloque(
       );
     }
 
+    if (deterministas.length) {
+      reproches.push(
+        `${deterministas.join("\n")}\nCorrígelo: un rango que la fuente da mal no se publica (va un marcador de pendiente y una nota en «defecto_insumo»); lo que es de otro bloque se remite en una frase.`
+      );
+    }
     if (cobertura.length) {
       reproches.push(
         `La cobertura por subrequisito no pasa la verificación:\n${cobertura.map((e) => `- ${e}`).join("\n")}\n` +
@@ -582,7 +613,9 @@ export async function generarBloque(
         ? `El texto usa vocabulario de proceso interno: ${prohibidas.join(", ")}.`
         : marcadores.length
           ? `Marcadores mal formados: ${marcadores.join(" ")}.`
-          : `Cobertura inválida: ${cobertura.join("; ")}.`;
+          : cobertura.length
+            ? `Cobertura inválida: ${cobertura.join("; ")}.`
+            : `Validadores: ${deterministas.join(" ")}`;
 
     if (intento === 2) break;
     mensajes.push(
@@ -634,6 +667,19 @@ export async function generarBloque(
   // no justifica pagar otra llamada.
   const normalizado = normalizarDenominacion(salida.texto, prefs);
   salida.texto = normalizado.texto;
+  // Glosario (Paso 5.4): cada variante pasa a su canónico y la discrepancia va a
+  // las notas, en «defecto_insumo». Sin reintento: es una sustitución exacta.
+  if (insumo) {
+    const g = aplicarGlosario(salida.texto, glosario);
+    salida.texto = g.texto;
+    for (const c of g.cambios) {
+      (salida.notas_clasificadas ??= []).push({
+        cubeta: "defecto_insumo",
+        etiqueta: null,
+        texto: `Nombre unificado al del glosario: «${c.variante}» → «${c.canonico}» (${c.veces} ${c.veces === 1 ? "vez" : "veces"}). Las fuentes usan los dos nombres.`,
+      });
+    }
+  }
 
   if (!opciones.sinPersistir) {
     await persistirBloque(supabase, documentoId, bloque, doc.idioma, {
@@ -657,6 +703,7 @@ export async function generarBloque(
       promptVersion: insumo ? PROMPT_VERSION_HECHOS : PROMPT_VERSION,
       pendientes: salida.pendientes.map((p) => ({ campo: "bloque", motivo: p })),
       notasRevision: salida.notas_revision,
+      notasClasificadas: salida.notas_clasificadas ?? null,
       tabla,
       modelo,
       uso,
@@ -696,7 +743,11 @@ type SalidaModelo = {
   notas_revision: string[];
   /** Solo en modo libro. */
   cobertura?: Cobertura[];
+  /** Modo libro v2: notas con su cubeta (regla 14). */
+  notas_clasificadas?: NotaClasificada[];
 };
+
+type NotaClasificada = { cubeta: "decision_emisor" | "revelacion_voluntaria" | "defecto_insumo"; etiqueta: "contradiccion" | "por_conciliar" | null; texto: string };
 
 function resolverBloque(id: number | string): Bloque | null {
   const n = typeof id === "number" ? id : Number(id);
@@ -719,11 +770,17 @@ function leerSalida(m: Anthropic.Message): SalidaModelo | null {
     if (typeof o.texto !== "string") return null;
     const lista = (v: unknown) =>
       Array.isArray(v) ? (v.filter((x) => typeof x === "string") as string[]) : [];
+    // Notas en modo libro v2: objetos con su cubeta. Se conserva también la
+    // lista de textos, que es lo que usa el resto del flujo.
+    const clasificadas = Array.isArray(o.notas_revision)
+      ? (o.notas_revision.filter((x) => x && typeof x === "object" && typeof (x as NotaClasificada).texto === "string") as NotaClasificada[])
+      : [];
     return {
       texto: o.texto,
       fuentes_usadas: lista(o.fuentes_usadas),
       pendientes: lista(o.pendientes),
-      notas_revision: lista(o.notas_revision),
+      notas_revision: clasificadas.length ? clasificadas.map((n) => n.texto) : lista(o.notas_revision),
+      ...(clasificadas.length ? { notas_clasificadas: clasificadas } : {}),
       ...(Array.isArray(o.cobertura) ? { cobertura: o.cobertura as Cobertura[] } : {}),
     };
   } catch {
@@ -1136,6 +1193,8 @@ async function persistirBloque(
     textoDelEmisor?: boolean;
     /** Modo libro (Paso 5.3): cobertura por subrequisito y libro de origen. */
     cobertura?: unknown[] | null;
+    /** Modo libro v2: notas con cubeta y etiqueta; si vienen, sustituyen a `notasRevision`. */
+    notasClasificadas?: { cubeta: string; etiqueta: string | null; texto: string }[] | null;
     libroId?: string | null;
     promptVersion?: string;
   }
@@ -1169,7 +1228,9 @@ async function persistirBloque(
       // distinguirlos por clave es más barato que una columna nueva.
       pendientes: [
         ...d.pendientes,
-        ...d.notasRevision.map((n) => ({ campo: "nota_revision", motivo: n })),
+        ...(d.notasClasificadas?.length
+          ? d.notasClasificadas.map((n) => ({ campo: "nota_revision", motivo: n.texto, cubeta: n.cubeta, etiqueta: n.etiqueta }))
+          : d.notasRevision.map((n) => ({ campo: "nota_revision", motivo: n }))),
       ],
       modelo: d.modelo,
       prompt_version: d.promptVersion ?? PROMPT_VERSION,

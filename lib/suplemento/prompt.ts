@@ -33,7 +33,9 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // y documento sugerido dentro de «qué falta» del marcador (Paso 2).
 export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
-export const PROMPT_VERSION_HECHOS = "hechos-v1-2026-10-07";
+// v2: caché compartido (requisitos en la volátil), glosario, notas en tres
+// cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
+export const PROMPT_VERSION_HECHOS = "hechos-v2-2026-10-07";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -255,7 +257,11 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
 
 12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea. Si tu texto lo necesita, remite en una frase («como se describe en la sección de …») sin repetir su contenido ni sus cifras.
 
-13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Los requisitos que este bloque satisface», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.`;
+13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Requisitos de tu bloque», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.
+
+14. NOTAS EN TRES CUBETAS. Cada nota de \`notas_revision\` lleva su cubeta: «decision_emisor» (lo que la emisora tiene que decidir o conciliar: contradicciones entre fuentes —con etiqueta «contradiccion»— y la misma función atribuida a dos sujetos —etiqueta «por_conciliar»—), «revelacion_voluntaria» (lo que los hechos permitirían revelar sin que la norma lo exija) y «defecto_insumo» (lo que falta o está mal en las fuentes: un dato ausente, un nombre o una cifra que no cuadra). Los defectos de insumo que ya se reportaron a nivel documento (te llegan en «Defectos ya reportados») NO se repiten.
+
+15. NOMBRES: usa siempre el nombre canónico del glosario de la emisora para órganos, comités y direcciones, aunque el hecho use otro.`;
 
 const REGLAS_HECHOS = (() => {
   const ini = REGLAS.indexOf("9. EL DOCUMENTO DE RESPALDO");
@@ -334,8 +340,10 @@ export function capaEstable(
   requisitos: RequisitoNiif[],
   /** Editoriales que lleva el documento (null = documento anterior: los 40). */
   incluidos: string[] | null = null,
-  /** «hechos»: el bloque redacta desde el libro de hechos (reglas 9 a 13 propias). */
-  modo: "datos" | "hechos" = "datos"
+  /** «hechos»: el bloque redacta desde el libro de hechos (reglas 9 a 15 propias). */
+  modo: "datos" | "hechos" = "datos",
+  /** Glosario del emisor (modo libro): nombres canónicos y sus variantes. */
+  glosario: { canonico: string; variantes: string[] }[] = []
 ): { texto: string }[] {
   // La denominación se copia CARÁCTER POR CARÁCTER, incluido el artículo en
   // minúscula si lo trae: "la Compañía" no es lo mismo que "La Compañía", y el
@@ -366,8 +374,27 @@ export function capaEstable(
         "Este bloque no sale de la taxonomía: se redacta a partir de las tablas y del perfil de la emisora.",
       ].join("\n");
 
+  // CACHÉ COMPARTIDO (modo libro, Paso 5.4): la capa estable es IGUAL para
+  // todos los bloques del documento —reglas, ejemplo, índice, emisora y
+  // glosario—, así que el primero la escribe y los demás la leen. Los
+  // requisitos, que cambian de bloque a bloque, pasan a la capa volátil.
+  if (modo === "hechos") {
+    const conGlosario = glosario.length
+      ? [
+          emisor,
+          "",
+          "# Glosario de la emisora",
+          "",
+          "Nombres que se publican (a la izquierda) y otros nombres con que aparecen en las fuentes, que NO se usan:",
+          "",
+          ...glosario.map((e) => `- ${e.canonico}${e.variantes.length ? ` — no: ${e.variantes.join("; ")}` : ""}`),
+        ].join("\n")
+      : emisor;
+    return [{ texto: REGLAS_HECHOS }, { texto: EJEMPLO_ESTILO }, { texto: indiceDeBloques(incluidos) }, { texto: conGlosario }];
+  }
+
   return [
-    { texto: modo === "hechos" ? REGLAS_HECHOS : REGLAS },
+    { texto: REGLAS },
     { texto: EJEMPLO_ESTILO },
     { texto: indiceDeBloques(incluidos) },
     { texto: emisor },
@@ -390,6 +417,10 @@ export type DatosVolatiles = {
   extension: string;
   /** Extractos de los documentos del Perfil, ya seleccionados (adjuntos-bloque.ts). */
   documentos?: string | null;
+  /** Modo libro: los requisitos del bloque (salen de la capa estable para compartir el caché). */
+  requisitos?: { codigo: string; descripcion: string }[] | null;
+  /** Modo libro: defectos de insumo ya reportados a nivel documento (pre-vuelo). */
+  defectosDocumento?: string[];
 };
 
 /**
@@ -433,6 +464,19 @@ export function capaVolatil(v: DatosVolatiles): string {
     "",
     `Este bloque cubre: ${v.fronteras.cubre}`,
     "",
+    ...(v.requisitos
+      ? [
+          "# Requisitos de tu bloque",
+          "",
+          ...(v.requisitos.length
+            ? ["Cúbrelos todos; cada uno tiene su fila en `cobertura`.", "", ...v.requisitos.map((r) => `- ${r.codigo} — ${r.descripcion}`)]
+            : ["Este bloque no sale de la taxonomía: `cobertura` va vacía."]),
+          "",
+        ]
+      : []),
+    ...(v.defectosDocumento?.length
+      ? ["# Defectos ya reportados a nivel documento", "", "No los repitas en tus notas:", "", ...v.defectosDocumento.map((d) => `- ${d}`), ""]
+      : []),
     "Lo que NO te toca:",
     noCubre,
     "",
@@ -549,4 +593,26 @@ export const ESQUEMA_SALIDA_HECHOS = {
     },
   },
   required: [...ESQUEMA_SALIDA.required, "cobertura"],
+};
+
+/** Modo libro v2: notas con su cubeta (regla 14). */
+export const ESQUEMA_SALIDA_HECHOS_V2 = {
+  ...ESQUEMA_SALIDA_HECHOS,
+  properties: {
+    ...ESQUEMA_SALIDA_HECHOS.properties,
+    notas_revision: {
+      type: "array" as const,
+      description: "Juicios para el revisor de IRStrat, que NO se publican, cada uno en su cubeta.",
+      items: {
+        type: "object" as const,
+        properties: {
+          cubeta: { type: "string" as const, enum: ["decision_emisor", "revelacion_voluntaria", "defecto_insumo"] },
+          etiqueta: { anyOf: [{ type: "string" as const, enum: ["contradiccion", "por_conciliar"] }, { type: "null" as const }] },
+          texto: { type: "string" as const },
+        },
+        required: ["cubeta", "etiqueta", "texto"],
+        additionalProperties: false as const,
+      },
+    },
+  },
 };

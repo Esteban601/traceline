@@ -37,7 +37,13 @@ export type HechoDelBloque = {
   contradiccion: { grupo: string; explicacion: string } | null;
 };
 
-export type ReferenciaDelBloque = { texto: string; bloque: number; titulo: string };
+export type ReferenciaDelBloque = {
+  texto: string;
+  bloque: number;
+  titulo: string;
+  /** Enunciado y extracto completos: no van al modelo; los usa el validador de referencias reescritas. */
+  completo: string;
+};
 
 export type InsumoDelBloque = {
   libroId: string;
@@ -88,6 +94,7 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
       texto: h.enunciado.length > LARGO_REFERENCIA ? `${h.enunciado.slice(0, LARGO_REFERENCIA)}…` : h.enunciado,
       bloque: dueno,
       titulo: BLOQUES.find((b) => b.numero === dueno)!.titulo,
+      completo: `${h.enunciado} ${h.extracto}`,
     }));
 
   return { libroId, hechos, referencias };
