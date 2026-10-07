@@ -510,9 +510,11 @@ export type Database = {
           intentos: number
           modelo: string | null
           numero: number
+          origen_texto: string | null
           pendientes: Json
           prompt_version: string | null
           reclamado_en: string | null
+          restaurada_de: string | null
           seccion: string | null
           texto: string | null
           texto_del_emisor: boolean
@@ -539,9 +541,11 @@ export type Database = {
           intentos?: number
           modelo?: string | null
           numero: number
+          origen_texto?: string | null
           pendientes?: Json
           prompt_version?: string | null
           reclamado_en?: string | null
+          restaurada_de?: string | null
           seccion?: string | null
           texto?: string | null
           texto_del_emisor?: boolean
@@ -568,9 +572,11 @@ export type Database = {
           intentos?: number
           modelo?: string | null
           numero?: number
+          origen_texto?: string | null
           pendientes?: Json
           prompt_version?: string | null
           reclamado_en?: string | null
+          restaurada_de?: string | null
           seccion?: string | null
           texto?: string | null
           texto_del_emisor?: boolean
@@ -598,6 +604,105 @@ export type Database = {
           },
         ]
       }
+      documentos_bloques_versiones: {
+        Row: {
+          autor_id: string | null
+          costo_usd: number
+          created_at: string
+          documento_id: string
+          editado_en: string | null
+          editado_por: string | null
+          fuentes: Json
+          id: string
+          modelo: string | null
+          numero: number
+          origen: string
+          pendientes: Json
+          prompt_version: string | null
+          restaurada_de: string | null
+          tenant_id: string
+          texto: string
+          texto_del_emisor: boolean
+          version: number
+        }
+        Insert: {
+          autor_id?: string | null
+          costo_usd?: number
+          created_at?: string
+          documento_id: string
+          editado_en?: string | null
+          editado_por?: string | null
+          fuentes?: Json
+          id?: string
+          modelo?: string | null
+          numero: number
+          origen: string
+          pendientes?: Json
+          prompt_version?: string | null
+          restaurada_de?: string | null
+          tenant_id: string
+          texto: string
+          texto_del_emisor?: boolean
+          version: number
+        }
+        Update: {
+          autor_id?: string | null
+          costo_usd?: number
+          created_at?: string
+          documento_id?: string
+          editado_en?: string | null
+          editado_por?: string | null
+          fuentes?: Json
+          id?: string
+          modelo?: string | null
+          numero?: number
+          origen?: string
+          pendientes?: Json
+          prompt_version?: string | null
+          restaurada_de?: string | null
+          tenant_id?: string
+          texto?: string
+          texto_del_emisor?: boolean
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_bloques_versiones_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_versiones_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_generados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_versiones_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_versiones_restaurada_de_fkey"
+            columns: ["restaurada_de"]
+            isOneToOne: false
+            referencedRelation: "documentos_bloques_versiones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_versiones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_generados: {
         Row: {
           alivios: Json
@@ -620,6 +725,7 @@ export type Database = {
           tokens_salida: number
           updated_at: string
           version: number
+          versiones_aprobadas: Json | null
         }
         Insert: {
           alivios?: Json
@@ -642,6 +748,7 @@ export type Database = {
           tokens_salida?: number
           updated_at?: string
           version?: number
+          versiones_aprobadas?: Json | null
         }
         Update: {
           alivios?: Json
@@ -664,6 +771,7 @@ export type Database = {
           tokens_salida?: number
           updated_at?: string
           version?: number
+          versiones_aprobadas?: Json | null
         }
         Relationships: [
           {
