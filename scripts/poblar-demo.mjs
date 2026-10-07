@@ -181,6 +181,14 @@ const slugArchivo = (s) =>
 // =============================================================================
 
 const PERFIL = {
+  // Glosario del emisor (Paso 5.4): el nombre que se publica y los que aparecen
+  // en las fuentes. La dirección de crédito sale como «Crédito y Banca» en el
+  // organigrama y las áreas, y como «Dirección de Crédito» en los textos.
+  glosario: [
+    { canonico: "Dirección de Crédito y Banca", variantes: ["Dirección de Crédito", "Crédito y Banca"] },
+    { canonico: "Comité de Auditoría y Prácticas Societarias", variantes: ["Comité de Prácticas Societarias"] },
+    { canonico: "Comité de Sostenibilidad y Riesgos Climáticos", variantes: ["Comité de Sostenibilidad"] },
+  ],
   denominacion_formal: "Empresa Demo, S.A.B. de C.V.",
   nombre_corto: "Empresa Demo",
   forma_de_referencia: "la Compañía",

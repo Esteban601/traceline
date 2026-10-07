@@ -1543,6 +1543,7 @@ export type Database = {
           denominacion_formal: string | null
           entidad_que_informa: string | null
           forma_de_referencia: string | null
+          glosario: Json
           gobierno_texto: string | null
           hitos_corporativos: Json
           hitos_sostenibilidad: Json
@@ -1568,6 +1569,7 @@ export type Database = {
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
           forma_de_referencia?: string | null
+          glosario?: Json
           gobierno_texto?: string | null
           hitos_corporativos?: Json
           hitos_sostenibilidad?: Json
@@ -1593,6 +1595,7 @@ export type Database = {
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
           forma_de_referencia?: string | null
+          glosario?: Json
           gobierno_texto?: string | null
           hitos_corporativos?: Json
           hitos_sostenibilidad?: Json

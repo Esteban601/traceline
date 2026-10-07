@@ -80,6 +80,8 @@ export type PerfilData = {
   proceso_materialidad: string | null;
   modelo_negocio: string | null;
   gobierno_texto: string | null;
+  /** Glosario en texto, una línea por nombre: «Canónico = variante; variante». */
+  glosario: string;
   organigrama_path: string | null;
   horizontes: Horizonte[];
   hitos_corporativos: Hito[];
@@ -923,6 +925,23 @@ export function PerfilView({
               <p className="mt-1.5 text-xs text-muted">
                 Consejo, comités y de quién depende la función de sostenibilidad. NIIF S2 6
                 pide saber quién supervisa y con qué frecuencia.
+              </p>
+            </div>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor={`${uid}-glo`}>
+                Glosario de nombres
+              </label>
+              <textarea
+                id={`${uid}-glo`}
+                name="glosario"
+                rows={4}
+                defaultValue={p?.glosario ?? ""}
+                placeholder={"Dirección de Crédito y Banca = Dirección de Crédito; Crédito y Banca"}
+                className={cn(AREA, "mt-2 font-mono text-xs")}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Una línea por órgano, comité o dirección: el nombre que se publica, «=», y los otros nombres con que
+                aparece en los documentos, separados por «;». El suplemento usa siempre el primero.
               </p>
             </div>
             {guardar()}

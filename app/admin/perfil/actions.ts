@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente, type PerfilActual } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { PLAZOS } from "@/lib/perfil-emisor";
+import { glosarioDeTexto } from "@/lib/suplemento/glosario";
 import { procesarLecturaDeAdjunto } from "@/lib/evidencias/cola";
 
 // =============================================================================
@@ -257,9 +258,13 @@ export async function guardarModeloNegocio(_p: PerfilState, fd: FormData): Promi
 }
 
 export async function guardarGobierno(_p: PerfilState, fd: FormData): Promise<PerfilState> {
-  return guardar("gobierno", texto(fd, "tenant_id"), {
-    gobierno_texto: texto(fd, "gobierno_texto"),
-  });
+  const glosario = glosarioDeTexto(String(fd.get("glosario") ?? ""));
+  return guardar(
+    "gobierno",
+    texto(fd, "tenant_id"),
+    { gobierno_texto: texto(fd, "gobierno_texto"), glosario },
+    { glosario: glosario.length }
+  );
 }
 
 export async function guardarMaterialidad(_p: PerfilState, fd: FormData): Promise<PerfilState> {

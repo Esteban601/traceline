@@ -12,6 +12,7 @@ import {
   leerMatriz,
 } from "@/lib/perfil-emisor";
 import { PerfilView, type Adjunto, type PerfilData } from "./perfil-view";
+import { glosarioATexto, leerGlosario } from "@/lib/suplemento/glosario";
 import { urlAdjunto, urlOrganigrama } from "./actions";
 
 export const metadata: Metadata = { title: "Perfil del emisor" };
@@ -80,7 +81,7 @@ export default async function PerfilEmisorPage({
   const { data: fila } = await db
     .from("perfil_emisor")
     .select(
-      "denominacion_formal, nombre_corto, forma_de_referencia, entidad_que_informa, perimetro, carta_texto, carta_firmante, carta_cargo, proceso_materialidad, modelo_negocio, gobierno_texto, organigrama_path, horizontes, hitos_corporativos, hitos_sostenibilidad, cadena_valor, matriz_riesgos, actualizado_en, actualizado:perfiles_usuario!perfil_emisor_actualizado_por_fkey(nombre)"
+      "denominacion_formal, nombre_corto, forma_de_referencia, entidad_que_informa, perimetro, carta_texto, carta_firmante, carta_cargo, proceso_materialidad, modelo_negocio, gobierno_texto, glosario, organigrama_path, horizontes, hitos_corporativos, hitos_sostenibilidad, cadena_valor, matriz_riesgos, actualizado_en, actualizado:perfiles_usuario!perfil_emisor_actualizado_por_fkey(nombre)"
     )
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -98,6 +99,7 @@ export default async function PerfilEmisorPage({
         proceso_materialidad: fila.proceso_materialidad,
         modelo_negocio: fila.modelo_negocio,
         gobierno_texto: fila.gobierno_texto,
+        glosario: glosarioATexto(leerGlosario(fila.glosario)),
         organigrama_path: fila.organigrama_path,
         horizontes: leerHorizontes(fila.horizontes),
         hitos_corporativos: leerHitos(fila.hitos_corporativos),
