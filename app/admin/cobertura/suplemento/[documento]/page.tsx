@@ -8,6 +8,7 @@ import { limpiarNombreTenant } from "@/lib/tenants";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 import { CoherenciaPanel, type ObservacionVista, type PasadaVista } from "./coherencia-panel";
 import { RevisionView, type BloqueRevision } from "./revision-view";
+import type { VersionVista } from "./historial";
 
 export const metadata: Metadata = { title: "Revisión del suplemento" };
 
@@ -35,7 +36,7 @@ export default async function RevisionPage({
   const { data: doc } = await db
     .from("documentos_generados")
     .select(
-      "id, version, idioma, estado, regimen, alivios, costo_usd, tokens_entrada, tokens_salida, created_at, aprobado_en, reporte_id, tenant_id, aprobado:perfiles_usuario!documentos_generados_aprobado_por_fkey(nombre), generado:perfiles_usuario!documentos_generados_generado_por_fkey(nombre)"
+      "id, version, idioma, estado, regimen, alivios, versiones_aprobadas, costo_usd, tokens_entrada, tokens_salida, created_at, aprobado_en, reporte_id, tenant_id, aprobado:perfiles_usuario!documentos_generados_aprobado_por_fkey(nombre), generado:perfiles_usuario!documentos_generados_generado_por_fkey(nombre)"
     )
     .eq("id", documentoId)
     .maybeSingle();
@@ -67,6 +68,36 @@ export default async function RevisionPage({
       .order("numero"),
   ]);
 
+  // HISTORIAL (Paso 4): todas las versiones de los bloques, de la más reciente a
+  // la más antigua, con su autor.
+  const { data: filasVersiones } = await db
+    .from("documentos_bloques_versiones")
+    .select("id, numero, version, origen, texto, fuentes, prompt_version, modelo, created_at, restaurada_de, autor:perfiles_usuario!documentos_bloques_versiones_autor_id_fkey(nombre)")
+    .eq("documento_id", documentoId)
+    .order("version", { ascending: false });
+  const aprobadas = new Set(
+    Object.values((doc.versiones_aprobadas ?? {}) as Record<string, { id: string }>).map((v) => v.id)
+  );
+  const numeroDeVersion = new Map((filasVersiones ?? []).map((v) => [v.id, v.version]));
+  const versionesPorBloque = new Map<number, VersionVista[]>();
+  for (const v of filasVersiones ?? []) {
+    const lista = versionesPorBloque.get(v.numero) ?? [];
+    lista.push({
+      id: v.id,
+      version: v.version,
+      origen: v.origen as VersionVista["origen"],
+      texto: v.texto,
+      fuentes: ((v.fuentes ?? []) as { detalle: string }[]).map((f) => f.detalle),
+      promptVersion: v.prompt_version,
+      modelo: v.modelo,
+      autor: (v.autor as unknown as { nombre: string } | null)?.nombre ?? null,
+      creadaEn: v.created_at,
+      restauradaDe: v.restaurada_de ? numeroDeVersion.get(v.restaurada_de) ?? null : null,
+      aprobada: aprobadas.has(v.id),
+    });
+    versionesPorBloque.set(v.numero, lista);
+  }
+
   const bloques: BloqueRevision[] = (filas ?? []).map((b) => {
     const ps = (b.pendientes ?? []) as { campo: string; motivo: string }[];
     return {
@@ -86,6 +117,7 @@ export default async function RevisionPage({
       editadoEn: b.editado_en,
       editadoPor: (b.editado as unknown as { nombre: string } | null)?.nombre ?? null,
       textoDelEmisor: b.texto_del_emisor,
+      versiones: versionesPorBloque.get(b.numero) ?? [],
     };
   });
 

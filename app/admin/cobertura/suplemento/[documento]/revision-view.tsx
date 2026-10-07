@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { Tono } from "@/lib/estados";
 import { cambiarEstado, guardarTexto, type EstadoAccion } from "./actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Historial, type VersionVista } from "./historial";
 
 // =============================================================================
 // La vista de revisión. Un bloque a la vez, con todo lo que hace falta para
@@ -39,6 +41,8 @@ export type BloqueRevision = {
   editadoPor: string | null;
   /** Texto del emisor copiado literal de un adjunto, sin pasar por el modelo (Paso 3). */
   textoDelEmisor: boolean;
+  /** Historial del bloque, de la versión más reciente a la más antigua (Paso 4). */
+  versiones: VersionVista[];
 };
 
 const VACIO: EstadoAccion = { ok: false, error: null, mensaje: null };
@@ -299,6 +303,8 @@ function BloqueCard({
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
+  // A6 (Paso 4): el aviso antes de regenerar un bloque editado a mano.
+  const [avisoEdicion, setAvisoEdicion] = useState<string | null>(null);
   // `guardando` deshabilita el botón mientras la acción va en vuelo. Sin esto,
   // un clic impaciente de más dispara otra acción de servidor: es lo que dejó
   // tres entradas de bitácora para una sola edición del bloque 4.
@@ -322,7 +328,18 @@ function BloqueCard({
     return b.tokensSalida / (b.duracionMs / 1000);
   }
 
-  async function regenerar() {
+  /** Un bloque editado a mano pide confirmación antes de regenerarse. */
+  function pedirRegenerar() {
+    if (bloque.editadoEn) {
+      const fecha = new Date(bloque.editadoEn).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+      setAvisoEdicion(`Se perderá la edición de ${bloque.editadoPor ?? "una persona"} del día ${fecha}; queda en el historial.`);
+      return;
+    }
+    void regenerar(false);
+  }
+
+  async function regenerar(confirmarEdicion: boolean) {
+    setAvisoEdicion(null);
     setRegenerando(true);
     try {
       const res = await fetch(`/api/suplemento/${documentoId}/bloque/${bloque.numero}`, {
@@ -330,8 +347,13 @@ function BloqueCard({
         headers: { "content-type": "application/json" },
         // Regenerar a mano reinicia el contador de cortes: quien pulsa el botón
         // está empezando de nuevo, no reintentando la tanda anterior.
-        body: JSON.stringify({ reiniciarIntentos: true }),
+        body: JSON.stringify({ reiniciarIntentos: true, confirmarEdicion }),
       });
+      // El servidor también lo exige (la pantalla puede estar desactualizada).
+      if (res.status === 428) {
+        setAvisoEdicion((await res.json()).error ?? "Este bloque tiene una edición a mano; queda en el historial.");
+        return;
+      }
       if (res.status !== 202) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       toast.success(`Bloque ${bloque.numero} regenerándose. Recarga en un momento.`);
     } catch (e) {
@@ -423,11 +445,29 @@ function BloqueCard({
               </Button>
             )}
             {regenerable && bloque.estado !== "no_aplica" && bloque.estado !== "no_seleccionado" && (
-              <Button size="sm" variant="ghost" onClick={regenerar} loading={regenerando}>
+              <Button size="sm" variant="ghost" onClick={pedirRegenerar} loading={regenerando}>
                 Regenerar
               </Button>
             )}
           </div>
+
+          <ConfirmDialog
+            open={!!avisoEdicion}
+            titulo={`Regenerar el bloque ${bloque.numero}`}
+            descripcion={avisoEdicion ?? ""}
+            confirmar="Regenerar de todos modos"
+            tono="danger"
+            onConfirm={() => void regenerar(true)}
+            onCancel={() => setAvisoEdicion(null)}
+          />
+
+          <Historial
+            documentoId={documentoId}
+            numero={bloque.numero}
+            versiones={bloque.versiones}
+            textoActual={bloque.texto}
+            puedeRestaurar={editable && bloque.estado !== "generando"}
+          />
 
           {bloque.fuentes.length > 0 && (
             <Lista titulo="Fuentes">
