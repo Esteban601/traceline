@@ -34,7 +34,13 @@ export type HechoDelBloque = {
   tipo: string;
   valor: number | null;
   unidad: string | null;
-  contradiccion: { grupo: string; explicacion: string } | null;
+  periodo: string | null;
+  /**
+   * La decisión del libro sobre su grupo (Paso 5b): «excluyente» → marcador y
+   * nota; «compatible» o «secuencia» → se redacta con `conciliacion`. El bloque
+   * no decide contradicciones: recibe el veredicto.
+   */
+  contradiccion: { grupo: string; veredicto: "excluyente" | "compatible" | "secuencia"; explicacion: string; conciliacion: string | null } | null;
 };
 
 export type ReferenciaDelBloque = {
@@ -56,7 +62,7 @@ const LARGO_REFERENCIA = 160;
 export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, incluidos: string[] | null): Promise<InsumoDelBloque> {
   const { data } = await db
     .from("hechos")
-    .select("id, enunciado, extracto, fuente_detalle, fuente_id, tipo, valor, unidad, rango_fuente, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado")
+    .select("id, enunciado, extracto, fuente_detalle, fuente_id, tipo, valor, unidad, periodo, rango_fuente, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado, veredicto, conciliacion")
     .eq("libro_id", libroId)
     .neq("estado", "descartado");
   const seleccionado = (n: number) => bloqueSeleccionado(BLOQUES.find((b) => b.numero === n)!, incluidos);
@@ -83,7 +89,16 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
     tipo: h.tipo,
     valor: h.valor == null ? null : Number(h.valor),
     unidad: h.unidad,
-    contradiccion: h.grupo_conflicto ? { grupo: grupos.get(h.grupo_conflicto)!, explicacion: h.conflicto ?? "" } : null,
+    periodo: h.periodo,
+    contradiccion: h.grupo_conflicto
+      ? {
+          grupo: grupos.get(h.grupo_conflicto)!,
+          // Un libro anterior al 5b no traía veredicto: lo que marcó era excluyente.
+          veredicto: (h.veredicto ?? "excluyente") as "excluyente" | "compatible" | "secuencia",
+          explicacion: h.conflicto ?? "",
+          conciliacion: h.conciliacion,
+        }
+      : null,
   }));
 
   const referencias: ReferenciaDelBloque[] = (data ?? [])
@@ -118,7 +133,9 @@ export function validarCobertura(
   numero: number,
   idsHechos: Set<string>,
   incluidos: string[] | null,
-  texto: string
+  texto: string,
+  /** Rango de cada hecho entregado: un requisito «cubierto» solo con hechos narrativos no está cubierto (Paso 5b, punto 6). */
+  rangoDe?: Map<string, RangoFuente>
 ): string[] {
   const errores: string[] = [];
   const vistos = new Map<string, number>();
@@ -137,6 +154,9 @@ export function validarCobertura(
       if (!c.hechos.length) errores.push(`${c.codigo} «${c.estado}» sin hechos que lo sostengan`);
       const ajenos = c.hechos.filter((h) => !idsHechos.has(h));
       if (ajenos.length) errores.push(`${c.codigo} cita hechos que no se entregaron: ${ajenos.join(", ")}`);
+      if (rangoDe && c.hechos.length && c.hechos.every((h) => rangoDe.get(h) === "narrativo")) {
+        errores.push(`${c.codigo} «${c.estado}» solo con hechos narrativos (${c.hechos.join(", ")}): la Carta de la Dirección y los textos editoriales no sostienen un requisito por sí solos`);
+      }
     }
     if (c.estado === "asignado") {
       const destino = BLOQUES.find((b) => b.numero === c.bloque);

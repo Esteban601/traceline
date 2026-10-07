@@ -32,13 +32,15 @@ export type ResultadoPlantilla = {
 
 const P = (que: string, donde: string) => `[Pendiente: ${que} — ${donde}]`;
 
-function frasesDeAlivios(a: Alivios): string {
+/** `forma`: la forma de referencia del glosario de la emisora («la Compañía»), nunca «la Entidad» (Paso 5b, punto 12). */
+function frasesDeAlivios(a: Alivios, forma: string): string {
+  const sujeto = forma.charAt(0).toUpperCase() + forma.slice(1);
   const adoptados = ALIVIOS.filter((x) => a[x.clave]);
   if (adoptados.length === 0) {
-    return "La Entidad no se acoge a ninguna de las medidas transitorias previstas en el Apéndice C de la NIIF S2 ni en el Apéndice E de la NIIF S1.";
+    return `${sujeto} no se acoge a ninguna de las medidas transitorias previstas en el Apéndice C de la NIIF S2 ni en el Apéndice E de la NIIF S1.`;
   }
   const lista = adoptados.map((x) => `el párrafo ${x.clave}`).join(", ").replace(/, (el párrafo [^,]+)$/, " y $1");
-  return `La Entidad se acoge a las medidas transitorias previstas en ${lista}, cuyos efectos sobre la información presentada se describen en el apartado correspondiente de cada sección.`;
+  return `${sujeto} se acoge a las medidas transitorias previstas en ${lista}, cuyos efectos sobre la información presentada se describen en el apartado correspondiente de cada sección.`;
 }
 
 /** Bloque 2 · Presentación del informe. */
@@ -66,7 +68,7 @@ function basesPreparacion(c: CtxPlantilla): ResultadoPlantilla {
   } else if (c.regimen === "primer_anio") {
     regimenFrase = `El ejercicio ${c.ejercicio} es el primer periodo anual sobre el que ${c.formaDeReferencia} informa de conformidad con las Normas NIIF S1 y NIIF S2.`;
   } else {
-    regimenFrase = `${c.formaDeReferencia} informa de conformidad con las Normas NIIF S1 y NIIF S2 desde el ejercicio ${c.anioAdopcion}; el presente periodo es un ejercicio subsecuente.`;
+    regimenFrase = `${c.formaDeReferencia.charAt(0).toUpperCase()}${c.formaDeReferencia.slice(1)} informa de conformidad con las Normas NIIF S1 y NIIF S2 desde el ejercicio ${c.anioAdopcion}; el presente periodo es un ejercicio subsecuente.`;
   }
   return {
     texto: [
@@ -74,7 +76,7 @@ function basesPreparacion(c: CtxPlantilla): ResultadoPlantilla {
       "",
       regimenFrase,
       "",
-      frasesDeAlivios(c.alivios),
+      frasesDeAlivios(c.alivios, c.formaDeReferencia),
     ].join("\n"),
     pendientes,
   };
@@ -111,5 +113,5 @@ export const PLANTILLAS: Record<number, (c: CtxPlantilla) => ResultadoPlantilla>
 
 /** Para el log y la especificación: qué régimen produce qué frase en el bloque 3. */
 export function describeAlivios(a: Alivios, r: Regimen): string {
-  return `${REGIMEN_LABEL[r]} · ${frasesDeAlivios(a).slice(0, 60)}…`;
+  return `${REGIMEN_LABEL[r]} · ${frasesDeAlivios(a, "la emisora").slice(0, 60)}…`;
 }

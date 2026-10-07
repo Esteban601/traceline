@@ -46,7 +46,9 @@ export type BloqueRevision = {
   /** Historial del bloque, de la versión más reciente a la más antigua (Paso 4). */
   versiones: VersionVista[];
   /** Cobertura por subrequisito, si se generó desde el libro de hechos (Paso 5). */
-  cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string }[] | null;
+  cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string; requisito?: string | null }[] | null;
+  /** Modo revisión (Paso 5b): por oración del texto, los hechos que la sostienen. El texto publicable no las lleva. */
+  anclas: { oracion: string; hechos: { id: string; fuente: string }[] }[] | null;
 };
 
 /** Las tres cubetas de notas (Paso 5.4); las notas de antes, sin cubeta, al final. */
@@ -485,18 +487,44 @@ function BloqueCard({
           />
 
           {bloque.cobertura && bloque.cobertura.length > 0 && (
-            <Lista titulo="Cobertura por subrequisito" ayuda="Verificada por código contra los requisitos del bloque.">
+            <Lista
+              titulo="Cobertura por subrequisito · juicio del generador"
+              ayuda="Que el texto responda cada requisito es juicio del modelo, no una verificación. El texto del requisito viene del catálogo. El código solo comprueba que estén todos los requisitos del bloque y que los hechos citados existan."
+            >
               {bloque.cobertura.map((c) => (
-                <li key={c.codigo} className="flex flex-wrap items-baseline gap-2 text-sm" data-cobertura={c.codigo}>
-                  <span className="font-mono text-xs text-ink">{c.codigo}</span>
-                  <Chip tono={ESTADO_COBERTURA[c.estado]?.tono ?? "gris"}>{ESTADO_COBERTURA[c.estado]?.label ?? c.estado}</Chip>
-                  <span className="text-muted">
-                    {c.estado === "asignado" && c.bloque ? `bloque ${c.bloque}` : `${c.hechos.length} hecho(s)`}
-                    {c.comentario ? ` — ${c.comentario}` : ""}
-                  </span>
+                <li key={c.codigo} className="text-sm" data-cobertura={c.codigo}>
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-mono text-xs text-ink">{c.codigo}</span>
+                    <Chip tono={ESTADO_COBERTURA[c.estado]?.tono ?? "gris"}>{ESTADO_COBERTURA[c.estado]?.label ?? c.estado}</Chip>
+                    <span className="text-muted">
+                      {c.estado === "asignado" && c.bloque ? `bloque ${c.bloque}` : `${c.hechos.length} hecho(s)`}
+                      {c.comentario ? ` — ${c.comentario}` : ""}
+                    </span>
+                  </div>
+                  {c.requisito && <p className="mt-0.5 text-xs text-muted">{c.requisito}</p>}
                 </li>
               ))}
             </Lista>
+          )}
+
+          {bloque.anclas && bloque.anclas.length > 0 && (
+            <details className="rounded-lg border border-line px-3 py-2" data-anclas={bloque.numero}>
+              <summary className="cursor-pointer text-sm font-medium text-ink">Anclas por oración ({bloque.anclas.length})</summary>
+              <p className="mt-1 text-xs text-muted">Solo para revisión: el texto publicado no las lleva. Cada oración, con los hechos que la sostienen.</p>
+              <ol className="mt-2 space-y-2">
+                {bloque.anclas.map((a, i) => (
+                  <li key={i} className="text-sm">
+                    <span className="text-ink">{a.oracion}</span>{" "}
+                    {a.hechos.map((h) => (
+                      <span key={h.id} title={h.fuente} className="ml-1 rounded bg-teal/10 px-1 font-mono text-xs text-teal">
+                        [{h.id}]
+                      </span>
+                    ))}
+                    {a.hechos.length > 0 && <div className="text-xs text-muted">{a.hechos.map((h) => `${h.id}: ${h.fuente}`).join(" · ")}</div>}
+                  </li>
+                ))}
+              </ol>
+            </details>
           )}
 
           {bloque.fuentes.length > 0 && (

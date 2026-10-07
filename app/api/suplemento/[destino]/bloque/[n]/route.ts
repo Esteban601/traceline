@@ -55,10 +55,14 @@ export async function POST(
   let reiniciarIntentos = false;
   // A6 (Paso 4): regenerar un bloque editado a mano exige confirmarlo.
   let confirmarEdicion = false;
+  // Paso 5b: veredicto del validador cruzado para el reintento. Solo el equipo
+  // de IRStrat, y acotado: es texto que entra al prompt.
+  let correccion: string | undefined;
   try {
-    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean; confirmarEdicion?: boolean } | null;
+    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean; confirmarEdicion?: boolean; correccion?: unknown } | null;
     reiniciarIntentos = cuerpo?.reiniciarIntentos === true;
     confirmarEdicion = cuerpo?.confirmarEdicion === true;
+    if (typeof cuerpo?.correccion === "string" && cuerpo.correccion.trim() && esStaff(perfil)) correccion = cuerpo.correccion.trim().slice(0, 4000);
     if (cuerpo?.modelo) {
       if (!esModeloConocido(cuerpo.modelo)) {
         return NextResponse.json({ error: `Modelo desconocido: ${cuerpo.modelo}.` }, { status: 400 });
@@ -113,7 +117,7 @@ export async function POST(
     // excedido»— no se parece en nada a la causa.
     let r: Awaited<ReturnType<typeof generarBloque>>;
     try {
-      r = await generarBloque(db, resuelto.documentoId, numero, { modelo });
+      r = await generarBloque(db, resuelto.documentoId, numero, { modelo, correccion });
     } catch (e) {
       const detalle = motivoSeguro(e instanceof Error ? e.message : String(e));
       // Solo el mensaje, saneado: el objeto de error puede arrastrar cabeceras.

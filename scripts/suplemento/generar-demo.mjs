@@ -52,8 +52,8 @@ const abierto = await r.json();
 if (!r.ok) { console.error(`✗ generar: ${r.status} ${abierto.error}`); process.exit(1); }
 console.log(`documento ${abierto.documentoId.slice(0, 8)}… v${abierto.version} · por generar ${abierto.porGenerar.length} · no aplican ${abierto.noAplican.length} · no seleccionados ${abierto.noSeleccionados.length}`);
 
-async function uno(n) {
-  const p = await api("POST", `/api/suplemento/${abierto.documentoId}/bloque/${n}`, {});
+async function uno(n, correccion) {
+  const p = await api("POST", `/api/suplemento/${abierto.documentoId}/bloque/${n}`, correccion ? { correccion } : {});
   if (p.status !== 202 && p.status !== 409) return false;
   const hasta = Date.now() + 4 * 60 * 1000;
   while (Date.now() < hasta) {
@@ -70,6 +70,26 @@ const fallos = [];
 if (abierto.primero !== undefined && !(await uno(abierto.primero))) fallos.push(abierto.primero);
 await Promise.all(Array.from({ length: 3 }, async () => { for (;;) { const n = cola.shift(); if (n === undefined) return; if (!(await uno(n))) fallos.push(n); } }));
 for (const n of [...fallos]) { if (await uno(n)) fallos.splice(fallos.indexOf(n), 1); }
+
+// Validador cruzado (Paso 5b), como la pantalla: un reintento por bloque discrepante.
+const cruzado = { antes: null, despues: null, corregidos: [], costoPrimeraVersionUsd: 0 };
+{
+  const v1 = await api("GET", `/api/suplemento/${abierto.documentoId}/cruzado`);
+  if (v1.ok) {
+    const d = await v1.json();
+    cruzado.antes = d.discrepancias.map((x) => ({ bloque: x.bloque, tipo: x.tipo, otro: x.otroBloque, detalle: x.detalle.slice(0, 200) }));
+    // El reintento sobrescribe el costo del bloque: el de la primera versión se suma aparte.
+    const { data: previos } = await db.from("documentos_bloques").select("numero, costo_usd").eq("documento_id", abierto.documentoId).in("numero", Object.keys(d.correcciones).map(Number));
+    cruzado.costoPrimeraVersionUsd = Number((previos ?? []).reduce((a, b) => a + Number(b.costo_usd ?? 0), 0).toFixed(4));
+    for (const [n, correccion] of Object.entries(d.correcciones)) {
+      const ok = await uno(Number(n), correccion);
+      cruzado.corregidos.push({ bloque: Number(n), ok });
+    }
+    const v2 = await api("GET", `/api/suplemento/${abierto.documentoId}/cruzado`);
+    if (v2.ok) cruzado.despues = (await v2.json()).discrepancias.map((x) => ({ bloque: x.bloque, tipo: x.tipo, otro: x.otroBloque, detalle: x.detalle.slice(0, 200) }));
+  } else cruzado.error = v1.status;
+}
+console.log(`validador cruzado: ${cruzado.antes?.length ?? "—"} discrepancias → ${cruzado.corregidos.length} reintentos → ${cruzado.despues?.length ?? "—"}`);
 
 // Pasada de coherencia al final, como la pantalla (Paso 3): se espera y se cuenta.
 const pc = await api("POST", `/api/suplemento/${abierto.documentoId}/coherencia`, { origen: "fin_de_generacion" });
@@ -90,7 +110,7 @@ if (pc.status === 202) {
 const { data: bloques } = await db.from("documentos_bloques").select("numero, estado, costo_usd, tokens_entrada, tokens_salida, pendientes").eq("documento_id", abierto.documentoId);
 const porEstado = {};
 for (const b of bloques) porEstado[b.estado] = (porEstado[b.estado] ?? 0) + 1;
-const costo = bloques.reduce((s, b) => s + Number(b.costo_usd ?? 0), 0);
+const costo = bloques.reduce((s, b) => s + Number(b.costo_usd ?? 0), 0) + cruzado.costoPrimeraVersionUsd;
 
 fs.mkdirSync(carpeta, { recursive: true });
 const w = await api("GET", `/api/suplemento/${abierto.documentoId}/word`);
@@ -114,6 +134,7 @@ const resumen = {
   tokensSalida: bloques.reduce((s, b) => s + (b.tokens_salida ?? 0), 0),
   minutos: Number(((Date.now() - inicio) / 60000).toFixed(1)),
   coherencia,
+  cruzado,
   word: w.status,
 };
 fs.writeFileSync(path.join(carpeta, `${seleccion}.json`), JSON.stringify(resumen, null, 1));

@@ -5,6 +5,7 @@ import type { Database } from "@/lib/database.types";
 import { BLOQUES } from "@/lib/suplemento/bloques";
 import { MODELO_POR_DEFECTO, costoUsd, type ClaveModelo, type Esfuerzo, type Uso } from "@/lib/suplemento/modelos";
 import { numerosDe } from "@/lib/evidencias/fuente";
+import { validarCruzado } from "@/lib/suplemento/hechos/cruzado";
 
 // =============================================================================
 // PASADA DE COHERENCIA DEL SUPLEMENTO — encargo suplemento-calidad, Paso 3 (d).
@@ -312,7 +313,20 @@ export async function completarPasada(supabase: Cliente, pasadaId: string, docum
       .eq("tenant_id", doc!.tenant_id)
       .maybeSingle();
     const bloques = await bloquesDelDocumento(supabase, documentoId);
-    const deCodigo = await cifrasInconsistentes(supabase, documentoId, bloques);
+    // Lo que el validador cruzado (Paso 5b) sigue viendo después del reintento
+    // del orquestador también llega al revisor, con origen «codigo».
+    const cruzadas: Observacion[] = (await validarCruzado(supabase, documentoId)).map((d) => ({
+      tipo: d.tipo === "remision_a_plantilla" ? "referencia_cruzada" : "contradiccion",
+      gravedad: d.tipo === "remision_a_plantilla" ? "baja" : "alta",
+      bloques: [d.bloque, ...(d.otroBloque != null ? [d.otroBloque] : [])],
+      bloque_de_la_cita: d.bloque,
+      cita: d.cita,
+      observacion: `Validador cruzado: ${d.detalle}`,
+      sugerencia: d.correccion,
+      afecta_texto_del_emisor: false,
+      origen: "codigo",
+    }));
+    const deCodigo = [...(await cifrasInconsistentes(supabase, documentoId, bloques)), ...cruzadas];
     const r = await revisarCoherencia(
       bloques,
       { denominacionFormal: perfil?.denominacion_formal ?? null, formaDeReferencia: perfil?.forma_de_referencia ?? null },

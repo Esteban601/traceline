@@ -24,7 +24,7 @@ import {
 } from "@/lib/suplemento/modelos";
 import {
   ESQUEMA_SALIDA,
-  ESQUEMA_SALIDA_HECHOS_V2,
+  ESQUEMA_SALIDA_HECHOS_V3,
   PROMPT_VERSION,
   PROMPT_VERSION_HECHOS,
   capaEstable,
@@ -42,7 +42,8 @@ import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque }
 import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
 import { libroVigente } from "@/lib/suplemento/hechos/libro";
 import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
-import { rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
+import { cambiosNegados, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
+import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
 import { aplicarGlosario, leerGlosario } from "@/lib/suplemento/glosario";
 import { defectosDeInsumo } from "@/lib/suplemento/prevuelo";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
@@ -137,6 +138,17 @@ export type OpcionesGeneracion = {
    * cifras rechaza una cifra que solo está en el documento de respaldo.
    */
   salidaDePrueba?: { texto: string; fuentes_usadas: string[] };
+  /**
+   * Modo libro (Paso 5b): veredicto del validador cruzado sobre la versión
+   * anterior del bloque —p. ej. «el bloque 18 afirma la fecha de creación que
+   * aquí quedó pendiente»—. Va al final de la capa volátil.
+   */
+  correccion?: string;
+  /**
+   * Medición (Paso 5b, punto 9): recibe el tamaño en caracteres de cada bloque
+   * estable y de cada sección («# …») de la capa volátil, antes de la llamada.
+   */
+  medir?: (m: { estable: number[]; volatil: Record<string, number>; datos: Record<string, number> }) => void;
 };
 
 
@@ -354,7 +366,8 @@ export async function generarBloque(
   // la tabla cite y el reporte; los datos, sus hechos y referencias de una línea.
   const fuentesModelo = insumo
     ? [
-        ...insumo.hechos.map((h) => ({ id: h.id, tipo: "hecho" as const, detalle: `${h.fuente} — «${h.extracto.length > 140 ? `${h.extracto.slice(0, 140)}…` : h.extracto}»` })),
+        // Sin extracto: ya va en `hechos` (Paso 5b, punto 9: no pagar dos veces lo mismo).
+        ...insumo.hechos.map((h) => ({ id: h.id, tipo: "hecho" as const, detalle: h.fuente })),
         ...fuentes.filter((f) => f.id.startsWith("reporte:") || (tabla ?? "").includes(f.id)),
       ]
     : fuentes;
@@ -370,9 +383,22 @@ export async function generarBloque(
           extracto: h.extracto,
           fuente: h.fuente,
           ...(h.valor != null ? { valor: h.valor, unidad: h.unidad } : {}),
-          ...(h.contradiccion ? { contradiccion: h.contradiccion } : {}),
+          ...(h.contradiccion ? { contradiccion: h.contradiccion.grupo } : {}),
         })),
-        referencias: insumo.referencias,
+        // Una vez por grupo, no una por hecho (Paso 5b, punto 9).
+        contradicciones: Object.fromEntries(
+          insumo.hechos
+            .filter((h) => h.contradiccion)
+            .map((h) => [
+              h.contradiccion!.grupo,
+              {
+                veredicto: h.contradiccion!.veredicto,
+                ...(h.contradiccion!.veredicto === "excluyente" ? { explicacion: h.contradiccion!.explicacion } : { conciliacion: h.contradiccion!.conciliacion }),
+              },
+            ])
+        ),
+        // De una línea: `completo` es para el validador, no para el modelo.
+        referencias: insumo.referencias.map((r) => ({ texto: r.texto, bloque: r.bloque, titulo: r.titulo })),
       }
     : datos;
   // Después de la tabla: lo que ella cite también es fuente válida.
@@ -409,6 +435,19 @@ export async function generarBloque(
     defectosDocumento,
   });
 
+  if (opciones.medir) {
+    const secciones: Record<string, number> = {};
+    let actual = "(inicio)";
+    for (const linea of volatil.split("\n")) {
+      if (/^# /.test(linea)) actual = linea.slice(2, 60);
+      secciones[actual] = (secciones[actual] ?? 0) + linea.length + 1;
+    }
+    const datosPorClave = Object.fromEntries(
+      Object.entries(datosModelo as Record<string, unknown>).map(([k, v]) => [`${k}${Array.isArray(v) ? ` (${v.length})` : ""}`, JSON.stringify(v ?? null).length])
+    );
+    opciones.medir({ estable: estables.map((b) => b.texto.length), volatil: secciones, datos: datosPorClave });
+  }
+
   // La marca de caché va en el ÚLTIMO bloque estable: el caché cubre todo el
   // prefijo hasta ese punto, así que marcar el último marca los tres.
   const system = estables.map((b, i) => ({
@@ -434,7 +473,16 @@ export async function generarBloque(
 
   // --- 4. Llamada, con un reintento si cita una fuente inexistente -----------
   const client = new Anthropic({ apiKey });
-  const mensajes: Anthropic.MessageParam[] = [{ role: "user", content: volatil }];
+  const mensajes: Anthropic.MessageParam[] = [
+    {
+      role: "user",
+      content: opciones.correccion && insumo
+        ? `${volatil}\n\n# Veredicto del validador cruzado sobre tu versión anterior\n\n${opciones.correccion}\n\nCorrígelo en esta versión.`
+        : volatil,
+    },
+  ];
+  // Anclas por oración (modo libro): se separan del texto antes de validar.
+  let anclasFinales: Ancla[] | null = null;
   const inicio = Date.now();
   let uso: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
   let salida: SalidaModelo | null = null;
@@ -462,7 +510,7 @@ export async function generarBloque(
           // a omitirlo, y deja el barrido de esfuerzo a un cambio de una línea
           // en ESFUERZO_POR_TIPO.
           effort: opciones.esfuerzo ?? esfuerzoDeTipo(bloque.tipo),
-          format: { type: "json_schema", schema: insumo ? ESQUEMA_SALIDA_HECHOS_V2 : ESQUEMA_SALIDA },
+          format: { type: "json_schema", schema: insumo ? ESQUEMA_SALIDA_HECHOS_V3 : ESQUEMA_SALIDA },
         },
         },
         // LÍMITE DURO. Sin él, un stream que se atasca deja la petición colgada
@@ -519,9 +567,26 @@ export async function generarBloque(
       continue;
     }
 
+    // Modo libro: las anclas [hN] salen del texto antes de validarlo; sus ids
+    // cuentan como fuentes usadas.
+    let anclasDesconocidas: string[] = [];
+    let soloNarrativas: string[] = [];
+    let anclas: Ancla[] = [];
+    if (insumo) {
+      const sep = separarAnclas(parseada.texto);
+      parseada.texto = sep.texto;
+      anclas = sep.anclas;
+      anclasDesconocidas = sep.ids.filter((id) => !idsValidos.has(id));
+      for (const id of sep.ids) if (idsValidos.has(id) && !parseada.fuentes_usadas.includes(id)) parseada.fuentes_usadas.push(id);
+      const rango = new Map(insumo.hechos.map((h) => [h.id, h.rango]));
+      if (bloque.clase === "normativo") {
+        soloNarrativas = anclas.filter((a) => a.ids.length && a.ids.every((id) => rango.get(id) === "narrativo")).map((a) => a.oracion.slice(0, 120));
+      }
+    }
+
     // Dos rechazos, en orden de gravedad. El primero dice que el texto puede
     // estar inventado; el segundo, que no es publicable.
-    const inventadas = parseada.fuentes_usadas.filter((f) => !idsValidos.has(f));
+    const inventadas = [...parseada.fuentes_usadas.filter((f) => !idsValidos.has(f)), ...anclasDesconocidas.filter((id) => !parseada.fuentes_usadas.includes(id))];
     const prohibidas = vocabularioProhibidoEn(parseada.texto);
     const marcadores = marcadoresMalFormados(parseada.texto);
     const sinRespaldo = cifrasSinRespaldo(parseada.texto, corpus, aniosPermitidos);
@@ -533,7 +598,8 @@ export async function generarBloque(
           bloque.numero,
           new Set(insumo.hechos.map((h) => h.id)),
           doc.editoriales_incluidos ?? null,
-          parseada.texto
+          parseada.texto,
+          new Map(insumo.hechos.map((h) => [h.id, h.rango]))
         )
       : [];
     // Validadores deterministas del modo libro (Paso 5.4): rangos contra la
@@ -547,13 +613,26 @@ export async function generarBloque(
           [...glosario.flatMap((e) => [e.canonico, ...e.variantes]), prefs.denominacionFormal ?? "", prefs.nombreCorto ?? "", prefs.formaDeReferencia ?? ""]
         )
       : [];
+    // Paso 5b: cambios de proceso negados, incisos mal numerados y oraciones
+    // sostenidas solo por la Carta de la Dirección.
+    const negados = insumo ? cambiosNegados(parseada.texto, insumo.hechos, ens.reporte.ejercicio) : [];
+    const incisos = insumo
+      ? incisosInexactos(
+          [parseada.texto, ...parseada.notas_revision, ...(parseada.cobertura ?? []).map((c) => c.comentario)],
+          requisitos.map((r) => r.codigo)
+        )
+      : [];
     const deterministas = [
+      ...negados.map((h) => `El texto dice que no hubo cambios respecto del periodo anterior, pero este hecho del bloque describe un cambio en el ejercicio: ${h}. Revela el cambio.`),
+      ...incisos.map((i) => `«${i}» no es el código de ningún requisito de este bloque: nombra el inciso con el código exacto de «Requisitos de tu bloque».`),
+      ...soloNarrativas.map((o) => `«${o}…» se sostiene solo con un hecho narrativo (Carta de la Dirección): acompáñalo de un hecho de otro rango que diga lo mismo o quítalo.`),
       ...rangos.map((r) => `Rango incoherente con la matriz de riesgos del Perfil: ${r}.`),
       ...reescritas.map((r) => `El texto reescribe un hecho que desarrolla el bloque ${r.bloque} («${r.frase}…»): remite a él en una línea, sin repetir su contenido.`),
     ];
 
     if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0 && cobertura.length === 0 && deterministas.length === 0) {
       salida = parseada;
+      anclasFinales = insumo ? anclas : null;
       break;
     }
 
@@ -595,7 +674,7 @@ export async function generarBloque(
 
     if (deterministas.length) {
       reproches.push(
-        `${deterministas.join("\n")}\nCorrígelo: un rango que la fuente da mal no se publica (va un marcador de pendiente y una nota en «defecto_insumo»); lo que es de otro bloque se remite en una frase.`
+        `${deterministas.join("\n")}\nCorrígelo: un rango que la fuente da mal no se publica (va un marcador de pendiente y una nota en «defecto_insumo»); lo que es de otro bloque se remite en una frase; los demás, como dice cada línea.`
       );
     }
     if (cobertura.length) {
@@ -617,6 +696,8 @@ export async function generarBloque(
             ? `Cobertura inválida: ${cobertura.join("; ")}.`
             : `Validadores: ${deterministas.join(" ")}`;
 
+    // El reintento se paga: queda en el log con su motivo para poder medirlo.
+    console.info(`[suplemento] bloque ${bloque.numero} rechazado en el intento ${intento}: ${ultimoError.slice(0, 300)}`);
     if (intento === 2) break;
     mensajes.push(
       { role: "assistant", content: JSON.stringify(parseada) },
@@ -712,6 +793,15 @@ export async function generarBloque(
         ? (salida.cobertura ?? []).map((c) => ({ ...c, hechos: c.hechos.map((id) => insumo.hechos.find((h) => h.id === id)?.hechoId ?? id) }))
         : null,
       libroId: insumo?.libroId ?? null,
+      anclas: anclasFinales
+        ? anclasFinales.map((a) => ({
+            oracion: a.oracion,
+            hechos: a.ids.map((id) => {
+              const h = insumo?.hechos.find((x) => x.id === id);
+              return { id, hecho: h?.hechoId ?? null, fuente: h ? `${h.fuente} — «${h.extracto.slice(0, 160)}»` : id };
+            }),
+          }))
+        : null,
       promptVersion: insumo ? PROMPT_VERSION_HECHOS : PROMPT_VERSION,
       pendientes: salida.pendientes.map((p) => ({ campo: "bloque", motivo: p })),
       notasRevision: salida.notas_revision,
@@ -1208,6 +1298,8 @@ async function persistirBloque(
     /** Modo libro v2: notas con cubeta y etiqueta; si vienen, sustituyen a `notasRevision`. */
     notasClasificadas?: { cubeta: string; etiqueta: string | null; texto: string }[] | null;
     libroId?: string | null;
+    /** Modo libro v3 (Paso 5b): anclas por oración, solo para la revisión. */
+    anclas?: unknown[] | null;
     promptVersion?: string;
   }
 ): Promise<void> {
@@ -1247,6 +1339,7 @@ async function persistirBloque(
       modelo: d.modelo,
       prompt_version: d.promptVersion ?? PROMPT_VERSION,
       cobertura: (d.cobertura ?? null) as never,
+      anclas: (d.anclas ?? null) as never,
       libro_id: d.libroId ?? null,
       tokens_entrada: d.uso.entrada,
       tokens_entrada_cache_escritura: d.uso.cacheEscritura,

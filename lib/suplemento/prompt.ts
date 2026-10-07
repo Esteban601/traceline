@@ -35,7 +35,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v2-2026-10-07";
+export const PROMPT_VERSION_HECHOS = "hechos-v3-2026-10-07";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -249,19 +249,28 @@ En \`notas_revision\` sí puedes hablar con vocabulario interno: ese campo no se
 // referencias de una línea y cobertura por subrequisito. Responden a la revisión
 // externa del 7 de octubre de 2026 (duplicación, procedencia, inferencias).
 // -----------------------------------------------------------------------------
-const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este bloque: cada uno trae un id (h1, h2…), su rango de fuente, un enunciado, el extracto literal de la fuente y la fuente. Todo lo que el texto afirme sale de un hecho, y su id va en \`fuentes_usadas\`. Lo que no dice ningún hecho no se escribe: ni conclusiones («el Consejo aprueba las políticas de riesgos» no permite decir que existe una política de riesgo climático), ni causas, ni calificativos, ni el desarrollo de una sigla, ni contexto que no traiga un hecho. Puedes juntar dos hechos en una frase; no derivar de ellos algo que ninguno dice. Si un requisito necesita algo que ningún hecho dice, va un marcador de pendiente.
+const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este bloque: cada uno trae un id (h1, h2…), su rango de fuente, un enunciado, el extracto literal de la fuente y la fuente. Todo lo que el texto afirme sale de un hecho, y su id va en \`fuentes_usadas\`. Lo que no dice ningún hecho no se escribe: ni conclusiones («el Consejo aprueba las políticas de riesgos» no permite decir que existe una política de riesgo climático), ni causas, ni calificativos, ni el desarrollo de una sigla, ni contexto que no traiga un hecho. Puedes juntar dos hechos en una frase; no derivar de ellos algo que ninguno dice. Si un requisito necesita algo que ningún hecho dice, va un marcador de pendiente. NO HAY OBLIGACIÓN DE USAR TODOS LOS HECHOS: usa solo los que respondan a un requisito de tu bloque; los demás, ignóralos (no los publiques ni los comentes en notas). Que un hecho esté verificado no lo hace pertinente.
 
-10. JERARQUÍA DE FUENTES: validado > perfil > adjunto. Si dos hechos dicen lo mismo, cita el de mayor rango. Las CIFRAS salen solo de hechos validados o del perfil, o de la tabla ya armada; una cifra que solo trae un hecho de adjunto no se publica: va un marcador de pendiente y una nota.
+10. JERARQUÍA DE FUENTES: validado > perfil > adjunto > narrativo. Si dos hechos dicen lo mismo, cita el de mayor rango. Un hecho NARRATIVO (Carta de la Dirección, textos editoriales) no sostiene una afirmación por sí solo: solo acompaña a un hecho de otro rango que diga lo mismo; si es el único que lo dice, no se publica. Las CIFRAS salen solo de hechos validados o del perfil, o de la tabla ya armada; una cifra que solo trae un hecho de adjunto no se publica: va un marcador de pendiente y una nota.
 
-11. CONTRADICCIONES: los hechos con grupo de contradicción (c1, c2…) no se resuelven. No elijas ninguna versión ni la redactes como cierta: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y en \`notas_revision\` las dos versiones con sus fuentes.
+11. CONTRADICCIONES: las decide el libro, no tú. Un hecho con \`contradiccion\` trae el nombre de su grupo (c1, c2…), y en \`contradicciones\` está el veredicto de cada grupo:
+   · «excluyente»: las versiones no pueden ser ciertas a la vez. No elijas ninguna: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y una nota «decision_emisor» con etiqueta «contradiccion» con las dos versiones y sus fuentes.
+   · «compatible» o «secuencia»: son ciertas a la vez (el Comité propone y el Consejo aprueba; la propuesta, la creación y la instalación son momentos de una misma cronología). Redacta con la \`conciliacion\` que trae —puedes ajustar la sintaxis, no el contenido— y deja una nota breve «decision_emisor» con etiqueta «por_conciliar». NO va marcador.
+   Los hechos sin \`contradiccion\` no están en conflicto: no declares contradicciones por tu cuenta ni pongas pendientes por diferencias entre ellos.
 
 12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea. Si tu texto lo necesita, remite en una frase («como se describe en la sección de …») sin repetir su contenido ni sus cifras.
 
 13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Requisitos de tu bloque», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.
 
-14. NOTAS EN TRES CUBETAS. Cada nota de \`notas_revision\` lleva su cubeta: «decision_emisor» (lo que la emisora tiene que decidir o conciliar: contradicciones entre fuentes —con etiqueta «contradiccion»— y la misma función atribuida a dos sujetos —etiqueta «por_conciliar»—), «revelacion_voluntaria» (lo que los hechos permitirían revelar sin que la norma lo exija) y «defecto_insumo» (lo que falta o está mal en las fuentes: un dato ausente, un nombre o una cifra que no cuadra). Los defectos de insumo que ya se reportaron a nivel documento (te llegan en «Defectos ya reportados») NO se repiten.
+14. NOTAS EN TRES CUBETAS. Cada nota de \`notas_revision\` lleva su cubeta: «decision_emisor» (lo que la emisora tiene que decidir o conciliar: contradicciones entre fuentes —con etiqueta «contradiccion»— y la misma función atribuida a dos sujetos —etiqueta «por_conciliar»—), «revelacion_voluntaria» (lo que los hechos permitirían revelar sin que la norma lo exija) y «defecto_insumo» (lo que falta o está mal en las fuentes: un dato ausente, un nombre o una cifra que no cuadra). Los defectos de insumo que ya se reportaron a nivel documento (te llegan en «Defectos ya reportados») NO se repiten; un defecto de insumo va solo si es de un hecho de este bloque, y a lo sumo dos. Notas cortas: una o dos oraciones.
 
-15. NOMBRES: usa siempre el nombre canónico del glosario de la emisora para órganos, comités y direcciones, aunque el hecho use otro.`;
+15. NOMBRES: usa siempre el nombre canónico del glosario de la emisora para órganos, comités y direcciones, aunque el hecho use otro.
+
+16. ANCLAS: cierra cada oración del texto que afirme algo con los ids de los hechos que la sostienen, entre corchetes y antes del punto: «… en su sesión del 27 de febrero de 2025 [h3][h5].». Una oración que solo lleva un marcador de pendiente o una remisión no lleva ancla. El código retira las anclas del texto publicable y las muestra al revisor; un id que no se entregó rechaza la respuesta.
+
+17. INCISOS: en el texto, las notas y la cobertura, un inciso de la norma se nombra solo con el código exacto de «Requisitos de tu bloque» (p. ej. «NIIF S2 25 (a)(i)a(v)»), nunca con un número de inciso que no esté en esa lista.
+
+18. CAMBIOS: no escribas que un proceso «no registró cambios» respecto del periodo anterior si alguno de tus hechos describe un cambio en el ejercicio («integró», «incorporó», «creó en 2025»): ese cambio es lo que se revela.`;
 
 const REGLAS_HECHOS = (() => {
   const ini = REGLAS.indexOf("9. EL DOCUMENTO DE RESPALDO");
@@ -595,6 +604,31 @@ export const ESQUEMA_SALIDA_HECHOS = {
   required: [...ESQUEMA_SALIDA.required, "cobertura"],
 };
 
+/** Modo libro v3 (Paso 5b): anclas en el texto y cobertura compacta. */
+export const ESQUEMA_SALIDA_HECHOS_V3_PARCIAL = {
+  texto: {
+    type: "string" as const,
+    description:
+      "La revelación de la emisora. Prosa corrida, sin markdown, sin vocabulario de proceso interno. Cada oración que afirma algo cierra con sus anclas [h1][h2] antes del punto (regla 16); el código las retira al publicar. Los huecos van como [Pendiente: qué falta — de qué solicitud o campo].",
+  },
+  cobertura: {
+    type: "array" as const,
+    description: "Una fila por requisito del bloque, con su código exacto.",
+    items: {
+      type: "object" as const,
+      properties: {
+        codigo: { type: "string" as const },
+        estado: { type: "string" as const, enum: ["cubierto", "parcial", "pendiente", "asignado"] },
+        bloque: { anyOf: [{ type: "integer" as const }, { type: "null" as const }] },
+        hechos: { type: "array" as const, items: { type: "string" as const } },
+        comentario: { type: "string" as const, description: "Vacío si «cubierto» o «asignado». Si «parcial» o «pendiente», qué falta, en 15 palabras o menos." },
+      },
+      required: ["codigo", "estado", "bloque", "hechos", "comentario"],
+      additionalProperties: false as const,
+    },
+  },
+};
+
 /** Modo libro v2: notas con su cubeta (regla 14). */
 export const ESQUEMA_SALIDA_HECHOS_V2 = {
   ...ESQUEMA_SALIDA_HECHOS,
@@ -615,4 +649,9 @@ export const ESQUEMA_SALIDA_HECHOS_V2 = {
       },
     },
   },
+};
+
+export const ESQUEMA_SALIDA_HECHOS_V3 = {
+  ...ESQUEMA_SALIDA_HECHOS_V2,
+  properties: { ...ESQUEMA_SALIDA_HECHOS_V2.properties, ...ESQUEMA_SALIDA_HECHOS_V3_PARCIAL },
 };

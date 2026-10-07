@@ -112,3 +112,53 @@ export function referenciasReescritas(
   }
   return out;
 }
+
+// -----------------------------------------------------------------------------
+// CAMBIOS DE PROCESO (Paso 5b, punto 7). Si el texto afirma que los procesos no
+// cambiaron respecto del periodo anterior, ninguno de los hechos propios del
+// bloque puede describir un cambio fechado en el ejercicio («integró», «creó en
+// 2025»). Habría cazado el bloque 27 de la segunda revisión.
+// -----------------------------------------------------------------------------
+
+const SIN_CAMBIOS =
+  /\b(?:sin cambios|no (?:se )?(?:registraron|registró|presentaron|presentó|hubo|tuvieron|tuvo|realizaron|realizó|experimentaron) (?:ningún |ningunos? )?cambios?|no (?:han |ha )?(?:cambiado|sido modificad[oa]s?)|se mantuvieron sin modificaciones)\b/i;
+const VERBO_CAMBIO =
+  /(?<!\p{L})(?:integr[óo]|incorpor[óo]|cre[óo]|implement[óo]|adopt[óo]|modific[óo]|actualiz[óo]|ampli[óo]|sustituy[óo]|estableci[óo]|introdujo|redise[ñn][óo]|reemplaz[óo]|integraron|incorporaron|implementaron|adoptaron|modificaron|actualizaron)(?!\p{L})/iu;
+
+/** Hechos propios que describen un cambio en el ejercicio, si el texto dice que no hubo cambios. */
+export function cambiosNegados(texto: string, hechos: { id: string; enunciado: string; extracto: string; periodo?: string | null }[], ejercicio: number): string[] {
+  const limpio = texto.replace(/\[Pendiente:[^\]]*\]/g, " ");
+  if (!SIN_CAMBIOS.test(limpio)) return [];
+  const anio = String(ejercicio);
+  return hechos
+    .filter((h) => {
+      const t = `${h.enunciado} ${h.extracto}`;
+      return VERBO_CAMBIO.test(t) && (h.periodo === anio || t.includes(anio) || /durante el ejercicio/i.test(t));
+    })
+    .map((h) => `${h.id}: ${h.enunciado.slice(0, 160)}`);
+}
+
+// -----------------------------------------------------------------------------
+// NÚMEROS DE INCISO (Paso 5b, punto 3). El bloque 27 nombró «25(a)(iii)» al
+// análisis de escenarios, que es 25(a)(ii); el catálogo agrupa los incisos (i) a
+// (v) en un solo código. Un inciso con número romano solo puede citarse si es,
+// tal cual, el código de un requisito del bloque; si el párrafo y la letra son
+// de un requisito del bloque y el número no coincide con ningún código, se
+// rechaza y se pide el código exacto.
+// -----------------------------------------------------------------------------
+
+const INCISO = /\b(\d{1,3})\s?\(([a-z])\)\s?\(([ivx]{1,5})\)/g;
+const sinEspacios = (c: string) => c.replace(/^NIIF\s*S[12]\s*/i, "").replace(/\s+/g, "").toLowerCase();
+
+export function incisosInexactos(textos: string[], requisitos: string[]): string[] {
+  const exactos = new Set(requisitos.map(sinEspacios));
+  const parrafos = new Set(requisitos.map((r) => sinEspacios(r).match(/^\d{1,3}\([a-z]\)/)?.[0]).filter(Boolean));
+  const out = new Set<string>();
+  for (const t of textos) {
+    for (const m of t.matchAll(INCISO)) {
+      const cita = `${m[1]}(${m[2]})(${m[3]})`;
+      if (parrafos.has(`${m[1]}(${m[2]})`) && !exactos.has(cita.toLowerCase())) out.add(m[0]);
+    }
+  }
+  return [...out];
+}

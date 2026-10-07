@@ -62,7 +62,7 @@ export default async function RevisionPage({
     db
       .from("documentos_bloques")
       .select(
-        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, texto_del_emisor, cobertura, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
+        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, texto_del_emisor, cobertura, anclas, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
       )
       .eq("documento_id", documentoId)
       .order("numero"),
@@ -98,6 +98,16 @@ export default async function RevisionPage({
     versionesPorBloque.set(v.numero, lista);
   }
 
+  // Cobertura (Paso 5b): el texto de cada requisito lo pone la pantalla, desde
+  // el catálogo; el modelo solo da el código y su juicio.
+  const codigosCobertura = [
+    ...new Set((filas ?? []).flatMap((b) => ((b.cobertura ?? []) as { codigo: string }[]).map((c) => c.codigo))),
+  ];
+  const { data: requisitosCatalogo } = codigosCobertura.length
+    ? await db.from("datapoints_taxonomia").select("codigo, descripcion").in("codigo", codigosCobertura)
+    : { data: [] as { codigo: string; descripcion: string }[] };
+  const textoRequisito = new Map((requisitosCatalogo ?? []).map((r) => [r.codigo, r.descripcion]));
+
   const bloques: BloqueRevision[] = (filas ?? []).map((b) => {
     const ps = (b.pendientes ?? []) as { campo: string; motivo: string; cubeta?: string | null; etiqueta?: string | null }[];
     return {
@@ -120,7 +130,10 @@ export default async function RevisionPage({
       editadoPor: (b.editado as unknown as { nombre: string } | null)?.nombre ?? null,
       textoDelEmisor: b.texto_del_emisor,
       versiones: versionesPorBloque.get(b.numero) ?? [],
-      cobertura: (b.cobertura as unknown as BloqueRevision["cobertura"]) ?? null,
+      cobertura: b.cobertura
+        ? (b.cobertura as unknown as NonNullable<BloqueRevision["cobertura"]>).map((c) => ({ ...c, requisito: textoRequisito.get(c.codigo) ?? null }))
+        : null,
+      anclas: (b.anclas as unknown as BloqueRevision["anclas"]) ?? null,
     };
   });
 
