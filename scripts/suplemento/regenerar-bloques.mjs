@@ -38,7 +38,7 @@ if (eLogin) { console.error(`✗ login: ${eLogin.message}`); process.exit(2); }
 const cookie = () => [...jar].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
 const api = (metodo, ruta, cuerpo) => fetch(`${BASE}${ruta}`, { method: metodo, headers: { cookie: cookie(), "content-type": "application/json" }, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
 
-const CAMPOS = "numero, estado, texto, fuentes, pendientes, costo_usd, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, duracion_ms, prompt_version";
+const CAMPOS = "numero, estado, texto, fuentes, pendientes, cobertura, libro_id, costo_usd, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, duracion_ms, prompt_version";
 const leer = async (n) => (await db.from("documentos_bloques").select(CAMPOS).eq("documento_id", documento).eq("numero", n).maybeSingle()).data;
 const resumen = (b) => b && {
   estado: b.estado,

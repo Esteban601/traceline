@@ -11,6 +11,7 @@
 // tipográficos, guion de corte de línea) se tolera; lo demás, no.
 // =============================================================================
 import { verificarPropuesto, sinRepetidos } from "../../lib/suplemento/hechos/verificar.ts";
+import { validarCobertura } from "../../lib/suplemento/hechos/bloque.ts";
 
 const fuente = {
   id: "adj:acta:p1",
@@ -53,6 +54,30 @@ const a = verificarPropuesto({ ...base, extracto: "sesionará de manera ordinari
 const okRep = sinRepetidos([a, { ...a }, { ...a, clave: "otra.clave" }]).length === 2;
 if (!okRep) fallas++;
 console.log(`${okRep ? "  ✓" : "  ✗"} los repetidos (misma fuente, clave y extracto) se quitan`);
+
+// --- Cobertura por subrequisito (Paso 5.3) -----------------------------------
+// Bloque 15: requisitos 6(a), 6(a)(i), 6(a)(ii); el 16 tiene 6(a)(iii)–(v).
+const REQ = ["NIIF S2 6 (a)", "NIIF S2 6 (a)(i)", "NIIF S2 6 (a)(ii)"];
+const ids = new Set(["h1", "h2", "h3"]);
+const fila = (codigo, estado, extra = {}) => ({ codigo, estado, bloque: null, hechos: [], comentario: "", ...extra });
+const buena = [fila(REQ[0], "cubierto", { hechos: ["h1"] }), fila(REQ[1], "parcial", { hechos: ["h2"] }), fila(REQ[2], "pendiente")];
+const conMarcador = "Texto con [Pendiente: competencias — solicitud X].";
+const COB = [
+  { nombre: "cobertura completa y válida", c: buena, texto: conMarcador, espera: 0 },
+  { nombre: "falta un requisito", c: buena.slice(0, 2), texto: conMarcador, re: /falta el requisito NIIF S2 6 \(a\)\(ii\)/ },
+  { nombre: "requisito repetido", c: [...buena, buena[0]], texto: conMarcador, re: /aparece 2 veces/ },
+  { nombre: "requisito ajeno al bloque", c: [...buena, fila("NIIF S2 6 (a)(iii)", "cubierto", { hechos: ["h1"] })], texto: conMarcador, re: /no es un requisito de este bloque/ },
+  { nombre: "«cubierto» sin hechos", c: [fila(REQ[0], "cubierto"), buena[1], buena[2]], texto: conMarcador, re: /sin hechos que lo sostengan/ },
+  { nombre: "hecho que no se entregó", c: [fila(REQ[0], "cubierto", { hechos: ["h9"] }), buena[1], buena[2]], texto: conMarcador, re: /no se entregaron: h9/ },
+  { nombre: "«asignado» a un bloque que no responde el requisito", c: [buena[0], buena[1], fila(REQ[2], "asignado", { bloque: 27 })], texto: conMarcador, re: /que no responde ese requisito/ },
+  { nombre: "«pendiente» sin marcador en el texto", c: buena, texto: "Texto sin marcadores.", re: /no lleva ningún marcador/ },
+];
+for (const c of COB) {
+  const errs = validarCobertura(c.c, REQ, 15, ids, null, c.texto);
+  const paso = c.espera === 0 ? errs.length === 0 : errs.some((e) => c.re.test(e));
+  if (!paso) fallas++;
+  console.log(`${paso ? "  ✓" : "  ✗"} cobertura · ${c.nombre}: ${errs.length ? errs.join("; ") : "válida"}`);
+}
 
 console.log(fallas ? `\n✗ ${fallas} fallas` : "\n✓ Verificador del libro OK");
 process.exit(fallas ? 1 : 0);
