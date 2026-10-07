@@ -1,7 +1,15 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.28** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.29** · 7 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.28** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, primera parada;
+revisión externa en `docs/suplemento-s1s2/revision-externa-2026-10-07.md`):
+- §5: migración `20261007120000` (`libros_hechos`, `hechos`).
+- §6: libro de hechos previo a la generación: fuentes, rango, verificación por código, bloque dueño y
+  contradicciones. Los bloques todavía no generan desde él (pasos siguientes).
+- La descripción de una solicitud deja de ser fuente: validado = capturas confirmadas, extractos confirmados y
+  respuestas de cuestionarios (decisión de Esteban, 7 de octubre de 2026).
 
 **Cambios respecto a 0.27** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 4):
 - §5: migración `20261006170000` (historial de versiones por bloque y versiones aprobadas).
@@ -530,6 +538,7 @@ filas, no como JSON.
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
 | `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
+| `libros_hechos` (una corrida por reporte: estado, huella, tokens, costo, resumen) y `hechos` (enunciado, clave, tipo, valor, rango de fuente, fuente, extracto, verificación, bloque dueño, referencias, contradicción) | Libro de hechos previo a la generación (encargo suplemento-calidad, Paso 5) | CREATE TABLE ×2 con RLS y barrera (`20261007120000`) |
 | `documentos_bloques_versiones` (solo altas, por trigger), `documentos_bloques.origen_texto` y `.restaurada_de`, `documentos_generados.versiones_aprobadas` (jsonb) | Historial de versiones por bloque, restauración y versiones aprobadas (encargo suplemento-calidad, Paso 4; A6) | CREATE TABLE con RLS y barrera, triggers nuevos, ADD COLUMN nullable, relleno de la versión 1 (`20261006170000`) |
 | `documentos_generados.textos_literales` (jsonb, NULL = ninguno) y `documentos_bloques.texto_del_emisor` (boolean, default false) | Texto del emisor sin reescribir en bloques editoriales (encargo suplemento-calidad, Paso 3) | ADD COLUMN nullable y con default (`20261006160000`) |
 | `observaciones_coherencia` (una fila por pasada: estado, observaciones, descartadas, tokens y costo), con índice único parcial de una pasada en curso por documento | Pasada de coherencia del documento (encargo suplemento-calidad, Paso 3) | CREATE TABLE con RLS y barrera (`20261006160100`) |
@@ -566,6 +575,26 @@ bloque al que apunta; el código lo comprueba y descarta la que no lo cumpla. Se
 `observaciones_coherencia` con su costo, una pasada en curso por documento. La revisión la muestra como lista,
 y el staff puede volver a correrla. No edita ningún bloque. Modelo del generador con esfuerzo `medium`
 (`COHERENCIA_ESFUERZO` lo cambia); en el demo cuesta ~$1.3 y tarda ~3.5 min.
+
+**Libro de hechos (Paso 5).** Antes de generar, un libro por reporte con los hechos atómicos de sus fuentes
+(`lib/suplemento/hechos/`, `POST /api/suplemento/{reporte}/hechos`). Las fuentes se reparten en tres rangos:
+- **Validado:** capturas confirmadas, extractos confirmados y respuestas de cuestionarios. La descripción de una
+  solicitud no es fuente: es la pregunta.
+- **Perfil:** campos del Perfil, registros de clima y objetivos que declara la emisora.
+- **Adjunto:** las partes de los adjuntos del Perfil que pasan la división por términos.
+
+Cómo se arma:
+- Lo estructurado entra sin modelo, con su valor como extracto.
+- El texto lo atomiza Sonnet 5.5 en lotes en serie. Cada lote recibe las claves ya usadas, para que el mismo sujeto
+  y atributo tengan la misma clave. Cada hecho trae enunciado, clave `sujeto.atributo`, tipo, valor, extracto
+  literal, bloque dueño y hasta tres bloques que lo refieren.
+- **Verificación por código:** el extracto tiene que estar en su fuente, salvo mayúsculas, espacios, comillas,
+  guiones y cortes de línea; una cifra tiene que estar en su extracto; el dueño tiene que existir. Lo que no pasa
+  se guarda descartado, con su motivo.
+- **Contradicciones:** las cifras distintas para la misma clave se marcan por código; lo demás lo juzga una llamada
+  por todos los grupos. El libro nunca elige: los hechos quedan «en conflicto» con su explicación.
+
+Un libro con la misma huella de insumos se reutiliza. Lo leen staff y el administrador del cliente; el auditor no.
 
 **Historial de versiones por bloque (Paso 4).** `documentos_bloques_versiones` guarda cada texto que tuvo un
 bloque —generación, edición manual, texto literal del emisor y restauración— con texto, autor, fecha, fuentes,
