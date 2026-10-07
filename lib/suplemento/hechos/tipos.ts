@@ -35,7 +35,7 @@ export type HechoNuevo = {
   /** Libro estable (Paso 5b): la oración de la fuente, su alcance y la decisión sobre su grupo. */
   oracion?: string | null;
   alcance?: "clima" | "entidad" | "sostenibilidad_general" | "generico" | null;
-  veredicto?: "excluyente" | "compatible" | "secuencia" | null;
+  veredicto?: "excluyente" | "compatible" | "secuencia" | "por_conciliar" | null;
   conciliacion?: string | null;
 };
 

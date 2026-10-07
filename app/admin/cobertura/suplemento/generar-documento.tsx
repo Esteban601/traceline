@@ -62,13 +62,13 @@ export function GenerarDocumento({
   const router = useRouter();
 
   /** Dispara un bloque y espera a que deje de estar 'generando'. */
-  const generarUno = useCallback(async (docId: string, n: number, correccion?: string): Promise<boolean> => {
+  const generarUno = useCallback(async (docId: string, n: number): Promise<boolean> => {
     setEnCurso((x) => [...x, n]);
     try {
       const res = await fetch(`/api/suplemento/${docId}/bloque/${n}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(correccion ? { correccion } : {}),
+        body: "{}",
       });
       // 202 = reservado y generándose. 409 = alguien más lo tomó; se consulta igual.
       if (res.status !== 202 && res.status !== 409) return false;
@@ -161,30 +161,11 @@ export function GenerarDocumento({
         quedan = await enCola(docId, fallos);
       }
 
-      // 4 · Validador cruzado sobre el libro (Paso 5b): un bloque que deja
-      // pendiente lo que otro afirma, o que da otra cifra del mismo hecho, se
-      // regenera UNA vez con el veredicto. Sin modelo para detectar; el
-      // reintento sí se paga.
-      if (!cancelado.current) {
-        try {
-          const v = await fetch(`/api/suplemento/${docId}/cruzado`);
-          if (v.ok) {
-            const { correcciones } = (await v.json()) as { correcciones: Record<string, string> };
-            const discrepantes = Object.entries(correcciones);
-            if (discrepantes.length) {
-              toast.success(`Validador cruzado: corrigiendo ${discrepantes.length} bloque(s).`);
-              for (const [n, correccion] of discrepantes) {
-                if (cancelado.current) break;
-                await generarUno(docId, Number(n), correccion);
-              }
-            }
-          }
-        } catch {
-          /* la coherencia lo vuelve a señalar */
-        }
-      }
-
-      // 5 · Pasada de coherencia sobre el documento completo (Paso 3). Corre en
+      // 4 · Pasada de coherencia sobre el documento completo (Paso 3), que
+      // incluye las discrepancias del validador cruzado (Paso 5b) como
+      // observaciones destacadas. El validador ya no regenera bloques: sus
+      // reintentos no convergían y costaban ~$2.60 por documento (decisión de
+      // Esteban al cerrar el 5b). Corre en
       // el servidor; no se espera aquí: sus observaciones aparecen en la
       // revisión cuando termina. Si el documento quedó con fallos se corre
       // igual: revisa lo que sí salió.

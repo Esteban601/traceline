@@ -393,7 +393,9 @@ export async function generarBloque(
               h.contradiccion!.grupo,
               {
                 veredicto: h.contradiccion!.veredicto,
-                ...(h.contradiccion!.veredicto === "excluyente" ? { explicacion: h.contradiccion!.explicacion } : { conciliacion: h.contradiccion!.conciliacion }),
+                ...(h.contradiccion!.veredicto === "excluyente" || h.contradiccion!.veredicto === "por_conciliar"
+                  ? { explicacion: h.contradiccion!.explicacion }
+                  : { conciliacion: h.contradiccion!.conciliacion }),
               },
             ])
         ),

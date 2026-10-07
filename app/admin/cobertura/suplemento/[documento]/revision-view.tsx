@@ -318,6 +318,18 @@ function BloqueCard({
   regenerable: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
+  // Enlaces desde la coherencia (validador cruzado): #bloque-N abre y muestra el bloque.
+  useEffect(() => {
+    const abrir = () => {
+      if (window.location.hash === `#bloque-${bloque.numero}`) {
+        setAbierto(true);
+        document.getElementById(`bloque-${bloque.numero}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    abrir();
+    window.addEventListener("hashchange", abrir);
+    return () => window.removeEventListener("hashchange", abrir);
+  }, [bloque.numero]);
   const [editando, setEditando] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
   // A6 (Paso 4): el aviso antes de regenerar un bloque editado a mano.
@@ -383,6 +395,7 @@ function BloqueCard({
   const meta = META[bloque.estado] ?? { label: bloque.estado, tono: "gris" as Tono };
 
   return (
+    <div id={`bloque-${bloque.numero}`} className="scroll-mt-4">
     <Card className="overflow-hidden">
       <button
         type="button"
@@ -566,6 +579,7 @@ function BloqueCard({
         </div>
       )}
     </Card>
+    </div>
   );
 }
 

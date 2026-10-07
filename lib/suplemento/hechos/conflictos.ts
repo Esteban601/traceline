@@ -33,7 +33,7 @@ import type { HechoNuevo } from "./tipos";
 // resuelve su propuesta.
 // =============================================================================
 
-export type ResultadoConflictos = { grupos: number; excluyentes: number; conciliados: number; enConflicto: number; uso: Uso; costo: number; error?: string };
+export type ResultadoConflictos = { grupos: number; excluyentes: number; conciliados: number; enConflicto: number; porConciliar?: number; uso: Uso; costo: number; error?: string };
 
 /** El documento de una fuente: las páginas de un mismo adjunto son UN documento. */
 export function documentoDe(fuenteId: string): string {
@@ -189,10 +189,15 @@ export async function decidirContradicciones(hechos: HechoNuevo[], apiKey: strin
       grupos.push(...porRaiz.values());
     }
 
-    let excluyentes = 0, conciliados = 0, enConflicto = 0, decididos = 0;
+    let excluyentes = 0, conciliados = 0, enConflicto = 0, decididos = 0, porConciliar = 0;
     for (const ps of grupos) {
       const veredictoGrupo = ps.map((p) => p.veredicto).sort((x, y) => SEVERIDAD[y] - SEVERIDAD[x])[0];
-      const veredicto = veredictoGrupo === "excluyente" && ps.every((p) => p.veredicto !== "excluyente" || p.votos.every((v) => SE_DESMIENTE.test(v.d.explicacion))) ? "compatible" : veredictoGrupo;
+      // FIRME solo si al menos un par lleva ese veredicto con TODOS los votos.
+      // Si no, el libro no lo decide de forma estable: «por_conciliar» (decisión
+      // de Esteban al cerrar el 5b; el caso «Alcance 3 frente a perímetro»).
+      const firme = ps.some((p) => p.veredicto === veredictoGrupo && p.votos.length === validos.length && p.votos.every((v) => v.veredicto === veredictoGrupo));
+      const decidido = veredictoGrupo === "excluyente" && ps.every((p) => p.veredicto !== "excluyente" || p.votos.every((v) => SE_DESMIENTE.test(v.d.explicacion))) ? "compatible" : veredictoGrupo;
+      const veredicto: HechoNuevo["veredicto"] = firme ? decidido : "por_conciliar";
       const miembros = [...new Set(ps.flatMap((p) => [p.a, p.b]))].map((id) => ids.get(id)!);
       const d = ps.find((p) => p.veredicto === veredictoGrupo)!.votos.find((v) => v.veredicto === veredictoGrupo)!.d;
       const explicacion = d.explicacion.replace(/\bH(\d+)\b/g, (x) => (ids.get(x) ? `«${ids.get(x)!.fuente_detalle}»` : x));
@@ -206,14 +211,19 @@ export async function decidirContradicciones(hechos: HechoNuevo[], apiKey: strin
           if (h.estado !== "en_conflicto") enConflicto++;
           h.estado = "en_conflicto";
           h.conciliacion = null;
+        } else if (veredicto === "por_conciliar") {
+          // Sigue vigente: no hay decisión que imponer, y un hecho ya excluyente no se rebaja.
+          if (h.estado === "en_conflicto") h.veredicto = "excluyente";
+          h.conciliacion = null;
         } else h.conciliacion = d.conciliacion ?? null;
       }
       decididos++;
       if (veredicto === "excluyente") excluyentes++;
+      else if (veredicto === "por_conciliar") porConciliar++;
       else conciliados++;
     }
     const fallidos = votos.length - validos.length;
-    return { grupos: decididos, excluyentes, conciliados, enConflicto, uso, costo, ...(fallidos ? { error: `${fallidos} de ${VOTOS} votos fallaron` } : {}) };
+    return { grupos: decididos, excluyentes, conciliados, enConflicto, porConciliar, uso, costo, ...(fallidos ? { error: `${fallidos} de ${VOTOS} votos fallaron` } : {}) };
   } catch (e) {
     return { grupos: 0, excluyentes: 0, conciliados: 0, enConflicto: 0, uso: vacio, costo: 0, error: e instanceof Error ? e.message.slice(0, 300) : String(e) };
   }

@@ -1,6 +1,15 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.33** · 7 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.34** · 7 de octubre de 2026.
+
+**Cambios respecto a 0.33** (decisiones de Esteban sobre la corrida 2 del Paso 5b):
+- §6, validador cruzado: deja de reintentar bloques. Sus discrepancias van a la pasada de coherencia como
+  observaciones de código, destacadas y con enlace a los dos bloques.
+- §6, libro (`libro-v11`): veredicto **«por_conciliar»** (migración `20261007180000`). Un grupo cuyo veredicto no
+  tiene ningún par con los tres votos de acuerdo es inestable: no es excluyente ni compatible, el bloque no marca
+  pendiente ni elige versión, y la nota se lo dice al revisor (prompt `hechos-v5`).
+- Esfuerzo: se queda en high (A/B del 7 de octubre registrado en el encargo).
+- §7, revisión: cada bloque se abre desde un enlace `#bloque-N`.
 
 **Cambios respecto a 0.32** (cierre del Paso 5b, correcciones aprobadas por Esteban):
 - §6, validador cruzado: valida remisiones (`remisiones.ts`). Solo se remite al bloque dueño del hecho y si lo afirma;

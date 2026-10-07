@@ -300,7 +300,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
         oraciones_obligatorias_omitidas: omitidas.length,
         duenos_por_taxonomia: duenosPorTaxonomia,
         duenos_por_requisitos_contra_modelo: desacuerdos,
-        contradicciones: { grupos: conf.grupos, excluyentes: conf.excluyentes, conciliados: conf.conciliados, en_conflicto: conf.enConflicto },
+        contradicciones: { grupos: conf.grupos, excluyentes: conf.excluyentes, conciliados: conf.conciliados, por_conciliar: conf.porConciliar ?? 0, en_conflicto: conf.enConflicto },
         insumos: rec.insumos,
       }),
     });

@@ -35,7 +35,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v4-2026-10-07";
+export const PROMPT_VERSION_HECHOS = "hechos-v5-2026-10-07";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -256,6 +256,7 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
 11. CONTRADICCIONES: las decide el libro, no tú. Un hecho con \`contradiccion\` trae el nombre de su grupo (c1, c2…), y en \`contradicciones\` está el veredicto de cada grupo:
    · «excluyente»: las versiones no pueden ser ciertas a la vez. No elijas ninguna: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y una nota «decision_emisor» con etiqueta «contradiccion» con las dos versiones y sus fuentes.
    · «compatible» o «secuencia»: son ciertas a la vez (el Comité propone y el Consejo aprueba; la propuesta, la creación y la instalación son momentos de una misma cronología). Redacta con la \`conciliacion\` que trae —puedes ajustar la sintaxis, no el contenido— y deja una nota breve «decision_emisor» con etiqueta «por_conciliar». NO va marcador.
+   · «por_conciliar»: el libro no lo pudo decidir de forma estable (sus votos no coincidieron). No marques pendiente ni elijas versión: redacta solo lo que las versiones dicen en común (nada, si no comparten nada) y deja una nota «decision_emisor» con etiqueta «por_conciliar» que diga, con las fuentes, qué hay que conciliar y que la decisión del libro fue inestable.
    Los hechos sin \`contradiccion\` no están en conflicto: no declares contradicciones por tu cuenta ni pongas pendientes por diferencias entre ellos.
 
 12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea, con el número y el título del bloque DUEÑO. Si tu texto lo necesita, remite en una frase a ESE bloque («como se describe en la sección de …») sin repetir su contenido ni sus cifras. Solo se remite al dueño del hecho: no remitas a un bloque del que no recibiste una referencia sobre ese contenido. Si el hecho es tuyo, o no hay referencia de ningún dueño, redáctalo aquí o pon un marcador de pendiente. El código verifica cada remisión.

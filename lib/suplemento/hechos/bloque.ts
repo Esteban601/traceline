@@ -40,7 +40,7 @@ export type HechoDelBloque = {
    * nota; «compatible» o «secuencia» → se redacta con `conciliacion`. El bloque
    * no decide contradicciones: recibe el veredicto.
    */
-  contradiccion: { grupo: string; veredicto: "excluyente" | "compatible" | "secuencia"; explicacion: string; conciliacion: string | null } | null;
+  contradiccion: { grupo: string; veredicto: "excluyente" | "compatible" | "secuencia" | "por_conciliar"; explicacion: string; conciliacion: string | null } | null;
 };
 
 export type ReferenciaDelBloque = {
@@ -94,7 +94,7 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
       ? {
           grupo: grupos.get(h.grupo_conflicto)!,
           // Un libro anterior al 5b no traía veredicto: lo que marcó era excluyente.
-          veredicto: (h.veredicto ?? "excluyente") as "excluyente" | "compatible" | "secuencia",
+          veredicto: (h.veredicto ?? "excluyente") as "excluyente" | "compatible" | "secuencia" | "por_conciliar",
           explicacion: h.conflicto ?? "",
           conciliacion: h.conciliacion,
         }

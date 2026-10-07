@@ -25,7 +25,12 @@ export type ObservacionVista = {
   observacion: string;
   sugerencia: string;
   afecta_texto_del_emisor: boolean;
+  /** «codigo»: verificación determinista (cifras, validador cruzado). */
+  origen?: "modelo" | "codigo";
 };
+
+/** Discrepancia del validador cruzado: va destacada y enlaza a los dos bloques (cierre del 5b). */
+const esCruzada = (o: ObservacionVista) => o.origen === "codigo" && o.observacion.startsWith("Validador cruzado:");
 
 export type PasadaVista = {
   estado: "generando" | "lista" | "error";
@@ -103,8 +108,12 @@ export function CoherenciaPanel({
     }
   }, [documentoId, esperar, toast, router]);
 
+  // Primero las del validador cruzado, luego por gravedad y bloque.
   const obs = [...(pasada?.observaciones ?? [])].sort(
-    (a, b) => (GRAVEDAD[a.gravedad]?.orden ?? 3) - (GRAVEDAD[b.gravedad]?.orden ?? 3) || a.bloque_de_la_cita - b.bloque_de_la_cita
+    (a, b) =>
+      Number(esCruzada(b)) - Number(esCruzada(a)) ||
+      (GRAVEDAD[a.gravedad]?.orden ?? 3) - (GRAVEDAD[b.gravedad]?.orden ?? 3) ||
+      a.bloque_de_la_cita - b.bloque_de_la_cita
   );
 
   return (
@@ -134,11 +143,26 @@ export function CoherenciaPanel({
       {obs.length > 0 && (
         <ol className="mt-4 space-y-3">
           {obs.map((o, i) => (
-            <li key={i} className="rounded-xl border border-line bg-crema/30 px-4 py-3">
+            <li
+              key={i}
+              data-cruzada={esCruzada(o) || undefined}
+              className={esCruzada(o) ? "rounded-xl border-2 border-teal/60 bg-teal/[0.05] px-4 py-3" : "rounded-xl border border-line bg-crema/30 px-4 py-3"}
+            >
               <div className="flex flex-wrap items-center gap-2">
+                {esCruzada(o) && <Chip tono="azul">Validador cruzado · por código</Chip>}
                 <Chip tono={GRAVEDAD[o.gravedad]?.tono ?? "gris"}>{GRAVEDAD[o.gravedad]?.label ?? o.gravedad}</Chip>
                 <span className="text-sm font-medium text-ink">{TIPO[o.tipo] ?? o.tipo}</span>
-                <span className="text-xs text-muted">· bloques {o.bloques.join(", ")}</span>
+                <span className="text-xs text-muted">
+                  · bloques{" "}
+                  {o.bloques.map((n, j) => (
+                    <span key={n}>
+                      {j > 0 && ", "}
+                      <a href={`#bloque-${n}`} className="font-medium text-teal hover:underline">
+                        {n}
+                      </a>
+                    </span>
+                  ))}
+                </span>
                 {o.afecta_texto_del_emisor && <Chip tono="azul">Involucra texto del emisor</Chip>}
               </div>
               <blockquote className="mt-2 border-l-2 border-line pl-3 text-sm italic text-ink/80">

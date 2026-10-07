@@ -27,8 +27,10 @@ import { remisionesSinDueno } from "./remisiones";
 //     remitido, que no lo afirma, que lo deja pendiente o que no está en el
 //     documento (corrección aprobada al cerrar el 5b; remisiones.ts).
 //
-// Cada discrepancia trae la corrección que se le pasa al bloque discrepante en
-// su reintento (opciones.correccion de generarBloque).
+// Cada discrepancia trae la corrección sugerida. Desde el cierre del 5b NO se
+// reintenta el bloque (los reintentos no convergían y costaban ~$2.60 por
+// documento): las discrepancias van a la coherencia, destacadas y con enlace a
+// los dos bloques. `opciones.correccion` sigue disponible para regenerar a mano.
 // =============================================================================
 
 type Db = SupabaseClient<Database>;
