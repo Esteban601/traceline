@@ -26,6 +26,11 @@ import type { HechoNuevo, UnidadTexto } from "./tipos";
 type Db = SupabaseClient<Database>;
 const ABANDONADO_MS = 15 * 60 * 1000;
 
+/** Huella de los insumos de un libro: si no cambia, el libro sigue valiendo. */
+export function huellaDe(material: unknown): string {
+  return createHash("sha256").update(JSON.stringify([PROMPT_LIBRO_VERSION, material])).digest("hex");
+}
+
 export type ReclamoLibro = { ok: true; id: string } | { ok: false; status: number; error: string };
 
 export async function reclamarLibro(db: Db, reporteId: string, perfilId: string): Promise<ReclamoLibro> {
@@ -109,7 +114,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     const { data: libro } = await db.from("libros_hechos").select("tenant_id").eq("id", libroId).single();
     const tenantId = libro!.tenant_id;
     const rec = await recolectar(db, reporteId, tenantId);
-    const huella = createHash("sha256").update(JSON.stringify([PROMPT_LIBRO_VERSION, rec.material])).digest("hex");
+    const huella = huellaDe(rec.material);
 
     // Misma huella que un libro listo: se reutiliza, no se paga otra vez.
     if (!opciones.forzar) {

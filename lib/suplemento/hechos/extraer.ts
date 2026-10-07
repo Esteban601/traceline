@@ -18,7 +18,7 @@ import { TIPOS_HECHO, type TipoHecho, type UnidadTexto } from "./tipos";
 // =============================================================================
 
 export const MODELO_LIBRO: ClaveModelo = "claude-sonnet-5-5";
-export const PROMPT_LIBRO_VERSION = "libro-v2-2026-10-07";
+export const PROMPT_LIBRO_VERSION = "libro-v3-2026-10-07";
 // v2: lotes más chicos. Con 14 mil caracteres por llamada, dos corridas sobre
 // los mismos insumos dieron 135 y 98 hechos: el modelo resumía en vez de separar.
 const CARACTERES_POR_LLAMADA = 6000;
@@ -56,7 +56,8 @@ Una sola afirmación verificable: quién, qué, cuánto, cuándo, cada cuánto, 
 5. TIPO Y VALOR. Un tipo de la lista. Si el hecho es una cifra, \`valor\` es el número tal como aparece en el extracto, sin calcular, y \`unidad\` la suya; si no, null. \`periodo\`: el año o periodo al que se refiere, si el extracto lo dice.
 6. BLOQUE DUEÑO. El número del bloque del catálogo cuyo requisito responde el hecho: uno solo. \`bloques_referencia\`: hasta tres bloques que podrían mencionarlo en una línea. Los bloques sugeridos de cada fuente son una pista; decide por el requisito.
 7. \`fuente\`: el id entre corchetes de la fuente de donde copiaste el extracto, exacto.
-8. Sin repetir un hecho dentro de la misma fuente.`;
+8. Sin repetir un hecho dentro de la misma fuente.
+9. ACTAS Y RESOLUCIONES. En un acta, el hecho es lo que se ACUERDA o RESUELVE, con la redacción del acuerdo («Se crea el Comité…», «Se aprueba…»). La exposición previa, el orden del día y la propuesta que el MISMO documento resuelve después no se extraen como hechos aparte: «se propuso crear un comité» seguido de «ACUERDO 1. Se crea el Comité» es UN hecho, el del acuerdo. Una propuesta solo es hecho si el documento no la resuelve (por ejemplo, «se recomienda al Consejo aprobar…»), y entonces el enunciado dice que es una propuesta. Lo que dice un mismo documento sobre un mismo sujeto y atributo lleva una sola clave.`;
 
 const NULLABLE = (t: object) => ({ anyOf: [t, { type: "null" }] });
 const ESQUEMA = {

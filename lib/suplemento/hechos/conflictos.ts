@@ -20,6 +20,24 @@ import type { HechoNuevo } from "./tipos";
 
 export type ResultadoConflictos = { grupos: number; enConflicto: number; uso: Uso; costo: number; error?: string };
 
+/**
+ * El documento de una fuente: las páginas de un mismo adjunto (adj:<id>:p1,
+ * adj:<id>:p2) son UN documento. Dos hechos del mismo documento no se comparan
+ * como contradicción: dentro de un acta, el acuerdo resuelve la propuesta que la
+ * precede (corrección de la contradicción falsa del acta del Consejo, Paso 5.4).
+ */
+/** Una explicación que se desmiente a sí misma («no hay contradicción real») no marca nada. */
+const SE_DESMIENTE = /no hay (una )?contradicci[oó]n|no (es|son) incompatibles?|son compatibles|no se contradicen|no existe contradicci[oó]n/i;
+
+/** Los números de hecho de la lista ([4], [15]-[4]) se sustituyen por el nombre de su fuente: al revisor no le dicen nada. */
+function conFuentes(explicacion: string, lista: HechoNuevo[]): string {
+  return explicacion.replace(/\[(\d+)\]/g, (m, n) => (lista[Number(n) - 1] ? `«${lista[Number(n) - 1].fuente_detalle}»` : m));
+}
+
+export function documentoDe(fuenteId: string): string {
+  return fuenteId.startsWith("adj:") ? fuenteId.split(":").slice(0, 2).join(":") : fuenteId;
+}
+
 const ESQUEMA = {
   type: "object",
   properties: {
@@ -44,6 +62,7 @@ const ESQUEMA = {
 const SISTEMA = `Recibes grupos de hechos de una emisora. Los hechos de un grupo tratan del mismo sujeto y atributo, y vienen de fuentes distintas. Para cada grupo decide:
 - «contradiccion»: no pueden ser ciertos a la vez tal como están escritos (otra cifra u otra fecha para lo mismo; otro órgano responsable de la misma función; «aprueba» frente a «propone»; algo que en una fuente ya ocurrió y en otra solo se propuso).
 - «compatible»: dicen lo mismo, o uno es más detallado que otro sin negarlo, o tratan aspectos distintos.
+Una propuesta y la decisión que la resuelve NO son contradicción: si una fuente dice que algo «se propuso» y otra (o el mismo documento) que «se acordó», «se creó» o «se aprobó», es compatible. Solo hay contradicción si una fuente afirma que ya ocurrió y la otra que sigue pendiente de decidirse.
 Juzga solo por los enunciados y extractos; no supongas. La explicación, en una frase, nombra las fuentes y la diferencia.`;
 
 export async function detectarContradicciones(hechos: HechoNuevo[], apiKey: string): Promise<ResultadoConflictos> {
@@ -51,7 +70,7 @@ export async function detectarContradicciones(hechos: HechoNuevo[], apiKey: stri
   const vigentes = hechos.filter((h) => h.estado === "vigente");
   const porClave = new Map<string, HechoNuevo[]>();
   for (const h of vigentes) porClave.set(h.clave, [...(porClave.get(h.clave) ?? []), h]);
-  const grupos = [...porClave.values()].filter((g) => new Set(g.map((h) => h.fuente_id)).size > 1);
+  const grupos = [...porClave.values()].filter((g) => new Set(g.map((h) => documentoDe(h.fuente_id))).size > 1);
 
   let enConflicto = 0;
   const marcar = (g: HechoNuevo[], explicacion: string) => {
@@ -106,7 +125,7 @@ export async function detectarContradicciones(hechos: HechoNuevo[], apiKey: stri
     const r = JSON.parse(texto) as { grupos: { grupo: number; veredicto: string; explicacion: string }[] };
     for (const v of r.grupos ?? []) {
       const g = paraModelo[v.grupo - 1];
-      if (g && v.veredicto === "contradiccion") marcar(g, v.explicacion);
+      if (g && v.veredicto === "contradiccion" && !SE_DESMIENTE.test(v.explicacion)) marcar(g, v.explicacion);
     }
     return { grupos: grupos.length, enConflicto, uso, costo: costoUsd(MODELO_LIBRO, uso) };
   } catch (e) {
@@ -153,16 +172,16 @@ const ESQUEMA_PARES = {
 const SISTEMA_PARES = `Recibes, agrupados por bloque, hechos de una emisora que vienen de fuentes distintas. Busca pares problemáticos y dales un veredicto:
 - «contradiccion»: no pueden ser ciertos a la vez tal como están escritos: otra cifra, fecha o frecuencia para lo mismo; «aprueba» frente a «propone»; algo ya ocurrido en una fuente y solo propuesto en otra.
 - «por_conciliar»: pueden ser ciertos los dos, pero atribuyen la MISMA función, responsabilidad o decisión a sujetos distintos sin decir cómo se relacionan (p. ej., una fuente dice que el Comité evalúa las competencias del Consejo y otra que el Consejo se autoevalúa). Un lector del informe preguntaría quién lo hace.
-- «compatible»: se complementan, tratan aspectos distintos o uno detalla al otro.
+- «compatible»: se complementan, tratan aspectos distintos o uno detalla al otro. También una propuesta y la decisión que la resuelve («se propuso crear» frente a «se crea»).
 Devuelve SOLO pares con veredicto «contradiccion» o «por_conciliar»; si escribirías «no hay contradicción», no lo devuelvas. Si no hay pares, la lista vacía.
-Para cada par: el número de bloque, los dos números de hecho tal como aparecen ([n]), el veredicto y una frase que nombre las fuentes y la diferencia.`;
+Para cada par: el número de bloque, los dos números de hecho tal como aparecen ([n]), el veredicto y una frase que nombre las fuentes POR SU NOMBRE (archivo, extracto confirmado, campo del Perfil; nunca por su número) y la diferencia.`;
 
 export async function detectarPorBloque(hechos: HechoNuevo[], apiKey: string): Promise<ResultadoConflictos> {
   const vacio: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
   const candidatos = hechos.filter((h) => h.estado === "vigente" && h.bloque_dueno != null);
   const porBloque = new Map<number, HechoNuevo[]>();
   for (const h of candidatos) porBloque.set(h.bloque_dueno!, [...(porBloque.get(h.bloque_dueno!) ?? []), h]);
-  const grupos = [...porBloque].filter(([, g]) => new Set(g.map((h) => h.fuente_id)).size > 1);
+  const grupos = [...porBloque].filter(([, g]) => new Set(g.map((h) => documentoDe(h.fuente_id))).size > 1);
   if (!grupos.length) return { grupos: 0, enConflicto: 0, uso: vacio, costo: 0 };
 
   const usuario = grupos
@@ -198,11 +217,12 @@ export async function detectarPorBloque(hechos: HechoNuevo[], apiKey: string): P
       const ha = lista?.[p.a - 1];
       const hb = lista?.[p.b - 1];
       // Mismo hecho, misma fuente o misma clave (ya juzgada): no es un par nuevo.
-      if (!ha || !hb || ha === hb || ha.fuente_id === hb.fuente_id || ha.clave === hb.clave) continue;
+      if (!ha || !hb || ha === hb || documentoDe(ha.fuente_id) === documentoDe(hb.fuente_id) || ha.clave === hb.clave) continue;
       // Solo cuenta un veredicto explícito: un par «compatible» no se marca aunque venga.
       if (p.veredicto !== "contradiccion" && p.veredicto !== "por_conciliar") continue;
+      if (SE_DESMIENTE.test(p.explicacion)) continue;
       const id = ha.grupo_conflicto ?? hb.grupo_conflicto ?? randomUUID();
-      const texto = `[${p.veredicto === "contradiccion" ? "contradicción" : "por conciliar"}] ${p.explicacion}`;
+      const texto = `[${p.veredicto === "contradiccion" ? "contradicción" : "por conciliar"}] ${conFuentes(p.explicacion, lista!)}`;
       for (const h of [ha, hb]) {
         if (h.estado !== "en_conflicto") enConflicto++;
         h.estado = "en_conflicto";
