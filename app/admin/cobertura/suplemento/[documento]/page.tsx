@@ -62,7 +62,7 @@ export default async function RevisionPage({
     db
       .from("documentos_bloques")
       .select(
-        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, texto_del_emisor, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
+        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, texto_del_emisor, cobertura, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
       )
       .eq("documento_id", documentoId)
       .order("numero"),
@@ -118,6 +118,7 @@ export default async function RevisionPage({
       editadoPor: (b.editado as unknown as { nombre: string } | null)?.nombre ?? null,
       textoDelEmisor: b.texto_del_emisor,
       versiones: versionesPorBloque.get(b.numero) ?? [],
+      cobertura: (b.cobertura as unknown as BloqueRevision["cobertura"]) ?? null,
     };
   });
 

@@ -44,6 +44,15 @@ export type BloqueRevision = {
   textoDelEmisor: boolean;
   /** Historial del bloque, de la versión más reciente a la más antigua (Paso 4). */
   versiones: VersionVista[];
+  /** Cobertura por subrequisito, si se generó desde el libro de hechos (Paso 5). */
+  cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string }[] | null;
+};
+
+const ESTADO_COBERTURA: Record<string, { label: string; tono: Tono }> = {
+  cubierto: { label: "Cubierto", tono: "verde" },
+  parcial: { label: "Parcial", tono: "ambar" },
+  pendiente: { label: "Pendiente", tono: "rojo" },
+  asignado: { label: "Asignado", tono: "gris" },
 };
 
 const VACIO: EstadoAccion = { ok: false, error: null, mensaje: null };
@@ -465,6 +474,21 @@ function BloqueCard({
             textoActual={bloque.texto}
             puedeRestaurar={editable && bloque.estado !== "generando"}
           />
+
+          {bloque.cobertura && bloque.cobertura.length > 0 && (
+            <Lista titulo="Cobertura por subrequisito" ayuda="Verificada por código contra los requisitos del bloque.">
+              {bloque.cobertura.map((c) => (
+                <li key={c.codigo} className="flex flex-wrap items-baseline gap-2 text-sm" data-cobertura={c.codigo}>
+                  <span className="font-mono text-xs text-ink">{c.codigo}</span>
+                  <Chip tono={ESTADO_COBERTURA[c.estado]?.tono ?? "gris"}>{ESTADO_COBERTURA[c.estado]?.label ?? c.estado}</Chip>
+                  <span className="text-muted">
+                    {c.estado === "asignado" && c.bloque ? `bloque ${c.bloque}` : `${c.hechos.length} hecho(s)`}
+                    {c.comentario ? ` — ${c.comentario}` : ""}
+                  </span>
+                </li>
+              ))}
+            </Lista>
+          )}
 
           {bloque.fuentes.length > 0 && (
             <Lista titulo="Fuentes">

@@ -32,6 +32,8 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // calidad-v2: documentos del Perfil del emisor como contexto citado (regla 10)
 // y documento sugerido dentro de «qué falta» del marcador (Paso 2).
 export const PROMPT_VERSION = "calidad-v2-2026-10-06";
+// Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
+export const PROMPT_VERSION_HECHOS = "hechos-v1-2026-10-07";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -43,7 +45,7 @@ export type RequisitoNiif = { codigo: string; descripcion: string };
 
 export type FuenteEntregada = {
   id: string;
-  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia" | "documento";
+  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia" | "documento" | "hecho";
   detalle: string;
 };
 
@@ -237,6 +239,32 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 En \`notas_revision\` sí puedes hablar con vocabulario interno: ese campo no se publica.`;
 
 // -----------------------------------------------------------------------------
+// REGLAS EN MODO LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5.3).
+//
+// Mismas reglas 1 a 8 y misma sección de notas; las 9 y 10 —documento de
+// respaldo y documentos del Perfil como contexto— se sustituyen por las del
+// libro: solo hechos, jerarquía de fuentes, contradicciones sin elegir,
+// referencias de una línea y cobertura por subrequisito. Responden a la revisión
+// externa del 7 de octubre de 2026 (duplicación, procedencia, inferencias).
+// -----------------------------------------------------------------------------
+const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este bloque: cada uno trae un id (h1, h2…), su rango de fuente, un enunciado, el extracto literal de la fuente y la fuente. Todo lo que el texto afirme sale de un hecho, y su id va en \`fuentes_usadas\`. Lo que no dice ningún hecho no se escribe: ni conclusiones («el Consejo aprueba las políticas de riesgos» no permite decir que existe una política de riesgo climático), ni causas, ni calificativos, ni el desarrollo de una sigla, ni contexto que no traiga un hecho. Puedes juntar dos hechos en una frase; no derivar de ellos algo que ninguno dice. Si un requisito necesita algo que ningún hecho dice, va un marcador de pendiente.
+
+10. JERARQUÍA DE FUENTES: validado > perfil > adjunto. Si dos hechos dicen lo mismo, cita el de mayor rango. Las CIFRAS salen solo de hechos validados o del perfil, o de la tabla ya armada; una cifra que solo trae un hecho de adjunto no se publica: va un marcador de pendiente y una nota.
+
+11. CONTRADICCIONES: los hechos con grupo de contradicción (c1, c2…) no se resuelven. No elijas ninguna versión ni la redactes como cierta: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y en \`notas_revision\` las dos versiones con sus fuentes.
+
+12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea. Si tu texto lo necesita, remite en una frase («como se describe en la sección de …») sin repetir su contenido ni sus cifras.
+
+13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Los requisitos que este bloque satisface», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.`;
+
+const REGLAS_HECHOS = (() => {
+  const ini = REGLAS.indexOf("9. EL DOCUMENTO DE RESPALDO");
+  const fin = REGLAS.indexOf("# Qué va en `notas_revision`");
+  if (ini < 0 || fin < 0) throw new Error("prompt.ts: no se encontraron las reglas 9 y 10 a sustituir");
+  return `${REGLAS.slice(0, ini)}${REGLAS_LIBRO}\n\n${REGLAS.slice(fin)}`;
+})();
+
+// -----------------------------------------------------------------------------
 // EJEMPLO DE ESTILO — el bloque equivalente de un informe real ya publicado.
 //
 // Transcrito de la página 34 del informe anual NIIF S1/S2 2025 que la firma
@@ -305,7 +333,9 @@ export function capaEstable(
   prefs: PreferenciasEmisor,
   requisitos: RequisitoNiif[],
   /** Editoriales que lleva el documento (null = documento anterior: los 40). */
-  incluidos: string[] | null = null
+  incluidos: string[] | null = null,
+  /** «hechos»: el bloque redacta desde el libro de hechos (reglas 9 a 13 propias). */
+  modo: "datos" | "hechos" = "datos"
 ): { texto: string }[] {
   // La denominación se copia CARÁCTER POR CARÁCTER, incluido el artículo en
   // minúscula si lo trae: "la Compañía" no es lo mismo que "La Compañía", y el
@@ -337,7 +367,7 @@ export function capaEstable(
       ].join("\n");
 
   return [
-    { texto: REGLAS },
+    { texto: modo === "hechos" ? REGLAS_HECHOS : REGLAS },
     { texto: EJEMPLO_ESTILO },
     { texto: indiceDeBloques(incluidos) },
     { texto: emisor },
@@ -489,4 +519,34 @@ export const ESQUEMA_SALIDA = {
   },
   required: ["texto", "fuentes_usadas", "pendientes", "notas_revision"],
   additionalProperties: false as const,
+};
+
+/** Salida en modo libro: la misma, más la cobertura por subrequisito. */
+export const ESQUEMA_SALIDA_HECHOS = {
+  ...ESQUEMA_SALIDA,
+  properties: {
+    ...ESQUEMA_SALIDA.properties,
+    fuentes_usadas: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description: "Ids de los hechos (h1, h2…) y de las fuentes de la tabla que se usaron. Solo ids entregados.",
+    },
+    cobertura: {
+      type: "array" as const,
+      description: "Una fila por requisito del bloque.",
+      items: {
+        type: "object" as const,
+        properties: {
+          codigo: { type: "string" as const },
+          estado: { type: "string" as const, enum: ["cubierto", "parcial", "pendiente", "asignado"] },
+          bloque: { anyOf: [{ type: "integer" as const }, { type: "null" as const }] },
+          hechos: { type: "array" as const, items: { type: "string" as const } },
+          comentario: { type: "string" as const },
+        },
+        required: ["codigo", "estado", "bloque", "hechos", "comentario"],
+        additionalProperties: false as const,
+      },
+    },
+  },
+  required: [...ESQUEMA_SALIDA.required, "cobertura"],
 };

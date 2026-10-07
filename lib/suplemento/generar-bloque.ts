@@ -24,7 +24,9 @@ import {
 } from "@/lib/suplemento/modelos";
 import {
   ESQUEMA_SALIDA,
+  ESQUEMA_SALIDA_HECHOS,
   PROMPT_VERSION,
+  PROMPT_VERSION_HECHOS,
   capaEstable,
   capaVolatil,
   marcadoresMalFormados,
@@ -38,6 +40,8 @@ import { TABLAS } from "@/lib/suplemento/tablas";
 import { cargarEvidenciasDelBloque, respaldoDeCifras, type EvidenciaDelBloque, type RespaldoDeCifra } from "@/lib/suplemento/evidencias-bloque";
 import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque } from "@/lib/suplemento/adjuntos-bloque";
 import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
+import { libroVigente } from "@/lib/suplemento/hechos/libro";
+import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
@@ -84,6 +88,7 @@ export type MotivoFallo =
   | "no_aplica"
   | "no_seleccionado"
   | "literal_invalido"
+  | "cobertura_invalida"
   | "respuesta_ilegible"
   | "api_error"
   | "corte_tiempo"
@@ -225,6 +230,12 @@ export async function generarBloque(
     bloque.datapoints.filter((d) => !exentos.has(d))
   );
 
+  // LIBRO DE HECHOS (suplemento-calidad, Paso 5.3). Si el reporte tiene libro,
+  // el bloque redacta SOLO desde sus hechos y referencias: ni evidencias crudas
+  // ni adjuntos completos. Sin libro, el camino de antes.
+  const libro = await libroVigente(supabase, doc.reporte_id);
+  const insumo = libro ? await insumoDelBloque(supabase, libro.id, bloque, doc.editoriales_incluidos ?? null) : null;
+
   // Evidencias de las solicitudes del bloque: contenido ya extraído y extractos
   // confirmados (captura sugerida, Paso 5). Contexto y citas, no cifras.
   // Documentos del Perfil del emisor (suplemento-calidad, Paso 2): las partes
@@ -241,7 +252,7 @@ export async function generarBloque(
     cargarAdjuntosDelBloque(supabase, doc.tenant_id, bloque, consulta),
   ]);
   const { fuentes, datos } = armarDatos(bloque, ens, evaluado, perfil, requisitos, evid.porSolicitud, respaldos.porSolicitud);
-  for (const f of [...evid.fuentes, ...respaldos.fuentes, ...adjuntos.fuentes]) if (!fuentes.some((x) => x.id === f.id)) fuentes.push(f);
+  if (!insumo) for (const f of [...evid.fuentes, ...respaldos.fuentes, ...adjuntos.fuentes]) if (!fuentes.some((x) => x.id === f.id)) fuentes.push(f);
 
   // --- 3. ¿Hace falta el modelo? --------------------------------------------
   const via = viaDe(bloque.numero);
@@ -311,7 +322,8 @@ export async function generarBloque(
     });
   }
 
-  if (via === "perfil") {
+  // Con libro, el adjunto ya entró como hechos: no hay nada que esperar.
+  if (via === "perfil" && !insumo) {
     const { data: adj } = await supabase
       .from("perfil_emisor_adjuntos")
       .select("seccion")
@@ -329,13 +341,41 @@ export async function generarBloque(
   const modelo = opciones.modelo ?? modeloDeTipo(bloque.tipo);
   const constructor = TABLAS[bloque.numero];
   const tabla = constructor ? constructor({ ens, evaluado, perfil, alivios: vigentes, fuentes }) : null;
+  // MODO LIBRO: las fuentes citables son los hechos del bloque (h1, h2…), lo que
+  // la tabla cite y el reporte; los datos, sus hechos y referencias de una línea.
+  const fuentesModelo = insumo
+    ? [
+        ...insumo.hechos.map((h) => ({ id: h.id, tipo: "hecho" as const, detalle: `${h.fuente} — «${h.extracto.length > 140 ? `${h.extracto.slice(0, 140)}…` : h.extracto}»` })),
+        ...fuentes.filter((f) => f.id.startsWith("reporte:") || (tabla ?? "").includes(f.id)),
+      ]
+    : fuentes;
+  const datosModelo = insumo
+    ? {
+        bloque: (datos as { bloque: unknown }).bloque,
+        estado_de_completitud: (datos as { estado_de_completitud: unknown }).estado_de_completitud,
+        remitir_a_otro_bloque: (datos as { remitir_a_otro_bloque: unknown }).remitir_a_otro_bloque,
+        hechos: insumo.hechos.map((h) => ({
+          id: h.id,
+          rango: h.rango,
+          enunciado: h.enunciado,
+          extracto: h.extracto,
+          fuente: h.fuente,
+          ...(h.valor != null ? { valor: h.valor, unidad: h.unidad } : {}),
+          ...(h.contradiccion ? { contradiccion: h.contradiccion } : {}),
+        })),
+        referencias: insumo.referencias,
+      }
+    : datos;
   // Después de la tabla: lo que ella cite también es fuente válida.
-  const idsValidos = new Set(fuentes.map((f) => f.id));
-  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null);
+  const idsValidos = new Set(fuentesModelo.map((f) => f.id));
+  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null, insumo ? "hechos" : "datos");
   // Lo que respalda una cifra: los datos entregados SIN el contenido crudo de
   // las evidencias, más la tabla, los requisitos y los nombres de la emisora.
+  // En modo libro, solo los hechos validados o del Perfil (regla 10).
   const corpus = corpusPermitido(
-    datos,
+    insumo
+      ? insumo.hechos.filter((h) => h.rango !== "adjunto").map((h) => ({ e: h.enunciado, x: h.extracto, v: h.valor }))
+      : datos,
     tabla,
     JSON.stringify(requisitos),
     bloque.titulo,
@@ -350,12 +390,12 @@ export async function generarBloque(
     anioAdopcion: rep.anio_adopcion,
     aliviosActivos,
     ejercicio: ens.reporte.ejercicio,
-    fuentes,
-    datos,
+    fuentes: fuentesModelo,
+    datos: datosModelo,
     tabla,
     fronteras: fronteraDe(bloque.numero),
     extension: opciones.extension ?? extensionDeBloque(bloque.numero),
-    documentos: documentosParaPrompt(adjuntos),
+    documentos: insumo ? null : documentosParaPrompt(adjuntos),
   });
 
   // La marca de caché va en el ÚLTIMO bloque estable: el caché cubre todo el
@@ -411,7 +451,7 @@ export async function generarBloque(
           // a omitirlo, y deja el barrido de esfuerzo a un cambio de una línea
           // en ESFUERZO_POR_TIPO.
           effort: opciones.esfuerzo ?? esfuerzoDeTipo(bloque.tipo),
-          format: { type: "json_schema", schema: ESQUEMA_SALIDA },
+          format: { type: "json_schema", schema: insumo ? ESQUEMA_SALIDA_HECHOS : ESQUEMA_SALIDA },
         },
         },
         // LÍMITE DURO. Sin él, un stream que se atasca deja la petición colgada
@@ -474,8 +514,19 @@ export async function generarBloque(
     const prohibidas = vocabularioProhibidoEn(parseada.texto);
     const marcadores = marcadoresMalFormados(parseada.texto);
     const sinRespaldo = cifrasSinRespaldo(parseada.texto, corpus, aniosPermitidos);
+    // Cobertura por subrequisito, validada por código (modo libro).
+    const cobertura = insumo
+      ? validarCobertura(
+          parseada.cobertura ?? [],
+          requisitos.map((r) => r.codigo),
+          bloque.numero,
+          new Set(insumo.hechos.map((h) => h.id)),
+          doc.editoriales_incluidos ?? null,
+          parseada.texto
+        )
+      : [];
 
-    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0) {
+    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0 && cobertura.length === 0) {
       salida = parseada;
       break;
     }
@@ -516,13 +567,22 @@ export async function generarBloque(
       );
     }
 
+    if (cobertura.length) {
+      reproches.push(
+        `La cobertura por subrequisito no pasa la verificación:\n${cobertura.map((e) => `- ${e}`).join("\n")}\n` +
+          `Debe haber exactamente una fila por cada requisito de «Los requisitos que este bloque satisface», con su código exacto; «cubierto» y «parcial» citan ids de hechos entregados; «asignado» solo a un bloque del documento que responde ese requisito (ver \`remitir_a_otro_bloque\`); «pendiente» exige su marcador en el texto.`
+      );
+    }
+
     ultimoError = inventadas.length
       ? `Citó fuentes que no se le entregaron: ${inventadas.join(", ")}.`
       : sinRespaldo.length
         ? `Cifras sin respaldo en los datos confirmados: ${sinRespaldo.join(", ")}.`
       : prohibidas.length
         ? `El texto usa vocabulario de proceso interno: ${prohibidas.join(", ")}.`
-        : `Marcadores mal formados: ${marcadores.join(" ")}.`;
+        : marcadores.length
+          ? `Marcadores mal formados: ${marcadores.join(" ")}.`
+          : `Cobertura inválida: ${cobertura.join("; ")}.`;
 
     if (intento === 2) break;
     mensajes.push(
@@ -552,6 +612,8 @@ export async function generarBloque(
           ? "cifras_sin_respaldo"
         : ultimoError.startsWith("El texto usa") || ultimoError.startsWith("Marcadores")
           ? "voz_incorrecta"
+        : ultimoError.startsWith("Cobertura")
+          ? "cobertura_invalida"
           : "respuesta_ilegible",
       detalle: ultimoError,
     };
@@ -576,10 +638,23 @@ export async function generarBloque(
   if (!opciones.sinPersistir) {
     await persistirBloque(supabase, documentoId, bloque, doc.idioma, {
       texto: salida.texto,
-      fuentes: salida.fuentes_usadas.map((id) => {
-        const f = fuentes.find((x) => x.id === id)!;
-        return { tipo: f.tipo, id: f.id, detalle: f.detalle };
-      }),
+      // En modo libro, cada hecho citado se guarda con su FUENTE ORIGINAL (sol:,
+      // adj:…:p1, perfil:…) y su extracto: lo que el revisor puede abrir y comprobar.
+      fuentes: [
+        ...new Map(
+          salida.fuentes_usadas.map((id) => {
+            const h = insumo?.hechos.find((x) => x.id === id);
+            if (h) return [h.fuenteId + h.extracto, { tipo: "hecho", id: h.fuenteId, detalle: `${h.fuente} — «${h.extracto}»` }] as const;
+            const f = fuentesModelo.find((x) => x.id === id) ?? fuentes.find((x) => x.id === id)!;
+            return [f.id, { tipo: f.tipo, id: f.id, detalle: f.detalle }] as const;
+          })
+        ).values(),
+      ],
+      cobertura: insumo
+        ? (salida.cobertura ?? []).map((c) => ({ ...c, hechos: c.hechos.map((id) => insumo.hechos.find((h) => h.id === id)?.hechoId ?? id) }))
+        : null,
+      libroId: insumo?.libroId ?? null,
+      promptVersion: insumo ? PROMPT_VERSION_HECHOS : PROMPT_VERSION,
       pendientes: salida.pendientes.map((p) => ({ campo: "bloque", motivo: p })),
       notasRevision: salida.notas_revision,
       tabla,
@@ -619,6 +694,8 @@ type SalidaModelo = {
   fuentes_usadas: string[];
   pendientes: string[];
   notas_revision: string[];
+  /** Solo en modo libro. */
+  cobertura?: Cobertura[];
 };
 
 function resolverBloque(id: number | string): Bloque | null {
@@ -647,6 +724,7 @@ function leerSalida(m: Anthropic.Message): SalidaModelo | null {
       fuentes_usadas: lista(o.fuentes_usadas),
       pendientes: lista(o.pendientes),
       notas_revision: lista(o.notas_revision),
+      ...(Array.isArray(o.cobertura) ? { cobertura: o.cobertura as Cobertura[] } : {}),
     };
   } catch {
     return null;
@@ -1056,6 +1134,10 @@ async function persistirBloque(
     tabla: string | null;
     /** El texto es el del emisor, copiado literal de un adjunto (Paso 3). */
     textoDelEmisor?: boolean;
+    /** Modo libro (Paso 5.3): cobertura por subrequisito y libro de origen. */
+    cobertura?: unknown[] | null;
+    libroId?: string | null;
+    promptVersion?: string;
   }
 ): Promise<void> {
   await supabase.from("documentos_bloques").upsert(
@@ -1090,7 +1172,9 @@ async function persistirBloque(
         ...d.notasRevision.map((n) => ({ campo: "nota_revision", motivo: n })),
       ],
       modelo: d.modelo,
-      prompt_version: PROMPT_VERSION,
+      prompt_version: d.promptVersion ?? PROMPT_VERSION,
+      cobertura: (d.cobertura ?? null) as never,
+      libro_id: d.libroId ?? null,
       tokens_entrada: d.uso.entrada,
       tokens_entrada_cache_escritura: d.uso.cacheEscritura,
       tokens_entrada_cache_lectura: d.uso.cacheLectura,
