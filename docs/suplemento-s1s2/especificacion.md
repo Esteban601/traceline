@@ -1,7 +1,13 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.29** · 7 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.30** · 7 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.29** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, puntos 1 a 3):
+- §5: migraciones `20261007130000` (estado `reutilizado` del libro) y `20261007140000` (`cobertura` y `libro_id` en
+  `documentos_bloques`).
+- §6: libro v2 (extracción completa, segunda pasada de contradicciones por bloque dueño, «fuera del suplemento» y
+  «exentas por alivio»); los bloques generan solo desde el libro, con la cobertura por subrequisito validada.
 
 **Cambios respecto a 0.28** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, primera parada;
 revisión externa en `docs/suplemento-s1s2/revision-externa-2026-10-07.md`):
@@ -538,6 +544,8 @@ filas, no como JSON.
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
 | `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
+| `libros_hechos.estado` + `reutilizado` (CHECK sustituido por uno más amplio) y `.reutiliza_libro` | Corrida del libro que reutiliza uno con la misma huella (Paso 5) | CHECK ampliado y ADD COLUMN nullable (`20261007130000`) |
+| `documentos_bloques.cobertura` (jsonb) y `.libro_id` | Cobertura por subrequisito y libro de origen de cada bloque (Paso 5.3) | ADD COLUMN nullable (`20261007140000`) |
 | `libros_hechos` (una corrida por reporte: estado, huella, tokens, costo, resumen) y `hechos` (enunciado, clave, tipo, valor, rango de fuente, fuente, extracto, verificación, bloque dueño, referencias, contradicción) | Libro de hechos previo a la generación (encargo suplemento-calidad, Paso 5) | CREATE TABLE ×2 con RLS y barrera (`20261007120000`) |
 | `documentos_bloques_versiones` (solo altas, por trigger), `documentos_bloques.origen_texto` y `.restaurada_de`, `documentos_generados.versiones_aprobadas` (jsonb) | Historial de versiones por bloque, restauración y versiones aprobadas (encargo suplemento-calidad, Paso 4; A6) | CREATE TABLE con RLS y barrera, triggers nuevos, ADD COLUMN nullable, relleno de la versión 1 (`20261006170000`) |
 | `documentos_generados.textos_literales` (jsonb, NULL = ninguno) y `documentos_bloques.texto_del_emisor` (boolean, default false) | Texto del emisor sin reescribir en bloques editoriales (encargo suplemento-calidad, Paso 3) | ADD COLUMN nullable y con default (`20261006160000`) |
@@ -594,7 +602,33 @@ Cómo se arma:
 - **Contradicciones:** las cifras distintas para la misma clave se marcan por código; lo demás lo juzga una llamada
   por todos los grupos. El libro nunca elige: los hechos quedan «en conflicto» con su explicación.
 
-Un libro con la misma huella de insumos se reutiliza. Lo leen staff y el administrador del cliente; el auditor no.
+Un libro con la misma huella de insumos se reutiliza: la corrida queda `reutilizado` y apunta al libro que vale. Lo
+leen staff y el administrador del cliente; el auditor no.
+
+**Ajustes del libro v2:**
+- **Extracción completa en lotes de 6 mil caracteres.** Con 14 mil, dos corridas sobre los mismos insumos daban 135 y
+  98 hechos; con lotes chicos, 194 y 193.
+- **Segunda pasada de contradicciones:** compara hechos del mismo bloque dueño aunque tengan clave distinta. Su
+  veredicto es «contradicción» o «por conciliar»; esto último marca la misma función atribuida a dos órganos.
+- **Fuera del libro, con su motivo:**
+  - las capturas de solicitudes que ningún bloque usa («fuera del suplemento»);
+  - las capturas que exime un alivio vigente («exentas por alivio», el Alcance 3 bajo C4).
+
+**Generación desde el libro (Paso 5.3).** Si el reporte tiene libro, cada bloque recibe solo sus hechos:
+- **Qué recibe:** sus hechos con id corto, rango, enunciado, extracto y fuente, y los que están en contradicción con
+  su grupo. Lo que es de otros bloques le llega como referencia de una línea. No recibe evidencias crudas ni adjuntos
+  completos.
+- **Reglas propias del prompt (9 a 13, `hechos-v1-2026-10-07`):**
+  - solo hechos;
+  - jerarquía validado > perfil > adjunto: las cifras salen de hechos validados o del Perfil, o de la tabla;
+  - contradicciones con marcador y nota, sin elegir;
+  - referencias de una línea;
+  - cobertura por subrequisito.
+- **Cobertura:** la salida trae `cobertura` (cubierto, parcial, pendiente o asignado, con sus hechos). El código la
+  valida (un requisito una vez, hechos entregados, asignado a un bloque que responde ese código, marcador si es
+  pendiente) y reintenta con el error si falla.
+- **Qué se guarda:** cada hecho citado, con su fuente original y su extracto; además `cobertura` y `libro_id`.
+- **Revisión:** muestra la cobertura del bloque.
 
 **Historial de versiones por bloque (Paso 4).** `documentos_bloques_versiones` guarda cada texto que tuvo un
 bloque —generación, edición manual, texto literal del emisor y restauración— con texto, autor, fecha, fuentes,
