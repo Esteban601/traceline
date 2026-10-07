@@ -1,7 +1,25 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.30** · 7 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.31** · 7 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.30** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, punto 4):
+- §5: migración `20261007150000` (`perfil_emisor.glosario`).
+- §6, modo libro (`hechos-v2-2026-10-07`):
+  - **Glosario del emisor:** va en la capa estable. Se sustituye por código en el texto y en la tabla, y la diferencia
+    queda en una nota.
+  - **Validadores deterministas:**
+    - rangos contra la matriz del Perfil;
+    - hechos de otro bloque reescritos en vez de remitidos (sin contar nombres ni terminología de la norma, y con
+      al menos dos frases de 8 palabras);
+    - misma cifra para el mismo hecho, revisada dentro de la pasada de coherencia como «verificado por código».
+  - **Notas en tres cubetas:** decisiones del emisor (con etiquetas «contradicción» y «por conciliar»), revelación
+    voluntaria y defectos de insumo.
+  - **Caché compartido:** la capa estable es igual para todos los bloques y los requisitos van en la volátil.
+  - **Pre-vuelo del documento:** se muestra en la pantalla del generador, junto al botón del libro, y sus defectos
+    de insumo llegan a cada bloque como «ya reportados».
+- §6, libro v3: en un acta, el acuerdo resuelve su propuesta. Las contradicciones se comparan solo entre documentos
+  distintos y sus explicaciones nombran las fuentes.
 
 **Cambios respecto a 0.29** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, puntos 1 a 3):
 - §5: migraciones `20261007130000` (estado `reutilizado` del libro) y `20261007140000` (`cobertura` y `libro_id` en
