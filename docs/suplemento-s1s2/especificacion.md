@@ -1,7 +1,40 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.31** · 7 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.32** · 7 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.31** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5b, segunda revisión
+externa `revision-externa-2026-10-07-b.md`):
+- §5: migraciones `20261007160000` (`hechos.oracion`, `alcance`, `veredicto`, `conciliacion`; rango `narrativo`;
+  `documentos_bloques.anclas`) y `20261007161000` (alcance `entidad`). Las dos llaman a la barrera.
+- §6, libro estable (`libro-v7-2026-10-07`):
+  - **Oraciones partidas por código** (`oraciones.ts`). El modelo solo clasifica; el extracto es la oración.
+  - **Fuentes obligatorias:** en las de rango validado, perfil y narrativo entra toda oración; solo los adjuntos se
+    filtran por pertinencia.
+  - **Alcance por hecho:** clima, entidad, sostenibilidad general o genérico. Lo genérico de un adjunto se descarta;
+    con E5, también la sostenibilidad general.
+  - **Rango `narrativo`** para la Carta de la Dirección: no sostiene una afirmación por sí solo.
+  - **Organigrama como árbol** (nodo, padre, nivel), verificado contra la transcripción de la imagen.
+  - **Contradicciones decididas una vez** en el libro:
+    - «excluyente» (otra cifra; la misma facultad en dos órganos; un hecho sin constancia documental) → marcador;
+    - «secuencia» (un documento registra el paso posterior) y «compatible» → redacción conciliada y nota.
+  - **Los bloques de plantilla no son dueños de hechos.**
+  - **Prueba de estabilidad** (`estabilidad-libro.mjs`): dos corridas, umbral de 2 %; resultado 0.77 %.
+- §6, bloques (`hechos-v3-2026-10-07`):
+  - el bloque recibe veredictos, no hechos crudos en conflicto;
+  - regla «usa solo los hechos que respondan a un requisito»;
+  - anclas `[hN]` por oración, guardadas aparte y quitadas del texto publicable;
+  - validadores de cambios de proceso negados, de incisos inexactos (donde el catálogo agrupa incisos) y de requisito
+    cubierto solo con narrativos;
+  - notas y cobertura compactas; referencias de una línea y contradicciones una vez por grupo.
+- §6, validador cruzado (`cruzado.ts`, GET `…/cruzado`):
+  - qué detecta: un pendiente de lo que otro bloque afirma, otra cifra para la misma clave y remisiones a una
+    plantilla;
+  - un reintento por bloque discrepante, con el veredicto;
+  - lo que queda pasa a la coherencia como observación de código.
+- §7, revisión: la cobertura se rotula «juicio del generador», con el texto del requisito tomado del catálogo, y hay
+  una sección de anclas por oración.
+- Plantillas: la forma de referencia del glosario sustituye a «la Entidad».
 
 **Cambios respecto a 0.30** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, punto 4):
 - §5: migración `20261007150000` (`perfil_emisor.glosario`).

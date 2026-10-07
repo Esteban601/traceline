@@ -55,4 +55,66 @@ El costo de sobre-marcar no es cero: el bloque 15 tiene 4 pendientes en 432 pala
 
 ## Cómo se atiende (Paso 5b)
 
-Se llena al cerrar el Paso 5b, punto por punto.
+Cerrado el 7 de octubre de 2026. Corrida de referencia: documento `98d57a6a` v2 (todos los editoriales); los
+archivos están en `referencia/suplemento-calidad/paso5b/` (no versionado).
+
+1. **Validador cruzado** (`lib/suplemento/hechos/cruzado.ts`):
+   - Corre sobre las anclas de los bloques y detecta un pendiente de lo que otro bloque afirma, otra cifra para la
+     misma clave, un hecho excluyente afirmado y remisiones a una plantilla.
+   - El orquestador reintenta una vez el bloque discrepante con el veredicto; lo que queda va a la coherencia.
+   - En la corrida: 7 discrepancias, 3 bloques reintentados y 0 al final.
+   - Ajuste posterior: «afirma excluyente» ya no dispara reintento (un hecho largo se puede citar por su parte no
+     disputada) y un pendiente que corresponde a la contradicción propia del bloque no se cuenta.
+2. **Contradicciones en el libro, una sola vez:**
+   - excluyente: otra cifra; la misma facultad en dos órganos; un hecho sin constancia documental;
+   - secuencia: solo si un documento registra el paso posterior;
+   - compatible: funciones distintas o más detalle.
+   - El bloque recibe el veredicto y la conciliación. En el libro v7, c1 sale secuencia, c3 compatible, y c2 y c4
+     excluyentes, igual en las dos corridas.
+   - Bloque 15: 2 pendientes (c2 y c4) en vez de 4.
+3. **Cobertura:**
+   - La pantalla rotula «juicio del generador» y pone el texto de cada requisito desde `datapoints_taxonomia`.
+   - El validador rechaza un inciso suelto donde el catálogo agrupa incisos (el «25(a)(iii)» del 27).
+   - **No resuelto:** «una línea por inciso literal» exige partir en el catálogo `S2 25 (a)(i)a(v)`,
+     `S1 44 (a)(i)a(v)`, `S2 36 (e)(i)a(iv)` y `S2 36 (a)a(d)`. Es un cambio normativo (§4: migración de datos, fila
+     en la auditoría y revisión de IRStrat) que queda para decisión de Esteban.
+4. **Asignación por hecho:**
+   - Dueño por oración; regla «usa solo los hechos que respondan a un requisito».
+   - Alcance por hecho: lo genérico de un adjunto queda fuera (estatutos, delegados) y, con E5, la sostenibilidad
+     general (denuncias, 54 % de mujeres).
+   - El 18 ya no publica la línea de denuncia ni el delegado.
+5. **Organigrama:**
+   - Nodo, padre y nivel con Sonnet 5.5, verificados contra la transcripción; dueño, el bloque 18.
+   - El 18 describe Consejo → tres comités y Dirección General → seis áreas.
+6. **Rango `narrativo`** para la Carta de la Dirección. Un requisito cubierto solo con narrativos o una oración
+   anclada solo a ellos se rechaza en los bloques normativos.
+7. **Cambios de proceso:** «sin cambios» frente a verbos de cambio con fecha del ejercicio en los hechos propios. El
+   27 ahora revela la incorporación de 2025.
+8. **Anclas `[hN]` por oración:** se guardan en `documentos_bloques.anclas` y se muestran en la revisión; el texto
+   publicable no las lleva. En la corrida hubo 245 anclas.
+9. **Costo del 15:**
+   - No recibía el libro entero, pero sí las referencias con su texto completo (el campo del validador iba al
+     modelo), la explicación de cada contradicción repetida en cada hecho y los extractos duplicados en la lista de
+     fuentes.
+   - El volátil bajó de 29.6k a 16.7k caracteres.
+   - El costo del 15 sigue alto ($0.80 regenerado) porque la salida —razonamiento incluido— es el 70 % del costo.
+10. **Estabilidad del libro:** prueba `scripts/suplemento/estabilidad-libro.mjs`, con el umbral de 2 %.
+    - Sin temperatura: Sonnet 5.5 no la acepta. La estabilidad sale de la división por código, de las fuentes
+      obligatorias y de que solo los adjuntos se filtran por pertinencia.
+    - Resultados: v5 5.24 %, v6 1.52 %, **v7 0.77 %**.
+    - Variación que la métrica no cuenta: el dueño cambia en el 4 % de los hechos comunes.
+11. **Costo del documento:**
+    - Notas de insumo una vez (solo las del bloque, máximo dos) y cobertura compacta.
+    - Corrida: **$11.20** en bloques, con $1.79 de reintentos del validador cruzado, contra $11.22 de la línea base.
+    - **Meta de ≤ $9 no alcanzada.** Los falsos positivos de los validadores nuevos (incisos y «afirma excluyente»)
+      ya están corregidos; falta otra corrida completa para medirlo.
+    - Coherencia: 30 observaciones contra 19 antes, en su mayoría remisiones a secciones que no desarrollan lo
+      remitido y anuncios de pendiente.
+12. **Bloques de plantilla:**
+    - No son dueños de hechos.
+    - El validador cruzado rechaza que se les asigne un requisito y que se remita a ellos.
+    - Usan la forma de referencia del glosario en lugar de «la Entidad».
+13. **«Proponer criterios climáticos en transacciones importantes y presupuesto»:** está en el acta del Comité,
+    inciso (e). El libro lo extrae y lo asigna al bloque 16, dueño de 6(a)(iv); no era invención de v2.
+14. **Bloque 39** regenerado al cerrar: el modelo ya ve la tabla con el glosario aplicado y no deja la nota
+    «conviene corregir la tabla».
