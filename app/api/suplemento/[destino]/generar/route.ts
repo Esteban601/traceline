@@ -7,6 +7,7 @@ import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
 import { opcionesLiterales } from "@/lib/suplemento/texto-del-emisor";
+import { edicionesDelDocumento, fechaLarga } from "@/lib/suplemento/edicion";
 
 export const runtime = "nodejs";
 
@@ -45,10 +46,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   // adjuntos de la emisora del reporte.
   let pedido: unknown = undefined;
   let pedidoLiterales: unknown = undefined;
+  // A6 (Paso 4): regenerar encima de bloques editados a mano exige confirmarlo.
+  let confirmarEdiciones = false;
   try {
-    const cuerpo = (await req.json()) as { editoriales?: unknown; literales?: unknown } | null;
+    const cuerpo = (await req.json()) as { editoriales?: unknown; literales?: unknown; confirmarEdiciones?: unknown } | null;
     pedido = cuerpo?.editoriales;
     pedidoLiterales = cuerpo?.literales;
+    confirmarEdiciones = cuerpo?.confirmarEdiciones === true;
   } catch {
     /* sin cuerpo: selección por defecto */
   }
@@ -126,6 +130,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   let creado = false;
 
   if (ultimo && ultimo.estado !== "aprobado") {
+    // EDICIONES HUMANAS (CLAUDE.md §5, A6). Reabrir el documento deja en cola
+    // todos sus bloques y vacía sus textos; los editados a mano no se pisan sin
+    // que quien genera lo confirme. Nada se pierde: cada texto queda en el
+    // historial de su bloque.
+    if (!confirmarEdiciones) {
+      const ediciones = await edicionesDelDocumento(db, ultimo.id);
+      if (ediciones.length) {
+        return NextResponse.json(
+          {
+            error: `Hay ${ediciones.length} bloque(s) editados a mano: ${ediciones.map((e) => `${e.numero} (${e.autor}, ${fechaLarga(e.fecha)})`).join("; ")}. Se perderán esas ediciones; quedan en el historial.`,
+            ediciones,
+            requiereConfirmacion: true,
+          },
+          { status: 428 }
+        );
+      }
+    }
     documentoId = ultimo.id;
     version = ultimo.version;
     // REFRESCAR EL RÉGIMEN CONGELADO. Congelar significa "esto es lo que regía
@@ -203,6 +224,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
       // cuarenta vencían esperando turno.
       estado: noAplica ? "no_aplica" : "en_cola",
       texto: null,
+      // El texto que había —editado o no— queda en el historial; el bloque
+      // vuelve a empezar sin marca de edición ni de restauración.
+      texto_del_emisor: false,
+      origen_texto: null,
+      restaurada_de: null,
+      editado_por: null,
+      editado_en: null,
       fuentes: [],
       reclamado_en: null,
       // Encolar es empezar de cero: los cortes por tiempo de una tanda anterior

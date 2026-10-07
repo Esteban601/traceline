@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 
@@ -55,6 +56,8 @@ export function GenerarDocumento({
   const [documentoId, setDocumentoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const cancelado = useRef(false);
+  // A6 (Paso 4): bloques editados a mano que la regeneración reemplazaría.
+  const [ediciones, setEdiciones] = useState<{ numero: number; titulo: string; autor: string; fecha: string }[] | null>(null);
   const toast = useToast();
   const router = useRouter();
 
@@ -108,7 +111,8 @@ export function GenerarDocumento({
     [generarUno]
   );
 
-  const generar = useCallback(async () => {
+  const generar = useCallback(async (confirmarEdiciones = false) => {
+    setEdiciones(null);
     cancelado.current = false;
     setEstado("abriendo");
     setError(null);
@@ -120,9 +124,15 @@ export function GenerarDocumento({
       const res = await fetch(`/api/suplemento/${reporteId}/generar`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ editoriales, literales }),
+        body: JSON.stringify({ editoriales, literales, confirmarEdiciones }),
       });
       const abierto = await res.json();
+      // Hay ediciones humanas: se pregunta antes de pisarlas (quedan en el historial).
+      if (res.status === 428 && Array.isArray(abierto.ediciones)) {
+        setEdiciones(abierto.ediciones);
+        setEstado("listo");
+        return;
+      }
       if (!res.ok) throw new Error(abierto.error ?? `HTTP ${res.status}`);
 
       const docId: string = abierto.documentoId;
@@ -180,7 +190,25 @@ export function GenerarDocumento({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button onClick={generar} loading={estado === "abriendo" || estado === "generando"} disabled={estado === "generando"}>
+      <ConfirmDialog
+        open={!!ediciones}
+        titulo="Hay bloques editados a mano"
+        descripcion="Regenerar el documento reemplaza sus textos. Las ediciones no se borran: quedan en el historial de cada bloque."
+        confirmar="Regenerar de todos modos"
+        tono="danger"
+        onConfirm={() => generar(true)}
+        onCancel={() => setEdiciones(null)}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(ediciones ?? []).map((e) => (
+            <li key={e.numero}>
+              <span className="font-mono text-xs text-muted">{e.numero}</span> {e.titulo}: se perderá la edición de {e.autor} del día{" "}
+              {new Date(e.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}.
+            </li>
+          ))}
+        </ul>
+      </ConfirmDialog>
+      <Button onClick={() => generar()} loading={estado === "abriendo" || estado === "generando"} disabled={estado === "generando"}>
         {estado === "generando" ? `Generando ${hechos}/${total}…` : "Generar suplemento"}
       </Button>
 

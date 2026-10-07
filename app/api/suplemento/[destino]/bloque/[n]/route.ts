@@ -6,6 +6,7 @@ import { accesoAlGenerador, tenantDeDestino } from "@/lib/suplemento/acceso";
 import { generarBloque } from "@/lib/suplemento/generar-bloque";
 import { esModeloConocido, MODELO_POR_DEFECTO } from "@/lib/suplemento/modelos";
 import { regimenDe, leerAlivios } from "@/lib/perfil-emisor";
+import { edicionesDelDocumento, mensajeEdicion } from "@/lib/suplemento/edicion";
 import { logEvento } from "@/lib/bitacora";
 
 export const runtime = "nodejs";
@@ -52,9 +53,12 @@ export async function POST(
   // no cuentan. El orquestador NO manda esta bandera, porque su reintento sí es
   // el segundo intento del mismo bloque.
   let reiniciarIntentos = false;
+  // A6 (Paso 4): regenerar un bloque editado a mano exige confirmarlo.
+  let confirmarEdicion = false;
   try {
-    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean } | null;
+    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean; confirmarEdicion?: boolean } | null;
     reiniciarIntentos = cuerpo?.reiniciarIntentos === true;
+    confirmarEdicion = cuerpo?.confirmarEdicion === true;
     if (cuerpo?.modelo) {
       if (!esModeloConocido(cuerpo.modelo)) {
         return NextResponse.json({ error: `Modelo desconocido: ${cuerpo.modelo}.` }, { status: 400 });
@@ -75,6 +79,21 @@ export async function POST(
   const resuelto = await resolverDocumento(db, destino, perfil.id);
   if ("error" in resuelto) {
     return NextResponse.json({ error: resuelto.error }, { status: resuelto.status });
+  }
+
+  // --- Edición humana: no se pisa sin confirmación (CLAUDE.md §5, A6) --------
+  // El texto no se pierde —queda en el historial—, pero quien regenera tiene que
+  // saber que está reemplazando el trabajo de una persona.
+  if (!confirmarEdicion) {
+    const [edicion] = await edicionesDelDocumento(db, resuelto.documentoId, numero);
+    if (edicion) {
+      return NextResponse.json(
+        { error: mensajeEdicion(edicion), edicion: { autor: edicion.autor, fecha: edicion.fecha }, requiereConfirmacion: true },
+        // 428 y no 409: el 409 ya quiere decir «otro proceso lo tomó» y el
+        // orquestador lo trata como «sigue consultando».
+        { status: 428 }
+      );
+    }
   }
 
   // --- La ruta NO espera a la generación ------------------------------------

@@ -1075,6 +1075,12 @@ async function persistirBloque(
       // y no una mitad que hay que recomponer al exportar.
       texto: d.tabla ? `${d.tabla}\n\n${d.texto}` : d.texto,
       texto_del_emisor: !!d.textoDelEmisor,
+      // Historial (Paso 4): el trigger registra esta versión con este origen. El
+      // texto ya no es el de una edición ni una restauración, así que se limpian.
+      origen_texto: d.textoDelEmisor ? "literal" : "generacion",
+      editado_por: null,
+      editado_en: null,
+      restaurada_de: null,
       fuentes: d.fuentes,
       // Los huecos y las notas al revisor viven en el mismo arreglo, separados
       // por `campo`: el esquema tiene una sola columna jsonb para esto y
