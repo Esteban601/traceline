@@ -18,8 +18,10 @@ import { TIPOS_HECHO, type TipoHecho, type UnidadTexto } from "./tipos";
 // =============================================================================
 
 export const MODELO_LIBRO: ClaveModelo = "claude-sonnet-5-5";
-export const PROMPT_LIBRO_VERSION = "libro-v1-2026-10-07";
-const CARACTERES_POR_LLAMADA = 14000;
+export const PROMPT_LIBRO_VERSION = "libro-v2-2026-10-07";
+// v2: lotes más chicos. Con 14 mil caracteres por llamada, dos corridas sobre
+// los mismos insumos dieron 135 y 98 hechos: el modelo resumía en vez de separar.
+const CARACTERES_POR_LLAMADA = 6000;
 const LIMITE_MS = 4 * 60 * 1000;
 
 export type HechoPropuesto = {
@@ -49,7 +51,7 @@ Una sola afirmación verificable: quién, qué, cuánto, cuándo, cada cuánto, 
 
 1. EXTRACTO LITERAL. Copia carácter por carácter el fragmento de la fuente que sostiene el hecho, de 10 a 300 caracteres, sin puntos suspensivos, sin corregir ni completar. El código lo busca en la fuente: si no está tal cual, el hecho se descarta.
 2. ENUNCIADO FIEL. Una oración completa que dice lo mismo que el extracto, con el sujeto explícito («El Comité de Sostenibilidad y Riesgos Climáticos», no «el Comité»), y NADA MÁS: ni conclusiones («el Consejo aprueba las políticas de riesgos» NO permite decir que existe una política de riesgo climático), ni causas, ni calificativos, ni datos de otra fuente.
-3. SOLO LO QUE SIRVE AL SUPLEMENTO. Extrae los hechos que algún bloque del catálogo necesita. Las cláusulas genéricas —domicilio, duración, asambleas, acciones, capital, utilidades, disolución— y todo texto que no diga nada sobre clima, sostenibilidad, gobierno y gestión de riesgos, estrategia, métricas u objetivos NO se extraen. Una fuente puede no dar ningún hecho.
+3. COMPLETO, NO RESUMIDO. Recorre cada fuente oración por oración: TODA afirmación sobre la emisora que trate de clima, sostenibilidad, gobierno corporativo, órganos y responsables, gestión de riesgos, estrategia y modelo de negocio, operación y perímetro, cadena de valor, métricas, objetivos, políticas, capacitación o decisiones se extrae, aunque parezca menor o ya la hayas visto en otra fuente (las repeticiones entre fuentes son justo lo que se compara). Ante la duda, extráela: el filtro viene después. Solo se omiten las cláusulas genéricas sin relación con esos temas —domicilio, duración, asambleas, acciones, capital, utilidades, disolución— y el texto de relleno.
 4. CLAVE ESTABLE. «sujeto.atributo» en snake_case, sin acentos: comite_sostenibilidad.frecuencia_sesiones, consejo.aprobacion_objetivos_climaticos, direccion_riesgos.responsabilidad_identificacion. El MISMO sujeto y atributo llevan la MISMA clave aunque vengan de fuentes distintas: así se detectan las contradicciones. Reutiliza las claves que ya se usaron (te las doy) cuando el hecho trate de lo mismo.
 5. TIPO Y VALOR. Un tipo de la lista. Si el hecho es una cifra, \`valor\` es el número tal como aparece en el extracto, sin calcular, y \`unidad\` la suya; si no, null. \`periodo\`: el año o periodo al que se refiere, si el extracto lo dice.
 6. BLOQUE DUEÑO. El número del bloque del catálogo cuyo requisito responde el hecho: uno solo. \`bloques_referencia\`: hasta tres bloques que podrían mencionarlo en una línea. Los bloques sugeridos de cada fuente son una pista; decide por el requisito.

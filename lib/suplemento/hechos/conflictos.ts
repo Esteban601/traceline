@@ -113,3 +113,106 @@ export async function detectarContradicciones(hechos: HechoNuevo[], apiKey: stri
     return { grupos: grupos.length, enConflicto, uso: vacio, costo: 0, error: e instanceof Error ? e.message.slice(0, 300) : String(e) };
   }
 }
+
+// -----------------------------------------------------------------------------
+// SEGUNDA PASADA: mismo bloque dueño, claves distintas.
+//
+// La clave la pone el modelo, y dos fuentes pueden nombrar distinto lo mismo:
+// «el Comité evalúa la suficiencia de las competencias del Consejo» y «el
+// Consejo evalúa anualmente la suficiencia de las competencias de sus
+// miembros» quedaron con claves distintas y la primera pasada no las comparó
+// (revisión externa, bloque 15). Aquí se comparan los hechos de cada bloque
+// dueño que vienen de fuentes distintas, en UNA llamada para todo el libro, y
+// el modelo señala los PARES incompatibles. Los pares que ya comparten clave se
+// juzgaron arriba y no se vuelven a mandar.
+// -----------------------------------------------------------------------------
+
+const ESQUEMA_PARES = {
+  type: "object",
+  properties: {
+    pares: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          bloque: { type: "integer" },
+          a: { type: "integer" },
+          b: { type: "integer" },
+          veredicto: { type: "string", enum: ["contradiccion", "por_conciliar", "compatible"] },
+          explicacion: { type: "string" },
+        },
+        required: ["bloque", "a", "b", "veredicto", "explicacion"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["pares"],
+  additionalProperties: false,
+};
+
+const SISTEMA_PARES = `Recibes, agrupados por bloque, hechos de una emisora que vienen de fuentes distintas. Busca pares problemáticos y dales un veredicto:
+- «contradiccion»: no pueden ser ciertos a la vez tal como están escritos: otra cifra, fecha o frecuencia para lo mismo; «aprueba» frente a «propone»; algo ya ocurrido en una fuente y solo propuesto en otra.
+- «por_conciliar»: pueden ser ciertos los dos, pero atribuyen la MISMA función, responsabilidad o decisión a sujetos distintos sin decir cómo se relacionan (p. ej., una fuente dice que el Comité evalúa las competencias del Consejo y otra que el Consejo se autoevalúa). Un lector del informe preguntaría quién lo hace.
+- «compatible»: se complementan, tratan aspectos distintos o uno detalla al otro.
+Devuelve SOLO pares con veredicto «contradiccion» o «por_conciliar»; si escribirías «no hay contradicción», no lo devuelvas. Si no hay pares, la lista vacía.
+Para cada par: el número de bloque, los dos números de hecho tal como aparecen ([n]), el veredicto y una frase que nombre las fuentes y la diferencia.`;
+
+export async function detectarPorBloque(hechos: HechoNuevo[], apiKey: string): Promise<ResultadoConflictos> {
+  const vacio: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
+  const candidatos = hechos.filter((h) => h.estado === "vigente" && h.bloque_dueno != null);
+  const porBloque = new Map<number, HechoNuevo[]>();
+  for (const h of candidatos) porBloque.set(h.bloque_dueno!, [...(porBloque.get(h.bloque_dueno!) ?? []), h]);
+  const grupos = [...porBloque].filter(([, g]) => new Set(g.map((h) => h.fuente_id)).size > 1);
+  if (!grupos.length) return { grupos: 0, enConflicto: 0, uso: vacio, costo: 0 };
+
+  const usuario = grupos
+    .map(([n, g]) => [`## Bloque ${n}`, ...g.map((h, i) => `[${i + 1}] (${h.rango_fuente}; ${h.fuente_detalle}) ${h.enunciado}`)].join("\n"))
+    .join("\n\n");
+  try {
+    const client = new Anthropic({ apiKey });
+    const m = await client.messages
+      .stream(
+        {
+          model: MODELO_LIBRO,
+          max_tokens: 16000,
+          system: SISTEMA_PARES,
+          messages: [{ role: "user", content: usuario }],
+          output_config: { effort: "medium", format: { type: "json_schema", schema: ESQUEMA_PARES } },
+        },
+        { timeout: 180_000, maxRetries: 1 }
+      )
+      .finalMessage();
+    const uso: Uso = {
+      entrada: m.usage.input_tokens ?? 0,
+      cacheEscritura: m.usage.cache_creation_input_tokens ?? 0,
+      cacheLectura: m.usage.cache_read_input_tokens ?? 0,
+      salida: m.usage.output_tokens ?? 0,
+    };
+    const texto = m.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("");
+    const r = JSON.parse(texto) as { pares: { bloque: number; a: number; b: number; veredicto: string; explicacion: string }[] };
+    const g = new Map(grupos);
+    let enConflicto = 0;
+    let pares = 0;
+    for (const p of r.pares ?? []) {
+      const lista = g.get(p.bloque);
+      const ha = lista?.[p.a - 1];
+      const hb = lista?.[p.b - 1];
+      // Mismo hecho, misma fuente o misma clave (ya juzgada): no es un par nuevo.
+      if (!ha || !hb || ha === hb || ha.fuente_id === hb.fuente_id || ha.clave === hb.clave) continue;
+      // Solo cuenta un veredicto explícito: un par «compatible» no se marca aunque venga.
+      if (p.veredicto !== "contradiccion" && p.veredicto !== "por_conciliar") continue;
+      const id = ha.grupo_conflicto ?? hb.grupo_conflicto ?? randomUUID();
+      const texto = `[${p.veredicto === "contradiccion" ? "contradicción" : "por conciliar"}] ${p.explicacion}`;
+      for (const h of [ha, hb]) {
+        if (h.estado !== "en_conflicto") enConflicto++;
+        h.estado = "en_conflicto";
+        h.grupo_conflicto = id;
+        h.conflicto = h.conflicto ? `${h.conflicto} ${texto}` : texto;
+      }
+      pares++;
+    }
+    return { grupos: pares, enConflicto, uso, costo: costoUsd(MODELO_LIBRO, uso) };
+  } catch (e) {
+    return { grupos: 0, enConflicto: 0, uso: vacio, costo: 0, error: e instanceof Error ? e.message.slice(0, 300) : String(e) };
+  }
+}

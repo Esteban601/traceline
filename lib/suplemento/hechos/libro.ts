@@ -8,7 +8,7 @@ import type { Uso } from "@/lib/suplemento/modelos";
 import { recolectar } from "./fuentes";
 import { atomizar, lotes, MODELO_LIBRO, PROMPT_LIBRO_VERSION, type BloqueCatalogo } from "./extraer";
 import { sinRepetidos, verificarPropuesto } from "./verificar";
-import { detectarContradicciones } from "./conflictos";
+import { detectarContradicciones, detectarPorBloque } from "./conflictos";
 import type { HechoNuevo, UnidadTexto } from "./tipos";
 
 // =============================================================================
@@ -123,7 +123,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
         .limit(1)
         .maybeSingle();
       if (previo) {
-        await fin({ estado: "error", huella, error: `Sin cambios en los insumos: se usa el libro ${previo.id}.` });
+        await fin({ estado: "reutilizado", huella, reutiliza_libro: previo.id, error: null });
         return;
       }
     }
@@ -156,6 +156,11 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     uso = sumar(uso, conf.uso);
     costo += conf.costo;
     if (conf.error) errores.push(`contradicciones: ${conf.error}`);
+    // Segunda pasada: mismo bloque dueño, claves distintas.
+    const porBloque = await detectarPorBloque(hechos, apiKey);
+    uso = sumar(uso, porBloque.uso);
+    costo += porBloque.costo;
+    if (porBloque.error) errores.push(`contradicciones por bloque: ${porBloque.error}`);
 
     // --- Guardado ------------------------------------------------------------
     const filas = hechos.map((h) => ({ ...h, libro_id: libroId, tenant_id: tenantId }));
@@ -166,7 +171,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     await fin({
       estado: "listo",
       huella,
-      llamadas: porLotes.length + (conf.uso.entrada || conf.uso.salida ? 1 : 0),
+      llamadas: porLotes.length + (conf.uso.entrada || conf.uso.salida ? 1 : 0) + (porBloque.uso.entrada || porBloque.uso.salida ? 1 : 0),
       tokens_entrada: uso.entrada,
       tokens_entrada_cache_escritura: uso.cacheEscritura,
       tokens_entrada_cache_lectura: uso.cacheLectura,
@@ -177,6 +182,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
         fuentes_de_texto: rec.textos.length,
         lotes: porLotes.length,
         grupos_misma_clave: conf.grupos,
+        pares_por_bloque: porBloque.grupos,
         insumos: rec.insumos,
       }),
     });
@@ -185,4 +191,21 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     console.error(`[libro] ${libroId.slice(0, 8)}: ${error.slice(0, 300)}`);
     await fin({ estado: "error", error: error.slice(0, 1000) });
   }
+}
+
+/**
+ * El libro que vale para un reporte: el último listo, siguiendo a una corrida
+ * «reutilizado» hasta el libro que reutiliza. Null si no hay ninguno.
+ */
+export async function libroVigente(db: Db, reporteId: string): Promise<{ id: string; corridaId: string } | null> {
+  const { data } = await db
+    .from("libros_hechos")
+    .select("id, estado, reutiliza_libro")
+    .eq("reporte_id", reporteId)
+    .in("estado", ["listo", "reutilizado"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return { id: data.estado === "reutilizado" && data.reutiliza_libro ? data.reutiliza_libro : data.id, corridaId: data.id };
 }

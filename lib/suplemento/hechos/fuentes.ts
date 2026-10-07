@@ -4,7 +4,8 @@ import type { Database } from "@/lib/database.types";
 import type { Contenido } from "@/lib/evidencias/extraer";
 import { ensamblarReporte } from "@/lib/reporte/ensamblar";
 import { evaluarCompletitud } from "@/lib/suplemento/completitud";
-import { BLOQUES } from "@/lib/suplemento/bloques";
+import { BLOQUES, datapointsExentos } from "@/lib/suplemento/bloques";
+import { leerAlivios, regimenDe } from "@/lib/perfil-emisor";
 import { puntuar, unidades } from "@/lib/suplemento/adjuntos-bloque";
 import type { HechoNuevo, UnidadTexto } from "./tipos";
 
@@ -86,6 +87,14 @@ export type Recoleccion = {
   insumos: {
     adjuntos: { archivo: string; estado: string; unidades: number; enviadas: number; truncado: boolean; mensaje: string | null }[];
     solicitudesValidadasSinFuente: number;
+    /** Capturas de solicitudes cuyos datapoints exime un alivio vigente (el Alcance 3 bajo C4): fuera del libro. */
+    exentasPorAlivio: { titulo: string; alivio: string }[];
+    /**
+     * Capturas de solicitudes que ningún bloque del suplemento usa (agua,
+     * residuos, plantilla…: datos de sostenibilidad que no son de clima, con E5
+     * vigente). Fuera del libro, con su título, para que conste.
+     */
+    fueraDelSuplemento: string[];
   };
   /** Lo que cambia la huella: si no cambia, el libro se puede reutilizar. */
   material: unknown;
@@ -115,12 +124,41 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
   const textos: UnidadTexto[] = [];
   const base = { verificado: true, estado: "vigente" as const };
 
+  // Lo que un alivio vigente exime no entra: el Alcance 3 bajo C4 no va al
+  // suplemento del primer ejercicio, aunque el demo tenga sus cifras.
+  const { data: rep } = await db.from("reportes").select("anio_adopcion, alivios").eq("id", reporteId).single();
+  const alivios = leerAlivios(rep?.alivios);
+  const vigentes = regimenDe(ejercicio, rep?.anio_adopcion ?? null) === "primer_anio" ? alivios : {};
+  const exentos = datapointsExentos(vigentes as typeof alivios);
+  const { data: mapeo } = await db
+    .from("mapeo_solicitud_datapoint")
+    .select("solicitud_id, datapoints_taxonomia(codigo)")
+    .in("solicitud_id", ens.solicitudes.map((s) => s.id));
+  const codigosDe = new Map<string, string[]>();
+  for (const m of mapeo ?? []) {
+    const codigo = (m.datapoints_taxonomia as unknown as { codigo: string } | null)?.codigo;
+    if (codigo) codigosDe.set(m.solicitud_id, [...(codigosDe.get(m.solicitud_id) ?? []), codigo]);
+  }
+  const exentasPorAlivio: Recoleccion["insumos"]["exentasPorAlivio"] = [];
+  const fueraDelSuplemento: string[] = [];
+
   // --- 1. Capturas confirmadas (validado) -------------------------------------
-  let validadasSinFuente = 0;
+  // Validadas sin captura: si tampoco tienen extracto confirmado (abajo), no
+  // tienen fuente; su respuesta solo vivía en la descripción.
+  const sinCaptura = new Set<string>();
   for (const s of ens.solicitudes) {
     const e = ens.entregaPorSolicitud.get(s.id);
-    if (e?.estado === "entregado" && e.valor == null) validadasSinFuente++;
+    if (e?.estado === "entregado" && e.valor == null) sinCaptura.add(s.id);
     if (e?.valor == null) continue;
+    const cods = codigosDe.get(s.id) ?? [];
+    if (!bloquesDeSolicitud.has(s.id) && cods.length && cods.every((c) => exentos.has(c))) {
+      exentasPorAlivio.push({ titulo: s.titulo, alivio: "C4" });
+      continue;
+    }
+    if (!bloquesDeSolicitud.has(s.id)) {
+      fueraDelSuplemento.push(s.titulo);
+      continue;
+    }
     const d = duenoDe(bloquesDeSolicitud.get(s.id) ?? []);
     directos.push({
       ...base,
@@ -168,6 +206,9 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
       });
     }
   }
+
+  const conExtracto = new Set(textos.filter((t) => t.fuenteTipo === "extracto").map((t) => t.id.slice(4)));
+  const validadasSinFuente = [...sinCaptura].filter((id) => !conExtracto.has(id)).length;
 
   // --- 3. Respuestas de cuestionario (validado) -------------------------------
   for (const c of ens.cuestionarios) {
@@ -305,7 +346,7 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
   return {
     directos,
     textos,
-    insumos: { adjuntos: insumosAdj, solicitudesValidadasSinFuente: validadasSinFuente },
+    insumos: { adjuntos: insumosAdj, solicitudesValidadasSinFuente: validadasSinFuente, exentasPorAlivio, fueraDelSuplemento },
     material: { directos: directos.map((d) => [d.fuente_id, d.extracto, d.enunciado]), textos: textos.map((t) => [t.id, t.texto]) },
   };
 }

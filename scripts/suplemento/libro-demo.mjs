@@ -42,9 +42,10 @@ while (Date.now() < hasta) {
   const g = await api("GET", `/api/suplemento/${REPORTE}/hechos`);
   if (!g.ok) continue;
   d = await g.json();
-  if (d.libro.id === abierto.id && d.libro.estado !== "generando") break;
+  if (d.corrida.id === abierto.id && d.corrida.estado !== "generando") break;
 }
-if (!d || d.libro.estado !== "listo") { console.error(`✗ libro: ${d?.libro.estado} ${d?.libro.error ?? ""}`); process.exit(1); }
+if (!d || !["listo", "reutilizado"].includes(d.corrida.estado)) { console.error(`✗ libro: ${d?.corrida.estado} ${d?.corrida.error ?? ""}`); process.exit(1); }
+if (d.corrida.estado === "reutilizado") console.log(`sin cambios en los insumos: la corrida reutiliza el libro ${d.libro.id.slice(0, 8)}… (costo 0)`);
 
 fs.mkdirSync(carpeta, { recursive: true });
 fs.writeFileSync(path.join(carpeta, "libro.json"), JSON.stringify(d, null, 1));
@@ -64,7 +65,8 @@ const md = [
   ...Object.entries(r.por_rango).map(([k, v]) => `| ${k} | ${v.total} | ${v.verificados} | ${v.descartados} | ${v.en_conflicto} |`),
   "",
   `Vigentes ${r.vigentes} · en contradicción ${r.en_conflicto} (${r.grupos_en_conflicto} grupos) · descartados ${r.descartados}. Por fuente: ${Object.entries(r.por_fuente).map(([k, v]) => `${k} ${v}`).join(", ")}.`,
-  `Bloques sin hechos propios: ${r.bloques_sin_hechos.join(", ") || "ninguno"}.`,
+  `Bloques sin hechos propios: ${r.bloques_sin_hechos.join(", ") || "ninguno"}. Pares en contradicción por bloque (segunda pasada): ${r.pares_por_bloque ?? 0}.`,
+  `Capturas exentas por alivio (fuera del libro): ${(r.insumos.exentasPorAlivio ?? []).length}.`,
   `Insumos: ${r.insumos.adjuntos.map((a) => `${a.archivo} (${a.enviadas} de ${a.unidades} partes${a.truncado ? ", recortado" : ""})`).join("; ")}. Solicitudes validadas sin fuente de texto ni captura: ${r.insumos.solicitudesValidadasSinFuente}.`,
   "",
   "## Contradicciones",
@@ -87,4 +89,4 @@ const md = [
   ...hechos.filter((h) => h.estado === "descartado").map((h) => `- ${h.verificacion} — ${h.enunciado} — «${h.extracto}» (${h.fuente_detalle})`),
 ].join("\n");
 fs.writeFileSync(path.join(carpeta, "libro.md"), md);
-console.log(JSON.stringify({ costo: Number(libro.costo_usd), segundos: Math.round(libro.duracion_ms / 1000), llamadas: libro.llamadas, ...r, insumos: undefined, motivos_descarte: r.motivos_descarte }, null, 1));
+console.log(JSON.stringify({ corrida: d.corrida.estado, costo: Number(libro.costo_usd), segundos: Math.round(libro.duracion_ms / 1000), llamadas: libro.llamadas, ...r, insumos: undefined, motivos_descarte: r.motivos_descarte }, null, 1));

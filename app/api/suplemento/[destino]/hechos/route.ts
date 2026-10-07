@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
-import { construirLibro, reclamarLibro } from "@/lib/suplemento/hechos/libro";
+import { construirLibro, libroVigente, reclamarLibro } from "@/lib/suplemento/hechos/libro";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,8 @@ export const runtime = "nodejs";
 //   POST: arma el libro en after() (son varias llamadas: minutos). Solo staff:
 //         cuesta. Cuerpo opcional {forzar: true} para no reutilizar un libro
 //         con la misma huella. 202 con el id; 409 si ya hay uno en curso.
-//   GET:  el último libro del reporte con sus hechos.
+//   GET:  la última corrida del reporte y el libro que vale (si la corrida
+//         reutilizó uno, sus hechos son los de ese libro).
 // =============================================================================
 
 export async function POST(req: Request, ctx: { params: Promise<{ destino: string }> }) {
@@ -48,18 +49,22 @@ export async function GET(_req: Request, ctx: { params: Promise<{ destino: strin
   if (!perfil) return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   if (!esStaff(perfil) && !esAdminCliente(perfil)) return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
   const db = await createClient();
-  const { data: libro } = await db
+  const { data: corrida } = await db
     .from("libros_hechos")
     .select("*")
     .eq("reporte_id", reporteId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!libro) return NextResponse.json({ error: "Este reporte no tiene libro de hechos." }, { status: 404 });
+  if (!corrida) return NextResponse.json({ error: "Este reporte no tiene libro de hechos." }, { status: 404 });
+  const vigente = await libroVigente(db, reporteId);
+  const { data: libro } = vigente && vigente.id !== corrida.id
+    ? await db.from("libros_hechos").select("*").eq("id", vigente.id).single()
+    : { data: corrida };
   const { data: hechos } = await db
     .from("hechos")
     .select("id, clave, enunciado, tipo, valor, unidad, periodo, rango_fuente, fuente_tipo, fuente_id, fuente_detalle, extracto, verificado, verificacion, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado")
-    .eq("libro_id", libro.id)
+    .eq("libro_id", libro!.id)
     .order("bloque_dueno", { ascending: true });
-  return NextResponse.json({ libro, hechos: hechos ?? [] });
+  return NextResponse.json({ corrida, libro, hechos: hechos ?? [] });
 }
