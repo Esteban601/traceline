@@ -8,6 +8,7 @@ import type { Uso } from "@/lib/suplemento/modelos";
 import { recolectar } from "./fuentes";
 import { clasificar, esObligatoria, lotes, MODELO_LIBRO, PROMPT_LIBRO_VERSION, type BloqueCatalogo, type FuenteEnOraciones } from "./extraer";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
+import { ORGANOS, palabrasDe } from "./remisiones";
 import { sinRepetidos, verificarClasificado } from "./verificar";
 import { decidirContradicciones } from "./conflictos";
 import { dividir } from "./oraciones";
@@ -155,6 +156,10 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     let llamadas = 0;
     const errores: string[] = [];
     const clasificados: HechoNuevo[] = [];
+    let duenosPorTaxonomia = 0;
+    const desacuerdos: { modelo: number | null; codigo: number; oracion: string }[] = [];
+    const sinOrganos = (w: Set<string>) => new Set([...w].filter((x) => !ORGANOS.includes(x)));
+    const vocabulario = new Map(bloques.map((b) => [b.numero, sinOrganos(palabrasDe([b.titulo, b.cubre, ...b.requisitos.map((r) => r.descripcion)].join(" ")))]));
     const claves = new Set<string>(rec.directos.map((d) => d.clave));
     for (const lote of porLotes) {
       const r = await clasificar(lote, bloques, [...claves], apiKey);
@@ -164,6 +169,29 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
       if (r.error) errores.push(`${lote.map((f) => f.unidad.id).join(", ").slice(0, 120)}: ${r.error}`);
       for (const p of r.hechos) {
         const h = verificarClasificado(p, oraciones);
+        // DUEÑO POR TAXONOMÍA PRIMERO (estabilidad del dueño): si la fuente
+        // responde datapoints de UN solo bloque, ese bloque es el dueño; lo que
+        // el modelo eligió pasa a referencia. El modelo decide solo cuando la
+        // fuente sirve a varios bloques (adjuntos, campos del Perfil compartidos).
+        const sugeridos = (oraciones.get(p.oracion)?.unidad.sugeridos ?? []).filter((n) => !(n in PLANTILLAS));
+        // Segunda capa, también por código: entre varios bloques sugeridos, el
+        // que comparte claramente más palabras con sus requisitos del catálogo.
+        let porRequisitos: number | null = null;
+        if (h.estado === "vigente" && sugeridos.length > 1) {
+          const w = sinOrganos(palabrasDe(oraciones.get(p.oracion)!.texto));
+          const puntos = sugeridos.map((n) => ({ n, pts: [...w].filter((x) => vocabulario.get(n)?.has(x)).length })).sort((a, b) => b.pts - a.pts || a.n - b.n);
+          if (puntos[0].pts >= 3 && puntos[0].pts >= 1.5 * puntos[1].pts) porRequisitos = puntos[0].n;
+        }
+        const unico = sugeridos.length === 1 ? sugeridos : porRequisitos != null ? [porRequisitos] : [];
+        if (h.estado === "vigente" && unico.length === 1) {
+          if (porRequisitos != null && h.bloque_dueno !== porRequisitos && desacuerdos.length < 40) desacuerdos.push({ modelo: h.bloque_dueno, codigo: porRequisitos, oracion: h.enunciado.slice(0, 120) });
+          if (h.bloque_dueno !== unico[0]) {
+            h.bloques_referencia = [...new Set([h.bloque_dueno, ...h.bloques_referencia].filter((n): n is number => n != null && n !== unico[0]))].slice(0, 3);
+            h.bloque_dueno = unico[0];
+          }
+          h.verificacion = `${h.verificacion}; dueño por ${porRequisitos != null ? "requisitos del catálogo" : "taxonomía"}`;
+          duenosPorTaxonomia++;
+        }
         clasificados.push(h);
         if (h.estado === "vigente") claves.add(h.clave);
       }
@@ -270,6 +298,8 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
         por_alcance: hechos.reduce<Record<string, number>>((a, h) => ((a[h.alcance ?? "—"] = (a[h.alcance ?? "—"] ?? 0) + 1), a), {}),
         nodos_organigrama: org.hechos.filter((h) => h.estado === "vigente").length,
         oraciones_obligatorias_omitidas: omitidas.length,
+        duenos_por_taxonomia: duenosPorTaxonomia,
+        duenos_por_requisitos_contra_modelo: desacuerdos,
         contradicciones: { grupos: conf.grupos, excluyentes: conf.excluyentes, conciliados: conf.conciliados, en_conflicto: conf.enConflicto },
         insumos: rec.insumos,
       }),

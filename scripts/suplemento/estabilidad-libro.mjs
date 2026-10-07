@@ -13,6 +13,10 @@
 // = |A △ B| / |A ∪ B|. Falla si pasa del 2 %. Informa además, sobre los hechos
 // comunes, cuántos cambiaron de bloque dueño o de clave, y los grupos en
 // contradicción de cada corrida.
+//
+// Dueño (aprobado al cerrar el 5b): «hechos con el mismo dueño en dos
+// corridas», sobre los comunes, con umbral de 98 %. La prueba falla si
+// cualquiera de las dos métricas no pasa.
 // =============================================================================
 import fs from "node:fs";
 import path from "node:path";
@@ -21,6 +25,7 @@ import { execFileSync } from "node:child_process";
 const [carpeta, BASE = "http://localhost:3014"] = process.argv.slice(2);
 if (!carpeta) { console.error("Uso: estabilidad-libro.mjs <carpeta> [baseUrl]"); process.exit(2); }
 const UMBRAL = 0.02;
+const UMBRAL_DUENO = 0.98;
 const script = path.join(path.dirname(new URL(import.meta.url).pathname), "libro-demo.mjs");
 
 for (const c of ["a", "b"]) {
@@ -53,6 +58,7 @@ const informe = {
   diferencia: Number((dif * 100).toFixed(2)),
   comunes: comunes.length,
   cambio_de_dueno: cambioDueno.length,
+  mismo_dueno: Number((((comunes.length - cambioDueno.length) / Math.max(1, comunes.length)) * 100).toFixed(2)),
   cambio_de_clave: cambioClave.length,
   cambio_de_estado: cambioEstado.length,
   cambio_de_veredicto: cambioVeredicto.length,
@@ -74,5 +80,7 @@ fs.writeFileSync(
   ].join("\n")
 );
 console.log(JSON.stringify(informe, null, 1));
-console.log(dif <= UMBRAL ? `✓ Libro estable: ${informe.diferencia} % ≤ 2 %` : `✗ Libro inestable: ${informe.diferencia} % > 2 %`);
-process.exit(dif <= UMBRAL ? 0 : 1);
+const okDueno = informe.mismo_dueno / 100 >= UMBRAL_DUENO;
+console.log(dif <= UMBRAL ? `✓ Conjunto de hechos: ${informe.diferencia} % ≤ 2 %` : `✗ Conjunto de hechos: ${informe.diferencia} % > 2 %`);
+console.log(okDueno ? `✓ Mismo dueño: ${informe.mismo_dueno} % ≥ 98 %` : `✗ Mismo dueño: ${informe.mismo_dueno} % < 98 %`);
+process.exit(dif <= UMBRAL && okDueno ? 0 : 1);

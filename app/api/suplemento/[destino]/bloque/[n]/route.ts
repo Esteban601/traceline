@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { accesoAlGenerador, tenantDeDestino } from "@/lib/suplemento/acceso";
 import { generarBloque } from "@/lib/suplemento/generar-bloque";
-import { esModeloConocido, MODELO_POR_DEFECTO } from "@/lib/suplemento/modelos";
+import { esModeloConocido, MODELO_POR_DEFECTO, type Esfuerzo } from "@/lib/suplemento/modelos";
 import { regimenDe, leerAlivios } from "@/lib/perfil-emisor";
 import { edicionesDelDocumento, mensajeEdicion } from "@/lib/suplemento/edicion";
 import { logEvento } from "@/lib/bitacora";
@@ -58,8 +58,11 @@ export async function POST(
   // Paso 5b: veredicto del validador cruzado para el reintento. Solo el equipo
   // de IRStrat, y acotado: es texto que entra al prompt.
   let correccion: string | undefined;
+  // A/B de esfuerzo (cierre del 5b): solo el equipo de IRStrat; sin él, el del tipo de bloque.
+  let esfuerzo: Esfuerzo | undefined;
   try {
-    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean; confirmarEdicion?: boolean; correccion?: unknown } | null;
+    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean; confirmarEdicion?: boolean; correccion?: unknown; esfuerzo?: unknown } | null;
+    if (typeof cuerpo?.esfuerzo === "string" && ["low", "medium", "high"].includes(cuerpo.esfuerzo) && esStaff(perfil)) esfuerzo = cuerpo.esfuerzo as Esfuerzo;
     reiniciarIntentos = cuerpo?.reiniciarIntentos === true;
     confirmarEdicion = cuerpo?.confirmarEdicion === true;
     if (typeof cuerpo?.correccion === "string" && cuerpo.correccion.trim() && esStaff(perfil)) correccion = cuerpo.correccion.trim().slice(0, 4000);
@@ -117,7 +120,7 @@ export async function POST(
     // excedido»— no se parece en nada a la causa.
     let r: Awaited<ReturnType<typeof generarBloque>>;
     try {
-      r = await generarBloque(db, resuelto.documentoId, numero, { modelo, correccion });
+      r = await generarBloque(db, resuelto.documentoId, numero, { modelo, correccion, esfuerzo });
     } catch (e) {
       const detalle = motivoSeguro(e instanceof Error ? e.message : String(e));
       // Solo el mensaje, saneado: el objeto de error puede arrastrar cabeceras.

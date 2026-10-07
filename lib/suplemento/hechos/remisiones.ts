@@ -43,7 +43,7 @@ const plano = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerC
 
 const DESTINO = /secci[oó]n(?:es)?\s+(?:de\s+|sobre\s+|relativa\s+a\s+|dedicada\s+a\s+)?(?:la\s+|el\s+|los\s+|las\s+)?([^;]+?)\.?$/i;
 /** Órganos y nombres genéricos de gobierno: aparecen en casi todo y no distinguen contenidos. */
-const ORGANOS = ["consejo", "administracion", "comite", "comites", "direccion", "direcciones", "sostenibilidad", "general", "gobierno", "organo", "organos", "gerencia"];
+export const ORGANOS = ["consejo", "administracion", "comite", "comites", "direccion", "direcciones", "sostenibilidad", "general", "gobierno", "organo", "organos", "gerencia"];
 
 /** Destinos genéricos («las secciones correspondientes»): no apuntan a un bloque. */
 const GENERICO = /^(?:correspondientes?|respectivas?)\b|\bcorrespondientes?\.?$/i;

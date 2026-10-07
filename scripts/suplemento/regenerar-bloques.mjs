@@ -18,7 +18,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { createServerClient } from "@supabase/ssr";
 
-const [documento, lista, carpeta, BASE = "http://localhost:3014"] = process.argv.slice(2);
+const args = process.argv.slice(2);
+// --esfuerzo=medium|high (A/B del cierre del 5b): se manda a la ruta; sin él, el del tipo de bloque.
+const esfuerzo = args.find((a) => a.startsWith("--esfuerzo="))?.split("=")[1];
+const [documento, lista, carpeta, BASE = "http://localhost:3014"] = args.filter((a) => !a.startsWith("--"));
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const REF_DEV = "kmjkoxecxcujxixlxwlb";
@@ -57,7 +60,7 @@ const comparacion = [];
 for (const n of numeros) {
   const antes = await leer(n);
   fs.writeFileSync(path.join(carpeta, `antes-${n}.json`), JSON.stringify(antes, null, 1));
-  const p = await api("POST", `/api/suplemento/${documento}/bloque/${n}`, {});
+  const p = await api("POST", `/api/suplemento/${documento}/bloque/${n}`, esfuerzo ? { esfuerzo } : {});
   if (p.status !== 202 && p.status !== 409) { console.error(`✗ bloque ${n}: ${p.status} ${(await p.json().catch(() => ({}))).error ?? ""}`); continue; }
   const hasta = Date.now() + 4 * 60 * 1000;
   let estado = "generando";
