@@ -964,6 +964,96 @@ export type Database = {
           },
         ]
       }
+      hechos: {
+        Row: {
+          bloque_dueno: number | null
+          bloques_referencia: number[]
+          clave: string
+          conflicto: string | null
+          created_at: string
+          enunciado: string
+          estado: string
+          extracto: string
+          fuente_detalle: string
+          fuente_id: string
+          fuente_tipo: string
+          grupo_conflicto: string | null
+          id: string
+          libro_id: string
+          periodo: string | null
+          rango_fuente: string
+          tenant_id: string
+          tipo: string
+          unidad: string | null
+          valor: number | null
+          verificacion: string | null
+          verificado: boolean
+        }
+        Insert: {
+          bloque_dueno?: number | null
+          bloques_referencia?: number[]
+          clave: string
+          conflicto?: string | null
+          created_at?: string
+          enunciado: string
+          estado?: string
+          extracto: string
+          fuente_detalle: string
+          fuente_id: string
+          fuente_tipo: string
+          grupo_conflicto?: string | null
+          id?: string
+          libro_id: string
+          periodo?: string | null
+          rango_fuente: string
+          tenant_id: string
+          tipo: string
+          unidad?: string | null
+          valor?: number | null
+          verificacion?: string | null
+          verificado?: boolean
+        }
+        Update: {
+          bloque_dueno?: number | null
+          bloques_referencia?: number[]
+          clave?: string
+          conflicto?: string | null
+          created_at?: string
+          enunciado?: string
+          estado?: string
+          extracto?: string
+          fuente_detalle?: string
+          fuente_id?: string
+          fuente_tipo?: string
+          grupo_conflicto?: string | null
+          id?: string
+          libro_id?: string
+          periodo?: string | null
+          rango_fuente?: string
+          tenant_id?: string
+          tipo?: string
+          unidad?: string | null
+          valor?: number | null
+          verificacion?: string | null
+          verificado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hechos_libro_id_fkey"
+            columns: ["libro_id"]
+            isOneToOne: false
+            referencedRelation: "libros_hechos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hechos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitaciones: {
         Row: {
           creada_por: string | null
@@ -1012,6 +1102,94 @@ export type Database = {
           },
           {
             foreignKeyName: "invitaciones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      libros_hechos: {
+        Row: {
+          costo_usd: number
+          creado_por: string | null
+          created_at: string
+          duracion_ms: number
+          error: string | null
+          estado: string
+          huella: string | null
+          id: string
+          llamadas: number
+          modelo: string | null
+          prompt_version: string | null
+          reporte_id: string
+          resumen: Json
+          tenant_id: string
+          terminado_en: string | null
+          tokens_entrada: number
+          tokens_entrada_cache_escritura: number
+          tokens_entrada_cache_lectura: number
+          tokens_salida: number
+        }
+        Insert: {
+          costo_usd?: number
+          creado_por?: string | null
+          created_at?: string
+          duracion_ms?: number
+          error?: string | null
+          estado?: string
+          huella?: string | null
+          id?: string
+          llamadas?: number
+          modelo?: string | null
+          prompt_version?: string | null
+          reporte_id: string
+          resumen?: Json
+          tenant_id: string
+          terminado_en?: string | null
+          tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
+          tokens_salida?: number
+        }
+        Update: {
+          costo_usd?: number
+          creado_por?: string | null
+          created_at?: string
+          duracion_ms?: number
+          error?: string | null
+          estado?: string
+          huella?: string | null
+          id?: string
+          llamadas?: number
+          modelo?: string | null
+          prompt_version?: string | null
+          reporte_id?: string
+          resumen?: Json
+          tenant_id?: string
+          terminado_en?: string | null
+          tokens_entrada?: number
+          tokens_entrada_cache_escritura?: number
+          tokens_entrada_cache_lectura?: number
+          tokens_salida?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "libros_hechos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "libros_hechos_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "libros_hechos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
