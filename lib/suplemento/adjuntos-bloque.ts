@@ -62,9 +62,10 @@ export function seccionesDeAdjuntos(bloque: Bloque): string[] {
   return [...new Set([...propias, ...tema])];
 }
 
-type Unidad = { id: string; detalle: string; texto: string; orden: number };
+export type Unidad = { id: string; detalle: string; texto: string; orden: number };
 
-function unidades(adjuntoId: string, archivo: string, c: Contenido): Unidad[] {
+/** Unidades citables de un adjunto (también las usa el libro de hechos para dividirlo). */
+export function unidades(adjuntoId: string, archivo: string, c: Contenido): Unidad[] {
   const base = `adj:${adjuntoId}`;
   switch (c.tipo) {
     case "pdf":
@@ -130,7 +131,7 @@ function terminos(texto: string): string[] {
     .map((t) => t.slice(0, 6));
 }
 
-function puntuar(consulta: string, us: Unidad[]): number[] {
+export function puntuar(consulta: string, us: Unidad[]): number[] {
   const q = new Set(terminos(consulta));
   const conjuntos = us.map((u) => new Set(terminos(u.texto)));
   const df = new Map<string, number>();
