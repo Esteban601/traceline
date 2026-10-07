@@ -6,18 +6,23 @@ import { BLOQUES } from "@/lib/suplemento/bloques";
 import { fronteraDe } from "@/lib/suplemento/fronteras";
 import type { Uso } from "@/lib/suplemento/modelos";
 import { recolectar } from "./fuentes";
-import { atomizar, lotes, MODELO_LIBRO, PROMPT_LIBRO_VERSION, type BloqueCatalogo } from "./extraer";
-import { sinRepetidos, verificarPropuesto } from "./verificar";
-import { detectarContradicciones, detectarPorBloque } from "./conflictos";
-import type { HechoNuevo, UnidadTexto } from "./tipos";
+import { clasificar, esObligatoria, lotes, MODELO_LIBRO, PROMPT_LIBRO_VERSION, type BloqueCatalogo, type FuenteEnOraciones } from "./extraer";
+import { PLANTILLAS } from "@/lib/suplemento/plantillas";
+import { sinRepetidos, verificarClasificado } from "./verificar";
+import { decidirContradicciones } from "./conflictos";
+import { dividir } from "./oraciones";
+import { organigramaEnHechos } from "./organigrama";
+import { ORDEN_RANGO, type HechoNuevo, type UnidadTexto } from "./tipos";
 
 // =============================================================================
 // LIBRO DE HECHOS — la corrida (encargo suplemento-calidad, Paso 5).
 //
 //   reclamarLibro: abre un libro `generando` (uno en curso por reporte).
-//   construirLibro: recolecta las fuentes, atomiza los textos (Sonnet 5.5, en
-//     serie), verifica cada hecho contra su fuente, marca contradicciones y
-//     guarda el libro con su costo y su resumen.
+//   construirLibro: recolecta las fuentes, las parte en oraciones (código),
+//     clasifica las oraciones (Sonnet 5.5, en serie), verifica cada hecho,
+//     aplica el filtro de alcance E5 por hecho, lee el organigrama como árbol,
+//     decide las contradicciones una sola vez y guarda el libro con su costo y
+//     su resumen (Paso 5b).
 //
 // Si la huella de los insumos es la de un libro ya listo, se reutiliza: el libro
 // es por reporte y no se paga dos veces por lo mismo.
@@ -71,6 +76,7 @@ async function catalogoDeBloques(db: Db): Promise<BloqueCatalogo[]> {
     titulo: b.titulo,
     clase: b.clase,
     cubre: fronteraDe(b.numero).cubre,
+    plantilla: b.numero in PLANTILLAS,
     requisitos: b.datapoints.filter((c) => desc.has(c)).map((c) => ({ codigo: c, descripcion: desc.get(c)! })),
   }));
 }
@@ -91,7 +97,8 @@ function resumir(hechos: HechoNuevo[], extra: Record<string, unknown>) {
     vigentes: hechos.filter((h) => h.estado === "vigente").length,
     en_conflicto: hechos.filter((h) => h.estado === "en_conflicto").length,
     descartados: hechos.filter((h) => h.estado === "descartado").length,
-    grupos_en_conflicto: new Set(hechos.map((h) => h.grupo_conflicto).filter(Boolean)).size,
+    grupos_en_conflicto: new Set(hechos.filter((h) => h.estado === "en_conflicto").map((h) => h.grupo_conflicto).filter(Boolean)).size,
+    grupos_conciliados: new Set(hechos.filter((h) => h.veredicto && h.veredicto !== "excluyente").map((h) => h.grupo_conflicto).filter(Boolean)).size,
     por_rango: porRango,
     por_fuente: cuenta((h) => h.fuente_tipo),
     motivos_descarte: cuenta((h) => (h.estado === "descartado" ? h.verificacion.replace(/«[^»]*»/g, "«…»") : "—")),
@@ -133,39 +140,111 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
       }
     }
 
-    // --- Atomización, en serie (cada llamada recibe las claves ya usadas) ------
+    // --- Oraciones (código) y clasificación (modelo), en serie ----------------
     const bloques = await catalogoDeBloques(db);
-    const fuentes = new Map<string, UnidadTexto>(rec.textos.map((u) => [u.id, u]));
     // Validado primero: sus claves son las que conviene reutilizar después.
-    const orden = { validado: 0, perfil: 1, adjunto: 2 } as const;
-    const porLotes = lotes([...rec.textos].sort((a, b) => orden[a.rango] - orden[b.rango]));
+    const ordenadas = [...rec.textos].sort((a, b) => ORDEN_RANGO[a.rango] - ORDEN_RANGO[b.rango]);
+    const enOraciones: FuenteEnOraciones[] = ordenadas
+      .map((u) => ({ unidad: u, oraciones: dividir(u.id, u.texto, { pdf: u.pdf }) }))
+      .filter((f) => f.oraciones.length);
+    const oraciones = new Map<string, { texto: string; unidad: UnidadTexto }>();
+    for (const f of enOraciones) for (const o of f.oraciones) oraciones.set(o.id, { texto: o.texto, unidad: f.unidad });
+    const porLotes = lotes(enOraciones);
     let uso: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
     let costo = 0;
+    let llamadas = 0;
     const errores: string[] = [];
-    const propuestos: HechoNuevo[] = [];
+    const clasificados: HechoNuevo[] = [];
     const claves = new Set<string>(rec.directos.map((d) => d.clave));
     for (const lote of porLotes) {
-      const r = await atomizar(lote, bloques, [...claves], apiKey);
+      const r = await clasificar(lote, bloques, [...claves], apiKey);
+      llamadas++;
       uso = sumar(uso, r.uso);
       costo += r.costo;
-      if (r.error) errores.push(`${lote.map((u) => u.id).join(", ").slice(0, 120)}: ${r.error}`);
+      if (r.error) errores.push(`${lote.map((f) => f.unidad.id).join(", ").slice(0, 120)}: ${r.error}`);
       for (const p of r.hechos) {
-        const h = verificarPropuesto(p, fuentes);
-        propuestos.push(h);
+        const h = verificarClasificado(p, oraciones);
+        clasificados.push(h);
         if (h.estado === "vigente") claves.add(h.clave);
       }
     }
 
-    const hechos = sinRepetidos([...rec.directos, ...propuestos]);
-    const conf = await detectarContradicciones(hechos, apiKey);
+    // Una entrada por oración: si el modelo repitió una, vale la primera.
+    const vistas = new Set<string>();
+    const unicos = clasificados.filter((h) => {
+      if (!h.oracion || h.estado !== "vigente") return true;
+      if (vistas.has(h.oracion)) return false;
+      vistas.add(h.oracion);
+      return true;
+    });
+
+    // Los bloques de plantilla no son dueños de hechos (Paso 5b, punto 12): el
+    // hecho pasa al primer bloque que lo refiere y no es plantilla.
+    const esPlantilla = (n: number | null) => n != null && n in PLANTILLAS;
+    for (const h of unicos) {
+      if (h.estado !== "vigente" || !esPlantilla(h.bloque_dueno)) continue;
+      const otro = h.bloques_referencia.find((n) => !esPlantilla(n));
+      if (otro != null) Object.assign(h, { bloque_dueno: otro, bloques_referencia: h.bloques_referencia.filter((n) => n !== otro) });
+      else Object.assign(h, { estado: "descartado", verificacion: "descartado: su único bloque es de plantilla" });
+    }
+
+    // ESTABILIDAD (punto 10): en una fuente OBLIGATORIA ninguna oración se queda
+    // fuera por decisión del modelo. La que no clasificó entra tal cual, con el
+    // primer bloque sugerido de su fuente que no sea plantilla.
+    const omitidas: HechoNuevo[] = [];
+    for (const f of enOraciones.filter((x) => esObligatoria(x.unidad))) {
+      const dueno = f.unidad.sugeridos.find((n) => !esPlantilla(n)) ?? null;
+      for (const o of f.oraciones) {
+        if (vistas.has(o.id)) continue;
+        omitidas.push({
+          clave: `${f.unidad.id.replace(/[^a-z0-9]+/gi, "_").toLowerCase().slice(0, 60)}.o${o.id.split("#")[1]}`,
+          enunciado: o.texto,
+          tipo: "otro",
+          valor: null,
+          unidad: null,
+          periodo: null,
+          rango_fuente: f.unidad.rango,
+          fuente_tipo: f.unidad.fuenteTipo,
+          fuente_id: f.unidad.id,
+          fuente_detalle: f.unidad.detalle,
+          extracto: o.texto,
+          verificado: dueno != null,
+          verificacion: dueno != null ? "oración de fuente obligatoria que el modelo no clasificó: entra tal cual" : "descartado: oración de fuente obligatoria sin bloque sugerido",
+          bloque_dueno: dueno,
+          bloques_referencia: [],
+          estado: dueno != null ? "vigente" : "descartado",
+          oracion: o.id,
+          alcance: null,
+        });
+      }
+    }
+    unicos.push(...omitidas);
+
+    // Filtro de alcance POR HECHO (segunda revisión, punto 4): un hecho
+    // verificado no es un hecho pertinente. Lo genérico (estatutos,
+    // formalidades) nunca entra; con E5 vigente, tampoco la sostenibilidad que
+    // no es de clima. Lo propio de la entidad (perímetro, cifras de negocio,
+    // composición del Consejo) sí entra: es contexto que el informe necesita.
+    for (const h of unicos) {
+      if (h.estado !== "vigente") continue;
+      // Lo genérico solo se filtra en los adjuntos: una fuente obligatoria ya es respuesta a lo que el informe pregunta.
+      if (h.alcance === "generico" && h.rango_fuente === "adjunto") Object.assign(h, { estado: "descartado", verificacion: "descartado: alcance genérico (cláusula que tendría cualquier emisora)" });
+      else if (rec.e5Vigente && h.alcance === "sostenibilidad_general") Object.assign(h, { estado: "descartado", verificacion: "descartado: fuera del alcance E5 (sostenibilidad que no es de clima)" });
+    }
+
+    // Organigrama como árbol: nodo, padre, nivel (segunda revisión, punto 5).
+    const org = await organigramaEnHechos(db, tenantId, apiKey);
+    if (org.uso.entrada || org.uso.salida) llamadas++;
+    uso = sumar(uso, org.uso);
+    costo += org.costo;
+    if (org.error) errores.push(org.error);
+
+    const hechos = sinRepetidos([...rec.directos, ...org.hechos, ...unicos]);
+    const conf = await decidirContradicciones(hechos, apiKey);
+    if (conf.uso.entrada || conf.uso.salida) llamadas++;
     uso = sumar(uso, conf.uso);
     costo += conf.costo;
     if (conf.error) errores.push(`contradicciones: ${conf.error}`);
-    // Segunda pasada: mismo bloque dueño, claves distintas.
-    const porBloque = await detectarPorBloque(hechos, apiKey);
-    uso = sumar(uso, porBloque.uso);
-    costo += porBloque.costo;
-    if (porBloque.error) errores.push(`contradicciones por bloque: ${porBloque.error}`);
 
     // --- Guardado ------------------------------------------------------------
     const filas = hechos.map((h) => ({ ...h, libro_id: libroId, tenant_id: tenantId }));
@@ -176,7 +255,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     await fin({
       estado: "listo",
       huella,
-      llamadas: porLotes.length + (conf.uso.entrada || conf.uso.salida ? 1 : 0) + (porBloque.uso.entrada || porBloque.uso.salida ? 1 : 0),
+      llamadas,
       tokens_entrada: uso.entrada,
       tokens_entrada_cache_escritura: uso.cacheEscritura,
       tokens_entrada_cache_lectura: uso.cacheLectura,
@@ -185,9 +264,13 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
       error: errores.length ? errores.join(" | ").slice(0, 1000) : null,
       resumen: resumir(hechos, {
         fuentes_de_texto: rec.textos.length,
+        oraciones: oraciones.size,
         lotes: porLotes.length,
-        grupos_misma_clave: conf.grupos,
-        pares_por_bloque: porBloque.grupos,
+        e5_vigente: rec.e5Vigente,
+        por_alcance: hechos.reduce<Record<string, number>>((a, h) => ((a[h.alcance ?? "—"] = (a[h.alcance ?? "—"] ?? 0) + 1), a), {}),
+        nodos_organigrama: org.hechos.filter((h) => h.estado === "vigente").length,
+        oraciones_obligatorias_omitidas: omitidas.length,
+        contradicciones: { grupos: conf.grupos, excluyentes: conf.excluyentes, conciliados: conf.conciliados, en_conflicto: conf.enConflicto },
         insumos: rec.insumos,
       }),
     });

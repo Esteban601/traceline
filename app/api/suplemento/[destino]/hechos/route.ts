@@ -63,7 +63,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ destino: strin
     : { data: corrida };
   const { data: hechos } = await db
     .from("hechos")
-    .select("id, clave, enunciado, tipo, valor, unidad, periodo, rango_fuente, fuente_tipo, fuente_id, fuente_detalle, extracto, verificado, verificacion, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado")
+    .select("id, clave, enunciado, tipo, valor, unidad, periodo, rango_fuente, fuente_tipo, fuente_id, fuente_detalle, extracto, verificado, verificacion, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado, oracion, alcance, veredicto, conciliacion")
     .eq("libro_id", libro!.id)
     .order("bloque_dueno", { ascending: true });
   return NextResponse.json({ corrida, libro, hechos: hechos ?? [] });

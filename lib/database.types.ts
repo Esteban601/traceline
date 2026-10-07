@@ -495,6 +495,7 @@ export type Database = {
       }
       documentos_bloques: {
         Row: {
+          anclas: Json | null
           clave: string
           cobertura: Json | null
           costo_usd: number
@@ -528,6 +529,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anclas?: Json | null
           clave: string
           cobertura?: Json | null
           costo_usd?: number
@@ -561,6 +563,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anclas?: Json | null
           clave?: string
           cobertura?: Json | null
           costo_usd?: number
@@ -979,9 +982,11 @@ export type Database = {
       }
       hechos: {
         Row: {
+          alcance: string | null
           bloque_dueno: number | null
           bloques_referencia: number[]
           clave: string
+          conciliacion: string | null
           conflicto: string | null
           created_at: string
           enunciado: string
@@ -993,19 +998,23 @@ export type Database = {
           grupo_conflicto: string | null
           id: string
           libro_id: string
+          oracion: string | null
           periodo: string | null
           rango_fuente: string
           tenant_id: string
           tipo: string
           unidad: string | null
           valor: number | null
+          veredicto: string | null
           verificacion: string | null
           verificado: boolean
         }
         Insert: {
+          alcance?: string | null
           bloque_dueno?: number | null
           bloques_referencia?: number[]
           clave: string
+          conciliacion?: string | null
           conflicto?: string | null
           created_at?: string
           enunciado: string
@@ -1017,19 +1026,23 @@ export type Database = {
           grupo_conflicto?: string | null
           id?: string
           libro_id: string
+          oracion?: string | null
           periodo?: string | null
           rango_fuente: string
           tenant_id: string
           tipo: string
           unidad?: string | null
           valor?: number | null
+          veredicto?: string | null
           verificacion?: string | null
           verificado?: boolean
         }
         Update: {
+          alcance?: string | null
           bloque_dueno?: number | null
           bloques_referencia?: number[]
           clave?: string
+          conciliacion?: string | null
           conflicto?: string | null
           created_at?: string
           enunciado?: string
@@ -1041,12 +1054,14 @@ export type Database = {
           grupo_conflicto?: string | null
           id?: string
           libro_id?: string
+          oracion?: string | null
           periodo?: string | null
           rango_fuente?: string
           tenant_id?: string
           tipo?: string
           unidad?: string | null
           valor?: number | null
+          veredicto?: string | null
           verificacion?: string | null
           verificado?: boolean
         }

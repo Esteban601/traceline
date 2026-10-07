@@ -2,31 +2,36 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { costoUsd, type ClaveModelo, type Uso } from "@/lib/suplemento/modelos";
 import { TIPOS_HECHO, type TipoHecho, type UnidadTexto } from "./tipos";
+import type { Oracion } from "./oraciones";
 
 // =============================================================================
-// ATOMIZACIÓN DE TEXTOS EN HECHOS (libro de hechos, Paso 5). Sonnet 5.5.
+// CLASIFICACIÓN DE ORACIONES EN HECHOS (libro de hechos, Paso 5b). Sonnet 5.5.
 //
-// El modelo propone; el código decide. Cada hecho que devuelve trae su extracto
-// literal y la fuente de donde dice que salió, y verificar.ts lo busca ahí: lo
-// que no está, no entra. El modelo tampoco elige entre fuentes que se
-// contradicen —eso lo marca conflictos.ts—: aquí solo separa y clasifica.
+// v4 (libro estable): el CÓDIGO parte las fuentes en oraciones numeradas
+// (oraciones.ts) y el modelo solo dice cuáles son hechos pertinentes y los
+// clasifica —enunciado, clave, tipo, valor, bloque dueño, alcance—. No elige
+// dónde empieza un hecho ni copia extractos: el extracto ES la oración. Así dos
+// corridas sobre los mismos insumos comparan el mismo universo de oraciones, y
+// la única variación posible es la decisión de pertinencia (segunda revisión
+// externa, punto 10).
+//
+// Sin temperatura: Sonnet 5.5 ya no la acepta («`temperature` is deprecated for
+// this model»). La estabilidad sale de la división determinista, de una
+// decisión por oración y del esfuerzo bajo.
 //
 // La capa estable (reglas + catálogo de bloques con sus requisitos) va con
-// caché: es igual en todas las llamadas del libro. Las llamadas van en serie
-// para pasarle a cada una las claves ya usadas: el mismo sujeto y atributo con
-// la misma clave es lo que permite detectar una contradicción entre fuentes.
+// caché. Las llamadas van en serie para pasarle a cada una las claves ya usadas.
 // =============================================================================
 
 export const MODELO_LIBRO: ClaveModelo = "claude-sonnet-5-5";
-export const PROMPT_LIBRO_VERSION = "libro-v3-2026-10-07";
-// v2: lotes más chicos. Con 14 mil caracteres por llamada, dos corridas sobre
-// los mismos insumos dieron 135 y 98 hechos: el modelo resumía en vez de separar.
+export const PROMPT_LIBRO_VERSION = "libro-v7-2026-10-07";
 const CARACTERES_POR_LLAMADA = 6000;
 const LIMITE_MS = 4 * 60 * 1000;
 
+export type Alcance = "clima" | "entidad" | "sostenibilidad_general" | "generico";
+
 export type HechoPropuesto = {
-  fuente: string;
-  extracto: string;
+  oracion: string;
   enunciado: string;
   clave: string;
   tipo: TipoHecho;
@@ -35,29 +40,39 @@ export type HechoPropuesto = {
   periodo: string | null;
   bloque_dueno: number;
   bloques_referencia: number[];
+  alcance: Alcance;
 };
 
-export type BloqueCatalogo = { numero: number; titulo: string; clase: string; cubre: string; requisitos: { codigo: string; descripcion: string }[] };
+export type BloqueCatalogo = { numero: number; titulo: string; clase: string; cubre: string; plantilla: boolean; requisitos: { codigo: string; descripcion: string }[] };
+
+/** Validado, perfil y narrativo: el modelo clasifica TODAS sus oraciones; solo los adjuntos se filtran por pertinencia. */
+export const esObligatoria = (u: UnidadTexto) => u.rango !== "adjunto";
+
+/** Una fuente ya partida en oraciones, con lo que el modelo necesita saber de ella. */
+export type FuenteEnOraciones = { unidad: UnidadTexto; oraciones: Oracion[] };
 
 const REGLAS = `# Qué haces
 
-Separas en HECHOS las fuentes de una emisora mexicana para el libro del que se redacta su Suplemento NIIF S1 y S2. No redactas el informe: cada hecho es una pieza que luego un bloque usará, con su cita.
+Clasificas las ORACIONES de las fuentes de una emisora mexicana para el libro de hechos del que se redacta su Suplemento NIIF S1 y S2. Cada oración ya viene numerada con su id entre corchetes. Tú decides cuáles son hechos y los clasificas; no redactas el informe.
 
-# Qué es un hecho
+# Qué devuelves
 
-Una sola afirmación verificable: quién, qué, cuánto, cuándo, cada cuánto, quién responde de qué, qué proceso se sigue, qué política existe. Si una frase dice tres cosas, son tres hechos.
+Cada fuente dice si es OBLIGATORIA o FILTRADA:
+- OBLIGATORIA (respuestas confirmadas, campos del Perfil, Carta de la Dirección): una entrada por CADA oración, sin excepción; ya son respuestas a lo que el informe pregunta.
+- FILTRADA (documentos adjuntos: actas, estatutos, políticas): una entrada solo por cada oración que sea un HECHO PERTINENTE —una afirmación sobre la emisora que algún bloque del catálogo necesita para responder un requisito—. Las demás no se devuelven: títulos, órdenes del día, fórmulas de cierre, cláusulas genéricas (domicilio, duración, asambleas, acciones, capital, utilidades, disolución, designación de delegados para formalizar acuerdos) y frases sin contenido.
 
-# Reglas
+El id de la oración va EXACTO en \`oracion\`.
 
-1. EXTRACTO LITERAL. Copia carácter por carácter el fragmento de la fuente que sostiene el hecho, de 10 a 300 caracteres, sin puntos suspensivos, sin corregir ni completar. El código lo busca en la fuente: si no está tal cual, el hecho se descarta.
-2. ENUNCIADO FIEL. Una oración completa que dice lo mismo que el extracto, con el sujeto explícito («El Comité de Sostenibilidad y Riesgos Climáticos», no «el Comité»), y NADA MÁS: ni conclusiones («el Consejo aprueba las políticas de riesgos» NO permite decir que existe una política de riesgo climático), ni causas, ni calificativos, ni datos de otra fuente.
-3. COMPLETO, NO RESUMIDO. Recorre cada fuente oración por oración: TODA afirmación sobre la emisora que trate de clima, sostenibilidad, gobierno corporativo, órganos y responsables, gestión de riesgos, estrategia y modelo de negocio, operación y perímetro, cadena de valor, métricas, objetivos, políticas, capacitación o decisiones se extrae, aunque parezca menor o ya la hayas visto en otra fuente (las repeticiones entre fuentes son justo lo que se compara). Ante la duda, extráela: el filtro viene después. Solo se omiten las cláusulas genéricas sin relación con esos temas —domicilio, duración, asambleas, acciones, capital, utilidades, disolución— y el texto de relleno.
-4. CLAVE ESTABLE. «sujeto.atributo» en snake_case, sin acentos: comite_sostenibilidad.frecuencia_sesiones, consejo.aprobacion_objetivos_climaticos, direccion_riesgos.responsabilidad_identificacion. El MISMO sujeto y atributo llevan la MISMA clave aunque vengan de fuentes distintas: así se detectan las contradicciones. Reutiliza las claves que ya se usaron (te las doy) cuando el hecho trate de lo mismo.
-5. TIPO Y VALOR. Un tipo de la lista. Si el hecho es una cifra, \`valor\` es el número tal como aparece en el extracto, sin calcular, y \`unidad\` la suya; si no, null. \`periodo\`: el año o periodo al que se refiere, si el extracto lo dice.
-6. BLOQUE DUEÑO. El número del bloque del catálogo cuyo requisito responde el hecho: uno solo. \`bloques_referencia\`: hasta tres bloques que podrían mencionarlo en una línea. Los bloques sugeridos de cada fuente son una pista; decide por el requisito.
-7. \`fuente\`: el id entre corchetes de la fuente de donde copiaste el extracto, exacto.
-8. Sin repetir un hecho dentro de la misma fuente.
-9. ACTAS Y RESOLUCIONES. En un acta, el hecho es lo que se ACUERDA o RESUELVE, con la redacción del acuerdo («Se crea el Comité…», «Se aprueba…»). La exposición previa, el orden del día y la propuesta que el MISMO documento resuelve después no se extraen como hechos aparte: «se propuso crear un comité» seguido de «ACUERDO 1. Se crea el Comité» es UN hecho, el del acuerdo. Una propuesta solo es hecho si el documento no la resuelve (por ejemplo, «se recomienda al Consejo aprobar…»), y entonces el enunciado dice que es una propuesta. Lo que dice un mismo documento sobre un mismo sujeto y atributo lleva una sola clave.`;
+Una entrada por oración, nunca dos. Si una oración dice varias cosas, el enunciado las resume sin agregar nada.
+
+# Reglas de cada entrada
+
+1. ENUNCIADO FIEL: una oración completa que dice lo mismo que la oración de la fuente, con el sujeto explícito («El Comité de Sostenibilidad y Riesgos Climáticos», no «el Comité»), y NADA MÁS: ni conclusiones, ni causas, ni calificativos, ni datos de otra oración.
+2. EN UN ACTA, EL ACUERDO: lo que se acuerda o resuelve es el hecho. La exposición previa o la propuesta que el mismo documento resuelve después no se devuelve.
+3. CLAVE ESTABLE: «sujeto.atributo» en snake_case sin acentos (comite_sostenibilidad.frecuencia_sesiones). El mismo sujeto y atributo llevan la misma clave aunque vengan de fuentes distintas; reutiliza las claves ya usadas que te doy.
+4. TIPO Y VALOR: un tipo de la lista; si el hecho es una cifra, \`valor\` es el número tal como aparece en la oración, sin calcular, con su \`unidad\`; si no, null. \`periodo\`: el año o periodo al que se refiere, si la oración lo dice.
+5. BLOQUE DUEÑO: el número del bloque cuyo requisito RESPONDE el hecho, uno solo. Un hecho que solo es contexto de un bloque no lo hace su dueño. Los bloques marcados «(plantilla)» son texto fijo: nunca son dueños. \`bloques_referencia\`: hasta tres bloques que podrían mencionarlo en una línea.
+6. ALCANCE: «clima» si sirve para revelar riesgos y oportunidades relacionados con el clima o su gobierno, estrategia, gestión, métricas u objetivos (los órganos que los supervisan incluidos); «entidad» si es un dato propio de la emisora que da contexto al informe: quién es, qué hace, su perímetro, sus cifras de negocio (cartera, plantilla total, sucursales) y la composición de su Consejo y sus comités; «sostenibilidad_general» si trata otro tema de sostenibilidad (ética, denuncias, diversidad, personas, agua, residuos); «generico» si es una cláusula que tendría cualquier emisora (facultades legales del Consejo, formalidades de estatutos o de acta) y no dice nada propio de esta.`;
 
 const NULLABLE = (t: object) => ({ anyOf: [t, { type: "null" }] });
 const ESQUEMA = {
@@ -68,8 +83,7 @@ const ESQUEMA = {
       items: {
         type: "object",
         properties: {
-          fuente: { type: "string" },
-          extracto: { type: "string" },
+          oracion: { type: "string" },
           enunciado: { type: "string" },
           clave: { type: "string" },
           tipo: { type: "string", enum: TIPOS_HECHO },
@@ -78,8 +92,9 @@ const ESQUEMA = {
           periodo: NULLABLE({ type: "string" }),
           bloque_dueno: { type: "integer" },
           bloques_referencia: { type: "array", items: { type: "integer" } },
+          alcance: { type: "string", enum: ["clima", "entidad", "sostenibilidad_general", "generico"] },
         },
-        required: ["fuente", "extracto", "enunciado", "clave", "tipo", "valor", "unidad", "periodo", "bloque_dueno", "bloques_referencia"],
+        required: ["oracion", "enunciado", "clave", "tipo", "valor", "unidad", "periodo", "bloque_dueno", "bloques_referencia", "alcance"],
         additionalProperties: false,
       },
     },
@@ -95,28 +110,25 @@ function catalogo(bloques: BloqueCatalogo[]): string {
     "Cada bloque, con lo que cubre y los requisitos que responde. El bloque dueño de un hecho sale de aquí.",
     "",
     ...bloques.map((b) =>
-      [
-        `## ${b.numero}. ${b.titulo}${b.clase !== "normativo" ? " (editorial)" : ""}`,
-        `Cubre: ${b.cubre}`,
-        ...b.requisitos.map((r) => `- ${r.codigo}: ${r.descripcion}`),
-      ].join("\n")
+      [`## ${b.numero}. ${b.titulo}${b.plantilla ? " (plantilla)" : b.clase !== "normativo" ? " (editorial)" : ""}`, `Cubre: ${b.cubre}`, ...b.requisitos.map((r) => `- ${r.codigo}: ${r.descripcion}`)].join("\n")
     ),
   ].join("\n");
 }
 
-/** Lotes de fuentes completas, hasta el tope de caracteres por llamada. */
-export function lotes(unidades: UnidadTexto[]): UnidadTexto[][] {
-  const out: UnidadTexto[][] = [];
-  let actual: UnidadTexto[] = [];
+/** Lotes deterministas: fuentes completas en su orden, hasta el tope de caracteres por llamada. */
+export function lotes(fuentes: FuenteEnOraciones[]): FuenteEnOraciones[][] {
+  const out: FuenteEnOraciones[][] = [];
+  let actual: FuenteEnOraciones[] = [];
   let tam = 0;
-  for (const u of unidades) {
-    if (actual.length && tam + u.texto.length > CARACTERES_POR_LLAMADA) {
+  for (const f of fuentes) {
+    const largo = f.oraciones.reduce((a, o) => a + o.texto.length, 0);
+    if (actual.length && tam + largo > CARACTERES_POR_LLAMADA) {
       out.push(actual);
       actual = [];
       tam = 0;
     }
-    actual.push(u);
-    tam += u.texto.length;
+    actual.push(f);
+    tam += largo;
   }
   if (actual.length) out.push(actual);
   return out;
@@ -124,19 +136,16 @@ export function lotes(unidades: UnidadTexto[]): UnidadTexto[][] {
 
 export type ResultadoLote = { hechos: HechoPropuesto[]; uso: Uso; costo: number; error?: string };
 
-export async function atomizar(
-  lote: UnidadTexto[],
-  bloques: BloqueCatalogo[],
-  clavesUsadas: string[],
-  apiKey: string
-): Promise<ResultadoLote> {
+export async function clasificar(lote: FuenteEnOraciones[], bloques: BloqueCatalogo[], clavesUsadas: string[], apiKey: string): Promise<ResultadoLote> {
   const client = new Anthropic({ apiKey });
   const usuario = [
-    clavesUsadas.length ? `# Claves ya usadas en este libro\n\n${clavesUsadas.join(", ")}\n` : "",
+    clavesUsadas.length ? `# Claves ya usadas en este libro\n\n${[...clavesUsadas].sort().join(", ")}\n` : "",
     "# Fuentes",
     "",
-    ...lote.map((u) => `### [${u.id}] ${u.detalle} — rango ${u.rango}; bloques sugeridos: ${u.sugeridos.join(", ") || "—"}\n${u.texto}\n`),
-    "Devuelve los hechos con el esquema pedido.",
+    ...lote.map((f) =>
+      [`## ${f.unidad.detalle} — ${esObligatoria(f.unidad) ? "OBLIGATORIA" : "FILTRADA"}; rango ${f.unidad.rango}; bloques sugeridos: ${f.unidad.sugeridos.join(", ") || "—"}`, ...f.oraciones.map((o) => `[${o.id}] ${o.texto}`), ""].join("\n")
+    ),
+    "Devuelve los hechos pertinentes con el esquema pedido.",
   ].join("\n");
   const reloj = new AbortController();
   const alarma = setTimeout(() => reloj.abort(), LIMITE_MS);
@@ -151,7 +160,7 @@ export async function atomizar(
           { type: "text", text: catalogo(bloques), cache_control: { type: "ephemeral" } },
         ],
         messages: [{ role: "user", content: usuario }],
-        output_config: { effort: "medium", format: { type: "json_schema", schema: ESQUEMA } },
+        output_config: { effort: "low", format: { type: "json_schema", schema: ESQUEMA } },
       },
       { timeout: LIMITE_MS, maxRetries: 1, signal: reloj.signal }
     );

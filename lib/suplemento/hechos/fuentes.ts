@@ -96,6 +96,8 @@ export type Recoleccion = {
      */
     fueraDelSuplemento: string[];
   };
+  /** Alivio E5 vigente («primero clima»): el libro descarta por hecho lo que no es de clima (Paso 5b). */
+  e5Vigente: boolean;
   /** Lo que cambia la huella: si no cambia, el libro se puede reutilizar. */
   material: unknown;
 };
@@ -282,7 +284,10 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
   for (const [campo, def] of Object.entries(TEXTO_PERFIL)) {
     const v = typeof p[campo] === "string" ? (p[campo] as string).trim() : "";
     if (!v) continue;
-    textos.push({ id: `perfil:${campo}`, rango: "perfil", fuenteTipo: "perfil", detalle: `Perfil del emisor, ${def.etiqueta}`, texto: v, sugeridos: def.sugeridos });
+    // La Carta de la Dirección es narrativa: rango propio, que no sostiene una
+    // afirmación solo (segunda revisión externa, bloque 27).
+    const rango = campo === "carta_texto" ? "narrativo" : "perfil";
+    textos.push({ id: `perfil:${campo}`, rango, fuenteTipo: "perfil", detalle: `Perfil del emisor, ${def.etiqueta}`, texto: v, sugeridos: def.sugeridos });
   }
 
   // --- 5. Registros de clima y objetivos (perfil: los declara la emisora) ------
@@ -338,7 +343,7 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
       .slice(0, UNIDADES_POR_ADJUNTO_MAX)
       .sort((x, y) => x.u.orden - y.u.orden);
     for (const { u } of elegidas) {
-      textos.push({ id: u.id, rango: "adjunto", fuenteTipo: "adjunto", detalle: u.detalle, texto: u.texto, sugeridos: BLOQUES_DE_SECCION[a.seccion] ?? [] });
+      textos.push({ id: u.id, rango: "adjunto", fuenteTipo: "adjunto", detalle: u.detalle, texto: u.texto, sugeridos: BLOQUES_DE_SECCION[a.seccion] ?? [], pdf: /:p\d+$/.test(u.id) });
     }
     insumosAdj.push({ archivo: a.nombre_original, estado: a.estado, unidades: us.length, enviadas: elegidas.length, truncado: a.truncado, mensaje: a.mensaje });
   }
@@ -347,6 +352,7 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
     directos,
     textos,
     insumos: { adjuntos: insumosAdj, solicitudesValidadasSinFuente: validadasSinFuente, exentasPorAlivio, fueraDelSuplemento },
-    material: { directos: directos.map((d) => [d.fuente_id, d.extracto, d.enunciado]), textos: textos.map((t) => [t.id, t.texto]) },
+    e5Vigente: vigentes.E5 === true,
+    material: { e5: vigentes.E5 === true, directos: directos.map((d) => [d.fuente_id, d.extracto, d.enunciado]), textos: textos.map((t) => [t.id, t.texto]) },
   };
 }
