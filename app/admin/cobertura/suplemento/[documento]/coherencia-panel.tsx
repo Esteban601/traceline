@@ -45,6 +45,7 @@ const TIPO: Record<string, string> = {
   referencia_cruzada: "Referencia cruzada",
   anuncio_de_pendiente: "Anuncia lo que termina en pendiente",
   contradiccion: "Contradicción entre bloques",
+  cifra_inconsistente: "Cifra inconsistente · verificado por código",
 };
 const GRAVEDAD: Record<string, { label: string; tono: Tono; orden: number }> = {
   alta: { label: "Alta", tono: "rojo", orden: 0 },

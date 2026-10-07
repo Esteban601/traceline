@@ -26,7 +26,8 @@ export type BloqueRevision = {
   texto: string | null;
   fuentes: { tipo: string; id: string; detalle: string }[];
   pendientes: string[];
-  notasRevision: string[];
+  /** Notas al revisor; en modo libro, con su cubeta y su etiqueta (Paso 5.4). */
+  notasRevision: { texto: string; cubeta: string | null; etiqueta: string | null }[];
   modelo: string | null;
   /**
    * Con qué versión del prompt se escribió ESTE texto. Se muestra porque un
@@ -47,6 +48,14 @@ export type BloqueRevision = {
   /** Cobertura por subrequisito, si se generó desde el libro de hechos (Paso 5). */
   cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string }[] | null;
 };
+
+/** Las tres cubetas de notas (Paso 5.4); las notas de antes, sin cubeta, al final. */
+const CUBETAS: { clave: string | null; titulo: string }[] = [
+  { clave: "decision_emisor", titulo: "decisiones del emisor" },
+  { clave: "revelacion_voluntaria", titulo: "revelación voluntaria" },
+  { clave: "defecto_insumo", titulo: "defectos de insumo" },
+  { clave: null, titulo: "para el revisor" },
+];
 
 const ESTADO_COBERTURA: Record<string, { label: string; tono: Tono }> = {
   cubierto: { label: "Cubierto", tono: "verde" },
@@ -509,13 +518,23 @@ function BloqueCard({
             </Lista>
           )}
 
-          {bloque.notasRevision.length > 0 && (
-            <Lista titulo="Notas para el revisor" ayuda="No se publican.">
-              {bloque.notasRevision.map((x, i) => (
-                <li key={i} className="text-sm leading-relaxed text-ink">{x}</li>
-              ))}
-            </Lista>
-          )}
+          {bloque.notasRevision.length > 0 &&
+            CUBETAS.map(({ clave, titulo }) => {
+              const notas = bloque.notasRevision.filter((n) => (n.cubeta ?? null) === clave);
+              if (!notas.length) return null;
+              return (
+                <Lista key={clave ?? "sin"} titulo={`Notas · ${titulo}`} ayuda="No se publican.">
+                  {notas.map((n, i) => (
+                    <li key={i} className="text-sm leading-relaxed text-ink" data-cubeta={clave ?? "sin_clasificar"}>
+                      {n.etiqueta === "por_conciliar" && <Chip tono="ambar">Por conciliar</Chip>}
+                      {n.etiqueta === "contradiccion" && <Chip tono="rojo">Contradicción</Chip>}
+                      {n.etiqueta ? " " : ""}
+                      {n.texto}
+                    </li>
+                  ))}
+                </Lista>
+              );
+            })}
         </div>
       )}
     </Card>

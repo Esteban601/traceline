@@ -99,7 +99,7 @@ export default async function RevisionPage({
   }
 
   const bloques: BloqueRevision[] = (filas ?? []).map((b) => {
-    const ps = (b.pendientes ?? []) as { campo: string; motivo: string }[];
+    const ps = (b.pendientes ?? []) as { campo: string; motivo: string; cubeta?: string | null; etiqueta?: string | null }[];
     return {
       numero: b.numero,
       titulo: b.titulo,
@@ -108,7 +108,9 @@ export default async function RevisionPage({
       texto: b.texto,
       fuentes: (b.fuentes ?? []) as { tipo: string; id: string; detalle: string }[],
       pendientes: ps.filter((p) => p.campo !== "nota_revision").map((p) => p.motivo),
-      notasRevision: ps.filter((p) => p.campo === "nota_revision").map((p) => p.motivo),
+      notasRevision: ps
+        .filter((p) => p.campo === "nota_revision")
+        .map((p) => ({ texto: p.motivo, cubeta: p.cubeta ?? null, etiqueta: p.etiqueta ?? null })),
       modelo: b.modelo,
       promptVersion: b.prompt_version,
       costoUsd: Number(b.costo_usd ?? 0),

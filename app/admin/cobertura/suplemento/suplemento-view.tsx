@@ -10,6 +10,7 @@ import type { Tono } from "@/lib/estados";
 import { GenerarDocumento } from "./generar-documento";
 import { bloquePorClave, editorialesPorDefecto, type ClaseBloque } from "@/lib/suplemento/bloques";
 import type { OpcionLiteral } from "@/lib/suplemento/texto-del-emisor";
+import { PrevueloPanel, type AvisoVista } from "./prevuelo-panel";
 import type {
   BloqueEvaluado,
   EstadoBloque,
@@ -81,6 +82,7 @@ export function SuplementoView({
   seleccionInicial,
   opcionesLiterales = {},
   literalesIniciales,
+  prevuelo = [],
 }: {
   nombreReporte: string;
   ejercicio: number;
@@ -101,6 +103,8 @@ export function SuplementoView({
   opcionesLiterales?: Record<string, OpcionLiteral[]>;
   /** Textos literales del último documento: {clave: adjunto}. */
   literalesIniciales?: Record<string, string> | null;
+  /** Pre-vuelo del documento (Paso 5.4). */
+  prevuelo?: AvisoVista[];
 }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): los recomendados
@@ -229,6 +233,8 @@ export function SuplementoView({
           {cuenta.fuera > 0 ? ` · ${cuenta.fuera} editorial(es) sin seleccionar` : ""}. Los normativos van siempre;
           los editoriales se eligen abajo.
         </p>
+
+        <PrevueloPanel reporteId={reporteId} avisos={prevuelo} puedeArmarLibro={puedeGenerar && generadorActivo} />
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
           {!generadorActivo ? (
