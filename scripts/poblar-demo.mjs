@@ -559,7 +559,7 @@ const NARRATIVAS = [
   },
   {
     titulo: "Plan de transición climática y objetivos de reducción",
-    codigos: ["NIIF S2 14(a)(iv)", "NIIF S2 36 (a)a(d)", "NIIF S2 33"],
+    codigos: ["NIIF S2 14(a)(iv)", "NIIF S2 36 (a)a(d)", "NIIF S2 36 (a)", "NIIF S2 36 (b)", "NIIF S2 36 (c)", "NIIF S2 36 (d)", "NIIF S2 33"],
     area: "Sostenibilidad",
     texto:
       "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; es consistente con la trayectoria del Acuerdo de París y no está validado por SBTi. El de cartera sostenible es relativo, con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, alineado con la Taxonomía Sostenible de México.",
@@ -660,6 +660,11 @@ const NARRATIVAS = [
     titulo: "Procesos de identificación, evaluación y priorización de riesgos climáticos",
     codigos: [
       "NIIF S2 25 (a)(i)a(v)",
+      "NIIF S2 25 (a)(i)",
+      "NIIF S2 25 (a)(ii)",
+      "NIIF S2 25 (a)(iii)",
+      "NIIF S2 25 (a)(iv)",
+      "NIIF S2 25 (a)(v)",
       "NIIF S2 25 (a)(vi)",
       "NIIF S2 25 (b)",
       "NIIF S2 25 (c)",
@@ -712,7 +717,7 @@ const NARRATIVAS = [
   },
   {
     titulo: "Uso de créditos de carbono en los objetivos climáticos",
-    codigos: ["NIIF S2 36 (e)(i)a(iv)"],
+    codigos: ["NIIF S2 36 (e)(i)a(iv)", "NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"],
     area: "Sostenibilidad",
     texto:
       "La Compañía no prevé el uso de créditos de carbono para compensar emisiones en el cumplimiento de sus objetivos. El objetivo de reducción de Alcances 1 y 2 se cumplirá con eficiencia energética y generación distribuida, sin compensaciones.",

@@ -1748,6 +1748,14 @@ código tecleado a mano no empata por igualdad de cadena.
 **Resultado: 63 códigos citados por los 40 bloques, los 63 presentes en el catálogo.**
 Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a comprobar en arranque.
 
+**Catálogo partido en incisos** (migración `20261007170000_catalogo_incisos`, rama `feat/catalogo-incisos`; cierre
+del Paso 5b del encargo `2026-10-06-suplemento-calidad`). Los bloques 27 y 40 citan los incisos en lugar de los
+códigos agrupados: **73 códigos citados**, sobre un catálogo de 112 códigos NIIF (116 filas con las GRI). Los cuatro
+códigos agrupados (`NIIF S2 25 (a)(i)a(v)`, `NIIF S1 44 (a)(i)a(v)`, `NIIF S2 36 (a)a(d)`, `NIIF S2 36 (e)(i)a(iv)`)
+se quedan activos y enlazados a sus solicitudes y celdas del Excel, pero ya ningún bloque los cita. **Hoja de
+taxonomía del Excel:** 18 filas más (383 → 401), una por inciso debajo de su código agrupado. Al desplegar, el
+Excel de taxonomía de staging cambia en filas: es una **diferencia esperada**, no una regresión.
+
 | # | Bloque | Clase | Respaldo | Tipo | Régimen | Datapoints | Tablas | Perfil |
 |---|---|---|---|---|---|---|---|---|
 | 1 | Carta de la Dirección | Editorial · opcional | Ninguna norma pide la carta de la Dirección. | T→E | ambos | — | — | `carta_texto`<br>`carta_firmante`<br>`carta_cargo` |
@@ -1776,7 +1784,7 @@ Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a compr
 | 24 | Oportunidades y cómo prevé alcanzar objetivos | Normativo | NIIF S2 10(a) y 14(a)(v). Se solapa con 21 y 25: fusión anotada como deuda de estructura. | D→T | ambos | — | `registros_clima`<br>`objetivos` | — |
 | 25 | Recursos asignados y progreso de planes | Normativo | NIIF S2 14(a)(v), 14(b) y 14(c). | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
 | 26 | Resiliencia de la estrategia y análisis de escenarios | Normativo | NIIF S2 22. | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
-| 27 | Gestión y mitigación de riesgos y oportunidades | Normativo | NIIF S2 25. | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
+| 27 | Gestión y mitigación de riesgos y oportunidades | Normativo | NIIF S2 25. | D→T | ambos | `NIIF S2 25 (a)(i)`<br>`NIIF S2 25 (a)(ii)`<br>`NIIF S2 25 (a)(iii)`<br>`NIIF S2 25 (a)(iv)`<br>`NIIF S2 25 (a)(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
 | 28 | Plan de transición | Normativo | NIIF S2 14(a)(iv). | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
 | 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Normativo | NIIF S2 29(a)(i). | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`<br>`reportes` | — |
 | 30 | Método de medición, datos de entrada y C5 | Normativo | NIIF S2 29(a)(ii)–(iii). | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
@@ -1789,7 +1797,7 @@ Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a compr
 | 37 | Precio interno del carbono y remuneración vinculada | Normativo | NIIF S2 29(f) y (g). | D→T | ambos | `NIIF S2 29 (f) (i) y (ii)`<br>`NIIF S2 29 (g) (i) y (ii)` | — | — |
 | 38 | Objetivos climáticos (atributos por objetivo) | Normativo | NIIF S2 33. | Tabla | **varía** | `NIIF S2 33` | `objetivos` | — |
 | 39 | Enfoque para establecer y revisar objetivos; resultados | Normativo | NIIF S2 34–35. | Tabla + D→T | **varía** | `NIIF S2 34`<br>`NIIF S2 35` | `objetivos_detalle` | — |
-| 40 | Objetivo de emisiones GEI | Normativo | NIIF S2 36. | Tabla + D→T | **varía** | `NIIF S2 36 (a)a(d)`<br>`NIIF S2 36 (e)(i)a(iv)` | `objetivos_detalle`<br>`cuestionarios_respuestas` | — |
+| 40 | Objetivo de emisiones GEI | Normativo | NIIF S2 36. | Tabla + D→T | **varía** | `NIIF S2 36 (a)`<br>`NIIF S2 36 (b)`<br>`NIIF S2 36 (c)`<br>`NIIF S2 36 (d)`<br>`NIIF S2 36 (e)(i)`<br>`NIIF S2 36 (e)(ii)`<br>`NIIF S2 36 (e)(iii)`<br>`NIIF S2 36 (e)(iv)` | `objetivos_detalle`<br>`cuestionarios_respuestas` | — |
 
 **Clases (encargo `2026-10-06-suplemento-calidad`, aprobada por el asesor el 6/10/2026; Esteban la confirma con
 Manuel).**
@@ -1860,6 +1868,11 @@ bloque en el régimen que la Fase A implementa. Entran en años subsecuentes, cu
   NIIF S1 35(d)
   NIIF S1 41
   NIIF S1 44 (a)(i)a(v)
+  NIIF S1 44 (a)(i)
+  NIIF S1 44 (a)(ii)
+  NIIF S1 44 (a)(iii)
+  NIIF S1 44 (a)(iv)
+  NIIF S1 44 (a)(v)
   NIIF S1 44 (a)(vi)
   NIIF S1 44 (b)
   NIIF S1 44 (c)
