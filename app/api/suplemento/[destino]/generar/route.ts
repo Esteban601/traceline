@@ -6,6 +6,7 @@ import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
+import { opcionesLiterales } from "@/lib/suplemento/texto-del-emisor";
 
 export const runtime = "nodejs";
 
@@ -39,9 +40,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   const { destino: reporteId } = await ctx.params;
   // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): las claves de los
   // bloques editoriales que lleva el documento. Sin cuerpo, los recomendados.
+  // TEXTOS LITERALES (Paso 3): {clave del editorial: adjunto} para los bloques
+  // que llevan el texto del emisor sin reescribir. Se validan abajo, contra los
+  // adjuntos de la emisora del reporte.
   let pedido: unknown = undefined;
+  let pedidoLiterales: unknown = undefined;
   try {
-    pedido = ((await req.json()) as { editoriales?: unknown } | null)?.editoriales;
+    const cuerpo = (await req.json()) as { editoriales?: unknown; literales?: unknown } | null;
+    pedido = cuerpo?.editoriales;
+    pedidoLiterales = cuerpo?.literales;
   } catch {
     /* sin cuerpo: selección por defecto */
   }
@@ -70,6 +77,29 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   // Bandera y tope de la emisora, en el servidor (lib/suplemento/acceso.ts).
   const acceso = await accesoAlGenerador(db, rep.tenant_id, { corridaCompleta: true });
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
+
+  // Literales: solo editoriales seleccionados, y solo un adjunto que esa emisora
+  // tenga leído y apto para ese bloque. Uno que no cumpla se rechaza con su
+  // motivo: generar en silencio con el modelo lo que se pidió literal sería
+  // hacer otra cosa que la pedida.
+  let literales: Record<string, string> | null = null;
+  if (pedidoLiterales && typeof pedidoLiterales === "object" && !Array.isArray(pedidoLiterales)) {
+    const entradas = Object.entries(pedidoLiterales as Record<string, unknown>).filter(
+      (e): e is [string, string] => typeof e[1] === "string" && e[1].length > 0
+    );
+    if (entradas.length) {
+      const opciones = await opcionesLiterales(db, rep.tenant_id);
+      for (const [clave, adjunto] of entradas) {
+        if (!editoriales.includes(clave)) {
+          return NextResponse.json({ error: `El bloque «${clave}» no está seleccionado: no puede llevar texto literal.` }, { status: 422 });
+        }
+        if (!(opciones[clave] ?? []).some((o) => o.adjuntoId === adjunto)) {
+          return NextResponse.json({ error: `El archivo elegido para «${clave}» no se puede usar literalmente (no es de su sección, no está leído o es demasiado largo).` }, { status: 422 });
+        }
+      }
+      literales = Object.fromEntries(entradas);
+    }
+  }
 
   const regimen = regimenDe(rep.ejercicio, rep.anio_adopcion);
   if (regimen === "indeterminado") {
@@ -106,7 +136,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
     // congelada era la única que mentía.
     await db
       .from("documentos_generados")
-      .update({ regimen, alivios: rep.alivios ?? {}, editoriales_incluidos: editoriales })
+      .update({ regimen, alivios: rep.alivios ?? {}, editoriales_incluidos: editoriales, textos_literales: literales })
       .eq("id", documentoId);
   } else {
     version = (ultimo?.version ?? 0) + 1;
@@ -122,6 +152,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
         regimen,
         alivios: rep.alivios ?? {},
         editoriales_incluidos: editoriales,
+        textos_literales: literales,
         generado_por: perfil.id,
       })
       .select("id")
@@ -215,6 +246,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
       por_generar: porGenerar.length,
       no_aplican: filas.length - porGenerar.length,
       editoriales,
+      textos_literales: literales ? Object.keys(literales) : [],
       no_seleccionados: noSeleccionados.length,
     },
   });
@@ -231,5 +263,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
     noAplican: filas.filter((f) => f.estado === "no_aplica").map((f) => f.numero),
     noSeleccionados: noSeleccionados.map((f) => f.numero),
     editoriales,
+    literales: literales ? Object.keys(literales) : [],
   });
 }

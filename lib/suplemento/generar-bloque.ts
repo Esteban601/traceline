@@ -37,6 +37,7 @@ import { fronteraDe } from "@/lib/suplemento/fronteras";
 import { TABLAS } from "@/lib/suplemento/tablas";
 import { cargarEvidenciasDelBloque, respaldoDeCifras, type EvidenciaDelBloque, type RespaldoDeCifra } from "@/lib/suplemento/evidencias-bloque";
 import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque } from "@/lib/suplemento/adjuntos-bloque";
+import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
@@ -82,6 +83,7 @@ export type MotivoFallo =
   | "pendiente_adjunto"
   | "no_aplica"
   | "no_seleccionado"
+  | "literal_invalido"
   | "respuesta_ilegible"
   | "api_error"
   | "corte_tiempo"
@@ -159,7 +161,7 @@ export async function generarBloque(
   // --- 1. Documento, y el aislamiento ANTES de cualquier otra consulta --------
   const { data: doc } = await supabase
     .from("documentos_generados")
-    .select("id, tenant_id, reporte_id, idioma, editoriales_incluidos")
+    .select("id, tenant_id, reporte_id, idioma, editoriales_incluidos, textos_literales")
     .eq("id", documentoId)
     .maybeSingle();
 
@@ -258,6 +260,42 @@ export async function generarBloque(
       ]);
     }
     return { ok: false, motivo: "no_aplica", detalle: evaluado.motivoNoAplica ?? "El régimen excluye este bloque." };
+  }
+
+  // TEXTO DEL EMISOR SIN REESCRIBIR (Paso 3): el editorial lleva el texto
+  // literal del adjunto elegido, con su cita. Sin modelo, sin validador de
+  // cifras ni de voz —es el texto del emisor, no uno nuestro— y costo cero. Una
+  // regeneración lo vuelve a copiar; nunca lo reescribe.
+  const adjuntoLiteral = (doc.textos_literales as Record<string, string> | null)?.[bloque.clave];
+  if (adjuntoLiteral) {
+    const lit = await cargarLiteral(supabase, doc.tenant_id, bloque, adjuntoLiteral);
+    const uso: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
+    if (!lit.ok) {
+      if (!opciones.sinPersistir) {
+        await persistirFallo(supabase, documentoId, bloque, doc.idioma, {
+          modelo: MODELO_POR_DEFECTO, uso, costo: 0, duracionMs: 0, motivo: `Texto literal: ${lit.error}`,
+        });
+      }
+      return { ok: false, motivo: "literal_invalido", detalle: lit.error };
+    }
+    if (!opciones.sinPersistir) {
+      await persistirBloque(supabase, documentoId, bloque, doc.idioma, {
+        texto: lit.texto,
+        fuentes: lit.fuentes,
+        pendientes: [],
+        notasRevision: [`Texto del emisor copiado sin reescribir de ${lit.archivo}. No pasó por el modelo ni por el validador de cifras: revisar que sea el texto que la emisora quiere publicar.`],
+        tabla: null,
+        modelo: MODELO_POR_DEFECTO,
+        uso,
+        costo: 0,
+        duracionMs: 0,
+        textoDelEmisor: true,
+      });
+    }
+    return {
+      ok: true, texto: lit.texto, fuentesUsadas: lit.fuentes.map((f) => f.id), pendientes: [], notasRevision: [], tabla: null,
+      modelo: MODELO_POR_DEFECTO, uso, costo: 0, duracionMs: 0, intentos: 0, correccionesGrafia: 0, via, conModelo: false, bloque: evaluado,
+    };
   }
 
   if (via === "plantilla") {
@@ -979,6 +1017,7 @@ async function persistirEstado(
       idioma,
       estado,
       texto: null,
+      texto_del_emisor: false,
       fuentes: [],
       pendientes,
       modelo: null,
@@ -1015,6 +1054,8 @@ async function persistirBloque(
     pendientes: { campo: string; motivo: string }[];
     notasRevision: string[];
     tabla: string | null;
+    /** El texto es el del emisor, copiado literal de un adjunto (Paso 3). */
+    textoDelEmisor?: boolean;
   }
 ): Promise<void> {
   await supabase.from("documentos_bloques").upsert(
@@ -1033,6 +1074,7 @@ async function persistirBloque(
       // guarda junto, para que el bloque persistido sea lo que se va a publicar
       // y no una mitad que hay que recomponer al exportar.
       texto: d.tabla ? `${d.tabla}\n\n${d.texto}` : d.texto,
+      texto_del_emisor: !!d.textoDelEmisor,
       fuentes: d.fuentes,
       // Los huecos y las notas al revisor viven en el mismo arreglo, separados
       // por `campo`: el esquema tiene una sola columna jsonb para esto y
@@ -1079,6 +1121,7 @@ async function persistirFallo(
     seccion: bloque.seccion,
     idioma,
     texto: null,
+    texto_del_emisor: false,
     fuentes: [],
     pendientes: [{ campo: "generacion", motivo: d.motivo }],
     modelo: d.modelo,

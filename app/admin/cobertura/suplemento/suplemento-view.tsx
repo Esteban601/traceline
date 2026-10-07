@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import type { Tono } from "@/lib/estados";
 import { GenerarDocumento } from "./generar-documento";
 import { bloquePorClave, editorialesPorDefecto, type ClaseBloque } from "@/lib/suplemento/bloques";
+import type { OpcionLiteral } from "@/lib/suplemento/texto-del-emisor";
 import type {
   BloqueEvaluado,
   EstadoBloque,
@@ -78,6 +79,8 @@ export function SuplementoView({
   puedeGenerar,
   generadorActivo,
   seleccionInicial,
+  opcionesLiterales = {},
+  literalesIniciales,
 }: {
   nombreReporte: string;
   ejercicio: number;
@@ -94,12 +97,32 @@ export function SuplementoView({
   generadorActivo: boolean;
   /** Editoriales del último documento abierto, si lo hay; si no, los recomendados. */
   seleccionInicial?: string[] | null;
+  /** Por editorial, los adjuntos del Perfil que puede usar sin reescribir (Paso 3). */
+  opcionesLiterales?: Record<string, OpcionLiteral[]>;
+  /** Textos literales del último documento: {clave: adjunto}. */
+  literalesIniciales?: Record<string, string> | null;
 }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): los recomendados
   // encendidos, los opcionales apagados. Lo que no se selecciona no se genera,
   // no va en el índice ni en el Word, y no cuenta en el semáforo.
   const [editoriales, setEditoriales] = useState<Set<string>>(() => new Set(seleccionInicial ?? editorialesPorDefecto()));
+  // TEXTO DEL EMISOR SIN REESCRIBIR (Paso 3): por editorial, el adjunto cuyo
+  // texto va literal. Solo se conserva lo que sigue siendo una opción válida.
+  const [literales, setLiterales] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      Object.entries(literalesIniciales ?? {}).filter(([clave, adj]) => (opcionesLiterales[clave] ?? []).some((o) => o.adjuntoId === adj))
+    )
+  );
+  const elegirLiteral = (clave: string, adjunto: string) =>
+    setLiterales((prev) => {
+      const s = { ...prev };
+      if (adjunto) s[clave] = adjunto;
+      else delete s[clave];
+      return s;
+    });
+  // Solo viajan los de editoriales seleccionados.
+  const literalesPedidos = Object.fromEntries(Object.entries(literales).filter(([clave]) => editoriales.has(clave)));
   const claseDe = (clave: string): ClaseBloque => bloquePorClave(clave)?.clase ?? "normativo";
   const incluido = (b: BloqueEvaluado) => claseDe(b.clave) === "normativo" || editoriales.has(b.clave);
   const alternarEditorial = (clave: string) =>
@@ -214,7 +237,7 @@ export function SuplementoView({
               contrato de encargado lo cubra.
             </span>
           ) : puedeGenerar ? (
-            <GenerarDocumento reporteId={reporteId} editoriales={[...editoriales]} />
+            <GenerarDocumento reporteId={reporteId} editoriales={[...editoriales]} literales={literalesPedidos} />
           ) : (
             <>
               <Button disabled title="Disponible para el equipo de IRStrat">
@@ -244,6 +267,9 @@ export function SuplementoView({
                 clase={claseDe(b.clave)}
                 incluido={incluido(b)}
                 onIncluir={puedeGenerar && generadorActivo ? () => alternarEditorial(b.clave) : undefined}
+                opciones={opcionesLiterales[b.clave] ?? []}
+                literal={literales[b.clave] ?? ""}
+                onLiteral={puedeGenerar && generadorActivo ? (adj) => elegirLiteral(b.clave, adj) : undefined}
               />
             ))}
           </div>
@@ -297,6 +323,9 @@ function BloqueFila({
   clase,
   incluido,
   onIncluir,
+  opciones = [],
+  literal = "",
+  onLiteral,
 }: {
   bloque: BloqueEvaluado;
   abierto: boolean;
@@ -305,6 +334,10 @@ function BloqueFila({
   incluido: boolean;
   /** Solo editoriales, y solo si quien mira puede generar. */
   onIncluir?: () => void;
+  /** Adjuntos que el editorial puede usar sin reescribir, y el elegido ("" = redactar). */
+  opciones?: OpcionLiteral[];
+  literal?: string;
+  onLiteral?: (adjunto: string) => void;
 }) {
   const meta = incluido ? META[bloque.estado] : { label: "No seleccionado", tono: "gris" as Tono, glifo: "—" };
   const etiquetaClase = CLASE_LABEL[clase];
@@ -315,6 +348,21 @@ function BloqueFila({
       {etiquetaClase && (
         <div className="flex items-center justify-between gap-3 border-b border-line/60 bg-crema/40 px-4 py-1.5">
           <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{etiquetaClase}</span>
+          {onLiteral && incluido && opciones.length > 0 && (
+            <select
+              value={literal}
+              onChange={(e) => onLiteral(e.target.value)}
+              aria-label={`Texto del bloque ${bloque.numero}`}
+              className="ml-auto max-w-[22rem] truncate rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink"
+            >
+              <option value="">Redactar con el generador</option>
+              {opciones.map((o) => (
+                <option key={o.adjuntoId} value={o.adjuntoId}>
+                  Usar el texto de «{o.archivo}» sin reescribir
+                </option>
+              ))}
+            </select>
+          )}
           {onIncluir && (
             <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-ink">
               <input
