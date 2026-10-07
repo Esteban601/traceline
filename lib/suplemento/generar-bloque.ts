@@ -427,7 +427,9 @@ export async function generarBloque(
     ejercicio: ens.reporte.ejercicio,
     fuentes: fuentesModelo,
     datos: datosModelo,
-    tabla,
+    // Con libro, el modelo ve la tabla ya con los nombres del glosario: si no,
+    // pide en una nota corregir lo que el código ya corrigió (bloque 39, 5b).
+    tabla: insumo && tabla ? aplicarGlosario(tabla, glosario).texto : tabla,
     fronteras: fronteraDe(bloque.numero),
     extension: opciones.extension ?? extensionDeBloque(bloque.numero),
     documentos: insumo ? null : documentosParaPrompt(adjuntos),

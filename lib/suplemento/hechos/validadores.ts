@@ -141,10 +141,11 @@ export function cambiosNegados(texto: string, hechos: { id: string; enunciado: s
 // -----------------------------------------------------------------------------
 // NÚMEROS DE INCISO (Paso 5b, punto 3). El bloque 27 nombró «25(a)(iii)» al
 // análisis de escenarios, que es 25(a)(ii); el catálogo agrupa los incisos (i) a
-// (v) en un solo código. Un inciso con número romano solo puede citarse si es,
-// tal cual, el código de un requisito del bloque; si el párrafo y la letra son
-// de un requisito del bloque y el número no coincide con ningún código, se
-// rechaza y se pide el código exacto.
+// (v) en un solo código. Donde el catálogo AGRUPA incisos («25 (a)(i)a(v)»), un
+// inciso suelto de ese párrafo («25(a)(iii)») no se puede comprobar contra
+// nada: se rechaza y se pide el código exacto. Donde el catálogo solo trae el
+// párrafo y su letra («16 (c)»), citar «16(c)(i)» es legítimo y pasa (falso
+// positivo de la corrida completa del 5b, bloques 10 y 37).
 // -----------------------------------------------------------------------------
 
 const INCISO = /\b(\d{1,3})\s?\(([a-z])\)\s?\(([ivx]{1,5})\)/g;
@@ -152,7 +153,7 @@ const sinEspacios = (c: string) => c.replace(/^NIIF\s*S[12]\s*/i, "").replace(/\
 
 export function incisosInexactos(textos: string[], requisitos: string[]): string[] {
   const exactos = new Set(requisitos.map(sinEspacios));
-  const parrafos = new Set(requisitos.map((r) => sinEspacios(r).match(/^\d{1,3}\([a-z]\)/)?.[0]).filter(Boolean));
+  const parrafos = new Set(requisitos.filter((r) => /\)a\(/.test(r)).map((r) => sinEspacios(r).match(/^\d{1,3}\([a-z]\)/)?.[0]).filter(Boolean));
   const out = new Set<string>();
   for (const t of textos) {
     for (const m of t.matchAll(INCISO)) {

@@ -90,6 +90,14 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
     for (const m of (b.texto ?? "").matchAll(RE_MARCADOR)) {
       const que = palabras(m[1]);
       if (que.size < 2) continue;
+      // Un pendiente que corresponde a una contradicción excluyente del propio
+      // bloque es el pendiente correcto, no uno que otro bloque resuelva.
+      const propioEnConflicto = Math.max(
+        0,
+        ...(hs ?? [])
+          .filter((h) => h.estado === "en_conflicto" && afirmado.some((a) => a.bloque === b.numero && a.h.grupo_conflicto === h.grupo_conflicto))
+          .map((h) => [...que].filter((w) => palabras(h.enunciado).has(w)).length)
+      );
       let mejor: { a: (typeof afirmado)[number]; comunes: number } | null = null;
       for (const a of afirmado) {
         if (a.bloque === b.numero || a.h.estado !== "vigente") continue;
@@ -97,7 +105,7 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
         const comunes = [...que].filter((w) => de.has(w)).length;
         if (comunes >= 3 && comunes / que.size >= 0.5 && (!mejor || comunes > mejor.comunes)) mejor = { a, comunes };
       }
-      if (mejor) {
+      if (mejor && mejor.comunes > propioEnConflicto) {
         out.push({
           bloque: b.numero,
           tipo: "pendiente_de_afirmado",
@@ -176,9 +184,14 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
   return out;
 }
 
-/** Correcciones por bloque: lo que va en `opciones.correccion` de cada reintento. */
+/**
+ * Correcciones por bloque: lo que va en `opciones.correccion` de cada reintento.
+ * «afirma_excluyente» no dispara reintento: un hecho largo en contradicción se
+ * puede citar por su parte no disputada (corrida completa del 5b: 15, 16 y 21
+ * se reintentaron por eso, $1.79). Queda como observación para el revisor.
+ */
 export function correccionesPorBloque(ds: Discrepancia[]): Map<number, string> {
   const out = new Map<number, string>();
-  for (const d of ds) out.set(d.bloque, [out.get(d.bloque), `- ${d.correccion}`].filter(Boolean).join("\n"));
+  for (const d of ds.filter((x) => x.tipo !== "afirma_excluyente")) out.set(d.bloque, [out.get(d.bloque), `- ${d.correccion}`].filter(Boolean).join("\n"));
   return out;
 }

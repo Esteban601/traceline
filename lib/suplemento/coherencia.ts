@@ -317,7 +317,7 @@ export async function completarPasada(supabase: Cliente, pasadaId: string, docum
     // del orquestador también llega al revisor, con origen «codigo».
     const cruzadas: Observacion[] = (await validarCruzado(supabase, documentoId)).map((d) => ({
       tipo: d.tipo === "remision_a_plantilla" ? "referencia_cruzada" : "contradiccion",
-      gravedad: d.tipo === "remision_a_plantilla" ? "baja" : "alta",
+      gravedad: d.tipo === "remision_a_plantilla" ? "baja" : d.tipo === "afirma_excluyente" ? "media" : "alta",
       bloques: [d.bloque, ...(d.otroBloque != null ? [d.otroBloque] : [])],
       bloque_de_la_cita: d.bloque,
       cita: d.cita,

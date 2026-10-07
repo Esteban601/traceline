@@ -94,6 +94,7 @@ check(cambiosNegados("El proceso se describe así.", hs27, 2025).length === 0, "
 const req27 = ["NIIF S2 25 (a)(i)a(v)", "NIIF S2 25 (a)(vi)", "NIIF S2 25 (b)"];
 check(incisosInexactos(["Falta el análisis de escenarios (25(a)(iii))."], req27).join() === "25(a)(iii)", "«25(a)(iii)» no es un código del bloque: se rechaza");
 check(incisosInexactos(["Ver 25 (a)(vi), 29(d) y 6(a)(ii)."], req27).length === 0, "los códigos exactos y los de otros párrafos pasan");
+check(incisosInexactos(["Las fuentes de financiación (16(c)(i)) quedan pendientes."], ["NIIF S2 16 (c)", "NIIF S2 16 (d)"]).length === 0, "un inciso de un párrafo que el catálogo no agrupa pasa (bloque 10)");
 const rangos = new Map([["h1", "narrativo"], ["h2", "perfil"]]);
 const narr = validarCobertura([fila(REQ[0], "cubierto", { hechos: ["h1"] }), fila(REQ[1], "cubierto", { hechos: ["h1", "h2"] }), buena[2]], REQ, 15, new Set(["h1", "h2"]), null, conMarcador, rangos);
 check(narr.length === 1 && /solo con hechos narrativos/.test(narr[0]), "un requisito cubierto solo con la Carta se rechaza; acompañada, pasa", narr.join("; "));
