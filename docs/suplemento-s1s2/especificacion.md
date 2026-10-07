@@ -1,7 +1,12 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.26** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.27** · 6 de octubre de 2026.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.26** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 3):
+- §3.2: texto del emisor sin reescribir en bloques editoriales (lo que estaba pendiente de (a)).
+- §5: migraciones `20261006160000` (texto del emisor) y `20261006160100` (`observaciones_coherencia`).
+- §6: pasada de coherencia al final de la generación.
 
 **Cambios respecto a 0.25** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 2):
 - §3.2: los adjuntos del Perfil se leen (misma extracción y cola que las evidencias) y entran al generador como
@@ -323,8 +328,15 @@ inferir; si el dato no está, el bloque lleva su `[Pendiente: …]` como si no h
   cifra que solo está en un adjunto se rechaza; el modelo la deja en notas para el revisor.
 - **`pendiente_adjunto`** queda solo para el bloque cuyos campos están vacíos y cuyos documentos todavía no se
   leen (en cola) o no se pudieron leer; con un documento leído, el bloque se redacta desde él.
-- **Pendiente:** el tratamiento «texto ya redactado: se normaliza y se traduce, sin resumir» de arriba no tiene
-  camino propio; un texto así entra como contexto como cualquier otro documento.
+- **Texto del emisor sin reescribir (Paso 3).** En un bloque EDITORIAL, la pantalla del generador ofrece «usar
+  el texto de este archivo sin reescribir» con los adjuntos de las secciones del propio bloque que estén leídos
+  como PDF o Word, sin recortar y con menos de 20 000 caracteres. El documento guarda la elección
+  (`documentos_generados.textos_literales`) y la ruta la valida contra la emisora. El bloque lleva el texto
+  literal, sin modelo ni validadores y con costo 0, citado al archivo (por página en un PDF). Queda marcado
+  `texto_del_emisor`: la revisión lo muestra como «Texto del emisor», una regeneración lo vuelve a copiar y la
+  pasada de coherencia (§6) no propone cambiarlo, solo avisa si choca con el resto. Lo único que se toca es la
+  forma: en un Word, los títulos van como título y las tablas como tabla; en un PDF se rehacen los párrafos
+  que el ancho de página cortó en líneas. Ninguna palabra cambia. La traducción de §3.2 (a) sigue fuera.
 
 **(b) Paso nuevo A10 — pre-carga asistida.** Después de A8. Los emisores llegan con documentos de análisis de
 riesgos y estudios de materialidad cuya estructura **varía por consultor**: cada despacho usa su plantilla, sus
@@ -511,6 +523,8 @@ filas, no como JSON.
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
 | `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
+| `documentos_generados.textos_literales` (jsonb, NULL = ninguno) y `documentos_bloques.texto_del_emisor` (boolean, default false) | Texto del emisor sin reescribir en bloques editoriales (encargo suplemento-calidad, Paso 3) | ADD COLUMN nullable y con default (`20261006160000`) |
+| `observaciones_coherencia` (una fila por pasada: estado, observaciones, descartadas, tokens y costo), con índice único parcial de una pasada en curso por documento | Pasada de coherencia del documento (encargo suplemento-calidad, Paso 3) | CREATE TABLE con RLS y barrera (`20261006160100`) |
 | `perfil_emisor_adjuntos_contenido` (una fila por adjunto: estado de lectura, contenido extraído, páginas, costo) con trigger de encolado y relleno de los adjuntos existentes | Lectura de los adjuntos del Perfil para el generador (encargo suplemento-calidad, Paso 2) | CREATE TABLE con RLS, trigger nuevo y barrera (`20261006150000`) |
 | Tabla `correos_retenidos` | Avisos inmediatos que pasan el tope de 20 por emisora y hora; el job de 10 minutos los manda agrupados | CREATE TABLE con RLS (lectura solo staff, sin escritura con sesión) y barrera: 90 políticas (`20261006130000`) |
 | `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
@@ -534,6 +548,16 @@ marcas de tiempo.
 **Mapeo bloque → datapoints.** `lib/suplemento/bloques.ts`: por bloque, lista de códigos exactos del catálogo,
 tablas y campos que lo alimentan, tipo, variante por régimen. Se valida en arranque que todo código listado
 exista en `datapoints_taxonomia`; si no, el servidor lo reporta.
+
+**Pasada de coherencia (encargo suplemento-calidad, Paso 3).** Al terminar de generar el documento, la
+pantalla (y `generar-demo.mjs`) dispara `POST /api/suplemento/{documento}/coherencia`, que corre en `after()`
+UNA llamada con el documento completo y salida `json_schema`. Busca terminología inconsistente o fuera de la
+traducción oficial, repeticiones entre bloques, referencias cruzadas que no se sostienen, frases que anuncian
+lo que termina en pendiente y contradicciones entre bloques. Cada observación cita un fragmento literal del
+bloque al que apunta; el código lo comprueba y descarta la que no lo cumpla. Se guarda en
+`observaciones_coherencia` con su costo, una pasada en curso por documento. La revisión la muestra como lista,
+y el staff puede volver a correrla. No edita ningún bloque. Modelo del generador con esfuerzo `medium`
+(`COHERENCIA_ESFUERZO` lo cambia); en el demo cuesta ~$1.3 y tarda ~3.5 min.
 
 **Aislamiento.** El ensamblado corre en servidor con `service_role`; todas las consultas filtran por
 `reporte_id` y se valida que el reporte pertenezca al tenant de la sesión antes de armar cualquier prompt.
