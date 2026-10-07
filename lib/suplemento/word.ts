@@ -7,6 +7,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  ImageRun,
   PageBreak,
   PageNumber,
   Packer,
@@ -43,13 +44,33 @@ export type BloqueWord = {
   seccion: string | null;
   estado: string;
   texto: string | null;
+  /** La imagen del bloque (organigrama del Perfil en los «T→E + imagen»), con su pie. */
+  imagen?: ImagenWord | null;
 };
+
+export type ImagenWord = { datos: Buffer; tipo: "png" | "jpg"; ancho: number; alto: number; pie: string };
 
 export type DocumentoWord = {
   version: number;
   estado: string;
   bloques: BloqueWord[];
+  /**
+   * Propiedades personalizadas del .docx (Archivo › Propiedades): de qué
+   * documento y de qué versión de cada bloque salió este archivo (Paso 4).
+   */
+  propiedades?: { nombre: string; valor: string }[];
 };
+
+/**
+ * Qué bloques llevan imagen y de qué campo del Perfil sale (bloques.ts los marca
+ * «T→E + imagen»). El pie de figura dice qué muestra, no cómo se llama el archivo.
+ */
+export const IMAGEN_DE_BLOQUE: Record<number, { campo: "organigrama_path"; pie: string }> = {
+  18: { campo: "organigrama_path", pie: "Estructura de gobierno" },
+};
+
+/** Ancho máximo de una figura: el de la caja de texto (21 cm − 2 × 2 cm ≈ 640 px). */
+const ANCHO_FIGURA_MAX = 600;
 
 export type EmisorWord = {
   denominacion: string;
@@ -317,7 +338,35 @@ function tablaWord(encabezados: string[], filas: string[][]): Table {
   });
 }
 
-function bloqueWord(b: BloqueWord): (Paragraph | Table)[] {
+/** La figura —imagen centrada y su pie numerado— lista para insertarse. */
+function figura(img: ImagenWord, n: number): Paragraph[] {
+  const escala = Math.min(1, ANCHO_FIGURA_MAX / img.ancho);
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 160, after: 80 },
+      keepNext: true,
+      children: [
+        new ImageRun({
+          type: img.tipo,
+          data: img.datos,
+          transformation: { width: Math.round(img.ancho * escala), height: Math.round(img.alto * escala) },
+          altText: { title: img.pie, description: img.pie, name: `Figura ${n}` },
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 240 },
+      children: [
+        new TextRun({ text: `Figura ${n}. `, bold: true, italics: true, size: 18, color: GRIS }),
+        new TextRun({ text: img.pie, italics: true, size: 18, color: GRIS }),
+      ],
+    }),
+  ];
+}
+
+function bloqueWord(b: BloqueWord, numeroFigura: () => number): (Paragraph | Table)[] {
   const salida: (Paragraph | Table)[] = [];
 
   salida.push(
@@ -338,6 +387,15 @@ function bloqueWord(b: BloqueWord): (Paragraph | Table)[] {
     );
   }
 
+  // LA FIGURA VA DESPUÉS DEL PRIMER PÁRRAFO: es el que la presenta («el
+  // organigrama que acompaña esta sección muestra…»). Sin párrafos, al final.
+  let figuraPuesta = !b.imagen;
+  const ponerFigura = () => {
+    if (figuraPuesta || !b.imagen) return;
+    salida.push(...figura(b.imagen, numeroFigura()));
+    figuraPuesta = true;
+  };
+
   for (const t of trocear(b.texto ?? "")) {
     if (t.tipo === "tabla") {
       salida.push(tablaWord(t.encabezados, t.filas));
@@ -357,8 +415,10 @@ function bloqueWord(b: BloqueWord): (Paragraph | Table)[] {
           children: runs(t.texto),
         })
       );
+      ponerFigura();
     }
   }
+  ponerFigura();
 
   return salida;
 }
@@ -391,6 +451,8 @@ export async function construirWord(
     .sort((a, b) => a.numero - b.numero);
 
   const cuerpo: (Paragraph | Table)[] = [];
+  let figuras = 0;
+  const numeroFigura = () => ++figuras;
   let seccionActual: string | null = "";
   for (const b of visibles) {
     if (b.seccion && b.seccion !== seccionActual) {
@@ -404,7 +466,7 @@ export async function construirWord(
         })
       );
     }
-    cuerpo.push(...bloqueWord(b));
+    cuerpo.push(...bloqueWord(b, numeroFigura));
   }
 
   const borrador = doc.estado !== "aprobado";
@@ -413,6 +475,7 @@ export async function construirWord(
     creator: emisor.denominacion,
     title: `${TITULO_INFORME} · ${emisor.ejercicio}`,
     description: borrador ? MARCA_AGUA : TITULO_INFORME,
+    customProperties: (doc.propiedades ?? []).map((p) => ({ name: p.nombre, value: p.valor })),
     styles: {
       default: {
         document: { run: { font: "Calibri", size: 22 } },

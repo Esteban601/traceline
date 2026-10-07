@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
 import { logEvento } from "@/lib/bitacora";
-import { construirWord, nombreArchivo } from "@/lib/suplemento/word";
+import sharp from "sharp";
+import { construirWord, nombreArchivo, IMAGEN_DE_BLOQUE, type BloqueWord, type ImagenWord } from "@/lib/suplemento/word";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,7 @@ export async function GET(
   // ajeno tecleado a mano devuelva un archivo.
   const { data: doc } = await db
     .from("documentos_generados")
-    .select("id, tenant_id, reporte_id, version, estado, reportes(ejercicio)")
+    .select("id, tenant_id, reporte_id, version, estado, aprobado_en, versiones_aprobadas, reportes(ejercicio)")
     .eq("id", documentoId)
     .maybeSingle();
 
@@ -49,11 +50,12 @@ export async function GET(
   const acceso = await accesoAlGenerador(db, doc.tenant_id);
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
 
-  const { data: bloques } = await db
+  const { data: filasBloques } = await db
     .from("documentos_bloques")
     .select("numero, titulo, seccion, estado, texto")
     .eq("documento_id", documentoId)
     .order("numero");
+  let bloques: BloqueWord[] | null = filasBloques;
 
   if (!bloques || bloques.length === 0) {
     return NextResponse.json(
@@ -66,7 +68,7 @@ export async function GET(
   // interno lleva prefijos («[DEMO] …») y abreviaturas que no van en portada.
   const { data: perfilEmisor } = await db
     .from("perfil_emisor")
-    .select("denominacion_formal, nombre_corto")
+    .select("denominacion_formal, nombre_corto, organigrama_path")
     .eq("tenant_id", doc.tenant_id)
     .maybeSingle();
 
@@ -85,11 +87,66 @@ export async function GET(
   const ejercicio =
     (doc.reportes as unknown as { ejercicio: number } | null)?.ejercicio ?? new Date().getFullYear();
 
+  // --- VERSIONES (Paso 4) ----------------------------------------------------
+  // Un documento APROBADO se arma con las versiones que se aprobaron, no con el
+  // texto que tenga hoy la fila: eso es lo que se firmó. Un borrador, con las
+  // versiones vigentes. En los dos casos el Word dice cuáles en sus propiedades.
+  const aprobadas = (doc.versiones_aprobadas ?? null) as Record<string, { id: string; version: number }> | null;
+  const { data: versiones } = await db
+    .from("documentos_bloques_versiones")
+    .select("id, numero, version, texto")
+    .eq("documento_id", documentoId)
+    .order("version", { ascending: false });
+  const vigente = new Map<number, { version: number; texto: string }>();
+  for (const v of versiones ?? []) if (!vigente.has(v.numero)) vigente.set(v.numero, v);
+  if (doc.estado === "aprobado" && aprobadas) {
+    const porId = new Map((versiones ?? []).map((v) => [v.id, v]));
+    bloques = bloques.map((b) => {
+      const a = aprobadas[String(b.numero)];
+      const v = a ? porId.get(a.id) : undefined;
+      return v ? { ...b, texto: v.texto } : b;
+    });
+  }
+  const versionDe = (n: number) => (doc.estado === "aprobado" && aprobadas ? aprobadas[String(n)]?.version : vigente.get(n)?.version);
+  const enWord = bloques.filter((b) => b.estado !== "no_aplica" && b.estado !== "no_seleccionado" && (b.texto ?? "").trim());
+  const propiedades = [
+    { nombre: "TRACELINE documento", valor: doc.id },
+    { nombre: "TRACELINE versión del documento", valor: String(doc.version) },
+    { nombre: "TRACELINE estado", valor: doc.estado },
+    ...(doc.aprobado_en ? [{ nombre: "TRACELINE aprobado en", valor: doc.aprobado_en }] : []),
+    {
+      nombre: doc.estado === "aprobado" && aprobadas ? "TRACELINE versiones aprobadas" : "TRACELINE versiones de bloque",
+      valor: enWord.map((b) => `${b.numero}:v${versionDe(b.numero) ?? "?"}`).join(" "),
+    },
+  ];
+
+  // --- FIGURAS (Paso 4): la imagen del Perfil en los bloques que la llevan ------
+  // Si el archivo no está o no se puede leer, el bloque sale sin figura y se
+  // anota en el log: el Word no se cae por una imagen.
+  const imagenes = new Map<number, ImagenWord>();
+  for (const [n, def] of Object.entries(IMAGEN_DE_BLOQUE)) {
+    const ruta = perfilEmisor?.[def.campo];
+    if (!ruta || !enWord.some((b) => b.numero === Number(n))) continue;
+    try {
+      const { data: blob, error } = await db.storage.from("documentos").download(ruta);
+      if (error || !blob) throw new Error(error?.message ?? "sin datos");
+      const crudo = Buffer.from(await blob.arrayBuffer());
+      const meta = await sharp(crudo).metadata();
+      const tipo = meta.format === "jpeg" ? "jpg" : meta.format === "png" ? "png" : null;
+      // Otro formato (webp, heic…) se pasa a PNG: Word no los incrusta todos.
+      const datos = tipo ? crudo : await sharp(crudo).png().toBuffer();
+      imagenes.set(Number(n), { datos, tipo: tipo ?? "png", ancho: meta.width ?? 800, alto: meta.height ?? 450, pie: def.pie });
+    } catch (e) {
+      console.error(`[suplemento] figura del bloque ${n}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  bloques = bloques.map((b) => (imagenes.has(b.numero) ? { ...b, imagen: imagenes.get(b.numero) } : b));
+
   let archivo: Buffer;
   try {
     archivo = await construirWord(
       { denominacion, ejercicio },
-      { version: doc.version, estado: doc.estado, bloques }
+      { version: doc.version, estado: doc.estado, bloques, propiedades }
     );
   } catch (e) {
     const detalle = e instanceof Error ? e.message : String(e);
@@ -121,7 +178,9 @@ export async function GET(
     detalle: {
       version: doc.version,
       estado_documento: doc.estado,
-      bloques: bloques.filter((b) => b.estado !== "no_aplica" && (b.texto ?? "").trim()).length,
+      bloques: enWord.length,
+      figuras: imagenes.size,
+      versiones: propiedades[propiedades.length - 1].valor,
       bytes: archivo.byteLength,
       archivo: nombre,
       ruta: errSub ? null : ruta,
