@@ -25,6 +25,11 @@
 //      se rechaza; el mismo texto sin la cifra pasa.
 //   7. RLS: el administrador del cliente de A lee el contenido de su acta y no
 //      el de B; un usuario de área de A no lee ninguno.
+//   8. Texto del emisor sin reescribir (Paso 3): un Word en «gobierno» elegido
+//      para el bloque 18 sale literal, sin modelo, costo 0, con su cita y la
+//      marca `texto_del_emisor`; ningún normativo ofrece la opción; la pasada
+//      de coherencia lo marca como texto del emisor. La fila del bloque se
+//      restaura al terminar.
 // Limpia lo que crea (adjuntos, objetos y el documento de B si lo creó).
 // =============================================================================
 import { execFileSync } from "node:child_process";
@@ -33,6 +38,9 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import { generarBloque } from "../lib/suplemento/generar-bloque.ts";
 import { cargarAdjuntosDelBloque, documentosParaPrompt } from "../lib/suplemento/adjuntos-bloque.ts";
 import { procesarLecturaAdjunto } from "../lib/evidencias/cola.ts";
+import { opcionesLiterales } from "../lib/suplemento/texto-del-emisor.ts";
+import { documentoParaRevision } from "../lib/suplemento/coherencia.ts";
+import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
 import { bloquePorClave } from "../lib/suplemento/bloques.ts";
 
 const URL_SB = "http://127.0.0.1:54321";
@@ -76,7 +84,7 @@ async function acta(e) {
   return Buffer.from(await pdf.save());
 }
 
-const creados = { adjuntos: [], objetos: [], documentoB: null, seleccionA: null };
+const creados = { adjuntos: [], objetos: [], documentoB: null, seleccionA: null, bloque18: null };
 const perfilA = psql(`select count(*) from perfil_emisor where tenant_id='${A.tenant}'`);
 try {
   // --- Preparación -----------------------------------------------------------
@@ -174,7 +182,54 @@ try {
   } else console.log("    (sin sesión de usuario de área de A en local; se omite)");
   const barrera = psql(`select count(*) from pg_policies where tablename='perfil_emisor_adjuntos_contenido' and policyname ilike '%auditor%'`);
   ok(Number(barrera) > 0, `barrera del auditor puesta en la tabla (${barrera} políticas)`);
+
+  // --- 8. Texto del emisor sin reescribir ----------------------------------------
+  console.log("\n8. Texto del emisor sin reescribir");
+  const PARRAFOS = [
+    "Nuestra estructura de gobierno",
+    "El Consejo de Administración, con once consejeros, supervisa la estrategia y los riesgos de la Compañía.",
+    "Tres comités lo auxilian; el de Sostenibilidad y Riesgos Climáticos se creó en 2025.",
+  ];
+  const docx = await Packer.toBuffer(new Document({ sections: [{ children: [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(PARRAFOS[0])] }),
+    ...PARRAFOS.slice(1).map((t) => new Paragraph({ children: [new TextRun(t)] })),
+  ] }] }));
+  const rutaW = `${A.tenant}/perfil/gobierno/${Date.now()}-gobierno-e2e.docx`;
+  const { error: eW } = await staff.storage.from("documentos").upload(rutaW, Buffer.from(docx), { contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  if (eW) throw new Error(`subida docx: ${eW.message}`);
+  creados.objetos.push(rutaW);
+  const { data: adjW, error: eAW } = await staff.from("perfil_emisor_adjuntos")
+    .insert({ tenant_id: A.tenant, seccion: "gobierno", archivo_path: rutaW, nombre_original: "gobierno-e2e.docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", tamano: docx.length })
+    .select("id").single();
+  if (eAW) throw new Error(`adjunto docx: ${eAW.message}`);
+  creados.adjuntos.push(adjW.id);
+  await procesarLecturaAdjunto(psql(`select id from perfil_emisor_adjuntos_contenido where adjunto_id='${adjW.id}'`));
+
+  const ops = await opcionesLiterales(staff, A.tenant);
+  ok((ops.estructura_gobierno ?? []).some((o) => o.adjuntoId === adjW.id), `el bloque 18 ofrece usar gobierno-e2e.docx sin reescribir`);
+  const normativosConOpcion = Object.keys(ops).filter((k) => (bloquePorClave(k)?.clase ?? "normativo") === "normativo");
+  ok(normativosConOpcion.length === 0, `ningún bloque normativo ofrece texto literal (${normativosConOpcion.join(", ") || "ninguno"})`);
+
+  creados.bloque18 = psql(`select coalesce((select row_to_json(b)::text from documentos_bloques b where documento_id='${docA}' and numero=18), 'null')`);
+  psql(`update documentos_generados set textos_literales = '{"estructura_gobierno":"${adjW.id}"}'::jsonb where id='${docA}'`);
+  const lit = await generarBloque(staff, docA, 18);
+  ok(lit.ok && lit.conModelo === false && lit.costo === 0, `bloque 18 sin modelo y costo 0: ${lit.ok ? `conModelo=${lit.conModelo}, $${lit.costo}` : `${lit.motivo} · ${lit.detalle}`}`);
+  const fila = JSON.parse(psql(`select row_to_json(b)::text from documentos_bloques b where documento_id='${docA}' and numero=18`));
+  const esperado = [`**${PARRAFOS[0]}**`, ...PARRAFOS.slice(1)].join("\n\n");
+  ok(fila.texto === esperado, `texto literal, palabra por palabra (título como **título**)`);
+  ok(fila.texto_del_emisor === true && fila.estado === "borrador", `guardado como borrador con texto_del_emisor = ${fila.texto_del_emisor}`);
+  ok((fila.fuentes ?? []).some((f) => f.id.startsWith(`adj:${adjW.id}`) && /gobierno-e2e\.docx/.test(f.detalle)), `cita al archivo: ${(fila.fuentes ?? []).map((f) => f.detalle).join("; ")}`);
+  const paraRevision = documentoParaRevision(
+    [{ numero: 18, titulo: "Estructura", seccion: "II", texto: fila.texto, textoDelEmisor: fila.texto_del_emisor }, { numero: 15, titulo: "Roles", seccion: "II", texto: "Otro texto.", textoDelEmisor: false }],
+    { denominacionFormal: null, formaDeReferencia: null }
+  );
+  ok(/Bloque 18 .*TEXTO DEL EMISOR/.test(paraRevision) && !/Bloque 15 .*TEXTO DEL EMISOR/.test(paraRevision), "la pasada de coherencia lo recibe marcado como texto del emisor (y solo a él)");
 } finally {
+  if (creados.bloque18 !== null) {
+    if (creados.bloque18 === "null") psql(`delete from documentos_bloques where documento_id='${creados.seleccionA?.doc}' and numero=18`);
+    else psql(`insert into documentos_bloques select * from json_populate_record(null::documentos_bloques, '${creados.bloque18.replace(/'/g, "''")}'::json) on conflict (documento_id, numero) do update set (estado, texto, texto_del_emisor, fuentes, pendientes, modelo, prompt_version, costo_usd, tokens_entrada, tokens_salida, duracion_ms, generado_en, updated_at) = (excluded.estado, excluded.texto, excluded.texto_del_emisor, excluded.fuentes, excluded.pendientes, excluded.modelo, excluded.prompt_version, excluded.costo_usd, excluded.tokens_entrada, excluded.tokens_salida, excluded.duracion_ms, excluded.generado_en, excluded.updated_at)`);
+    psql(`update documentos_generados set textos_literales = null where id='${creados.seleccionA?.doc}'`);
+  }
   if (creados.objetos.length) await staff.storage.from("documentos").remove(creados.objetos);
   if (creados.adjuntos.length) psql(`delete from perfil_emisor_adjuntos where id in (${creados.adjuntos.map((i) => `'${i}'`).join(",")})`);
   if (creados.seleccionA) {
