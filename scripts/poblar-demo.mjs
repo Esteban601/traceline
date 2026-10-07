@@ -19,6 +19,14 @@
 //
 // Lo que NO hace: borrar. Los registros de clima industriales se DESACTIVAN,
 // porque la bitácora y los documentos ya generados los referencian.
+//
+// LA DESCRIPCIÓN ES LA PREGUNTA, NO LA RESPUESTA (encargo suplemento-calidad,
+// Paso 5; decisión de Esteban del 7 de octubre de 2026). Hasta aquí el texto de
+// cada solicitud narrativa vivía en `descripcion`, que el generador leía como
+// fuente. Ahora la descripción dice qué se pide, y el texto entra como lo que
+// es: la evidencia en PDF y un EXTRACTO DE TEXTO CONFIRMADO por el área sobre esa
+// evidencia (sugerencias_captura, tipo texto, confirmada), que es fuente
+// «validada» del libro de hechos. Las cifras siguen siendo capturas confirmadas.
 // =============================================================================
 
 import { createClient } from "@supabase/supabase-js";
@@ -472,7 +480,9 @@ const CIFRAS_NUEVAS = [
   },
   {
     titulo: "Cartera de crédito total 2025",
-    codigos: [],
+    // Base del porcentaje de cartera sostenible (S2 29(d), bloque 36). Sin
+    // código, la captura quedaba sin bloque dueño en el libro de hechos.
+    codigos: ["NIIF S2 29 (d)"],
     area: "Crédito y Banca",
     valor: 86400,
     unidad: "MDP",
@@ -481,7 +491,8 @@ const CIFRAS_NUEVAS = [
   },
   {
     titulo: "Cartera sostenible 2025",
-    codigos: [],
+    // Importe alineado con oportunidades relacionadas con el clima: S2 29(d).
+    codigos: ["NIIF S2 29 (d)"],
     area: "Crédito y Banca",
     valor: 6910,
     unidad: "MDP",
@@ -489,6 +500,11 @@ const CIFRAS_NUEVAS = [
       "La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible de México ascendió a 6,910 millones de pesos al cierre de 2025, equivalente al 8.0% de la cartera total.",
   },
 ];
+
+/** La descripción de una solicitud es lo que se le pide al cliente, no su respuesta. */
+function preguntaDe(titulo, codigos) {
+  return `Documento de respaldo que describa: ${titulo}${codigos?.length ? ` (requisitos ${codigos.join(", ")})` : ""}. Lo que el documento diga se confirma como extracto de texto.`;
+}
 
 /**
  * Solicitudes narrativas. Cada una nace ligada a sus códigos de datapoint, con
@@ -1183,7 +1199,67 @@ async function evidenciaDe(solicitudId, titulo, codigos, texto) {
  * validada y con visto bueno. El orden importa — el trigger de evidencias mueve
  * el estado a 'recibido', así que 'validado' se escribe DESPUÉS de subirla.
  */
-async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, valor, unidad, descripcion, capturas }) {
+/**
+ * El texto de la solicitud como EXTRACTO CONFIRMADO por el área sobre su
+ * evidencia (sugerencias_captura, tipo texto). Idempotente: si el último
+ * extracto confirmado ya es este texto, no hace nada; si cambió, entra uno nuevo
+ * (el más reciente es el que vale).
+ */
+async function confirmarExtracto(solicitudId, texto) {
+  const ev = ok(
+    "evidencia del extracto",
+    await db.from("evidencias").select("id, version, nombre_original, archivo_path").eq("solicitud_id", solicitudId).order("version", { ascending: false })
+  );
+  const mia = ev.find((e) => e.nombre_original.includes(MARCA)) ?? ev[0];
+  if (!mia) throw new Error(`sin evidencia para el extracto de ${solicitudId}`);
+  let cont = ok("contenido", await db.from("evidencias_contenido").select("id").eq("evidencia_id", mia.id).maybeSingle());
+  if (!cont) {
+    // Evidencia anterior a la lectura (20261005121800): no tiene fila de
+    // contenido. Se crea en `pendiente`, como la crearía el trigger; la cola la
+    // leerá. El extracto solo necesita la referencia.
+    cont = ok(
+      "contenido nuevo",
+      await db
+        .from("evidencias_contenido")
+        .insert({ evidencia_id: mia.id, solicitud_id: solicitudId, tenant_id: TENANT, version: mia.version, archivo_path: mia.archivo_path, nombre_original: mia.nombre_original })
+        .select("id")
+        .single()
+    );
+  }
+  const previo = ok(
+    "extracto previo",
+    await db
+      .from("sugerencias_captura")
+      .select("extracto")
+      .eq("solicitud_id", solicitudId)
+      .eq("tipo", "texto")
+      .in("estado", ["confirmada", "corregida"])
+      .order("decidido_en", { ascending: false })
+      .limit(1)
+  );
+  if (previo[0]?.extracto === texto) return false;
+  ok(
+    "extracto confirmado",
+    await db.from("sugerencias_captura").insert({
+      solicitud_id: solicitudId,
+      tenant_id: TENANT,
+      evidencia_id: mia.id,
+      contenido_id: cont.id,
+      evidencia_version: mia.version,
+      tipo: "texto",
+      estado: "confirmada",
+      extracto: texto,
+      fuente: { fragmentos: [{ fuente: { tipo: "pagina", pagina: 1 } }] },
+      confianza: "alta",
+      prompt_version: "poblar-demo",
+      decidido_por: USUARIO_CLIENTE,
+      decidido_en: new Date().toISOString(),
+    })
+  );
+  return true;
+}
+
+async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, valor, unidad, descripcion, capturas, confirmarTexto }) {
   const previa = ok(
     "solicitud?",
     await db.from("solicitudes").select("id, estado").eq("reporte_id", REPORTE).eq("titulo", titulo).maybeSingle()
@@ -1206,12 +1282,9 @@ async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, v
         .insert({
           reporte_id: REPORTE,
           titulo,
-          // LA DESCRIPCIÓN ES EL TEXTO, ENTERO. El PDF de evidencia es un archivo:
-          // el generador no lo lee. Para una solicitud cualitativa, `descripcion`
-          // es LO ÚNICO que llega al modelo, y truncarla a 280 caracteres le
-          // entregaba frases cortadas a media palabra —el bloque 26 lo acusó
-          // cinco veces en sus notas de revisión—.
-          descripcion: descripcion ?? texto,
+          // La descripción es LA PREGUNTA (Paso 5): el texto entra como extracto
+          // confirmado sobre la evidencia, que es lo que el libro de hechos lee.
+          descripcion: descripcion ?? preguntaDe(titulo, codigos),
           area_asignada: area,
           es_cuantitativa: !!cuantitativa,
           unidad_esperada: cuantitativa ? unidad : null,
@@ -1241,7 +1314,7 @@ async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, v
         .update({
           area_asignada: area,
           desactivada: false,
-          descripcion: descripcion ?? texto,
+          descripcion: descripcion ?? preguntaDe(titulo, codigos),
           es_cuantitativa: !!cuantitativa,
           unidad_esperada: cuantitativa ? unidad : null,
         })
@@ -1251,6 +1324,7 @@ async function solicitudCompleta({ titulo, codigos, area, texto, cuantitativa, v
 
   await ligar(id, codigos);
   const subida = await evidenciaDe(id, titulo, codigos, texto);
+  if (confirmarTexto) await confirmarExtracto(id, texto);
 
   if (cuantitativa) {
     const ev = ok(
@@ -1431,13 +1505,13 @@ async function main() {
 
   log("\n5. Solicitudes narrativas");
   for (const s of NARRATIVAS) {
-    const r = await solicitudCompleta(s);
+    const r = await solicitudCompleta({ ...s, confirmarTexto: true });
     log(`  ${r.nueva ? "creada  " : "vigente "} ${s.titulo.slice(0, 62).padEnd(64)} ${s.codigos.join(", ")}`);
   }
 
   log("\n6. Solicitudes cuantitativas nuevas");
   for (const s of [...CUANTITATIVAS_EXPOSICION, ...CIFRAS_NUEVAS]) {
-    const r = await solicitudCompleta({ ...s, cuantitativa: true });
+    const r = await solicitudCompleta({ ...s, cuantitativa: true, confirmarTexto: true });
     log(`  ${r.nueva ? "creada  " : "vigente "} ${s.titulo.slice(0, 62).padEnd(64)} ${s.valor} ${s.unidad}`);
   }
 
