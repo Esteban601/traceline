@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { avisarDocumentoAprobado } from "@/lib/notificaciones/inmediatos";
+import { bloqueantesDeAprobacion, motivoDeRechazo } from "@/lib/suplemento/aprobacion";
 
 // =============================================================================
 // Acciones de la vista de revisión: editar un bloque y mover el estado del
@@ -154,36 +155,26 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
     return ERR("El documento está aprobado; para cambiarlo hay que abrir una versión nueva.");
   }
 
-  // APROBAR ESTÁ BLOQUEADO MIENTRAS QUEDE UN PENDIENTE. Es la regla de §7.5: un
-  // documento aprobado con un [Pendiente: …] dentro sale a la calle diciendo que
-  // le falta un dato. Se comprueba en el servidor, no solo escondiendo el botón.
+  // APROBAR ESTÁ BLOQUEADO mientras un bloque seleccionado no esté terminado
+  // —en cola, generándose, con error, esperando adjunto o sin texto— o lleve un
+  // pendiente (§7.5). La regla vive en lib/suplemento/aprobacion.ts, la misma
+  // que usa la pantalla. Se comprueba aquí, no solo escondiendo el botón.
   if (destino === "aprobado") {
     const { data: bloques } = await a.db
       .from("documentos_bloques")
-      .select("numero, titulo, estado, pendientes")
+      .select("numero, estado, texto, pendientes")
       .eq("documento_id", documentoId);
-
-    const conPendiente = (bloques ?? []).filter(
-      (b) =>
-        b.estado !== "no_aplica" &&
-        b.estado !== "no_seleccionado" &&
-        Array.isArray(b.pendientes) &&
-        (b.pendientes as { campo: string }[]).some((p) => p.campo !== "nota_revision")
+    const bloqueantes = bloqueantesDeAprobacion(
+      (bloques ?? []).map((b) => ({
+        numero: b.numero,
+        estado: b.estado,
+        texto: b.texto,
+        pendientes: Array.isArray(b.pendientes)
+          ? (b.pendientes as { campo: string }[]).filter((p) => p.campo !== "nota_revision").length
+          : 0,
+      }))
     );
-    const sinGenerar = (bloques ?? []).filter((b) =>
-      ["generando", "error", "pendiente_adjunto"].includes(b.estado)
-    );
-
-    if (conPendiente.length || sinGenerar.length) {
-      const partes: string[] = [];
-      if (conPendiente.length) {
-        partes.push(`${conPendiente.length} bloque(s) con pendientes: ${conPendiente.map((b) => b.numero).join(", ")}`);
-      }
-      if (sinGenerar.length) {
-        partes.push(`${sinGenerar.length} sin generar o en error: ${sinGenerar.map((b) => b.numero).join(", ")}`);
-      }
-      return ERR(`No se puede aprobar. ${partes.join(". ")}.`);
-    }
+    if (bloqueantes.length) return ERR(motivoDeRechazo(bloqueantes));
   }
 
   // VERSIONES APROBADAS (Paso 4): qué versión de cada bloque compone lo que se

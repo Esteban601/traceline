@@ -11,6 +11,7 @@ import type { Tono } from "@/lib/estados";
 import { cambiarEstado, guardarTexto, type EstadoAccion } from "./actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Historial, type VersionVista } from "./historial";
+import { bloqueantesDeAprobacion, motivoDeRechazo } from "@/lib/suplemento/aprobacion";
 
 // =============================================================================
 // La vista de revisión. Un bloque a la vez, con todo lo que hace falta para
@@ -97,16 +98,14 @@ export function RevisionView(p: {
 
   // Lo que impide aprobar, calculado aquí para decirlo ANTES de que alguien lo
   // intente. El servidor lo vuelve a comprobar: esto es cortesía, no la barrera.
-  const bloqueantes = useMemo(
-    () =>
-      p.bloques.filter(
-        (b) =>
-          b.estado !== "no_aplica" &&
-          b.estado !== "no_seleccionado" &&
-          (b.pendientes.length > 0 || ["generando", "error", "pendiente_adjunto"].includes(b.estado))
-      ),
-    [p.bloques]
-  );
+  // La MISMA regla que la acción del servidor (lib/suplemento/aprobacion.ts).
+  const bloqueantes = useMemo(() => {
+    const titulo = new Map(p.bloques.map((b) => [b.numero, b.titulo]));
+    return bloqueantesDeAprobacion(
+      p.bloques.map((b) => ({ numero: b.numero, estado: b.estado, texto: b.texto, pendientes: b.pendientes.length }))
+    ).map((x) => ({ ...x, titulo: titulo.get(x.numero) ?? "" }));
+  }, [p.bloques]);
+  const motivoBloqueo = bloqueantes.length ? motivoDeRechazo(bloqueantes) : null;
 
   const secciones = useMemo(() => {
     const out: { nombre: string; items: BloqueRevision[] }[] = [];
@@ -177,16 +176,14 @@ export function RevisionView(p: {
             <form action={aEstado}>
               <input type="hidden" name="documento_id" value={p.documentoId} />
               <input type="hidden" name="estado" value="aprobado" />
-              <Button type="submit" size="sm" disabled={bloqueantes.length > 0} title={
-                bloqueantes.length > 0 ? "Hay bloques con pendientes o sin generar" : "Aprobar el documento"
-              }>
+              <Button type="submit" size="sm" disabled={bloqueantes.length > 0} title={motivoBloqueo ?? "Aprobar el documento"}>
                 Aprobar
               </Button>
             </form>
           )}
           {bloqueantes.length > 0 && p.puedeAprobar && (
-            <span className="text-sm text-muted">
-              No se puede aprobar: {bloqueantes.length} bloque(s) con pendientes o sin generar.
+            <span className="text-sm text-muted" data-motivo-bloqueo>
+              {motivoBloqueo}
             </span>
           )}
         </div>
@@ -202,7 +199,7 @@ export function RevisionView(p: {
                   <span className="font-mono text-xs text-muted">{b.numero}</span> {b.titulo}
                   <span className="text-muted">
                     {" — "}
-                    {b.pendientes.length ? `${b.pendientes.length} pendiente(s)` : META[b.estado]?.label ?? b.estado}
+                    {b.motivo}
                   </span>
                 </li>
               ))}
