@@ -496,6 +496,7 @@ export type Database = {
       documentos_bloques: {
         Row: {
           clave: string
+          cobertura: Json | null
           costo_usd: number
           created_at: string
           documento_id: string
@@ -508,6 +509,7 @@ export type Database = {
           id: string
           idioma: string
           intentos: number
+          libro_id: string | null
           modelo: string | null
           numero: number
           origen_texto: string | null
@@ -527,6 +529,7 @@ export type Database = {
         }
         Insert: {
           clave: string
+          cobertura?: Json | null
           costo_usd?: number
           created_at?: string
           documento_id: string
@@ -539,6 +542,7 @@ export type Database = {
           id?: string
           idioma?: string
           intentos?: number
+          libro_id?: string | null
           modelo?: string | null
           numero: number
           origen_texto?: string | null
@@ -558,6 +562,7 @@ export type Database = {
         }
         Update: {
           clave?: string
+          cobertura?: Json | null
           costo_usd?: number
           created_at?: string
           documento_id?: string
@@ -570,6 +575,7 @@ export type Database = {
           id?: string
           idioma?: string
           intentos?: number
+          libro_id?: string | null
           modelo?: string | null
           numero?: number
           origen_texto?: string | null
@@ -600,6 +606,13 @@ export type Database = {
             columns: ["editado_por"]
             isOneToOne: false
             referencedRelation: "perfiles_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_bloques_libro_id_fkey"
+            columns: ["libro_id"]
+            isOneToOne: false
+            referencedRelation: "libros_hechos"
             referencedColumns: ["id"]
           },
         ]
