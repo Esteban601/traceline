@@ -1124,6 +1124,7 @@ export type Database = {
           prompt_version: string | null
           reporte_id: string
           resumen: Json
+          reutiliza_libro: string | null
           tenant_id: string
           terminado_en: string | null
           tokens_entrada: number
@@ -1145,6 +1146,7 @@ export type Database = {
           prompt_version?: string | null
           reporte_id: string
           resumen?: Json
+          reutiliza_libro?: string | null
           tenant_id: string
           terminado_en?: string | null
           tokens_entrada?: number
@@ -1166,6 +1168,7 @@ export type Database = {
           prompt_version?: string | null
           reporte_id?: string
           resumen?: Json
+          reutiliza_libro?: string | null
           tenant_id?: string
           terminado_en?: string | null
           tokens_entrada?: number
@@ -1186,6 +1189,13 @@ export type Database = {
             columns: ["reporte_id"]
             isOneToOne: false
             referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "libros_hechos_reutiliza_libro_fkey"
+            columns: ["reutiliza_libro"]
+            isOneToOne: false
+            referencedRelation: "libros_hechos"
             referencedColumns: ["id"]
           },
           {
