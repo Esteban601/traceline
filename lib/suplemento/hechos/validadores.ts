@@ -121,7 +121,7 @@ export function referenciasReescritas(
 // -----------------------------------------------------------------------------
 
 export const SIN_CAMBIOS =
-  /\b(?:sin cambios|no (?:se )?(?:registraron|registró|presentaron|presentó|hubo|tuvieron|tuvo|realizaron|realizó|experimentaron) (?:ningún |ningunos? )?cambios?|no (?:han |ha )?(?:cambiado|sido modificad[oa]s?)|se mantuvieron sin modificaciones)\b/i;
+  /\b(?:sin cambios|no (?:se )?(?:registraron|registró|presentaron|presentó|hubo|tuvieron|tuvo|realizaron|realizó|experimentaron) (?:ningún |ningunos? )?cambios?|no (?:han |ha )?(?:cambiado|sido modificad[oa]s?)|no (?:se )?(?:cambiaron|cambió|modificaron|modificó)|se mantuvieron sin modificaciones)\b/i;
 export const VERBO_CAMBIO =
   /(?<!\p{L})(?:incorpor(?:ó|o|aron|an?)|cre(?:ó|o|aron|ación)|implement(?:ó|o|aron)|adopt(?:ó|o|aron)|modific(?:ó|o|aron)|actualiz(?:ó|o|aron)|ampli(?:ó|o|aron)|sustituy(?:ó|o|eron)|estableci(?:ó|o|eron)|introduj(?:o|eron)|redise[ñn](?:ó|o|aron)|reemplaz(?:ó|o|aron)|aprob(?:ó|o|aron)|conclu(?:yó|yo|yeron)|inici(?:ó|o|aron)|lanz(?:ó|o|aron)|integr(?:ó|o|aron))(?!\p{L})/iu;
 

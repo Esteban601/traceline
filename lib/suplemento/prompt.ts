@@ -36,7 +36,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v6-2026-10-08";
+export const PROMPT_VERSION_HECHOS = "hechos-v7-2026-10-08";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -255,7 +255,7 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
 10. JERARQUÍA DE FUENTES: validado > perfil > adjunto > narrativo. Si dos hechos dicen lo mismo, cita el de mayor rango. Un hecho NARRATIVO (Carta de la Dirección, textos editoriales) no sostiene una afirmación por sí solo: solo acompaña a un hecho de otro rango que diga lo mismo; si es el único que lo dice, no se publica. Las CIFRAS salen solo de hechos validados o del perfil, o de la tabla ya armada; una cifra que solo trae un hecho de adjunto no se publica: va un marcador de pendiente y una nota.
 
 11. CONTRADICCIONES: las decide el libro, no tú. Un hecho con \`contradiccion\` trae el nombre de su grupo (c1, c2…), y en \`contradicciones\` está el veredicto de cada grupo:
-   · «excluyente»: las versiones no pueden ser ciertas a la vez. No elijas ninguna: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y una nota «decision_emisor» con etiqueta «contradiccion» con las dos versiones y sus fuentes.
+   · «excluyente»: las versiones no pueden ser ciertas a la vez. No elijas ninguna: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y una nota «decision_emisor» con etiqueta «contradiccion» con las dos versiones y sus fuentes. El documento sugerido del marcador no puede ser uno que ya está entre tus fuentes (si el reglamento ya se leyó y no resuelve, no lo pidas: pide el documento que sí decidiría).
    · «compatible» o «secuencia»: son ciertas a la vez (el Comité propone y el Consejo aprueba; la propuesta, la creación y la instalación son momentos de una misma cronología). Redacta con la \`conciliacion\` que trae —puedes ajustar la sintaxis, no el contenido— y deja una nota breve «decision_emisor» con etiqueta «por_conciliar». NO va marcador.
    · «por_conciliar»: el libro no lo pudo decidir de forma estable (sus votos no coincidieron). No marques pendiente ni elijas versión: redacta solo lo que las versiones dicen en común (nada, si no comparten nada) y deja una nota «decision_emisor» con etiqueta «por_conciliar» que diga, con las fuentes, qué hay que conciliar y que la decisión del libro fue inestable.
    Los hechos sin \`contradiccion\` no están en conflicto: no declares contradicciones por tu cuenta ni pongas pendientes por diferencias entre ellos.

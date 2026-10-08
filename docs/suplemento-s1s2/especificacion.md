@@ -1,6 +1,31 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.34** · 7 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.35** · 8 de octubre de 2026.
+
+**Cambios respecto a 0.34** (Paso 5c, tercera revisión externa `revision-externa-2026-10-08.md`):
+- §5: migración `20261008120000`, que agrega el origen «automatica» al historial de bloques.
+- §6, generador (`hechos-v7`, libro `libro-v12`):
+  - **Cierre de pendientes por código.** POST `…/cierre`, antes de la coherencia. Sustituye el marcador por una
+    remisión al bloque dueño que lo afirma. Cada cierre lleva la nota «Confirmar la remisión».
+  - **Cambios de proceso a nivel documento:**
+    - el bloque de 25(a)(vi) recibe todos los cambios del ejercicio;
+    - el validador cruzado señala los «sin cambios» sobre procesos y los cambios omitidos.
+  - **Cifras huérfanas en tablas:** nota «cifra sin explicación».
+  - **Mapa del documento:** número, título exacto y lo que cubre cada bloque; las remisiones se escriben desde ahí.
+  - **Reglas nuevas del prompt:**
+    - 19, sin relleno;
+    - 20, sin calificativos sin sustento;
+    - el documento sugerido no puede ser uno que ya está entre las fuentes.
+  - **Editoriales sin material:** «no aplica» con aviso.
+  - **Hechos de exposición:** el libro lee las notas de cada registro de clima.
+  - **«Por conciliar»:** solo para un excluyente sin unanimidad.
+  - **Glosario:** no sustituye la cola de un nombre canónico tras «de».
+- §7, Word:
+  - sin códigos normativos (se quedan en la cobertura de la revisión);
+  - booleanos como «Sí/No»;
+  - tabla de emisiones solo en CO2e, rotulada por alcance;
+  - títulos de 23 («Esfuerzos indirectos…») y 30 («Método de medición y datos de entrada»).
+- Plantilla del bloque 2 condicional al alivio E4.
 
 **Cambios respecto a 0.33** (decisiones de Esteban sobre la corrida 2 del Paso 5b):
 - §6, validador cruzado: deja de reintentar bloques. Sus discrepancias van a la pasada de coherencia como

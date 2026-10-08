@@ -193,11 +193,16 @@ export async function decidirContradicciones(hechos: HechoNuevo[], apiKey: strin
     for (const ps of grupos) {
       const veredictoGrupo = ps.map((p) => p.veredicto).sort((x, y) => SEVERIDAD[y] - SEVERIDAD[x])[0];
       // FIRME solo si al menos un par lleva ese veredicto con TODOS los votos.
-      // Si no, el libro no lo decide de forma estable: «por_conciliar» (decisión
-      // de Esteban al cerrar el 5b; el caso «Alcance 3 frente a perímetro»).
+      // Un excluyente que no es firme no lo decide el libro de forma estable:
+      // «por_conciliar» (decisión de Esteban al cerrar el 5b; el caso «Alcance 3
+      // frente a perímetro»).
       const firme = ps.some((p) => p.veredicto === veredictoGrupo && p.votos.length === validos.length && p.votos.every((v) => v.veredicto === veredictoGrupo));
       const decidido = veredictoGrupo === "excluyente" && ps.every((p) => p.veredicto !== "excluyente" || p.votos.every((v) => SE_DESMIENTE.test(v.d.explicacion))) ? "compatible" : veredictoGrupo;
-      const veredicto: HechoNuevo["veredicto"] = firme ? decidido : "por_conciliar";
+      // Solo un EXCLUYENTE sin unanimidad es «por conciliar»: es el único veredicto
+      // que pone un marcador. Un compatible o una secuencia con dos votos de tres
+      // tiene como alternativa «sin tensión», que da el mismo texto (libro v11:
+      // marcar esos como inestables solo agregaba notas sin consecuencia).
+      const veredicto: HechoNuevo["veredicto"] = !firme && decidido === "excluyente" ? "por_conciliar" : decidido;
       const miembros = [...new Set(ps.flatMap((p) => [p.a, p.b]))].map((id) => ids.get(id)!);
       const d = ps.find((p) => p.veredicto === veredictoGrupo)!.votos.find((v) => v.veredicto === veredictoGrupo)!.d;
       const explicacion = d.explicacion.replace(/\bH(\d+)\b/g, (x) => (ids.get(x) ? `«${ids.get(x)!.fuente_detalle}»` : x));

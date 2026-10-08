@@ -63,7 +63,12 @@ export function aplicarGlosario(texto: string, glosario: EntradaGlosario[]): { t
   const cambios: CambioGlosario[] = [];
   for (const { v, c } of pares) {
     let veces = 0;
-    t = t.replace(new RegExp(`(?<![\\p{L}])${escapar(v)}(?![\\p{L}])`, "gu"), () => {
+    // Una variante que es la COLA del canónico («Crédito y Banca» de «Dirección de
+    // Crédito y Banca») precedida de «de» ya se lee como el nombre de la dirección
+    // («las direcciones de Riesgos, de Crédito y Banca»): reemplazarla daba «de
+    // Dirección de Crédito y Banca» (tercera revisión externa, C, bloque 7).
+    const cola = c.endsWith(v) && c.length > v.length ? "(?<!(?:^|[^\\p{L}])de\\s)" : "";
+    t = t.replace(new RegExp(`${cola}(?<![\\p{L}])${escapar(v)}(?![\\p{L}])`, "gu"), () => {
       veces++;
       return proteger(c);
     });

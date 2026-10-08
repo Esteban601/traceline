@@ -40,6 +40,12 @@ export function sustituirMarcador(texto: string, marcador: string, titulo: strin
 }
 
 export async function cerrarPendientes(db: Db, documentoId: string): Promise<Cierre[]> {
+  // PRECISIÓN MEDIDA (corrida 2, 8 de octubre de 2026): 3 de 5 cierres correctos
+  // (horizontes 21→8 y 20→8, severidad 27→9); 2 dudosos en el editorial 20
+  // («entorno de negocio» → 13, «prioridades del plan» → 8). Subir el umbral (4
+  // palabras y 60 %) no separa unos de otros: deja fuera dos buenos y conserva un
+  // dudoso. Por eso cada cierre lleva la nota «Confirmar la remisión»; separarlos
+  // bien exige leer el sentido (decisión pendiente de Esteban).
   const candidatos = (await validarCruzado(db, documentoId)).filter((d) => d.tipo === "pendiente_de_afirmado" && d.duenoAfirma && d.marcador && d.otroBloque != null);
   const porBloque = new Map<number, typeof candidatos>();
   for (const d of candidatos) porBloque.set(d.bloque, [...(porBloque.get(d.bloque) ?? []), d]);

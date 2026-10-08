@@ -100,4 +100,113 @@ Parada: tres bloques (16, 27, 36) regenerados y la lista A–C punto por punto; 
 
 ## Cómo se atiende (Paso 5c)
 
-Se llena al cerrar el Paso 5c, punto por punto.
+Estado al 8 de octubre de 2026. Libro `libro-v12`, prompt `hechos-v7`. Bloques 16, 27 y 36 regenerados sobre el
+documento `98d57a6a` (comparación en `referencia/suplemento-calidad/paso5c/comparacion/`). El demo se corrigió en
+`poblar-demo.mjs` y se repobló en dev. «Al regenerar» quiere decir que el arreglo está en el código o en el demo y se
+verá en la corrida completa.
+
+### A. Contradicciones entre secciones
+
+1. **Cambios en procesos (27).**
+   - El validador del bloque rechaza «no cambiaron» frente a cambios del ejercicio, también los de otros bloques.
+   - El bloque que responde 25(a)(vi) recibe como referencia todo cambio fechado en el ejercicio.
+   - El validador cruzado señala los omitidos.
+   - El 27 regenerado reconoce el Comité, la consejera, los límites y la unidad de financiamiento, y remite a donde
+     se describen.
+   - **Parcial:** omite los criterios hídricos (21) y la evaluación de más de 150 MDP (16). Queda como observación
+     de código.
+2. **Límites de concentración.** En el libro es una contradicción **excluyente** con tres votos de acuerdo: el Consejo
+   según dos extractos y el Comité de Riesgos según el registro de clima. El pendiente del 16 y el del 21 son el
+   comportamiento correcto. La frase del 22, «la Compañía aprobó límites», es compatible con las dos versiones. Si se
+   quiere un demo sin esta contradicción, hay que elegir una versión en `poblar-demo.mjs`; se dejó como ejemplo real
+   de excluyente.
+3. **Horizontes (20 y 21 contra 8).** Cierre de pendientes por código: los marcadores se sustituyeron por una remisión
+   al 8 (versión «automatica» en el historial).
+4. **Severidad (27 contra 9).** Cierre por código: remisión al 9.
+5. **Reglamento (15).** Regla nueva en el prompt: el documento sugerido de un pendiente no puede ser uno que ya está
+   entre las fuentes. Se verá al regenerar.
+6. **Aprueba o propone (15 contra 16).** c2 es excluyente sobre la **estrategia**. El 16 regenerado habla de la
+   aprobación de los **objetivos** (el Comité propone, el Consejo aprueba), que es otro hecho; no resuelve c2. El
+   pendiente del 15 se queda.
+7. **Momento de publicación (2 contra 3).** La plantilla del 2 depende ahora del alivio E4: con E4, la información se
+   publica después de los estados financieros.
+8. **Efectos de las oportunidades (36 contra 10 y 34).** Demo corregido («se espera que…; en 2025 no se cuantificaron»).
+   El 36 regenerado lo dice así.
+
+**Menores.**
+- 31 contra 31.4 MDP: el demo dice 31.0 de los 31.4 (más 0.4 de medición); el 36 regenerado lo explica.
+- 121 contra 118: los denominadores son explícitos en el demo (32 de 121 instalaciones; 40 de 118 sucursales); el 36
+  lo dice.
+- Medición directa (6) contra «kWh facturados» (30): el demo agrega la estimación de las 14 sucursales arrendadas. Se
+  verá al regenerar el 30.
+
+### B. Afirmaciones sin sustento
+
+- **14,200 MDP / 16.4 % (34) y 640 (35).**
+  - El libro ahora lee las notas de la exposición de cada registro, que dicen qué son: deuda de mercado vigente; saldo
+    de la línea de riego tecnificado con meta de 1,200 MDP.
+  - El demo amplía esas notas.
+  - Validador nuevo de **cifras huérfanas**: con la corrida 2 encuentra justo 14,200, 16.4 % y 640 (y el 34 % del
+    36); deja una nota «cifra sin explicación».
+- **8 % de ingresos (36).** No era una confusión del generador: el demo tenía una captura «Ingresos asociados a
+  productos/servicios sostenibles 2025: 8 %», igual por coincidencia a la proporción de cartera. Se cambió a 6.1 % con
+  su definición.
+- **«Consistente con el Acuerdo de París» (38, 39).**
+  - El demo da el método (contracción absoluta, 6 % anual) y dice que no se evaluó la alineación.
+  - Regla 20 del prompt: sin calificativos sin un hecho que los sostenga.
+- **Validación por tercero (39).** El demo dice «Falso» (la SPO cubre el marco de bonos), y el Word publica «Sí/No».
+  `verify:export` se ajustó.
+- **Promesa de la sección 5.** El demo identifica las partidas: gastos de administración y promoción; propiedades,
+  mobiliario y equipo; estimación preventiva para riesgos crediticios. Se verá al regenerar el 10.
+- **Perímetro de Alcance 1 (HFC).** El demo declara la exclusión con su justificación (sin registros de recarga;
+  estimación menor al 3 %; se incorporan en 2026), en el método (30) y en los juicios (6).
+- **Capital (26).** El demo da el ICAP (15.8 % contra 10.5 %) y el efecto del estrés (−0.6 puntos al 2030).
+- **«Solicitó un informe conjunto» (17).** **Sin atender.** Sale del acta de instalación (adjunto); es un acuerdo de
+  acta publicado como proceso. Pide una regla de pertinencia sobre acuerdos de trámite que no se escribió en este paso.
+
+### C. Defectos de forma
+
+- **Booleanos.** «Sí/No» en las tablas armadas y, al leer las celdas, también en documentos ya generados.
+- **Nombres de campo y litros en la tabla de emisiones.**
+  - La tabla del 29 lleva solo cifras en CO2e, rotuladas por alcance.
+  - Los litros y los kWh salen de ella; son datos de entrada del 30.
+- **Referencias cruzadas.**
+  - El mapa del documento va en la capa estable con lo que cubre cada bloque; solo se remite dentro de ese mapa.
+  - El validador de remisiones sigue activo.
+  - El 27 regenerado remite a las secciones correctas.
+  - El 18 y el 19 se verán al regenerar.
+- **Encabezados normativos.** Fuera del Word (tu recomendación); se quedan en la cobertura de la pantalla de revisión,
+  con el texto del catálogo.
+- **Bloque 20.**
+  - Un editorial sin hechos propios ni referencias no se genera.
+  - Uno que, al generarse, queda en pendientes y remisiones tampoco se publica.
+  - En los dos casos: «no aplica» con aviso.
+  - En este documento, el cierre por código ya sustituyó tres de sus pendientes. Dos de esos cierres son dudosos
+    (ver abajo).
+- **Relleno de resumen (7, 11, 19).** Regla 19 del prompt; se verá al regenerar.
+- **«de Dirección de Crédito y Banca» (7).** Era el glosario, que sustituía la variante dentro de una enumeración.
+  Corregido.
+- **Títulos.** El 23 pasa a «Esfuerzos indirectos de reducción y adaptación» (solo 14(a)(iii)); el 30, a «Método de
+  medición y datos de entrada».
+
+### Precisión del cierre por código (para decidir)
+
+En este documento sustituyó 5 pendientes:
+
+- **Correctos (3):** horizontes 21→8, horizontes 20→8 y severidad 27→9.
+- **Dudosos (2), ambos en el editorial 20:** «entorno de negocio, regulatorio y de mercado» → 13, y «prioridades
+  estratégicas del plan» → 8.
+
+Con señales de palabras ningún umbral separa unos de otros; separarlos exige leer el sentido. Cada cierre deja la
+nota «Confirmar la remisión».
+
+### Cuáles debió detectar el generador (punto 10)
+
+- **Sí, entre bloques:**
+  - 31 contra 31.4 (misma inversión con dos cifras);
+  - 2 contra 3 (la plantilla contradecía un alivio adoptado; ya corregido en código);
+  - 36 contra 10 y 34 (efectos realizados contra no cuantificados);
+  - 6 contra 30 (estimación contra «facturados»);
+  - la promesa del 5 sin partidas en ningún bloque.
+- **No:** el perímetro del inventario (HFC), la SPO sobre el marco de bonos y el 8 % que coincidía con otra
+  proporción. Son de criterio sobre los datos, no de coherencia entre secciones.

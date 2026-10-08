@@ -50,6 +50,9 @@ export type Discrepancia = {
   /** pendiente_de_afirmado: el marcador completo y si el otro bloque es DUEÑO del hecho que lo afirma. */
   marcador?: string;
   duenoAfirma?: boolean;
+  /** pendiente_de_afirmado: palabras del «qué falta» que comparte con lo afirmado, y su proporción. */
+  comunes?: number;
+  proporcion?: number;
 };
 
 type AnclaGuardada = { oracion: string; hechos: { id: string; hecho: string | null; fuente: string }[] };
@@ -58,7 +61,7 @@ const VACIAS = new Set(
   "para como sobre entre desde hasta este esta estos estas cada otro otra otros otras donde cual cuales cuando sean sido será serán tiene tienen debe deben tanto según mediante durante ante bajo cuyo cuya cuyos cuyas sino también además fecha falta confirmar indicar precisar dato datos información documento documentos solicitud campo perfil emisora compañía entidad".split(" ")
 );
 
-function palabras(t: string): Set<string> {
+export function palabras(t: string): Set<string> {
   return new Set(
     t
       .normalize("NFD")
@@ -79,12 +82,14 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
     .eq("documento_id", documentoId)
     .order("numero");
   const bloques = (filas ?? []).filter((b) => b.texto && b.estado !== "no_aplica" && !b.texto_del_emisor);
-  const libroId = bloques.find((b) => b.libro_id)?.libro_id;
-  if (!libroId) return [];
+  // Los hechos de TODOS los libros de los bloques: un bloque regenerado con un
+  // libro más nuevo convive con los demás hasta la siguiente corrida completa.
+  const libros = [...new Set(bloques.map((b) => b.libro_id).filter((x): x is string => !!x))];
+  if (!libros.length) return [];
   const { data: hs } = await db
     .from("hechos")
     .select("id, clave, enunciado, extracto, periodo, valor, unidad, estado, veredicto, grupo_conflicto, bloque_dueno, rango_fuente")
-    .eq("libro_id", libroId);
+    .in("libro_id", libros);
   const hecho = new Map((hs ?? []).map((h) => [h.id, h]));
   const anclas = (b: (typeof bloques)[number]) => ((b.anclas ?? []) as unknown as AnclaGuardada[]);
 
@@ -129,6 +134,8 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
           detalle: `El bloque ${mejor.a.bloque} afirma «${mejor.a.oracion.slice(0, 200)}» con un hecho vigente del libro.`,
           marcador: m[0],
           duenoAfirma: mejor.a.h.bloque_dueno === mejor.a.bloque,
+          comunes: mejor.comunes,
+          proporcion: mejor.comunes / que.size,
           correccion: `Dejaste pendiente «${m[1].trim()}», pero el bloque ${mejor.a.bloque} («${tituloDe(mejor.a.bloque)}») lo afirma con un hecho vigente del libro: «${mejor.a.h.enunciado}». No lo dejes pendiente: si tienes ese hecho entre los tuyos, afírmalo; si no, remite en una frase a esa sección.`,
         });
       }
@@ -228,7 +235,10 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
       });
     }
     for (const b of bloques) {
-      const m = (b.texto ?? "").replace(/\[Pendiente:[^\]]*\]/g, " ").match(SIN_CAMBIOS);
+      // Solo una oración que hable de PROCESOS: «el método de medición no cambió»
+      // (bloque 30) es cierto y no niega cambios de proceso.
+      const oracion = (b.texto ?? "").replace(/\[Pendiente:[^\]]*\]/g, " ").split(/(?<=\.)\s+/).find((o) => SIN_CAMBIOS.test(o) && /proceso/i.test(o));
+      const m = oracion?.match(SIN_CAMBIOS);
       if (!m) continue;
       const ajenos = cambios.filter((h) => h.bloque_dueno !== b.numero);
       if (!ajenos.length) continue;
