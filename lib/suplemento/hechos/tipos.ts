@@ -5,9 +5,10 @@
 /** «narrativo»: Carta de la Dirección y textos editoriales; no sostienen una afirmación solos (Paso 5b). */
 export type RangoFuente = "validado" | "perfil" | "adjunto" | "narrativo";
 export type FuenteTipo = "captura" | "extracto" | "cuestionario" | "perfil" | "registro" | "objetivo" | "adjunto";
-export type TipoHecho = "cifra" | "fecha" | "nombre" | "frecuencia" | "responsable" | "composicion" | "proceso" | "politica" | "otro";
+/** «tramite»: acuerdo de trámite de un acta (solicitar un informe, designar delegados, aprobar el orden del día); no se publica (Paso 5c). */
+export type TipoHecho = "cifra" | "fecha" | "nombre" | "frecuencia" | "responsable" | "composicion" | "proceso" | "politica" | "otro" | "tramite";
 
-export const TIPOS_HECHO: TipoHecho[] = ["cifra", "fecha", "nombre", "frecuencia", "responsable", "composicion", "proceso", "politica", "otro"];
+export const TIPOS_HECHO: TipoHecho[] = ["cifra", "fecha", "nombre", "frecuencia", "responsable", "composicion", "proceso", "politica", "otro", "tramite"];
 
 /** Jerarquía: un número menor manda. */
 export const ORDEN_RANGO: Record<RangoFuente, number> = { validado: 0, perfil: 1, adjunto: 2, narrativo: 3 };

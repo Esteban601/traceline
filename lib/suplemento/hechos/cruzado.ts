@@ -53,6 +53,8 @@ export type Discrepancia = {
   /** pendiente_de_afirmado: palabras del «qué falta» que comparte con lo afirmado, y su proporción. */
   comunes?: number;
   proporcion?: number;
+  /** pendiente_de_afirmado: la oración del otro bloque que parece responderlo. */
+  oracionDueno?: string;
 };
 
 type AnclaGuardada = { oracion: string; hechos: { id: string; hecho: string | null; fuente: string }[] };
@@ -136,6 +138,7 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
           duenoAfirma: mejor.a.h.bloque_dueno === mejor.a.bloque,
           comunes: mejor.comunes,
           proporcion: mejor.comunes / que.size,
+          oracionDueno: mejor.a.oracion,
           correccion: `Dejaste pendiente «${m[1].trim()}», pero el bloque ${mejor.a.bloque} («${tituloDe(mejor.a.bloque)}») lo afirma con un hecho vigente del libro: «${mejor.a.h.enunciado}». No lo dejes pendiente: si tienes ese hecho entre los tuyos, afírmalo; si no, remite en una frase a esa sección.`,
         });
       }

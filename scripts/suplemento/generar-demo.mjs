@@ -73,8 +73,9 @@ for (const n of [...fallos]) { if (await uno(n)) fallos.splice(fallos.indexOf(n)
 
 // Cierre de pendientes por código (Paso 5c), como la pantalla.
 const cierre = await api("POST", `/api/suplemento/${abierto.documentoId}/cierre`);
-const cierres = cierre.ok ? (await cierre.json()).cierres : null;
-console.log(`cierre de pendientes: ${cierres ? cierres.length : `error ${cierre.status}`}`);
+const cierreJson = cierre.ok ? await cierre.json() : null;
+const cierres = cierreJson ? { verificados: cierreJson.cierres.map((c) => ({ bloque: c.bloque, dueno: c.dueno, veredicto: c.veredicto })), costoUsd: cierreJson.costo } : null;
+console.log(`cierre de pendientes: ${cierres ? `${cierres.verificados.filter((c) => c.veredicto === "responde").length} cerrados de ${cierres.verificados.length} verificados ($${cierres.costoUsd.toFixed(4)})` : `error ${cierre.status}`}`);
 
 // Validador cruzado (Paso 5b): solo se cuenta. Ya no reintenta (decisión de
 // Esteban al cerrar el 5b); sus discrepancias llegan a la coherencia.

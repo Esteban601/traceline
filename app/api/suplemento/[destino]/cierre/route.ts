@@ -10,9 +10,9 @@ export const runtime = "nodejs";
 // =============================================================================
 // POST /api/suplemento/{documento}/cierre
 //
-// Cierre de pendientes por código (Paso 5c): un marcador de algo que otro bloque
-// afirma con un hecho del que es dueño se sustituye por una remisión a ese
-// bloque, sin modelo. Lo llama el orquestador antes de la pasada de coherencia;
+// Cierre de pendientes (Paso 5c): un marcador de algo que otro bloque afirma con
+// un hecho del que es dueño se sustituye por una remisión a ese bloque si Sonnet
+// 5.5 verifica que lo responde; la sustitución es por código. Lo llama el orquestador antes de la pasada de coherencia;
 // queda en el historial como versión «automatica». Solo el equipo de IRStrat.
 // =============================================================================
 
@@ -27,7 +27,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   const acceso = await accesoAlGenerador(db, doc.tenant_id);
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
 
-  const cierres = await cerrarPendientes(db, documentoId);
+  const { cierres, costo } = await cerrarPendientes(db, documentoId);
   if (cierres.length) {
     await logEvento(db, {
       tenantId: doc.tenant_id,
@@ -35,8 +35,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
       accion: "suplemento_cierre_pendientes",
       entidad: "documentos_generados",
       entidadId: documentoId,
-      detalle: { cierres: cierres.map((c) => ({ bloque: c.bloque, dueno: c.dueno })) },
+      detalle: { costo_usd: costo, cierres: cierres.map((c) => ({ bloque: c.bloque, dueno: c.dueno, veredicto: c.veredicto })) },
     });
   }
-  return NextResponse.json({ cierres });
+  return NextResponse.json({ cierres, costo });
 }

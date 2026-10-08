@@ -255,6 +255,12 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     // composición del Consejo) sí entra: es contexto que el informe necesita.
     for (const h of unicos) {
       if (h.estado !== "vigente") continue;
+      // Acuerdos de trámite de un acta (Paso 5c): fuera, salvo que un requisito del
+      // bloque dueño lo pida expresamente (hoy ninguno: la excepción queda prevista).
+      if (h.tipo === "tramite" && !bloques.find((b) => b.numero === h.bloque_dueno)?.requisitos.some((r) => /tr[aá]mite|orden del d[ií]a|delegad/i.test(r.descripcion))) {
+        Object.assign(h, { estado: "descartado", verificacion: "descartado: acuerdo de trámite de un acta (no describe un proceso ni una función)" });
+        continue;
+      }
       // Lo genérico solo se filtra en los adjuntos: una fuente obligatoria ya es respuesta a lo que el informe pregunta.
       if (h.alcance === "generico" && h.rango_fuente === "adjunto") Object.assign(h, { estado: "descartado", verificacion: "descartado: alcance genérico (cláusula que tendría cualquier emisora)" });
       else if (rec.e5Vigente && h.alcance === "sostenibilidad_general") Object.assign(h, { estado: "descartado", verificacion: "descartado: fuera del alcance E5 (sostenibilidad que no es de clima)" });
