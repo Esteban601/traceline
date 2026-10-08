@@ -24,7 +24,7 @@ import type { Oracion } from "./oraciones";
 // =============================================================================
 
 export const MODELO_LIBRO: ClaveModelo = "claude-sonnet-5-5";
-export const PROMPT_LIBRO_VERSION = "libro-v13-2026-10-08";
+export const PROMPT_LIBRO_VERSION = "libro-v14-2026-10-08";
 const CARACTERES_POR_LLAMADA = 6000;
 const LIMITE_MS = 4 * 60 * 1000;
 
@@ -68,7 +68,7 @@ Una entrada por oración, nunca dos. Si una oración dice varias cosas, el enunc
 # Reglas de cada entrada
 
 1. ENUNCIADO FIEL: una oración completa que dice lo mismo que la oración de la fuente, con el sujeto explícito («El Comité de Sostenibilidad y Riesgos Climáticos», no «el Comité»), y NADA MÁS: ni conclusiones, ni causas, ni calificativos, ni datos de otra oración.
-2. EN UN ACTA, EL ACUERDO: lo que se acuerda o resuelve es el hecho. La exposición previa o la propuesta que el mismo documento resuelve después no se devuelve. Un acuerdo de TRÁMITE —solicitar un informe para la siguiente sesión, designar delegados, aprobar el orden del día, convocar, formalizar acuerdos— se devuelve con tipo «tramite»: no describe un proceso de supervisión ni una función, solo la marcha de la sesión.
+2. EN UN ACTA, EL ACUERDO: lo que se acuerda o resuelve es el hecho. La exposición previa o la propuesta que el mismo documento resuelve después no se devuelve. Tipo «tramite» SOLO para estos acuerdos, que tratan de la marcha de la sesión y no de cómo se supervisa el clima: pedir un informe o un documento para la siguiente sesión, designar delegados o al secretario para formalizar acuerdos, aprobar el orden del día o el acta, convocar a una sesión. NO son trámite —se clasifican con su tipo normal—: las recomendaciones o propuestas de fondo (recomendar aprobar un programa, proponer objetivos o criterios), el calendario o la frecuencia de sesiones e informes, la aprobación de reglamentos, políticas, programas o límites, y la revisión del avance de una política.
 3. CLAVE ESTABLE: «sujeto.atributo» en snake_case sin acentos (comite_sostenibilidad.frecuencia_sesiones). El mismo sujeto y atributo llevan la misma clave aunque vengan de fuentes distintas; reutiliza las claves ya usadas que te doy.
 4. TIPO Y VALOR: un tipo de la lista; si el hecho es una cifra, \`valor\` es el número tal como aparece en la oración, sin calcular, con su \`unidad\`; si no, null. \`periodo\`: el año o periodo al que se refiere, si la oración lo dice.
 5. BLOQUE DUEÑO: el número del bloque cuyo requisito RESPONDE el hecho, uno solo. Un hecho que solo es contexto de un bloque no lo hace su dueño. Los bloques marcados «(plantilla)» son texto fijo: nunca son dueños. \`bloques_referencia\`: hasta tres bloques que podrían mencionarlo en una línea.
