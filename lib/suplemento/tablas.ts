@@ -42,7 +42,11 @@ const txt = (v: string | null | undefined): string =>
 
 /** Arma una tabla markdown. Devuelve null si no hay una sola fila: un bloque sin
  *  datos no lleva una tabla vacía, lleva su marcador de pendiente. */
-function tabla(titulo: string, cols: string[], filas: string[][], alinear?: ("izq" | "der")[]): string | null {
+/** Un booleano capturado («Verdadero», «Falso») se publica como «Sí» o «No» (tercera revisión externa, C). */
+const publicable = (celda: string): string => (/^(verdadero|true)$/i.test(celda.trim()) ? "Sí" : /^(falso|false)$/i.test(celda.trim()) ? "No" : celda);
+
+function tabla(titulo: string, cols: string[], filasCrudas: string[][], alinear?: ("izq" | "der")[]): string | null {
+  const filas = filasCrudas.map((f) => f.map(publicable));
   if (filas.length === 0) return null;
   const sep = cols.map((_, i) => (alinear?.[i] === "der" ? "---:" : "---"));
   return [
@@ -187,14 +191,30 @@ const tablaRiesgosPrioritarios: ConstructorTabla = (c) => {
   );
 };
 
-/** 29 · Emisiones GEI: las cifras cuantitativas del bloque. */
+/**
+ * Concepto publicable de una cifra de emisiones: el alcance, no el título de la
+ * solicitud («Inventario GEI Alcance 1 con memoria de cálculo» es un nombre de
+ * captura, no una etiqueta de informe).
+ */
+function conceptoGei(titulo: string): string {
+  const t = limpiar(titulo);
+  const alcance = t.match(/alcance\s*([123])/i)?.[1];
+  if (!alcance) return t;
+  const base = `Emisiones de Alcance ${alcance}`;
+  if (alcance === "2" && /ubicaci[oó]n/i.test(t) && !/mercado/i.test(t)) return `${base} (ubicación)`;
+  if (alcance === "2" && /mercado/i.test(t) && !/ubicaci[oó]n/i.test(t)) return `${base} (mercado)`;
+  return base;
+}
+
+/**
+ * 29 · Emisiones GEI: solo las cifras de emisiones (en CO2 equivalente). Los
+ * datos de entrada —litros de combustible, kWh— no son emisiones: los describe
+ * el bloque 30 (tercera revisión externa, C).
+ */
 const tablaGei: ConstructorTabla = (c) => {
-  const filas = cifrasDelBloque(c).map(({ s, valor }) => [
-    txt(limpiar(s.titulo)),
-    num(valor),
-    txt(s.unidad_esperada),
-    String(c.ens.reporte.ejercicio),
-  ]);
+  const filas = cifrasDelBloque(c)
+    .filter(({ s }) => /co2/i.test(s.unidad_esperada ?? ""))
+    .map(({ s, valor }) => [conceptoGei(s.titulo), num(valor), txt(s.unidad_esperada), String(c.ens.reporte.ejercicio)]);
   return tabla("Emisiones brutas absolutas de gases de efecto invernadero", ["Concepto", "Valor", "Unidad", "Ejercicio"], filas, ["izq", "der", "izq", "der"]);
 };
 

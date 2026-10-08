@@ -249,7 +249,7 @@ export async function generarBloque(
   // el bloque redacta SOLO desde sus hechos y referencias: ni evidencias crudas
   // ni adjuntos completos. Sin libro, el camino de antes.
   const libro = await libroVigente(supabase, doc.reporte_id);
-  const insumo = libro ? await insumoDelBloque(supabase, libro.id, bloque, doc.editoriales_incluidos ?? null) : null;
+  const insumo = libro ? await insumoDelBloque(supabase, libro.id, bloque, doc.editoriales_incluidos ?? null, ens.reporte.ejercicio) : null;
   // Glosario del emisor, matriz y defectos de insumo de nivel documento (Paso 5.4).
   const glosario = leerGlosario(perfil?.glosario);
   const matriz = (perfil?.matriz_riesgos ?? null) as Matriz;
@@ -619,7 +619,14 @@ export async function generarBloque(
       : [];
     // Paso 5b: cambios de proceso negados, incisos mal numerados y oraciones
     // sostenidas solo por la Carta de la Dirección.
-    const negados = insumo ? cambiosNegados(parseada.texto, insumo.hechos, ens.reporte.ejercicio) : [];
+    // Con los cambios que otros bloques publican (referencias del bloque de 25(a)(vi)).
+    const negados = insumo
+      ? cambiosNegados(
+          parseada.texto,
+          [...insumo.hechos, ...insumo.referencias.map((r) => ({ id: `bloque ${r.bloque}`, enunciado: r.completo, extracto: "" }))],
+          ens.reporte.ejercicio
+        )
+      : [];
     const incisos = insumo
       ? incisosInexactos(
           [parseada.texto, ...parseada.notas_revision, ...(parseada.cobertura ?? []).map((c) => c.comentario)],

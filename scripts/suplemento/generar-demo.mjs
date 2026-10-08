@@ -71,6 +71,11 @@ if (abierto.primero !== undefined && !(await uno(abierto.primero))) fallos.push(
 await Promise.all(Array.from({ length: 3 }, async () => { for (;;) { const n = cola.shift(); if (n === undefined) return; if (!(await uno(n))) fallos.push(n); } }));
 for (const n of [...fallos]) { if (await uno(n)) fallos.splice(fallos.indexOf(n), 1); }
 
+// Cierre de pendientes por código (Paso 5c), como la pantalla.
+const cierre = await api("POST", `/api/suplemento/${abierto.documentoId}/cierre`);
+const cierres = cierre.ok ? (await cierre.json()).cierres : null;
+console.log(`cierre de pendientes: ${cierres ? cierres.length : `error ${cierre.status}`}`);
+
 // Validador cruzado (Paso 5b): solo se cuenta. Ya no reintenta (decisión de
 // Esteban al cerrar el 5b); sus discrepancias llegan a la coherencia.
 const cruzado = { discrepancias: null };
@@ -125,6 +130,7 @@ const resumen = {
   minutos: Number(((Date.now() - inicio) / 60000).toFixed(1)),
   coherencia,
   cruzado,
+  cierres,
   word: w.status,
 };
 fs.writeFileSync(path.join(carpeta, `${seleccion}.json`), JSON.stringify(resumen, null, 1));

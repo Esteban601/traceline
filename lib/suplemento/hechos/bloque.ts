@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloques";
 import { ORDEN_RANGO, type RangoFuente } from "./tipos";
+import { esCambioDelEjercicio } from "./validadores";
 
 // =============================================================================
 // EL BLOQUE DESDE EL LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5.3).
@@ -59,7 +60,7 @@ export type InsumoDelBloque = {
 
 const LARGO_REFERENCIA = 160;
 
-export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, incluidos: string[] | null): Promise<InsumoDelBloque> {
+export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, incluidos: string[] | null, ejercicio?: number): Promise<InsumoDelBloque> {
   const { data } = await db
     .from("hechos")
     .select("id, enunciado, extracto, fuente_detalle, fuente_id, tipo, valor, unidad, periodo, rango_fuente, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado, veredicto, conciliacion")
@@ -101,8 +102,13 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
       : null,
   }));
 
+  // El bloque que responde «¿cambiaron los procesos respecto del periodo
+  // anterior?» (25(a)(vi), S1 44(a)(vi)) recibe como referencia TODO cambio
+  // fechado en el ejercicio, sea del bloque que sea (Paso 5c, caso 1 de la
+  // tercera revisión: el 27 negaba cinco cambios que otros bloques publicaban).
+  const preguntaCambios = ejercicio != null && bloque.datapoints.some((c) => /\(a\)\(vi\)/.test(c));
   const referencias: ReferenciaDelBloque[] = (data ?? [])
-    .filter((h) => (h.bloques_referencia ?? []).includes(bloque.numero))
+    .filter((h) => (h.bloques_referencia ?? []).includes(bloque.numero) || (preguntaCambios && esCambioDelEjercicio({ enunciado: h.enunciado, extracto: h.extracto, periodo: h.periodo }, ejercicio!)))
     .map((h) => ({ h, dueno: duenoEfectivo(h) }))
     .filter((x): x is { h: (typeof x)["h"]; dueno: number } => x.dueno != null && x.dueno !== bloque.numero)
     .map(({ h, dueno }) => ({

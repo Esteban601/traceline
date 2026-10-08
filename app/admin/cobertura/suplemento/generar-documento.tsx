@@ -161,7 +161,14 @@ export function GenerarDocumento({
         quedan = await enCola(docId, fallos);
       }
 
-      // 4 · Pasada de coherencia sobre el documento completo (Paso 3), que
+      // 4 · Cierre de pendientes por código (Paso 5c): lo que un bloque deja
+      // pendiente y otro afirma como dueño se sustituye por una remisión, sin
+      // modelo. Si falla, la coherencia lo vuelve a señalar.
+      if (!cancelado.current) {
+        await fetch(`/api/suplemento/${docId}/cierre`, { method: "POST" }).catch(() => undefined);
+      }
+
+      // 5 · Pasada de coherencia sobre el documento completo (Paso 3), que
       // incluye las discrepancias del validador cruzado (Paso 5b) como
       // observaciones destacadas. El validador ya no regenera bloques: sus
       // reintentos no convergían y costaban ~$2.60 por documento (decisión de

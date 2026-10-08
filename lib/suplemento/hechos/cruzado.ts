@@ -6,6 +6,7 @@ import { PLANTILLAS } from "@/lib/suplemento/plantillas";
 import { numerosDe } from "@/lib/evidencias/fuente";
 import { leerGlosario } from "@/lib/suplemento/glosario";
 import { remisionesSinDueno } from "./remisiones";
+import { esCambioDelEjercicio, SIN_CAMBIOS } from "./validadores";
 
 // =============================================================================
 // VALIDADOR CRUZADO SOBRE EL LIBRO (Paso 5b, segunda revisión externa, punto 1).
@@ -35,7 +36,7 @@ import { remisionesSinDueno } from "./remisiones";
 
 type Db = SupabaseClient<Database>;
 
-export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno";
+export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "cambios_negados";
 
 export type Discrepancia = {
   bloque: number;
@@ -44,8 +45,11 @@ export type Discrepancia = {
   otroBloque: number | null;
   cita: string;
   detalle: string;
-  /** Lo que recibe el bloque en su reintento. */
+  /** La corrección sugerida (para regenerar a mano). */
   correccion: string;
+  /** pendiente_de_afirmado: el marcador completo y si el otro bloque es DUEÑO del hecho que lo afirma. */
+  marcador?: string;
+  duenoAfirma?: boolean;
 };
 
 type AnclaGuardada = { oracion: string; hechos: { id: string; hecho: string | null; fuente: string }[] };
@@ -71,7 +75,7 @@ const RE_REMISION = /(?:como se (?:describe|indica|detalla|señala|explica|prese
 export async function validarCruzado(db: Db, documentoId: string): Promise<Discrepancia[]> {
   const { data: filas } = await db
     .from("documentos_bloques")
-    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, documento:documentos_generados(tenant_id)")
+    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, documento:documentos_generados(tenant_id, reporte_id)")
     .eq("documento_id", documentoId)
     .order("numero");
   const bloques = (filas ?? []).filter((b) => b.texto && b.estado !== "no_aplica" && !b.texto_del_emisor);
@@ -79,7 +83,7 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
   if (!libroId) return [];
   const { data: hs } = await db
     .from("hechos")
-    .select("id, clave, enunciado, valor, unidad, estado, veredicto, grupo_conflicto, bloque_dueno, rango_fuente")
+    .select("id, clave, enunciado, extracto, periodo, valor, unidad, estado, veredicto, grupo_conflicto, bloque_dueno, rango_fuente")
     .eq("libro_id", libroId);
   const hecho = new Map((hs ?? []).map((h) => [h.id, h]));
   const anclas = (b: (typeof bloques)[number]) => ((b.anclas ?? []) as unknown as AnclaGuardada[]);
@@ -98,7 +102,8 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
   for (const b of bloques) {
     // --- 1. Pendiente de lo que otro bloque afirma --------------------------
     for (const m of (b.texto ?? "").matchAll(RE_MARCADOR)) {
-      const que = palabras(m[1]);
+      // Solo el «qué falta»: la sugerencia de documento diluye la coincidencia.
+      const que = palabras(m[1].replace(/\(documento sugerido[^)]*\)?/gi, " "));
       if (que.size < 2) continue;
       // Un pendiente que corresponde a una contradicción excluyente del propio
       // bloque es el pendiente correcto, no uno que otro bloque resuelva.
@@ -122,6 +127,8 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
           otroBloque: mejor.a.bloque,
           cita: m[0].slice(0, 200),
           detalle: `El bloque ${mejor.a.bloque} afirma «${mejor.a.oracion.slice(0, 200)}» con un hecho vigente del libro.`,
+          marcador: m[0],
+          duenoAfirma: mejor.a.h.bloque_dueno === mejor.a.bloque,
           correccion: `Dejaste pendiente «${m[1].trim()}», pero el bloque ${mejor.a.bloque} («${tituloDe(mejor.a.bloque)}») lo afirma con un hecho vigente del libro: «${mejor.a.h.enunciado}». No lo dejes pendiente: si tienes ese hecho entre los tuyos, afírmalo; si no, remite en una frase a esa sección.`,
         });
       }
@@ -188,6 +195,52 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
         cita: a.oracion.slice(0, 200),
         detalle: `«${clave}»: ${a.h.valor} aquí, ${primero.h.valor} en el bloque ${primero.bloque}${enOracion.length ? "" : " (la cifra no aparece en la oración)"}.`,
         correccion: `Afirmas ${a.h.valor}${a.h.unidad ? ` ${a.h.unidad}` : ""} para «${a.h.enunciado.slice(0, 120)}», y el bloque ${primero.bloque} afirma ${primero.h.valor}${primero.h.unidad ? ` ${primero.h.unidad}` : ""} para el mismo dato. Remite a esa sección en lugar de dar la cifra, o márcalo pendiente si tu fuente la contradice.`,
+      });
+    }
+  }
+
+  // --- 6. Cambios de proceso negados a nivel documento (Paso 5c, caso 1) -------
+  // «Sin cambios» en un bloque frente a hechos de CUALQUIER bloque con verbo de
+  // cambio y fecha del ejercicio.
+  const reporteId = (bloques[0]?.documento as unknown as { reporte_id: string } | null)?.reporte_id;
+  const { data: rep } = reporteId ? await db.from("reportes").select("ejercicio").eq("id", reporteId).maybeSingle() : { data: null };
+  if (rep?.ejercicio) {
+    const cambios = (hs ?? []).filter((h) => h.estado === "vigente" && esCambioDelEjercicio({ enunciado: h.enunciado, extracto: h.extracto, periodo: h.periodo }, rep.ejercicio));
+    // El bloque que responde «¿cambiaron los procesos?» (25(a)(vi)) no puede
+    // omitir un cambio del ejercicio que otro bloque publica: «el cambio fue X»
+    // niega los demás sin decirlo (caso 1 de la tercera revisión).
+    for (const b of bloques.filter((x) => BLOQUES.find((y) => y.numero === x.numero)?.datapoints.some((c) => /\(a\)\(vi\)/.test(c)))) {
+      const texto = palabras((b.texto ?? "").replace(/\[Pendiente:[^\]]*\]/g, " "));
+      // Mencionado: el texto comparte al menos el 60 % de las palabras del hecho.
+      const omitidos = cambios.filter((h) => {
+        const w = palabras(h.enunciado);
+        return h.bloque_dueno !== b.numero && [...w].filter((x) => texto.has(x)).length < Math.ceil(w.size * 0.6);
+      });
+      if (!omitidos.length) continue;
+      const lista = omitidos.slice(0, 6).map((h) => `${h.enunciado.slice(0, 110)} (bloque ${h.bloque_dueno})`);
+      out.push({
+        bloque: b.numero,
+        tipo: "cambios_negados",
+        otroBloque: omitidos[0].bloque_dueno,
+        cita: "Cambios en los procesos respecto del periodo anterior",
+        detalle: `Responde si los procesos cambiaron, pero omite ${omitidos.length} cambio(s) del ejercicio que otros bloques publican: ${lista.join("; ")}.`,
+        correccion: `Al responder si cambiaron los procesos, incluye estos cambios de ${rep.ejercicio} o remite a donde se describen: ${lista.join("; ")}.`,
+      });
+    }
+    for (const b of bloques) {
+      const m = (b.texto ?? "").replace(/\[Pendiente:[^\]]*\]/g, " ").match(SIN_CAMBIOS);
+      if (!m) continue;
+      const ajenos = cambios.filter((h) => h.bloque_dueno !== b.numero);
+      if (!ajenos.length) continue;
+      const lista = ajenos.slice(0, 6).map((h) => `${h.enunciado.slice(0, 110)} (bloque ${h.bloque_dueno})`);
+      const i = (b.texto ?? "").indexOf(m[0]);
+      out.push({
+        bloque: b.numero,
+        tipo: "cambios_negados",
+        otroBloque: ajenos[0].bloque_dueno,
+        cita: (b.texto ?? "").slice(Math.max(0, i - 80), i + m[0].length + 40),
+        detalle: `Dice «${m[0]}», pero el libro tiene ${ajenos.length} cambio(s) del ejercicio en otros bloques: ${lista.join("; ")}.`,
+        correccion: `El texto niega cambios de proceso en el ejercicio, pero estos hechos describen cambios de ${rep.ejercicio}: ${lista.join("; ")}. Revela los cambios o remite a donde se describen.`,
       });
     }
   }

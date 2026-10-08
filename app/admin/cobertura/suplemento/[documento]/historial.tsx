@@ -22,7 +22,7 @@ import { restaurarVersion, type EstadoAccion } from "./actions";
 export type VersionVista = {
   id: string;
   version: number;
-  origen: "generacion" | "edicion" | "literal" | "restauracion";
+  origen: "generacion" | "edicion" | "literal" | "restauracion" | "automatica";
   texto: string;
   fuentes: string[];
   promptVersion: string | null;
@@ -40,6 +40,8 @@ const ORIGEN: Record<VersionVista["origen"], { label: string; tono: Tono }> = {
   edicion: { label: "Edición manual", tono: "ambar" },
   literal: { label: "Texto del emisor", tono: "azul" },
   restauracion: { label: "Restauración", tono: "gris" },
+  // Cierre de pendientes por código (Paso 5c): sin modelo ni persona.
+  automatica: { label: "Automática", tono: "azul" },
 };
 
 const VACIO: EstadoAccion = { ok: false, error: null, mensaje: null };

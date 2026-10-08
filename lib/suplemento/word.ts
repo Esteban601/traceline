@@ -85,8 +85,17 @@ const LINEA = "C9C2B4";
 const TITULO_INFORME = "Informe de Sostenibilidad NIIF S1 y S2";
 const MARCA_AGUA = "BORRADOR GENERADO · PENDIENTE DE REVISIÓN";
 
-/** Referencias NIIF por bloque, del mismo mapeo que usa el generador. */
-const REFERENCIAS = new Map(BLOQUES.map((b) => [b.numero, b.datapoints]));
+/**
+ * Título publicado: el vigente de `bloques.ts`, no el que se guardó al generar
+ * (un título corregido —23, 30— no espera a que se regenere el bloque).
+ *
+ * LOS CÓDIGOS NORMATIVOS YA NO VAN EN EL WORD (tercera revisión externa, C):
+ * salían duplicados, colapsados («25 (a)(i)a(v)») y citaban ejemplos
+ * ilustrativos (EI) como si fueran requerimientos. Se quedan en la pantalla de
+ * revisión, en la cobertura por subrequisito, con el texto del catálogo.
+ */
+const TITULO = new Map(BLOQUES.map((b) => [b.numero, b.titulo]));
+const tituloDe = (b: { numero: number; titulo: string }) => TITULO.get(b.numero) ?? b.titulo;
 
 // -----------------------------------------------------------------------------
 // El texto del bloque llega con la tabla pegada delante
@@ -105,12 +114,15 @@ type Trozo =
 const esSeparadorMd = (l: string): boolean => /^\|[\s:|-]+\|$/.test(l.trim());
 const esFilaMd = (l: string): boolean => l.trim().startsWith("|") && l.trim().endsWith("|");
 
+// Un booleano capturado se publica como «Sí» o «No», también en documentos
+// generados antes de que la tabla lo hiciera (tercera revisión externa, C).
 const celdasDe = (l: string): string[] =>
   l
     .trim()
     .slice(1, -1)
     .split("|")
-    .map((c) => c.trim());
+    .map((c) => c.trim())
+    .map((c) => (/^(verdadero|true)$/i.test(c) ? "Sí" : /^(falso|false)$/i.test(c) ? "No" : c));
 
 export function trocear(texto: string): Trozo[] {
   const lineas = texto.split("\n");
@@ -285,7 +297,7 @@ function indice(bloques: BloqueWord[]): Paragraph[] {
         spacing: { after: 40 },
         children: [
           new TextRun({ text: `${b.numero}. `, size: 20, color: GRIS }),
-          new TextRun({ text: b.titulo, size: 20, color: "1A1A1A" }),
+          new TextRun({ text: tituloDe(b), size: 20, color: "1A1A1A" }),
         ],
       })
     );
@@ -373,19 +385,9 @@ function bloqueWord(b: BloqueWord, numeroFigura: () => number): (Paragraph | Tab
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 360, after: 60 },
-      children: [new TextRun({ text: b.titulo, bold: true, size: 26, color: TINTA })],
+      children: [new TextRun({ text: tituloDe(b), bold: true, size: 26, color: TINTA })],
     })
   );
-
-  const refs = REFERENCIAS.get(b.numero) ?? [];
-  if (refs.length > 0) {
-    salida.push(
-      new Paragraph({
-        spacing: { after: 180 },
-        children: [new TextRun({ text: refs.join(" · "), size: 16, color: ORO })],
-      })
-    );
-  }
 
   // LA FIGURA VA DESPUÉS DEL PRIMER PÁRRAFO: es el que la presenta («el
   // organigrama que acompaña esta sección muestra…»). Sin párrafos, al final.

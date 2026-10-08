@@ -431,7 +431,8 @@ export const BLOQUES: Bloque[] = [
     clave: "esfuerzos_reduccion",
     numero: 23,
     seccion: "III · Estrategia",
-    titulo: "Esfuerzos directos e indirectos de reducción y adaptación",
+    // Solo 14(a)(iii): los esfuerzos directos, 14(a)(ii), son del 22 (tercera revisión externa, C).
+    titulo: "Esfuerzos indirectos de reducción y adaptación",
     clase: "normativo",
     respaldo: "NIIF S2 14(a)(iii).",
     tipo: "D→T",
@@ -522,7 +523,9 @@ export const BLOQUES: Bloque[] = [
     clave: "metodo_medicion",
     numero: 30,
     seccion: "V · Métricas y objetivos",
-    titulo: "Método de medición, datos de entrada y C5",
+    // Sin «y C5» en el título: el método previo conservado bajo C5 solo se describe si el alivio está adoptado
+    // (tercera revisión externa, C).
+    titulo: "Método de medición y datos de entrada",
     clase: "normativo",
     respaldo: "NIIF S2 29(a)(ii)–(iii).",
     tipo: "D→T",
