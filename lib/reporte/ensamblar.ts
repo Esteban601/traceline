@@ -140,6 +140,8 @@ export type RegValRow = {
   capital_gasto: number | null;
   capital_financiacion: number | null;
   capital_inversion: number | null;
+  /** Qué son las cifras, en palabras de la emisora (lo lee el libro de hechos). */
+  notas: string | null;
   created_at: string;
 };
 
@@ -385,7 +387,7 @@ export async function ensamblarReporte(
     supabase
       .from("registros_clima_valores")
       .select(
-        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, created_at, registro:registros_clima!inner(reporte_id)"
+        "registro_id, ejercicio, cantidad_activos, porcentaje, capital_gasto, capital_financiacion, capital_inversion, notas, created_at, registro:registros_clima!inner(reporte_id)"
       )
       .eq("registro.reporte_id", reporteId)
       .order("created_at", { ascending: true }),

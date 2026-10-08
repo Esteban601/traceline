@@ -311,7 +311,7 @@ const REGISTROS = [
       capital_gasto: 18.5,
       capital_financiacion: null,
       capital_inversion: null,
-      notas: "31 sucursales y 1 centro operativo; capital de gasto en adecuaciones y seguros (MDP).",
+      notas: "32 de 121 instalaciones (118 sucursales y 3 centros operativos): 31 sucursales y el centro operativo de Mérida; capital de gasto en adecuaciones y seguros (MDP).",
     },
   },
   {
@@ -335,7 +335,7 @@ const REGISTROS = [
       capital_gasto: null,
       capital_financiacion: 640,
       capital_inversion: null,
-      notas: "Cartera expuesta 10,370 MDP; financiación: línea para riego tecnificado (MDP).",
+      notas: "Cartera agropecuaria expuesta 10,370 MDP (12% de la cartera total); financiación: saldo 2025 de la línea de crédito para riego tecnificado, 640 MDP, que el plan prevé ampliar a 1,200 MDP en 2027.",
     },
   },
   {
@@ -383,7 +383,7 @@ const REGISTROS = [
       capital_gasto: null,
       capital_financiacion: null,
       capital_inversion: null,
-      notas: "Deuda de mercado 14,200 MDP, 16.4% del pasivo.",
+      notas: "Deuda de mercado vigente (certificados bursátiles y bono verde) colocada entre inversionistas institucionales: 14,200 MDP, 16.4% del pasivo total.",
     },
   },
   {
@@ -418,7 +418,7 @@ const REGISTROS = [
     severidad: null,
     nivel: null,
     descripcion:
-      "Reducción del consumo eléctrico de sucursales mediante iluminación LED, climatización eficiente y generación solar distribuida en 40 sucursales.",
+      "Reducción del consumo eléctrico de sucursales mediante iluminación LED, climatización eficiente y generación solar distribuida en 40 de las 118 sucursales.",
     concentracion: "Operación y red de sucursales.",
     impactos_potenciales: "Menor gasto operativo y menores emisiones de Alcance 2.",
     respuesta: "Programa 2025-2027 con inversión de 92 MDP.",
@@ -428,7 +428,7 @@ const REGISTROS = [
       capital_gasto: null,
       capital_financiacion: null,
       capital_inversion: 31,
-      notas: "40 sucursales intervenidas, 34% de la red; inversión 2025 de 31 MDP.",
+      notas: "40 de las 118 sucursales intervenidas (34% de las sucursales, sin contar los 3 centros operativos); inversión 2025 de 31.0 MDP en eficiencia energética.",
     },
   },
 ];
@@ -447,7 +447,10 @@ const CIFRAS = [
   { titulo: "Plantilla y rotación de personal 2025", valor: 2860, unidad: "personas" },
   { titulo: "Horas de capacitación 2025", valor: 68640, unidad: "horas" },
   { titulo: "Índice de rotación voluntaria 2025 (%)", valor: 11.8, unidad: "%" },
-  { titulo: "Ingresos asociados a productos/servicios sostenibles 2025", valor: 8.0, unidad: "%" },
+  // 6.1 % y no 8.0 %: con 8.0 coincidía con la proporción de cartera sostenible (6,910 / 86,400) y el
+  // documento confundía cartera con ingresos (tercera revisión externa, B). Ingresos por intereses de la
+  // cartera con etiqueta sostenible sobre los ingresos por intereses totales.
+  { titulo: "Ingresos asociados a productos/servicios sostenibles 2025", valor: 6.1, unidad: "%" },
 ];
 
 // Cifras que no tenían solicitud y se crean como cuantitativas nuevas.
@@ -475,7 +478,7 @@ const CIFRAS_NUEVAS = [
     valor: 31.4,
     unidad: "MDP",
     texto:
-      "La Compañía destinó 31.4 millones de pesos a inversión y gasto ambiental durante 2025, concentrados en el programa de eficiencia energética de la red de sucursales: iluminación LED, climatización eficiente y generación solar distribuida.",
+      "La Compañía destinó 31.4 millones de pesos a inversión y gasto ambiental durante 2025: 31.0 millones al programa de eficiencia energética de la red de sucursales —iluminación LED, climatización eficiente y generación solar distribuida— y 0.4 millones a la medición de su inventario de emisiones.",
   },
   {
     titulo: "Mujeres en plantilla y en el Consejo 2025",
@@ -548,21 +551,21 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 16(a)", "NIIF S2 16(b)"],
     area: "Finanzas",
     texto:
-      "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. El gasto de capital asociado a adecuaciones y seguros de la red del sureste ascendió a 18.5 millones de pesos y la inversión ambiental del ejercicio a 31.4 millones de pesos; ambos se registraron en los rubros ordinarios de gasto e inversión. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente.",
+      "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. El gasto de capital asociado a adecuaciones y seguros de la red del sureste ascendió a 18.5 millones de pesos y la inversión ambiental del ejercicio a 31.4 millones de pesos; el gasto de 18.5 millones se registró en gastos de administración y promoción; de la inversión ambiental, los 31.0 millones de eficiencia energética se capitalizaron en propiedades, mobiliario y equipo, y los 0.4 millones de medición se registraron como gasto. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente, sobre la estimación preventiva para riesgos crediticios.",
   },
   {
     titulo: "Análisis de escenarios climáticos y resiliencia",
     codigos: ["NIIF S2 22(a)(i)", "NIIF S2 22(b)(i)"],
     area: "Riesgos",
     texto:
-      "El análisis de escenarios se llevó a cabo en el segundo semestre de 2025, con actualización anual prevista. Consideró dos escenarios de fase IV: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), tomados de NGFS fase IV e IPCC AR6. El rango es diverso, incluye un escenario alineado con el último acuerdo internacional sobre cambio climático, y se aplicó a los horizontes de corto (2026), mediano (2030) y largo plazo (2040) sobre la red de sucursales y la cartera empresarial, agropecuaria e hipotecaria, con un método cualitativo apoyado en sensibilidad de cartera por sector y exposición física por código postal. Bajo el escenario de transición ordenada, el modelo de negocio se beneficia del crecimiento de la cartera sostenible y del menor costo de fondeo; el principal ajuste es la reducción gradual de la exposición a sectores intensivos. Bajo el escenario de altas emisiones, los riesgos físicos sobre la red del sureste y la cartera agropecuaria exigen mayores reservas, seguros y reestructuras, con un efecto acotado sobre el capital regulatorio.",
+      "El análisis de escenarios se llevó a cabo en el segundo semestre de 2025, con actualización anual prevista. Consideró dos escenarios de fase IV: transición ordenada (NGFS Net Zero 2050) y altas emisiones (IPCC SSP5-8.5 / NGFS Current Policies), tomados de NGFS fase IV e IPCC AR6. El rango es diverso, incluye un escenario alineado con el último acuerdo internacional sobre cambio climático, y se aplicó a los horizontes de corto (2026), mediano (2030) y largo plazo (2040) sobre la red de sucursales y la cartera empresarial, agropecuaria e hipotecaria, con un método cualitativo apoyado en sensibilidad de cartera por sector y exposición física por código postal. Bajo el escenario de transición ordenada, el modelo de negocio se beneficia del crecimiento de la cartera sostenible y del menor costo de fondeo; el principal ajuste es la reducción gradual de la exposición a sectores intensivos. Bajo el escenario de altas emisiones, los riesgos físicos sobre la red del sureste y la cartera agropecuaria exigen mayores reservas, seguros y reestructuras; la prueba de estrés de cartera bajo ese escenario reduce el ICAP en 0.6 puntos porcentuales al 2030, sin bajar del mínimo regulatorio.",
   },
   {
     titulo: "Plan de transición climática y objetivos de reducción",
     codigos: ["NIIF S2 14(a)(iv)", "NIIF S2 36 (a)a(d)", "NIIF S2 33"],
     area: "Sostenibilidad",
     texto:
-      "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; es consistente con la trayectoria del Acuerdo de París y no está validado por SBTi. El de cartera sostenible es relativo, con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, alineado con la Taxonomía Sostenible de México.",
+      "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; se fijó con el método de contracción absoluta (6% anual), sin evaluación formal de su alineación con el Acuerdo de París ni validación de SBTi. El de cartera sostenible es relativo, con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, alineado con la Taxonomía Sostenible de México.",
   },
   {
     titulo: "Precio interno del carbono aplicado en decisiones de inversión",
@@ -619,14 +622,14 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 14(a)(i)", "NIIF S2 14(a)(ii)", "NIIF S2 14(b)"],
     area: "Sostenibilidad",
     texto:
-      "En 2025 la Compañía aprobó límites de concentración para sectores intensivos en carbono, creó una unidad de financiamiento sostenible dentro de la Dirección de Crédito (seis personas) y destinó 31 millones de pesos a eficiencia energética en la red. Los esfuerzos directos de reducción y adaptación comprenden el programa de eficiencia energética 2025-2027, la generación solar distribuida en 40 sucursales y la renovación gradual de la flota. Para periodos subsecuentes, el plan 2026-2027 asigna 61 millones de pesos adicionales al programa de eficiencia de la red, con los que se completan los 92 millones del programa; 12 millones a la medición PCAF y a sistemas de datos climáticos; y cuatro plazas nuevas en la unidad de financiamiento sostenible. Los recursos se aprueban en el presupuesto anual y su ejecución la revisa el Comité de Sostenibilidad y Riesgos Climáticos cada trimestre.",
+      "En 2025 la Compañía aprobó límites de concentración para sectores intensivos en carbono, creó una unidad de financiamiento sostenible dentro de la Dirección de Crédito (seis personas) y destinó 31.0 millones de pesos a eficiencia energética en la red, de los 31.4 millones de inversión y gasto ambiental del ejercicio. Los esfuerzos directos de reducción y adaptación comprenden el programa de eficiencia energética 2025-2027, la generación solar distribuida en 40 sucursales y la renovación gradual de la flota. Para periodos subsecuentes, el plan 2026-2027 asigna 61 millones de pesos adicionales al programa de eficiencia de la red, con los que se completan los 92 millones del programa; 12 millones a la medición PCAF y a sistemas de datos climáticos; y cuatro plazas nuevas en la unidad de financiamiento sostenible. Los recursos se aprueban en el presupuesto anual y su ejecución la revisa el Comité de Sostenibilidad y Riesgos Climáticos cada trimestre.",
   },
   {
     titulo: "Esfuerzos indirectos de reducción y adaptación a través de la cartera",
     codigos: ["NIIF S2 14(a)(iii)"],
     area: "Sostenibilidad",
     texto:
-      "Los esfuerzos indirectos se ejercen a través de la cartera: productos de crédito para eficiencia energética y riego tecnificado, y acompañamiento a acreditados de sectores intensivos en la formulación de sus planes de transición. Los esfuerzos indirectos previstos para 2026 y 2027 son ampliar la línea de riego tecnificado a 1,200 millones de pesos, lanzar un producto de crédito para vivienda con certificación de eficiencia energética, extender el acompañamiento en planes de transición al 100% de los acreditados con exposición superior a 150 millones de pesos en sectores intensivos, e incorporar criterios climáticos en la evaluación de los veinte principales proveedores.",
+      "Los esfuerzos indirectos se ejercen a través de la cartera: productos de crédito para eficiencia energética y riego tecnificado, y acompañamiento a acreditados de sectores intensivos en la formulación de sus planes de transición. Los esfuerzos indirectos previstos para 2026 y 2027 son ampliar la línea de riego tecnificado, cuyo saldo fue de 640 millones de pesos en 2025, a 1,200 millones de pesos en 2027, lanzar un producto de crédito para vivienda con certificación de eficiencia energética, extender el acompañamiento en planes de transición al 100% de los acreditados con exposición superior a 150 millones de pesos en sectores intensivos, e incorporar criterios climáticos en la evaluación de los veinte principales proveedores.",
   },
   {
     titulo: "Progreso de los planes climáticos 2025",
@@ -647,7 +650,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 22(a)(iii)"],
     area: "Riesgos",
     texto:
-      "La Compañía cuenta con capital por encima de los mínimos regulatorios, liquidez suficiente y una cartera de vida promedio corta en el segmento empresarial (2.8 años), lo que permite reorientar la originación en horizontes de mediano plazo. Las inversiones planeadas en eficiencia y en productos sostenibles refuerzan esa capacidad.",
+      "La Compañía cuenta con un índice de capitalización (ICAP) de 15.8% al cierre de 2025, por encima del mínimo regulatorio de 10.5%, liquidez suficiente y una cartera de vida promedio corta en el segmento empresarial (2.8 años), lo que permite reorientar la originación en horizontes de mediano plazo. Las inversiones planeadas en eficiencia y en productos sostenibles refuerzan esa capacidad.",
   },
   {
     titulo: "Supuestos y periodo del análisis de escenarios climáticos",
@@ -673,7 +676,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     texto:
-      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
+      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal; en las 14 sucursales arrendadas con servicio incluido, sin medición directa, el consumo se estima con el promedio por metro cuadrado de las sucursales propias. Las fugas de refrigerantes (HFC) de los equipos de climatización no se incluyen en el Alcance 1 de 2025 porque no hay registros de recarga; su estimación preliminar es menor al 3% del Alcance 1 y se incorporarán al inventario de 2026. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
   },
   {
     titulo: "Enfoque de consolidación y desagregación de Alcances 1 y 2",
@@ -701,7 +704,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 34"],
     area: "Sostenibilidad",
     texto:
-      "Los objetivos climáticos se establecen con el periodo base 2025 y se revisan por el Comité de Sostenibilidad y Riesgos Climáticos: anualmente el objetivo de reducción de emisiones y el de medición de emisiones financiadas, y semestralmente el de cartera sostenible. El objetivo de reducción de Alcances 1 y 2 es consistente con la trayectoria del Acuerdo de París y no está validado por SBTi; el de cartera sostenible se alinea con la Taxonomía Sostenible de México y su etiqueta cuenta con opinión de segunda parte del marco de bonos verdes. Las métricas de supervisión son tCO2e por sucursal y por colaborador, y el saldo y porcentaje de cartera sostenible.",
+      "Los objetivos climáticos se establecen con el periodo base 2025 y se revisan por el Comité de Sostenibilidad y Riesgos Climáticos: anualmente el objetivo de reducción de emisiones y el de medición de emisiones financiadas, y semestralmente el de cartera sostenible. El objetivo de reducción de Alcances 1 y 2 se fijó con el método de contracción absoluta (6% anual), sin evaluación formal de su alineación con el Acuerdo de París ni validación de SBTi; el de cartera sostenible se alinea con la Taxonomía Sostenible de México y su etiqueta cuenta con opinión de segunda parte del marco de bonos verdes. Las métricas de supervisión son tCO2e por sucursal y por colaborador, y el saldo y porcentaje de cartera sostenible.",
   },
   {
     titulo: "Resultados frente a los objetivos climáticos 2025",
@@ -722,7 +725,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S1 74"],
     area: "Sostenibilidad",
     texto:
-      "Los principales juicios fueron la delimitación del perímetro (operaciones propias para emisiones; cartera como exposición cualitativa), la clasificación sectorial por intensidad de carbono y la elección de escenarios. Las incertidumbres de medición se concentran en la calidad de datos de acreditados, en la estimación de emisiones de Alcance 2 a partir de facturación —no hay medición directa en 14 sucursales arrendadas con servicio incluido— y en la estimación de exposición de colaterales por código postal.",
+      "Los principales juicios fueron la delimitación del perímetro (operaciones propias para emisiones; cartera como exposición cualitativa), la clasificación sectorial por intensidad de carbono y la elección de escenarios. Las incertidumbres de medición se concentran en la calidad de datos de acreditados, en la estimación de emisiones de Alcance 2 a partir de facturación —no hay medición directa en 14 sucursales arrendadas con servicio incluido—, en la exclusión de las fugas de refrigerantes (HFC) del Alcance 1 por falta de registros de recarga, y en la estimación de exposición de colaterales por código postal.",
   },
   {
     titulo: "Cambios previstos en la situación financiera por el clima",
@@ -811,7 +814,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 29 (d) · B65 (c)"],
     area: "Crédito y Banca",
     texto:
-      "Las oportunidades se traducen en mayores ingresos por intereses en segmentos de crecimiento, menor costo de fondeo y diferenciación de marca, y en menor gasto operativo y menores emisiones de Alcance 2 por la eficiencia de la red. En 2025 la cartera sostenible alcanzó 6,910 millones de pesos, el 8.0% de la cartera total, con un bono verde vigente de 2,000 millones de pesos, y se invirtieron 31 millones de pesos en la eficiencia de 40 sucursales.",
+      "Se espera que las oportunidades se traduzcan en mayores ingresos por intereses en segmentos de crecimiento, menor costo de fondeo y diferenciación de marca, y en menor gasto operativo y menores emisiones de Alcance 2 por la eficiencia de la red; en 2025 no se cuantificaron sus efectos en los estados financieros. En 2025 la cartera sostenible alcanzó 6,910 millones de pesos, el 8.0% de la cartera total, con un bono verde vigente de 2,000 millones de pesos, y se invirtieron 31.0 millones de pesos en la eficiencia de 40 de las 118 sucursales.",
   },
 ];
 
@@ -897,7 +900,7 @@ const OBJETIVOS = [
     periodo_base: "2025",
     hito_intermedio: "12% al 2027",
     alineacion_acuerdo_internacional:
-      "Consistente con la trayectoria del Acuerdo de París; no validado por SBTi.",
+      "Fijado con el método de contracción absoluta (reducción lineal de 6% anual entre 2025 y 2030); la Compañía no ha evaluado formalmente su alineación con el Acuerdo de París y no está validado por SBTi.",
     descripcion:
       "Reducir en 30% las emisiones brutas de Alcances 1 y 2 respecto del periodo base 2025, mediante eficiencia energética, generación solar distribuida y renovación de flota.",
     detalle: {
@@ -930,7 +933,7 @@ const OBJETIVOS = [
     descripcion:
       "Llevar la cartera con etiqueta sostenible al 20% de la cartera total en 2028, desde el 8.0% del periodo base 2025.",
     detalle: {
-      validacion_tercero: "Verdadero",
+      validacion_tercero: "Falso",
       revisiones: "Revisión semestral por el Comité de Sostenibilidad y Riesgos Climáticos.",
       procesos_revision: "Conciliación semestral del saldo etiquetado con la Dirección de Crédito.",
       metricas_supervision: "Saldo y porcentaje de cartera sostenible.",
@@ -1116,7 +1119,9 @@ async function registros() {
       Number(vigente.porcentaje) === valores.porcentaje &&
       Number(vigente.capital_gasto ?? 0) === Number(valores.capital_gasto ?? 0) &&
       Number(vigente.capital_financiacion ?? 0) === Number(valores.capital_financiacion ?? 0) &&
-      Number(vigente.capital_inversion ?? 0) === Number(valores.capital_inversion ?? 0);
+      Number(vigente.capital_inversion ?? 0) === Number(valores.capital_inversion ?? 0) &&
+      // Las notas dicen qué son las cifras (las lee el libro de hechos): cambiar una nota es una corrección.
+      (vigente.notas ?? "") === (valores.notas ?? "");
     if (!igual) {
       ok(
         "valores insert",

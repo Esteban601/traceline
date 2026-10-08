@@ -307,6 +307,32 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
       if (!v) continue;
       directos.push({ ...comun, clave: `${k}.${campo}`, tipo: campo === "respuesta" ? "proceso" : "otro", valor: null, enunciado: `«${r.nombre}», ${etiqueta}: ${v}`, fuente_detalle: `Registro de clima «${r.nombre}», ${etiqueta}`, extracto: v });
     }
+    // EXPOSICIÓN DEL EJERCICIO (Paso 5c): las cifras de la tabla de exposición con
+    // las notas de la emisora, que dicen QUÉ son («Deuda de mercado 14,200 MDP,
+    // 16.4 % del pasivo»). Sin esto, la cifra entraba a la tabla 34/35/36 sin
+    // ningún hecho que la explicara.
+    const x = ens.vigentePorRegistro.get(r.id)?.get(ejercicio);
+    if (x && (x.notas ?? "").trim()) {
+      const cifras = [
+        x.cantidad_activos != null ? `cantidad de activos ${x.cantidad_activos}` : null,
+        x.porcentaje != null ? `porcentaje ${x.porcentaje} %` : null,
+        x.capital_gasto != null ? `gasto de capital ${x.capital_gasto}` : null,
+        x.capital_financiacion != null ? `financiación ${x.capital_financiacion}` : null,
+        x.capital_inversion != null ? `inversión ${x.capital_inversion}` : null,
+      ].filter(Boolean).join("; ");
+      directos.push({
+        ...comun,
+        bloque_dueno: esRiesgo ? (r.tipo === "riesgo_fisico" ? 35 : 34) : 36,
+        bloques_referencia: [dueno],
+        clave: `${k}.exposicion_${ejercicio}`,
+        tipo: "cifra",
+        valor: null,
+        periodo: String(ejercicio),
+        enunciado: `«${r.nombre}», exposición del ejercicio ${ejercicio} (${cifras}): ${x.notas!.trim()}`,
+        fuente_detalle: `Registro de clima «${r.nombre}», exposición ${ejercicio}`,
+        extracto: x.notas!.trim(),
+      });
+    }
   }
   for (const o of ens.objetivos) {
     const gei = /emisi|gei|co2/i.test(`${o.tipo ?? ""} ${o.metrica ?? ""}`);

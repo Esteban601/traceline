@@ -51,7 +51,12 @@ function presentacion(c: CtxPlantilla): ResultadoPlantilla {
     texto: [
       `${den} (en adelante, ${c.formaDeReferencia}) presenta la información a revelar relacionada con la sostenibilidad y con el clima correspondiente al ejercicio ${c.ejercicio}, preparada de conformidad con las Normas NIIF S1 y NIIF S2 emitidas por el Consejo de Normas Internacionales de Sostenibilidad.`,
       "",
-      `Esta información se presenta como parte del informe anual y acompaña a los estados financieros del mismo periodo, conforme a lo previsto por la regulación aplicable a las emisoras inscritas en el Registro Nacional de Valores.`,
+      // Con el alivio E4 la información se publica DESPUÉS de los estados
+      // financieros: decir que los acompaña contradecía al bloque 3 (tercera
+      // revisión externa, A, caso 7).
+      c.alivios.E4 && c.regimen === "primer_anio"
+        ? `Conforme a la medida transitoria del párrafo E4 de la NIIF S1, en este primer periodo anual esta información se publica con posterioridad a los estados financieros del mismo periodo, a los que se refiere.`
+        : `Esta información se presenta como parte del informe anual y acompaña a los estados financieros del mismo periodo, conforme a lo previsto por la regulación aplicable a las emisoras inscritas en el Registro Nacional de Valores.`,
     ].join("\n"),
     pendientes,
   };
