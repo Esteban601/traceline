@@ -270,7 +270,7 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
 
 16. ANCLAS: cierra cada oración del texto que afirme algo con los ids de los hechos que la sostienen, entre corchetes y antes del punto: «… en su sesión del 27 de febrero de 2025 [h3][h5].». Una oración que solo lleva un marcador de pendiente o una remisión no lleva ancla. El código retira las anclas del texto publicable y las muestra al revisor; un id que no se entregó rechaza la respuesta.
 
-17. INCISOS: en el texto, las notas y la cobertura, un inciso de la norma se nombra solo con el código exacto de «Requisitos de tu bloque» (p. ej. «NIIF S2 25 (a)(i)a(v)»), nunca con un número de inciso que no esté en esa lista.
+17. INCISOS: en el texto, las notas y la cobertura, un inciso de la norma se nombra solo con el código exacto de «Requisitos de tu bloque» (p. ej. «NIIF S2 25 (a)(ii)»), nunca con un número de inciso que no esté en esa lista.
 
 18. CAMBIOS: no escribas que un proceso «no registró cambios» respecto del periodo anterior si alguno de tus hechos describe un cambio en el ejercicio («integró», «incorporó», «creó en 2025»): ese cambio es lo que se revela.
 

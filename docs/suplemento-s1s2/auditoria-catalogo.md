@@ -22,6 +22,50 @@
 >
 > **Staging no se ha tocado.** Aplicarlo allá es una operación aparte, todavía sin planear.
 
+> ## ⏳ Incisos de los códigos agrupados — preparada, NO aplicada (7 de octubre de 2026)
+>
+> Migración `20261007170000_catalogo_incisos.sql` (rama `feat/catalogo-incisos`). **Esteban revisa esta lista
+> —es la revisión de IRStrat de §4— antes del `db push` en dev.** Cuatro filas agrupaban incisos que la norma
+> exige por separado; la cobertura de un bloque decía «parcial» sin decir qué inciso faltaba (segunda revisión
+> externa, punto 3). La migración:
+>
+> - **Agrega 18 filas.** La norma, el pilar, la sección del índice, el ODS y la versión se copian de la fila agrupada.
+> - **Toca datos de emisoras.** Cada solicitud enlazada al código agrupado queda enlazada también a sus incisos; en
+>   dev es una solicitud por código, y en staging lo que tenga cada emisora. Lo mismo pasa con la plantilla de
+>   solicitudes.
+> - **No borra ni desactiva nada.** Desactivar las filas agrupadas es una decisión aparte: siguen enlazadas a
+>   solicitudes y a celdas del Excel.
+>
+> Las descripciones son **redacciones propias** en la terminología de la traducción oficial; no transcriben la
+> norma. La revisión externa pedía «texto literal»; §4 no permite reproducirlo en el repositorio, así que la
+> pantalla muestra estas redacciones citando el párrafo.
+>
+> | Código nuevo | Agrupado | Párrafo | Descripción propuesta | Estado |
+> |---|---|---|---|---|
+> | `NIIF S2 25 (a)(i)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(i) | Datos de entrada y métricas que la entidad utiliza en sus procesos para identificar, evaluar, priorizar y supervisar los riesgos relacionados con el clima (por ejemplo, fuentes de datos y alcance de las operaciones cubiertas). | Por revisar |
+> | `NIIF S2 25 (a)(ii)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(ii) | Si la entidad utiliza el análisis de escenarios relacionados con el clima para fundamentar la identificación de esos riesgos, y cómo lo hace. | Por revisar |
+> | `NIIF S2 25 (a)(iii)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(iii) | Cómo evalúa la entidad la naturaleza, la probabilidad y la magnitud de los efectos de los riesgos relacionados con el clima (por ejemplo, factores cualitativos, umbrales cuantitativos u otros criterios). | Por revisar |
+> | `NIIF S2 25 (a)(iv)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(iv) | Si la entidad da prioridad a los riesgos relacionados con el clima respecto de otros tipos de riesgo, y cómo lo hace. | Por revisar |
+> | `NIIF S2 25 (a)(v)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(v) | Cómo supervisa la entidad los riesgos relacionados con el clima. | Por revisar |
+> | `NIIF S1 44 (a)(i)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(i) | Insumos y métricas que la entidad utiliza en sus procesos para identificar, evaluar, priorizar y supervisar los riesgos relacionados con la sostenibilidad (por ejemplo, fuentes de datos y alcance de las operaciones cubiertas). | Por revisar |
+> | `NIIF S1 44 (a)(ii)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(ii) | Si la entidad utiliza el análisis de escenarios para fundamentar la identificación de los riesgos relacionados con la sostenibilidad, y cómo lo hace. | Por revisar |
+> | `NIIF S1 44 (a)(iii)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(iii) | Cómo evalúa la entidad la naturaleza, la probabilidad y la magnitud de los efectos de los riesgos relacionados con la sostenibilidad (por ejemplo, factores cualitativos, umbrales cuantitativos u otros criterios). | Por revisar |
+> | `NIIF S1 44 (a)(iv)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(iv) | Si la entidad da prioridad a los riesgos relacionados con la sostenibilidad respecto de otros tipos de riesgo, y cómo lo hace. | Por revisar |
+> | `NIIF S1 44 (a)(v)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(v) | Cómo supervisa la entidad los riesgos relacionados con la sostenibilidad. | Por revisar |
+> | `NIIF S2 36 (a)` | `NIIF S2 36 (a)a(d)` | 36 (a) | Para cada objetivo de emisiones de gases de efecto invernadero: qué gases de efecto invernadero cubre. | Por revisar |
+> | `NIIF S2 36 (b)` | `NIIF S2 36 (a)a(d)` | 36 (b) | Para cada objetivo de emisiones de gases de efecto invernadero: si cubre emisiones de Alcance 1, Alcance 2 o Alcance 3. | Por revisar |
+> | `NIIF S2 36 (c)` | `NIIF S2 36 (a)a(d)` | 36 (c) | Para cada objetivo de emisiones de gases de efecto invernadero: si es un objetivo de emisiones brutas o netas; si es neto, también el objetivo de emisiones brutas asociado, por separado (párrafos B68 a B69). | Por revisar |
+> | `NIIF S2 36 (d)` | `NIIF S2 36 (a)a(d)` | 36 (d) | Para cada objetivo de emisiones de gases de efecto invernadero: si se obtuvo con un enfoque de descarbonización sectorial. | Por revisar |
+> | `NIIF S2 36 (e)(i)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(i) | En qué medida y de qué manera el logro de un objetivo de emisiones netas de gases de efecto invernadero depende del uso de créditos de carbono. | Por revisar |
+> | `NIIF S2 36 (e)(ii)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(ii) | Qué régimen o regímenes de terceros verificarán o certificarán los créditos de carbono. | Por revisar |
+> | `NIIF S2 36 (e)(iii)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(iii) | Tipo de crédito de carbono: si la compensación subyacente se basa en la naturaleza o en la eliminación tecnológica de carbono, y si se logra mediante reducción o eliminación de carbono. | Por revisar |
+> | `NIIF S2 36 (e)(iv)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(iv) | Cualquier otro factor necesario para comprender la credibilidad e integridad de los créditos de carbono que la entidad prevé utilizar (por ejemplo, supuestos sobre la permanencia de la compensación). | Por revisar |
+>
+> **Puntos para decidir en la revisión:** (1) el formato de los códigos sigue el de sus vecinos (`NIIF S2 25 (a)(vi)`,
+> con espacio antes del paréntesis); (2) si las filas agrupadas se desactivan después de enlazar los incisos;
+> (3) las hojas de valores del Excel («NIIF S2 36(a)-(d)», «NIIF S2 36(e)(i)-(iv)») siguen por objetivo y no se
+> parten: sus celdas quedan ligadas al código agrupado.
+
 **Fuente.** NIIF S1 y NIIF S2, edición de junio de 2023, traducción al español aprobada por el Comité de
 Revisión de la Fundación IFRS. La auditoría se hizo contra el texto en español; el inglés se usó solo como
 desempate y cada uso se indica más abajo. Los PDF no se versionan: son material con licencia.

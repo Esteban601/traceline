@@ -489,7 +489,8 @@ export const BLOQUES: Bloque[] = [
     respaldo: "NIIF S2 25.",
     tipo: "D→T",
     regimen: "ambos",
-    datapoints: ["NIIF S2 25 (a)(i)a(v)", "NIIF S2 25 (a)(vi)", "NIIF S2 25 (b)", "NIIF S2 25 (c)"],
+    // Incisos por separado desde el 7 de octubre de 2026 (catálogo partido; antes «NIIF S2 25 (a)(i)a(v)»).
+    datapoints: ["NIIF S2 25 (a)(i)", "NIIF S2 25 (a)(ii)", "NIIF S2 25 (a)(iii)", "NIIF S2 25 (a)(iv)", "NIIF S2 25 (a)(v)", "NIIF S2 25 (a)(vi)", "NIIF S2 25 (b)", "NIIF S2 25 (c)"],
     tablas: [],
     perfil: [],
   },
@@ -666,7 +667,8 @@ export const BLOQUES: Bloque[] = [
     respaldo: "NIIF S2 36.",
     tipo: "Tabla + D→T",
     regimen: "varia_por_regimen",
-    datapoints: ["NIIF S2 36 (a)a(d)", "NIIF S2 36 (e)(i)a(iv)"],
+    // Incisos por separado desde el 7 de octubre de 2026 (antes «NIIF S2 36 (a)a(d)» y «NIIF S2 36 (e)(i)a(iv)»).
+    datapoints: ["NIIF S2 36 (a)", "NIIF S2 36 (b)", "NIIF S2 36 (c)", "NIIF S2 36 (d)", "NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"],
     tablas: ["objetivos_detalle", "cuestionarios_respuestas"],
     perfil: [],
   },
