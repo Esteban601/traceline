@@ -22,7 +22,16 @@
 >
 > **Staging no se ha tocado.** Aplicarlo allá es una operación aparte, todavía sin planear.
 
-> ## ⏳ Incisos de los códigos agrupados — preparada, NO aplicada (7 de octubre de 2026)
+> ## ✅ Incisos de los códigos agrupados — aplicada en dev el 8 de octubre de 2026
+>
+> **Aprobada por Esteban como revisión de IRStrat** el 8 de octubre de 2026: los 18 códigos existen en el párrafo
+> citado y la descripción cuadra (verificado en una lectura externa contra la norma). Aplicada en local y en dev
+> (local == remoto); `validarMapeo()` da 0 faltantes; catálogo en dev: 116 filas. Las filas agrupadas siguen activas
+> como padres. Staging: con el próximo despliegue, que una persona aplica.
+>
+> ---
+>
+> Preparada el 7 de octubre de 2026:
 >
 > Migración `20261007170000_catalogo_incisos.sql` (rama `feat/catalogo-incisos`). **Esteban revisa esta lista
 > —es la revisión de IRStrat de §4— antes del `db push` en dev.** Cuatro filas agrupaban incisos que la norma
@@ -42,24 +51,24 @@
 >
 > | Código nuevo | Agrupado | Párrafo | Descripción propuesta | Estado |
 > |---|---|---|---|---|
-> | `NIIF S2 25 (a)(i)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(i) | Datos de entrada y métricas que la entidad utiliza en sus procesos para identificar, evaluar, priorizar y supervisar los riesgos relacionados con el clima (por ejemplo, fuentes de datos y alcance de las operaciones cubiertas). | Por revisar |
-> | `NIIF S2 25 (a)(ii)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(ii) | Si la entidad utiliza el análisis de escenarios relacionados con el clima para fundamentar la identificación de esos riesgos, y cómo lo hace. | Por revisar |
-> | `NIIF S2 25 (a)(iii)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(iii) | Cómo evalúa la entidad la naturaleza, la probabilidad y la magnitud de los efectos de los riesgos relacionados con el clima (por ejemplo, factores cualitativos, umbrales cuantitativos u otros criterios). | Por revisar |
-> | `NIIF S2 25 (a)(iv)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(iv) | Si la entidad da prioridad a los riesgos relacionados con el clima respecto de otros tipos de riesgo, y cómo lo hace. | Por revisar |
-> | `NIIF S2 25 (a)(v)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(v) | Cómo supervisa la entidad los riesgos relacionados con el clima. | Por revisar |
-> | `NIIF S1 44 (a)(i)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(i) | Insumos y métricas que la entidad utiliza en sus procesos para identificar, evaluar, priorizar y supervisar los riesgos relacionados con la sostenibilidad (por ejemplo, fuentes de datos y alcance de las operaciones cubiertas). | Por revisar |
-> | `NIIF S1 44 (a)(ii)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(ii) | Si la entidad utiliza el análisis de escenarios para fundamentar la identificación de los riesgos relacionados con la sostenibilidad, y cómo lo hace. | Por revisar |
-> | `NIIF S1 44 (a)(iii)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(iii) | Cómo evalúa la entidad la naturaleza, la probabilidad y la magnitud de los efectos de los riesgos relacionados con la sostenibilidad (por ejemplo, factores cualitativos, umbrales cuantitativos u otros criterios). | Por revisar |
-> | `NIIF S1 44 (a)(iv)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(iv) | Si la entidad da prioridad a los riesgos relacionados con la sostenibilidad respecto de otros tipos de riesgo, y cómo lo hace. | Por revisar |
-> | `NIIF S1 44 (a)(v)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(v) | Cómo supervisa la entidad los riesgos relacionados con la sostenibilidad. | Por revisar |
-> | `NIIF S2 36 (a)` | `NIIF S2 36 (a)a(d)` | 36 (a) | Para cada objetivo de emisiones de gases de efecto invernadero: qué gases de efecto invernadero cubre. | Por revisar |
-> | `NIIF S2 36 (b)` | `NIIF S2 36 (a)a(d)` | 36 (b) | Para cada objetivo de emisiones de gases de efecto invernadero: si cubre emisiones de Alcance 1, Alcance 2 o Alcance 3. | Por revisar |
-> | `NIIF S2 36 (c)` | `NIIF S2 36 (a)a(d)` | 36 (c) | Para cada objetivo de emisiones de gases de efecto invernadero: si es un objetivo de emisiones brutas o netas; si es neto, también el objetivo de emisiones brutas asociado, por separado (párrafos B68 a B69). | Por revisar |
-> | `NIIF S2 36 (d)` | `NIIF S2 36 (a)a(d)` | 36 (d) | Para cada objetivo de emisiones de gases de efecto invernadero: si se obtuvo con un enfoque de descarbonización sectorial. | Por revisar |
-> | `NIIF S2 36 (e)(i)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(i) | En qué medida y de qué manera el logro de un objetivo de emisiones netas de gases de efecto invernadero depende del uso de créditos de carbono. | Por revisar |
-> | `NIIF S2 36 (e)(ii)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(ii) | Qué régimen o regímenes de terceros verificarán o certificarán los créditos de carbono. | Por revisar |
-> | `NIIF S2 36 (e)(iii)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(iii) | Tipo de crédito de carbono: si la compensación subyacente se basa en la naturaleza o en la eliminación tecnológica de carbono, y si se logra mediante reducción o eliminación de carbono. | Por revisar |
-> | `NIIF S2 36 (e)(iv)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(iv) | Cualquier otro factor necesario para comprender la credibilidad e integridad de los créditos de carbono que la entidad prevé utilizar (por ejemplo, supuestos sobre la permanencia de la compensación). | Por revisar |
+> | `NIIF S2 25 (a)(i)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(i) | Datos de entrada y métricas que la entidad utiliza en sus procesos para identificar, evaluar, priorizar y supervisar los riesgos relacionados con el clima (por ejemplo, fuentes de datos y alcance de las operaciones cubiertas). | Aplicada |
+> | `NIIF S2 25 (a)(ii)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(ii) | Si la entidad utiliza el análisis de escenarios relacionados con el clima para fundamentar la identificación de esos riesgos, y cómo lo hace. | Aplicada |
+> | `NIIF S2 25 (a)(iii)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(iii) | Cómo evalúa la entidad la naturaleza, la probabilidad y la magnitud de los efectos de los riesgos relacionados con el clima (por ejemplo, factores cualitativos, umbrales cuantitativos u otros criterios). | Aplicada |
+> | `NIIF S2 25 (a)(iv)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(iv) | Si la entidad da prioridad a los riesgos relacionados con el clima respecto de otros tipos de riesgo, y cómo lo hace. | Aplicada |
+> | `NIIF S2 25 (a)(v)` | `NIIF S2 25 (a)(i)a(v)` | 25 (a)(v) | Cómo supervisa la entidad los riesgos relacionados con el clima. | Aplicada |
+> | `NIIF S1 44 (a)(i)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(i) | Insumos y métricas que la entidad utiliza en sus procesos para identificar, evaluar, priorizar y supervisar los riesgos relacionados con la sostenibilidad (por ejemplo, fuentes de datos y alcance de las operaciones cubiertas). | Aplicada |
+> | `NIIF S1 44 (a)(ii)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(ii) | Si la entidad utiliza el análisis de escenarios para fundamentar la identificación de los riesgos relacionados con la sostenibilidad, y cómo lo hace. | Aplicada |
+> | `NIIF S1 44 (a)(iii)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(iii) | Cómo evalúa la entidad la naturaleza, la probabilidad y la magnitud de los efectos de los riesgos relacionados con la sostenibilidad (por ejemplo, factores cualitativos, umbrales cuantitativos u otros criterios). | Aplicada |
+> | `NIIF S1 44 (a)(iv)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(iv) | Si la entidad da prioridad a los riesgos relacionados con la sostenibilidad respecto de otros tipos de riesgo, y cómo lo hace. | Aplicada |
+> | `NIIF S1 44 (a)(v)` | `NIIF S1 44 (a)(i)a(v)` | 44 (a)(v) | Cómo supervisa la entidad los riesgos relacionados con la sostenibilidad. | Aplicada |
+> | `NIIF S2 36 (a)` | `NIIF S2 36 (a)a(d)` | 36 (a) | Para cada objetivo de emisiones de gases de efecto invernadero: qué gases de efecto invernadero cubre. | Aplicada |
+> | `NIIF S2 36 (b)` | `NIIF S2 36 (a)a(d)` | 36 (b) | Para cada objetivo de emisiones de gases de efecto invernadero: si cubre emisiones de Alcance 1, Alcance 2 o Alcance 3. | Aplicada |
+> | `NIIF S2 36 (c)` | `NIIF S2 36 (a)a(d)` | 36 (c) | Para cada objetivo de emisiones de gases de efecto invernadero: si es un objetivo de emisiones brutas o netas; si es neto, también el objetivo de emisiones brutas asociado, por separado (párrafos B68 a B69). | Aplicada |
+> | `NIIF S2 36 (d)` | `NIIF S2 36 (a)a(d)` | 36 (d) | Para cada objetivo de emisiones de gases de efecto invernadero: si se obtuvo con un enfoque de descarbonización sectorial. | Aplicada |
+> | `NIIF S2 36 (e)(i)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(i) | En qué medida y de qué manera el logro de un objetivo de emisiones netas de gases de efecto invernadero depende del uso de créditos de carbono. | Aplicada |
+> | `NIIF S2 36 (e)(ii)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(ii) | Qué régimen o regímenes de terceros verificarán o certificarán los créditos de carbono. | Aplicada |
+> | `NIIF S2 36 (e)(iii)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(iii) | Tipo de crédito de carbono: si la compensación subyacente se basa en la naturaleza o en la eliminación tecnológica de carbono, y si se logra mediante reducción o eliminación de carbono. | Aplicada |
+> | `NIIF S2 36 (e)(iv)` | `NIIF S2 36 (e)(i)a(iv)` | 36 (e)(iv) | Cualquier otro factor necesario para comprender la credibilidad e integridad de los créditos de carbono que la entidad prevé utilizar (por ejemplo, supuestos sobre la permanencia de la compensación). | Aplicada |
 >
 > **Puntos para decidir en la revisión:** (1) el formato de los códigos sigue el de sus vecinos (`NIIF S2 25 (a)(vi)`,
 > con espacio antes del paréntesis); (2) si las filas agrupadas se desactivan después de enlazar los incisos;
