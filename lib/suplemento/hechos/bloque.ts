@@ -129,7 +129,7 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
 
 export type Cobertura = {
   codigo: string;
-  estado: "cubierto" | "parcial" | "pendiente" | "asignado";
+  estado: "cubierto" | "parcial" | "pendiente" | "asignado" | "no_aplica";
   bloque: number | null;
   hechos: string[];
   comentario: string;
@@ -143,7 +143,9 @@ export function validarCobertura(
   incluidos: string[] | null,
   texto: string,
   /** Rango de cada hecho entregado: un requisito «cubierto» solo con hechos narrativos no está cubierto (Paso 5b, punto 6). */
-  rangoDe?: Map<string, RangoFuente>
+  rangoDe?: Map<string, RangoFuente>,
+  /** Incisos cuyo estado decidió el código (36(c), 36(e)): se exige ese estado. */
+  heredados?: Map<string, "no_aplica" | "pendiente">
 ): string[] {
   const errores: string[] = [];
   const vistos = new Map<string, number>();
@@ -173,6 +175,9 @@ export function validarCobertura(
       else if (!bloqueSeleccionado(destino, incluidos)) errores.push(`${c.codigo} «asignado» al bloque ${destino.numero}, que no va en este documento`);
     }
     if (c.estado === "pendiente" && !/\[Pendiente:/.test(texto)) errores.push(`${c.codigo} «pendiente» pero el texto no lleva ningún marcador [Pendiente: …]`);
+    const decidido = heredados?.get(c.codigo);
+    if (decidido && c.estado !== decidido) errores.push(`${c.codigo} lo decidió el código como «${decidido}», no «${c.estado}»`);
+    if (!decidido && c.estado === "no_aplica") errores.push(`${c.codigo} «no_aplica» solo se usa en los incisos que decide el código`);
   }
   return errores;
 }

@@ -218,6 +218,23 @@ const tablaGei: ConstructorTabla = (c) => {
   return tabla("Emisiones brutas absolutas de gases de efecto invernadero", ["Concepto", "Valor", "Unidad", "Ejercicio"], filas, ["izq", "der", "izq", "der"]);
 };
 
+/**
+ * Unidad de una cifra según las notas de exposición de la emisora: el registro
+ * no captura unidades, así que solo se publica la que las notas dicen junto a la
+ * cifra («10,370 MDP», «32 de 121 instalaciones»). Sin unidad en las notas, la
+ * cifra va sola: no se adivina (tercera revisión externa, añadido 11).
+ */
+export function unidadEnNotas(valor: number, notas: string | null | undefined): string | null {
+  if (!notas) return null;
+  const variantes = [...new Set([NUM.format(valor), String(valor)])].map((x) => x.replace(/[.,]/g, (m) => `\\${m}`));
+  for (const v of variantes) {
+    const m = notas.match(new RegExp(`(?<![\\d.,])${v}\\s+(?:de\\s+(?:las\\s+|los\\s+)?[\\d.,]+\\s+)?(MDP|millones de pesos|sucursales|instalaciones|sitios)`, "i"));
+    if (m) return /millones de pesos/i.test(m[1]) ? "MDP" : m[1];
+  }
+  return null;
+}
+const conUnidad = (valor: number | null | undefined, unidad: string | null): string => (valor == null ? "—" : unidad ? `${NUM.format(valor)} ${unidad}` : num(valor));
+
 /** 34/35/36 · Exposición y despliegue de capital, por tipo de riesgo. */
 function tablaExposicion(tipos: string[], titulo: string): ConstructorTabla {
   return (c) => {
@@ -225,13 +242,16 @@ function tablaExposicion(tipos: string[], titulo: string): ConstructorTabla {
       .filter((x) => x.v)
       .map(({ r, v }) => {
         citarRegistro(c, r.id, limpiar(r.nombre), r.tipo);
+        const notas = (v as { notas?: string | null }).notas ?? null;
+        // El capital va en MDP cuando las notas lo dicen; la cantidad de activos, con la unidad que acompañe a su cifra.
+        const capitalMdp = /\bMDP\b|millones de pesos/i.test(notas ?? "") ? "MDP" : null;
         return [
           txt(limpiar(r.nombre)),
-          num(v!.cantidad_activos),
+          conUnidad(v!.cantidad_activos, v!.cantidad_activos == null ? null : unidadEnNotas(v!.cantidad_activos, notas)),
           v!.porcentaje == null ? "—" : `${NUM.format(v!.porcentaje)} %`,
-          num(v!.capital_gasto),
-          num(v!.capital_financiacion),
-          num(v!.capital_inversion),
+          conUnidad(v!.capital_gasto, capitalMdp),
+          conUnidad(v!.capital_financiacion, capitalMdp),
+          conUnidad(v!.capital_inversion, capitalMdp),
         ];
       });
     return tabla(

@@ -36,7 +36,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v7-2026-10-08";
+export const PROMPT_VERSION_HECHOS = "hechos-v8-2026-10-08";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -276,7 +276,9 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
 
 19. SIN RELLENO: no cierres un párrafo ni el bloque reenunciando lo que acabas de decir («De este modo…», «En suma…», «La secuencia descrita comprende…», «En conjunto…»). Si ya lo dijiste, termina.
 
-20. SIN CALIFICATIVOS SIN SUSTENTO: no califiques una meta, un proceso o una cifra como «alineado con», «consistente con» o «conforme a» un acuerdo, una trayectoria, un estándar o una mejor práctica (el Acuerdo de París, SBTi, 1.5 °C) si ningún hecho dice exactamente eso y cómo se determinó. Si un hecho lo dice, atribúyelo («la Compañía considera que…») y, si no dice el método, deja una nota «defecto_insumo» que lo pida.`;
+20. SIN CALIFICATIVOS SIN SUSTENTO: no califiques una meta, un proceso o una cifra como «alineado con», «consistente con» o «conforme a» un acuerdo, una trayectoria, un estándar o una mejor práctica (el Acuerdo de París, SBTi, 1.5 °C) si ningún hecho dice exactamente eso y cómo se determinó. Si un hecho lo dice, atribúyelo («la Compañía considera que…») y, si no dice el método, deja una nota «defecto_insumo» que lo pida.
+
+21. DECLARACIONES NEGATIVAS: un hecho con \`tipo: "declaracion_negativa"\` («no usa créditos de carbono», «ninguna revisión al objetivo en 2025», «no hace uso del alivio C5», «no existen planes revelados en periodos anteriores») RESPONDE su requisito: publícalo en una oración y ánclalo. Omitirlo deja el requisito sin respuesta; el código lo rechaza.`;
 
 const REGLAS_HECHOS = (() => {
   const ini = REGLAS.indexOf("9. EL DOCUMENTO DE RESPALDO");
@@ -437,6 +439,8 @@ export type DatosVolatiles = {
   documentos?: string | null;
   /** Modo libro: los requisitos del bloque (salen de la capa estable para compartir el caché). */
   requisitos?: { codigo: string; descripcion: string }[] | null;
+  /** Incisos cuyo estado decidió el código («no aplica» heredado o pendiente por falta de dato). */
+  heredados?: { codigo: string; estado: "no_aplica" | "pendiente"; motivo: string }[];
   /** Modo libro: defectos de insumo ya reportados a nivel documento (pre-vuelo). */
   defectosDocumento?: string[];
 };
@@ -490,6 +494,16 @@ export function capaVolatil(v: DatosVolatiles): string {
             ? ["Cúbrelos todos; cada uno tiene su fila en `cobertura`.", "", ...v.requisitos.map((r) => `- ${r.codigo} — ${r.descripcion}`)]
             : ["Este bloque no sale de la taxonomía: `cobertura` va vacía."]),
           "",
+          ...(v.heredados?.length
+            ? [
+                "# Incisos ya decididos por el código",
+                "",
+                "Su estado en `cobertura` es el que se indica, no otro. «no_aplica»: una oración breve que diga por qué no aplica, con el hecho que lo sostiene. «pendiente»: un marcador que haga la pregunta.",
+                "",
+                ...v.heredados.map((h) => `- ${h.codigo}: ${h.estado} — ${h.motivo}`),
+                "",
+              ]
+            : []),
         ]
       : []),
     ...(v.defectosDocumento?.length
@@ -627,10 +641,10 @@ export const ESQUEMA_SALIDA_HECHOS_V3_PARCIAL = {
       type: "object" as const,
       properties: {
         codigo: { type: "string" as const },
-        estado: { type: "string" as const, enum: ["cubierto", "parcial", "pendiente", "asignado"] },
+        estado: { type: "string" as const, enum: ["cubierto", "parcial", "pendiente", "asignado", "no_aplica"] },
         bloque: { anyOf: [{ type: "integer" as const }, { type: "null" as const }] },
         hechos: { type: "array" as const, items: { type: "string" as const } },
-        comentario: { type: "string" as const, description: "Vacío si «cubierto» o «asignado». Si «parcial» o «pendiente», qué falta, en 15 palabras o menos." },
+        comentario: { type: "string" as const, description: "Vacío si «cubierto» o «asignado». Si «parcial» o «pendiente», qué falta, en 15 palabras o menos. «no_aplica» solo para los incisos ya decididos por el código." },
       },
       required: ["codigo", "estado", "bloque", "hechos", "comentario"],
       additionalProperties: false as const,

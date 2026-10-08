@@ -46,7 +46,7 @@ export type BloqueRevision = {
   /** Historial del bloque, de la versión más reciente a la más antigua (Paso 4). */
   versiones: VersionVista[];
   /** Cobertura por subrequisito, si se generó desde el libro de hechos (Paso 5). */
-  cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string; requisito?: string | null }[] | null;
+  cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string; requisito?: string | null; padre?: string | null; requisitoPadre?: string | null }[] | null;
   /** Modo revisión (Paso 5b): por oración del texto, los hechos que la sostienen. El texto publicable no las lleva. */
   anclas: { oracion: string; hechos: { id: string; fuente: string }[] }[] | null;
 };
@@ -64,6 +64,8 @@ const ESTADO_COBERTURA: Record<string, { label: string; tono: Tono }> = {
   parcial: { label: "Parcial", tono: "ambar" },
   pendiente: { label: "Pendiente", tono: "rojo" },
   asignado: { label: "Asignado", tono: "gris" },
+  // «No aplica» heredado (36(c), 36(e)): lo decide el código con los datos de la emisora.
+  no_aplica: { label: "No aplica", tono: "gris" },
 };
 
 const VACIO: EstadoAccion = { ok: false, error: null, mensaje: null };
@@ -504,8 +506,15 @@ function BloqueCard({
               titulo="Cobertura por subrequisito · juicio del generador"
               ayuda="Que el texto responda cada requisito es juicio del modelo, no una verificación. El texto del requisito viene del catálogo. El código solo comprueba que estén todos los requisitos del bloque y que los hechos citados existan."
             >
-              {bloque.cobertura.map((c) => (
-                <li key={c.codigo} className="text-sm" data-cobertura={c.codigo}>
+              {bloque.cobertura.map((c, i, todas) => (
+                <li key={c.codigo} className={cn("text-sm", c.padre && "ml-5")} data-cobertura={c.codigo}>
+                  {/* Hijos bajo su padre: el encabezado del padre va antes de su primer inciso. */}
+                  {c.padre && todas[i - 1]?.padre !== c.padre && (
+                    <div className="-ml-5 mb-1 flex flex-wrap items-baseline gap-2" data-padre={c.padre}>
+                      <span className="font-mono text-xs font-semibold text-ink">{c.padre}</span>
+                      {c.requisitoPadre && <span className="text-xs text-muted">{c.requisitoPadre}</span>}
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className="font-mono text-xs text-ink">{c.codigo}</span>
                     <Chip tono={ESTADO_COBERTURA[c.estado]?.tono ?? "gris"}>{ESTADO_COBERTURA[c.estado]?.label ?? c.estado}</Chip>

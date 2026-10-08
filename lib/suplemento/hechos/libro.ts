@@ -13,7 +13,7 @@ import { sinRepetidos, verificarClasificado } from "./verificar";
 import { decidirContradicciones } from "./conflictos";
 import { dividir } from "./oraciones";
 import { organigramaEnHechos } from "./organigrama";
-import { ORDEN_RANGO, type HechoNuevo, type UnidadTexto } from "./tipos";
+import { NEGACION, ORDEN_RANGO, type HechoNuevo, type UnidadTexto } from "./tipos";
 
 // =============================================================================
 // LIBRO DE HECHOS — la corrida (encargo suplemento-calidad, Paso 5).
@@ -274,6 +274,16 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
     if (org.error) errores.push(org.error);
 
     const hechos = sinRepetidos([...rec.directos, ...org.hechos, ...unicos]);
+    // DECLARACIONES NEGATIVAS por código (añadido 12): toda oración vigente que
+    // declara una ausencia lleva ese tipo, la haya clasificado el modelo o no.
+    let negativas = 0;
+    for (const h of hechos) {
+      if (h.estado === "descartado" || h.tipo === "tramite" || h.tipo === "cifra") continue;
+      if (h.tipo === "declaracion_negativa" || NEGACION.test(`${h.enunciado} ${h.extracto}`)) {
+        h.tipo = "declaracion_negativa";
+        negativas++;
+      }
+    }
     const conf = await decidirContradicciones(hechos, apiKey);
     if (conf.uso.entrada || conf.uso.salida) llamadas++;
     uso = sumar(uso, conf.uso);
@@ -305,6 +315,7 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
         nodos_organigrama: org.hechos.filter((h) => h.estado === "vigente").length,
         oraciones_obligatorias_omitidas: omitidas.length,
         duenos_por_taxonomia: duenosPorTaxonomia,
+        declaraciones_negativas: negativas,
         duenos_por_requisitos_contra_modelo: desacuerdos,
         contradicciones: { grupos: conf.grupos, excluyentes: conf.excluyentes, conciliados: conf.conciliados, por_conciliar: conf.porConciliar ?? 0, en_conflicto: conf.enConflicto },
         insumos: rec.insumos,

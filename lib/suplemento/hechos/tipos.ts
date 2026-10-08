@@ -6,9 +6,17 @@
 export type RangoFuente = "validado" | "perfil" | "adjunto" | "narrativo";
 export type FuenteTipo = "captura" | "extracto" | "cuestionario" | "perfil" | "registro" | "objetivo" | "adjunto";
 /** «tramite»: acuerdo de trámite de un acta (solicitar un informe, designar delegados, aprobar el orden del día); no se publica (Paso 5c). */
-export type TipoHecho = "cifra" | "fecha" | "nombre" | "frecuencia" | "responsable" | "composicion" | "proceso" | "politica" | "otro" | "tramite";
+/** «declaracion_negativa»: la emisora declara una ausencia («no usa créditos de carbono», «ninguna revisión en 2025»); responde un requisito y no se omite (añadido 12). */
+export type TipoHecho = "cifra" | "fecha" | "nombre" | "frecuencia" | "responsable" | "composicion" | "proceso" | "politica" | "otro" | "tramite" | "declaracion_negativa";
 
-export const TIPOS_HECHO: TipoHecho[] = ["cifra", "fecha", "nombre", "frecuencia", "responsable", "composicion", "proceso", "politica", "otro", "tramite"];
+export const TIPOS_HECHO: TipoHecho[] = ["cifra", "fecha", "nombre", "frecuencia", "responsable", "composicion", "proceso", "politica", "otro", "tramite", "declaracion_negativa"];
+
+/**
+ * Una oración que declara una ausencia. La decide el código —no el modelo— para
+ * que sea estable entre corridas.
+ */
+export const NEGACION =
+  /(?<!\p{L})(?:no\s+(?:existen?|hay|hace\s+uso|hacen\s+uso|usa|usan|utiliza|utilizan|prevé|preve|aplica|se\s+(?:realiz\w+|registr\w+|revis\w+|aplic\w+|identific\w+|cuantific\w+|basa))|ningun[oa]?|ningún|sin\s+(?:cambios|revisi\w+|compensaciones))(?!\p{L})/iu;
 
 /** Jerarquía: un número menor manda. */
 export const ORDEN_RANGO: Record<RangoFuente, number> = { validado: 0, perfil: 1, adjunto: 2, narrativo: 3 };

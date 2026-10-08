@@ -7,7 +7,7 @@ import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { BLOQUES, datapointsExentos } from "@/lib/suplemento/bloques";
 import { leerAlivios, regimenDe } from "@/lib/perfil-emisor";
 import { puntuar, unidades } from "@/lib/suplemento/adjuntos-bloque";
-import type { HechoNuevo, UnidadTexto } from "./tipos";
+import { NEGACION, type HechoNuevo, type UnidadTexto } from "./tipos";
 
 // =============================================================================
 // FUENTES DEL LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5).
@@ -333,6 +333,50 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
         extracto: x.notas!.trim(),
       });
     }
+  }
+  // DETALLE DE CADA OBJETIVO (añadido 12): revisiones, validación, resultados,
+  // gases, alcances, bruto o neto, enfoque. Antes solo iba a las tablas 39 y 40 y
+  // sus declaraciones negativas («ninguna revisión en 2025») se perdían del texto.
+  const CAMPOS_DETALLE = [
+    ["revisiones", "revisiones del objetivo", 39],
+    ["procesos_revision", "proceso de revisión", 39],
+    ["metricas_supervision", "métricas de seguimiento", 39],
+    ["validacion_tercero", "validación por tercero", 39],
+    ["resultados", "resultados", 39],
+    ["analisis_tendencias", "análisis de tendencias", 39],
+    ["gases_cubiertos", "gases cubiertos", 40],
+    ["alcances_cubiertos", "alcances cubiertos", 40],
+    ["bruto_neto", "bruto o neto", 40],
+    ["enfoque_descarbonizacion", "enfoque de descarbonización sectorial", 40],
+  ] as const;
+  for (const o of ens.objetivos) {
+    const d = ens.detallePorObjetivo.get(o.id) as Record<string, string | null> | undefined;
+    if (!d) continue;
+    for (const [campo, etiqueta, bloque] of CAMPOS_DETALLE) {
+      let v = (d[campo] ?? "").trim();
+      if (!v) continue;
+      if (/^(verdadero|true)$/i.test(v)) v = "Sí";
+      if (/^(falso|false)$/i.test(v)) v = "No";
+      const enunciado = campo === "validacion_tercero" ? `El objetivo «${o.nombre}» ${v === "No" ? "no está validado" : "está validado"} por un tercero.` : `Objetivo «${o.nombre}», ${etiqueta}: ${v}`;
+      directos.push({
+        ...base, rango_fuente: "perfil", fuente_tipo: "objetivo", fuente_id: `obj:${o.id}`, verificacion: "registro: detalle del objetivo de la emisora",
+        bloque_dueno: bloque, bloques_referencia: [], valor: null, unidad: null, periodo: null,
+        clave: `objetivo.${slug(o.nombre).slice(0, 40)}.${campo}`,
+        tipo: NEGACION.test(enunciado) || v === "No" ? "declaracion_negativa" : "otro",
+        enunciado, fuente_detalle: `Objetivo «${o.nombre}», ${etiqueta}`, extracto: v,
+      });
+    }
+  }
+  // ALIVIO C5 NO ADOPTADO (añadido 12): «no hace uso de C5» es una declaración
+  // que el bloque 30 debe publicar en el primer año.
+  if (regimenDe(ejercicio, rep?.anio_adopcion ?? null) === "primer_anio" && !vigentes.C5) {
+    directos.push({
+      ...base, rango_fuente: "perfil", fuente_tipo: "perfil", fuente_id: "reporte:alivios", verificacion: "registro: alivios del reporte",
+      bloque_dueno: 30, bloques_referencia: [], valor: null, unidad: null, periodo: String(ejercicio),
+      clave: "alivios.c5_no_adoptado", tipo: "declaracion_negativa",
+      enunciado: "La Compañía no hace uso de la medida transitoria del párrafo C5 de la NIIF S2: mide sus emisiones de gases de efecto invernadero conforme al Protocolo GEI.",
+      fuente_detalle: "Reporte, alivios adoptados", extracto: "C5 no adoptado",
+    });
   }
   for (const o of ens.objetivos) {
     const gei = /emisi|gei|co2/i.test(`${o.tipo ?? ""} ${o.metrica ?? ""}`);

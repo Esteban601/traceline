@@ -45,6 +45,7 @@ import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/supleme
 import { cambiosNegados, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
 import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
 import { clausulas, FIN_ORACION } from "@/lib/suplemento/hechos/remisiones";
+import { noAplicaHeredado } from "@/lib/suplemento/catalogo-incisos";
 import { aplicarGlosario, leerGlosario } from "@/lib/suplemento/glosario";
 import { defectosDeInsumo } from "@/lib/suplemento/prevuelo";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
@@ -397,6 +398,7 @@ export async function generarBloque(
           extracto: h.extracto,
           fuente: h.fuente,
           ...(h.valor != null ? { valor: h.valor, unidad: h.unidad } : {}),
+          ...(h.tipo === "declaracion_negativa" ? { tipo: "declaracion_negativa" } : {}),
           ...(h.contradiccion ? { contradiccion: h.contradiccion.grupo } : {}),
         })),
         // Una vez por grupo, no una por hecho (Paso 5b, punto 9).
@@ -435,6 +437,22 @@ export async function generarBloque(
   );
   const aniosPermitidos = [ens.reporte.ejercicio, ens.reporte.ejercicio - 1];
 
+  // «No aplica» heredado (36(c), 36(e)): lo decide el código con los datos de la
+  // emisora; solo para los incisos que este bloque responde.
+  const heredados = new Map(
+    [
+      ...noAplicaHeredado({
+        brutoNeto: ens.objetivos
+          .filter((o) => o.ambito === "climatico" && /emisi|gei|co2/i.test(`${o.tipo_objetivo ?? ""} ${o.metrica ?? ""} ${o.nombre}`))
+          .map((o) => ens.detallePorObjetivo.get(o.id)?.bruto_neto ?? null),
+        respuestasCreditos: ens.cuestionarios
+          .filter((q) => q.hoja === "S2 36(e)")
+          .sort((a, b) => a.pregunta_orden - b.pregunta_orden)
+          .map((q) => q.respuesta),
+      }),
+    ].filter(([c]) => requisitos.some((r) => r.codigo === c))
+  );
+
   const volatil = capaVolatil({
     bloque,
     regimen,
@@ -450,6 +468,7 @@ export async function generarBloque(
     extension: opciones.extension ?? extensionDeBloque(bloque.numero),
     documentos: insumo ? null : documentosParaPrompt(adjuntos),
     requisitos: insumo ? requisitos : null,
+    heredados: [...heredados].map(([codigo, h]) => ({ codigo, ...h })),
     defectosDocumento,
   });
 
@@ -617,7 +636,8 @@ export async function generarBloque(
           new Set(insumo.hechos.map((h) => h.id)),
           doc.editoriales_incluidos ?? null,
           parseada.texto,
-          new Map(insumo.hechos.map((h) => [h.id, h.rango]))
+          new Map(insumo.hechos.map((h) => [h.id, h.rango])),
+          new Map([...heredados].map(([c, h]) => [c, h.estado]))
         )
       : [];
     // Validadores deterministas del modo libro (Paso 5.4): rangos contra la
@@ -647,7 +667,14 @@ export async function generarBloque(
           requisitos.map((r) => r.codigo)
         )
       : [];
+    // Declaraciones negativas propias que el texto omite (añadido 12: se perdían
+    // al regenerar en 25, 30, 39 y 40). Cuentan si van ancladas o en la cobertura.
+    const usados = new Set([...anclas.flatMap((a) => a.ids), ...(parseada.cobertura ?? []).flatMap((c) => c.hechos)]);
+    const negativasOmitidas = insumo
+      ? insumo.hechos.filter((h) => h.tipo === "declaracion_negativa" && !h.contradiccion && !usados.has(h.id))
+      : [];
     const deterministas = [
+      ...negativasOmitidas.map((h) => `Falta la declaración negativa ${h.id} («${h.enunciado.slice(0, 160)}»): responde un requisito de tu bloque; publícala en una oración, anclada.`),
       ...negados.map((h) => `El texto dice que no hubo cambios respecto del periodo anterior, pero este hecho del bloque describe un cambio en el ejercicio: ${h}. Revela el cambio.`),
       ...incisos.map((i) => `«${i}» no es el código de ningún requisito de este bloque: nombra el inciso con el código exacto de «Requisitos de tu bloque».`),
       ...soloNarrativas.map((o) => `«${o}…» se sostiene solo con un hecho narrativo (Carta de la Dirección): acompáñalo de un hecho de otro rango que diga lo mismo o quítalo.`),

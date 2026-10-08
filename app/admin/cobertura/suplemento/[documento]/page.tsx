@@ -6,6 +6,7 @@ import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { EmptyState } from "@/components/ui/empty-state";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
+import { padreDe } from "@/lib/suplemento/catalogo-incisos";
 import { CoherenciaPanel, type ObservacionVista, type PasadaVista } from "./coherencia-panel";
 import { RevisionView, type BloqueRevision } from "./revision-view";
 import type { VersionVista } from "./historial";
@@ -101,7 +102,7 @@ export default async function RevisionPage({
   // Cobertura (Paso 5b): el texto de cada requisito lo pone la pantalla, desde
   // el catálogo; el modelo solo da el código y su juicio.
   const codigosCobertura = [
-    ...new Set((filas ?? []).flatMap((b) => ((b.cobertura ?? []) as { codigo: string }[]).map((c) => c.codigo))),
+    ...new Set((filas ?? []).flatMap((b) => ((b.cobertura ?? []) as { codigo: string }[]).flatMap((c) => [c.codigo, padreDe(c.codigo)].filter((x): x is string => !!x)))),
   ];
   const { data: requisitosCatalogo } = codigosCobertura.length
     ? await db.from("datapoints_taxonomia").select("codigo, descripcion").in("codigo", codigosCobertura)
@@ -131,7 +132,10 @@ export default async function RevisionPage({
       textoDelEmisor: b.texto_del_emisor,
       versiones: versionesPorBloque.get(b.numero) ?? [],
       cobertura: b.cobertura
-        ? (b.cobertura as unknown as NonNullable<BloqueRevision["cobertura"]>).map((c) => ({ ...c, requisito: textoRequisito.get(c.codigo) ?? null }))
+        ? (b.cobertura as unknown as NonNullable<BloqueRevision["cobertura"]>).map((c) => {
+            const padre = padreDe(c.codigo);
+            return { ...c, requisito: textoRequisito.get(c.codigo) ?? null, padre, requisitoPadre: padre ? textoRequisito.get(padre) ?? null : null };
+          })
         : null,
       anclas: (b.anclas as unknown as BloqueRevision["anclas"]) ?? null,
     };

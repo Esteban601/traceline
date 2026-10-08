@@ -16,6 +16,7 @@ import { validarCobertura } from "../../lib/suplemento/hechos/bloque.ts";
 import { separarAnclas } from "../../lib/suplemento/hechos/anclas.ts";
 import { cambiosNegados, incisosInexactos } from "../../lib/suplemento/hechos/validadores.ts";
 import { remisionesSinDueno } from "../../lib/suplemento/hechos/remisiones.ts";
+import { noAplicaHeredado } from "../../lib/suplemento/catalogo-incisos.ts";
 
 let fallas = 0;
 const check = (ok, nombre, detalle = "") => {
@@ -114,6 +115,18 @@ check(rem([{ numero: 4, texto: "El tratamiento de las emisiones financiadas se d
 const pend = rem([{ numero: 22, texto: "Las consideraciones del Consejo al aprobar los límites de concentración se describen en la sección de supervisión de la estrategia, objetivos y remuneración." }, { numero: 16, texto: "El Consejo informa. [Pendiente: órgano que aprobó los límites de concentración y sus consideraciones — solicitud X]" }], new Map());
 check(pend[0]?.motivo === "remite_a_pendiente", "remitir a un pendiente se rechaza", pend.map((r) => r.motivo).join());
 check(rem([{ numero: 1, texto: "El detalle se describe en las secciones correspondientes de este informe." }]).length === 0, "una remisión genérica no se juzga");
+
+// --- «No aplica» heredado (36(c), 36(e)) --------------------------------------
+const demo = noAplicaHeredado({ brutoNeto: ["Emisiones brutas de gases de efecto invernadero"], respuestasCreditos: ["No se basa en créditos de carbono."] });
+check(demo.get("NIIF S2 36 (c)")?.estado === "no_aplica" && demo.get("NIIF S2 36 (e)(iv)")?.estado === "no_aplica", "sin objetivo neto ni créditos: 36(c) y 36(e) no aplican");
+const sinDato = noAplicaHeredado({ brutoNeto: [""], respuestasCreditos: [] });
+check(sinDato.get("NIIF S2 36 (c)")?.estado === "pendiente" && sinDato.get("NIIF S2 36 (e)(i)")?.estado === "pendiente", "sin dato: pendiente con la pregunta, nunca «no aplica»");
+check(noAplicaHeredado({ brutoNeto: ["Neto"], respuestasCreditos: ["Se basa en créditos en un 20%"] }).size === 0, "con objetivo neto y créditos: se responden");
+const REQ40 = ["NIIF S2 36 (a)", "NIIF S2 36 (c)"];
+const H40 = new Map([["NIIF S2 36 (c)", "no_aplica"]]);
+check(validarCobertura([fila("NIIF S2 36 (a)", "cubierto", { hechos: ["h1"] }), fila("NIIF S2 36 (c)", "no_aplica")], REQ40, 40, new Set(["h1"]), null, "Texto.", undefined, H40).length === 0, "cobertura: «no_aplica» decidido por el código pasa");
+check(validarCobertura([fila("NIIF S2 36 (a)", "no_aplica"), fila("NIIF S2 36 (c)", "no_aplica")], REQ40, 40, new Set(["h1"]), null, "Texto.", undefined, H40).some((e) => /solo se usa/.test(e)), "cobertura: «no_aplica» en un inciso que el código no decidió se rechaza");
+check(validarCobertura([fila("NIIF S2 36 (a)", "cubierto", { hechos: ["h1"] }), fila("NIIF S2 36 (c)", "cubierto", { hechos: ["h1"] })], REQ40, 40, new Set(["h1"]), null, "Texto.", undefined, H40).some((e) => /lo decidió el código/.test(e)), "cobertura: un inciso decidido «no aplica» no se puede dar por cubierto");
 
 console.log(fallas ? `\n✗ ${fallas} fallas` : "\n✓ Verificador del libro OK");
 process.exit(fallas ? 1 : 0);
