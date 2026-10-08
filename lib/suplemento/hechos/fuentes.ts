@@ -367,6 +367,17 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
       });
     }
   }
+  // PRIMER AÑO (añadido 12): no hay planes revelados en periodos anteriores sobre
+  // cuyo progreso informar (NIIF S2 14(c)); se deduce del régimen, como el C5.
+  if (regimenDe(ejercicio, rep?.anio_adopcion ?? null) === "primer_anio") {
+    directos.push({
+      ...base, rango_fuente: "perfil", fuente_tipo: "perfil", fuente_id: "reporte:regimen", verificacion: "registro: régimen del ejercicio",
+      bloque_dueno: 25, bloques_referencia: [], valor: null, unidad: null, periodo: String(ejercicio),
+      clave: "regimen.sin_planes_previos", tipo: "declaracion_negativa",
+      enunciado: `Por ser ${ejercicio} el primer periodo en que la Compañía informa conforme a la NIIF S2, no existen planes revelados en periodos anteriores sobre cuyo progreso informar.`,
+      fuente_detalle: "Reporte, régimen del ejercicio (primer año)", extracto: "primer año de aplicación",
+    });
+  }
   // ALIVIO C5 NO ADOPTADO (añadido 12): «no hace uso de C5» es una declaración
   // que el bloque 30 debe publicar en el primer año.
   if (regimenDe(ejercicio, rep?.anio_adopcion ?? null) === "primer_anio" && !vigentes.C5) {

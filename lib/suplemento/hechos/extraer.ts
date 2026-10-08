@@ -24,7 +24,7 @@ import type { Oracion } from "./oraciones";
 // =============================================================================
 
 export const MODELO_LIBRO: ClaveModelo = "claude-sonnet-5-5";
-export const PROMPT_LIBRO_VERSION = "libro-v15-2026-10-08";
+export const PROMPT_LIBRO_VERSION = "libro-v16-2026-10-08";
 const CARACTERES_POR_LLAMADA = 6000;
 const LIMITE_MS = 4 * 60 * 1000;
 

@@ -16,7 +16,7 @@ export const TIPOS_HECHO: TipoHecho[] = ["cifra", "fecha", "nombre", "frecuencia
  * que sea estable entre corridas.
  */
 export const NEGACION =
-  /(?<!\p{L})(?:no\s+(?:existen?|hay|hace\s+uso|hacen\s+uso|usa|usan|utiliza|utilizan|prevé|preve|aplica|se\s+(?:realiz\w+|registr\w+|revis\w+|aplic\w+|identific\w+|cuantific\w+|basa))|ningun[oa]?|ningún|sin\s+(?:cambios|revisi\w+|compensaciones))(?!\p{L})/iu;
+  /(?<!\p{L})(?:no\s+(?:existen?|hay|hubo|hace\s+uso|hacen\s+uso|usa|usan|utiliza|utilizan|prevé|preve|aplica|se\s+(?:realiz\w+|registr\w+|revis\w+|aplic\w+|identific\w+|cuantific\w+|basa))|ningun[oa]?|ningún|sin\s+(?:cambios|revisi\w+|compensaciones))(?!\p{L})/iu;
 
 /** Jerarquía: un número menor manda. */
 export const ORDEN_RANGO: Record<RangoFuente, number> = { validado: 0, perfil: 1, adjunto: 2, narrativo: 3 };
