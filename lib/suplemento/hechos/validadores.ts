@@ -171,3 +171,39 @@ export function incisosInexactos(textos: string[], requisitos: string[]): string
   }
   return [...out];
 }
+
+// -----------------------------------------------------------------------------
+// CIFRAS HUÉRFANAS (Paso 5c, tercera revisión externa, B): una cifra que entra a
+// una tabla armada por código tiene que aparecer en el texto del bloque o en un
+// hecho que la describa (al menos ocho palabras); si no, el revisor recibe una
+// nota «cifra sin explicación» (14,200 MDP en la 34, 640 en la 35). No rechaza:
+// la cifra está confirmada; lo que falta es decir qué es.
+// -----------------------------------------------------------------------------
+
+export function cifrasHuerfanas(
+  tabla: string,
+  texto: string,
+  hechos: { enunciado: string }[],
+  numeros: (t: string) => number[]
+): { fila: string; columna: string; cifra: string }[] {
+  const lineas = tabla.split("\n").filter((l) => l.trim().startsWith("|"));
+  if (lineas.length < 3) return [];
+  const celdas = (l: string) => l.trim().slice(1, -1).split("|").map((c) => c.trim());
+  const encabezados = celdas(lineas[0]);
+  const enTexto = numeros(texto);
+  const descritos = hechos.filter((h) => h.enunciado.split(/\s+/).length >= 8).map((h) => numeros(h.enunciado));
+  const igual = (a: number, b: number) => Math.abs(a - b) <= Math.abs(b) * 1e-9 + 1e-9;
+  const out: { fila: string; columna: string; cifra: string }[] = [];
+  for (const l of lineas.slice(2)) {
+    const [fila, ...resto] = celdas(l);
+    resto.forEach((c, i) => {
+      // Un periodo («2026-2030») no es una cifra.
+      if (/^\s*\d{4}\s*[-–]\s*\d{4}\s*$/.test(c)) return;
+      const sueltas = numeros(c).filter((n) => !(Math.abs(n) < 10 || (Number.isInteger(Math.abs(n)) && Math.abs(n) >= 1900 && Math.abs(n) <= 2100)));
+      const huerfana = sueltas.find((n) => !enTexto.some((x) => igual(x, n)) && !descritos.some((ns) => ns.some((x) => igual(x, n))));
+      // Una nota por celda, aunque la celda traiga varias cifras.
+      if (huerfana != null) out.push({ fila, columna: encabezados[i + 1] ?? "", cifra: c });
+    });
+  }
+  return out;
+}

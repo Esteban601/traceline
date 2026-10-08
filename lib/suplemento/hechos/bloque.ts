@@ -56,6 +56,8 @@ export type InsumoDelBloque = {
   libroId: string;
   hechos: HechoDelBloque[];
   referencias: ReferenciaDelBloque[];
+  /** Enunciados de TODOS los hechos vigentes del libro: no van al modelo; los usa el validador de cifras huérfanas. */
+  enunciadosDelLibro: string[];
 };
 
 const LARGO_REFERENCIA = 160;
@@ -118,7 +120,7 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
       completo: `${h.enunciado} ${h.extracto}`,
     }));
 
-  return { libroId, hechos, referencias };
+  return { libroId, hechos, referencias, enunciadosDelLibro: (data ?? []).map((h) => h.enunciado) };
 }
 
 // -----------------------------------------------------------------------------

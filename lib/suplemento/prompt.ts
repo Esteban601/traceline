@@ -1,4 +1,5 @@
 import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloques";
+import { fronteraDe } from "@/lib/suplemento/fronteras";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 
 // =============================================================================
@@ -35,7 +36,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v5-2026-10-07";
+export const PROMPT_VERSION_HECHOS = "hechos-v6-2026-10-08";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -271,7 +272,11 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
 
 17. INCISOS: en el texto, las notas y la cobertura, un inciso de la norma se nombra solo con el código exacto de «Requisitos de tu bloque» (p. ej. «NIIF S2 25 (a)(i)a(v)»), nunca con un número de inciso que no esté en esa lista.
 
-18. CAMBIOS: no escribas que un proceso «no registró cambios» respecto del periodo anterior si alguno de tus hechos describe un cambio en el ejercicio («integró», «incorporó», «creó en 2025»): ese cambio es lo que se revela.`;
+18. CAMBIOS: no escribas que un proceso «no registró cambios» respecto del periodo anterior si alguno de tus hechos describe un cambio en el ejercicio («integró», «incorporó», «creó en 2025»): ese cambio es lo que se revela.
+
+19. SIN RELLENO: no cierres un párrafo ni el bloque reenunciando lo que acabas de decir («De este modo…», «En suma…», «La secuencia descrita comprende…», «En conjunto…»). Si ya lo dijiste, termina.
+
+20. SIN CALIFICATIVOS SIN SUSTENTO: no califiques una meta, un proceso o una cifra como «alineado con», «consistente con» o «conforme a» un acuerdo, una trayectoria, un estándar o una mejor práctica (el Acuerdo de París, SBTi, 1.5 °C) si ningún hecho dice exactamente eso y cómo se determinó. Si un hecho lo dice, atribúyelo («la Compañía considera que…») y, si no dice el método, deja una nota «defecto_insumo» que lo pida.`;
 
 const REGLAS_HECHOS = (() => {
   const ini = REGLAS.indexOf("9. EL DOCUMENTO DE RESPALDO");
@@ -334,11 +339,14 @@ Lo que hace bien, y tienes que imitar:
  * comparte dentro de la corrida.
  */
 function indiceDeBloques(incluidos: string[] | null): string {
-  const lineas = BLOQUES.filter((b) => bloqueSeleccionado(b, incluidos)).map((b) => `${b.numero}. ${b.titulo}`);
+  // MAPA DEL DOCUMENTO (Paso 5c, tercera revisión externa): número, título EXACTO
+  // y qué cubre cada bloque seleccionado. Las remisiones se escriben desde aquí,
+  // nunca adivinadas (el 18 y el 27 remitían al 16 lo que está en el 17).
+  const lineas = BLOQUES.filter((b) => bloqueSeleccionado(b, incluidos)).map((b) => `${b.numero}. «${b.titulo}» — cubre ${fronteraDe(b.numero).cubre}`);
   return [
-    `# El documento completo: los ${lineas.length} bloques`,
+    `# Mapa del documento: los ${lineas.length} bloques que lleva`,
     "",
-    "Cada bloque lo escribe una llamada distinta. Esto es lo que cubre cada uno, para que no invadas el terreno de otro:",
+    "Cada bloque lo escribe una llamada distinta. Esto es lo que cubre cada uno, para que no invadas el terreno de otro y para remitir bien: solo se remite a un bloque de este mapa, nombrándolo con su título exacto («como se describe en la sección «…»»), y solo si este mapa dice que cubre ese tema o si recibiste una referencia suya. Un bloque que no está en el mapa no existe en este documento.",
     "",
     ...lineas,
   ].join("\n");

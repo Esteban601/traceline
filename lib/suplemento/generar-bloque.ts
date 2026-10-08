@@ -42,11 +42,13 @@ import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque }
 import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
 import { libroVigente } from "@/lib/suplemento/hechos/libro";
 import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
-import { cambiosNegados, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
+import { cambiosNegados, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
 import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
+import { clausulas, FIN_ORACION } from "@/lib/suplemento/hechos/remisiones";
 import { aplicarGlosario, leerGlosario } from "@/lib/suplemento/glosario";
 import { defectosDeInsumo } from "@/lib/suplemento/prevuelo";
 import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
+import { numerosDe } from "@/lib/evidencias/fuente";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
 import { ETIQUETA_CAMPO, SECCION_DE_CAMPO } from "@/lib/suplemento/completitud";
@@ -356,6 +358,18 @@ export async function generarBloque(
       }
       return { ok: false, motivo: "pendiente_adjunto", detalle: espera.map((e) => e.motivo).join(" ") };
     }
+  }
+
+  // EDITORIAL SIN MATERIAL (Paso 5c, tercera revisión externa: el 20 eran cinco
+  // pendientes y tres remisiones). Sin hechos propios ni referencias del libro,
+  // no se genera aunque esté seleccionado: queda «no aplica» con el aviso.
+  const AVISO_EDITORIAL =
+    "Editorial seleccionado que no se publica: el libro de hechos no tiene material propio para él (solo quedarían pendientes y remisiones). Se llena cuando la emisora cargue sus datos en el Perfil; mientras, sus temas viven en los bloques a los que remitiría.";
+  if (insumo && bloque.clase !== "normativo" && !insumo.hechos.length && !insumo.referencias.length) {
+    if (!opciones.sinPersistir) {
+      await persistirEstado(supabase, documentoId, bloque, doc.idioma, "no_aplica", [{ campo: "aviso_editorial", motivo: AVISO_EDITORIAL }]);
+    }
+    return { ok: false, motivo: "no_aplica", detalle: AVISO_EDITORIAL };
   }
 
   // --- 4. Prompt ------------------------------------------------------------
@@ -776,12 +790,40 @@ export async function generarBloque(
         else g.cambios.push(c);
       }
     }
+    // Cifras de la tabla que ni el texto ni un hecho explican (Paso 5c).
+    if (tablaFinal) {
+      for (const h of cifrasHuerfanas(tablaFinal, salida.texto, insumo.enunciadosDelLibro.map((enunciado) => ({ enunciado })), numerosDe)) {
+        (salida.notas_clasificadas ??= []).push({
+          cubeta: "defecto_insumo",
+          etiqueta: null,
+          texto: `Cifra sin explicación en la tabla: ${h.cifra} («${h.fila}», columna «${h.columna}»). Ni el texto del bloque ni un hecho del libro dicen qué es; pedir a la emisora la descripción o quitarla de la tabla.`,
+        });
+      }
+    }
     for (const c of g.cambios) {
       (salida.notas_clasificadas ??= []).push({
         cubeta: "defecto_insumo",
         etiqueta: null,
         texto: `Nombre unificado al del glosario: «${c.variante}» → «${c.canonico}» (${c.veces} ${c.veces === 1 ? "vez" : "veces"}). Las fuentes usan los dos nombres.`,
       });
+    }
+  }
+
+  // Editorial que, generado, quedó en pendientes y remisiones: tampoco se publica.
+  if (insumo && bloque.clase !== "normativo") {
+    const propias = salida.texto
+      .split(FIN_ORACION)
+      .filter((o) => o.trim() && !/\[Pendiente:/.test(o) && !clausulas(o).length && !/^\s*\|/.test(o)).length;
+    if (propias < 2) {
+      if (!opciones.sinPersistir) {
+        await persistirEstado(supabase, documentoId, bloque, doc.idioma, "no_aplica", [{ campo: "aviso_editorial", motivo: `${AVISO_EDITORIAL} (Se generó y quedó con ${propias} oración(es) propia(s).)` }], {
+          modelo,
+          uso,
+          costo,
+          duracionMs,
+        });
+      }
+      return { ok: false, motivo: "no_aplica", detalle: AVISO_EDITORIAL };
     }
   }
 
@@ -1253,7 +1295,9 @@ async function persistirEstado(
   bloque: Bloque,
   idioma: string,
   estado: "no_aplica" | "pendiente_adjunto",
-  pendientes: { campo: string; motivo: string }[]
+  pendientes: { campo: string; motivo: string }[],
+  /** Si sí corrió el modelo (editorial que no se publica), su costo queda registrado. */
+  metricas?: Metricas
 ): Promise<void> {
   await supabase.from("documentos_bloques").upsert(
     {
@@ -1268,16 +1312,15 @@ async function persistirEstado(
       texto_del_emisor: false,
       fuentes: [],
       pendientes,
-      modelo: null,
-      // Nulo a propósito: aquí no corrió ningún prompt. `prompt_version` dice
-      // con qué versión se escribió el texto guardado, y no hay texto.
+      modelo: metricas?.modelo ?? null,
+      // Nulo a propósito: no hay texto guardado al que atribuirle una versión.
       prompt_version: null,
-      tokens_entrada: 0,
-      tokens_entrada_cache_escritura: 0,
-      tokens_entrada_cache_lectura: 0,
-      tokens_salida: 0,
-      costo_usd: 0,
-      duracion_ms: 0,
+      tokens_entrada: metricas?.uso.entrada ?? 0,
+      tokens_entrada_cache_escritura: metricas?.uso.cacheEscritura ?? 0,
+      tokens_entrada_cache_lectura: metricas?.uso.cacheLectura ?? 0,
+      tokens_salida: metricas?.uso.salida ?? 0,
+      costo_usd: metricas?.costo ?? 0,
+      duracion_ms: metricas?.duracionMs ?? 0,
       generado_en: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
