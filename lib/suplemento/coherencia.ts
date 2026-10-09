@@ -6,6 +6,7 @@ import { BLOQUES } from "@/lib/suplemento/bloques";
 import { MODELO_POR_DEFECTO, costoUsd, type ClaveModelo, type Esfuerzo, type Uso } from "@/lib/suplemento/modelos";
 import { numerosDe } from "@/lib/evidencias/fuente";
 import { validarCruzado } from "@/lib/suplemento/hechos/cruzado";
+import { PLANTILLAS } from "@/lib/suplemento/plantillas";
 
 // =============================================================================
 // PASADA DE COHERENCIA DEL SUPLEMENTO — encargo suplemento-calidad, Paso 3 (d).
@@ -76,6 +77,10 @@ export type BloqueParaCoherencia = {
   seccion: string;
   texto: string;
   textoDelEmisor: boolean;
+  /** Texto fijo del generador (2, 3, 5, 14): no se observa su redacción (rúbrica del 5c). */
+  plantilla?: boolean;
+  /** Figura que el Word inserta en el bloque (el organigrama del 18): no se reporta como ausente. */
+  figura?: string | null;
 };
 
 export type ResultadoCoherencia =
@@ -151,10 +156,14 @@ export function documentoParaRevision(
     "",
     `# El documento: ${bloques.length} bloques, en orden`,
     "",
+    "Índice, con lo que el texto no muestra: los bloques de PLANTILLA son texto fijo del generador (no observes su redacción ni sus remisiones genéricas); un bloque con FIGURA INCLUIDA trae esa figura en el documento publicado (no la reportes como ausente).",
+    "",
+    ...bloques.map((b) => `- ${b.numero} · ${b.titulo}${b.plantilla ? " · PLANTILLA" : ""}${b.figura ? ` · FIGURA INCLUIDA: ${b.figura}` : ""}`),
+    "",
   ];
   for (const b of bloques) {
     partes.push(
-      `=== Bloque ${b.numero} · ${b.titulo} (${b.seccion})${b.textoDelEmisor ? " · TEXTO DEL EMISOR: se publica tal cual, no se reescribe" : ""}`,
+      `=== Bloque ${b.numero} · ${b.titulo} (${b.seccion})${b.textoDelEmisor ? " · TEXTO DEL EMISOR: se publica tal cual, no se reescribe" : ""}${b.plantilla ? " · PLANTILLA: texto fijo" : ""}${b.figura ? ` · FIGURA INCLUIDA: ${b.figura}` : ""}`,
       "",
       b.texto.trim(),
       ""
@@ -253,11 +262,23 @@ async function bloquesDelDocumento(supabase: Cliente, documentoId: string): Prom
     .select("numero, titulo, seccion, estado, texto, texto_del_emisor")
     .eq("documento_id", documentoId)
     .order("numero");
+  // La figura la inserta el Word desde el Perfil (bloques «… + imagen»): la pasada no la ve en el texto.
+  const { data: doc } = await supabase.from("documentos_generados").select("tenant_id").eq("id", documentoId).maybeSingle();
+  const { data: perfil } = doc ? await supabase.from("perfil_emisor").select("organigrama_path").eq("tenant_id", doc.tenant_id).maybeSingle() : { data: null };
+  const conFigura = new Set(perfil?.organigrama_path ? BLOQUES.filter((b) => /imagen/i.test(b.tipo)).map((b) => b.numero) : []);
   const orden = new Map(BLOQUES.map((b, i) => [b.numero, i]));
   return (data ?? [])
     .filter((b) => b.texto && b.texto.trim() && !["no_aplica", "no_seleccionado", "error"].includes(b.estado))
     .sort((a, b) => (orden.get(a.numero) ?? 0) - (orden.get(b.numero) ?? 0))
-    .map((b) => ({ numero: b.numero, titulo: b.titulo, seccion: b.seccion ?? "", texto: b.texto!, textoDelEmisor: b.texto_del_emisor }));
+    .map((b) => ({
+      numero: b.numero,
+      titulo: b.titulo,
+      seccion: b.seccion ?? "",
+      texto: b.texto!,
+      textoDelEmisor: b.texto_del_emisor,
+      plantilla: b.numero in PLANTILLAS,
+      figura: conFigura.has(b.numero) ? "organigrama (imagen del Perfil, insertada en el Word)" : null,
+    }));
 }
 
 export type Reclamo = { ok: true; id: string } | { ok: false; status: number; error: string };
