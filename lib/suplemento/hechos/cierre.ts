@@ -32,19 +32,62 @@ export type ResultadoCierre = { cierres: Cierre[]; uso: Uso; costo: number };
 const tituloDe = (n: number) => BLOQUES.find((b) => b.numero === n)?.titulo ?? `bloque ${n}`;
 const normal = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-/** El texto con el marcador sustituido por la remisión. Exportada para la prueba. */
+/**
+ * Gramática mínima de una oración (rúbrica del 5c): empieza con un sujeto en
+ * mayúscula y lleva un verbo conjugado después de la primera palabra.
+ */
+export function tieneSujetoYVerbo(oracion: string): boolean {
+  const t = oracion.trim();
+  if (!/^[«"(]?[A-ZÁÉÍÓÚÑ]/.test(t)) return false;
+  const resto = t.split(/\s+/).slice(1).join(" ");
+  return /(?<!\p{L})(?:se\s+\p{L}+|es|son|está|están|fue|fueron|ha|han|hay|\p{L}{3,}(?:an|en|ó|aron|ieron|ía|ían|aba|aban))(?!\p{L})/iu.test(resto);
+}
+
+const COLA = /\s*(?:,\s*)?(?:(?:que\s+)?(?:corresponden?|es|son|está|están|se\s+encuentran?|consisten?|equivalen?|ascienden?|se\s+ubican?|se\s+describen?|se\s+presentan?|figuran?|aparecen?)\s*)?(?:a|al|de|del|en|con|por|para|sobre)?\s*$/i;
+
+/**
+ * El texto con la ORACIÓN COMPLETA reescrita (rúbrica del 5c: el 21 quedó
+ * «…corresponden (véase la sección…)»). Exportada para la prueba.
+ *   · marcador al final de la oración → «<sujeto> se describe(n) en la sección «…».»;
+ *   · marcador a mitad de la oración → «(véase la sección «…»)»;
+ *   · si la oración resultante no tiene sujeto y verbo → «Esta información se
+ *     presenta en la sección «…».»
+ */
 export function sustituirMarcador(texto: string, marcador: string, titulo: string): string {
   const i = texto.indexOf(marcador);
   if (i < 0) return texto;
-  const inicio = Math.max(texto.lastIndexOf(". ", i) + 2, texto.lastIndexOf("\n", i) + 1, 0);
+  const punto = texto.lastIndexOf(". ", i);
+  const inicio = Math.max(punto >= 0 ? punto + 2 : 0, texto.lastIndexOf("\n", i) + 1);
   const finPunto = texto.indexOf(".", i + marcador.length);
   const fin = finPunto < 0 ? texto.length : finPunto + 1;
-  const resto = `${texto.slice(inicio, i)}${texto.slice(i + marcador.length, fin)}`.replace(/[\s.,;:]+/g, " ").trim();
-  if (resto.split(" ").filter(Boolean).length < 4) {
-    return `${texto.slice(0, inicio)}Esta información se presenta en la sección «${titulo}».${texto.slice(fin)}`;
+  const antes = texto.slice(inicio, i);
+  const despues = texto.slice(i + marcador.length, fin);
+  const neutra = `Esta información se presenta en la sección «${titulo}».`;
+  let oracion: string;
+  if (despues.replace(/[\s.,;:]+/g, " ").trim().split(" ").filter(Boolean).length < 4) {
+    const sujeto = antes.replace(COLA, "").trim();
+    const plural = /^(?:los|las)\s/i.test(sujeto) || /\s(?:y|e)\s+(?:su|sus|el|la|los|las)\s/i.test(sujeto);
+    oracion = sujeto.split(/\s+/).length >= 3 ? `${sujeto} ${plural ? "se describen" : "se describe"} en la sección «${titulo}».` : neutra;
+  } else {
+    oracion = `${antes.replace(/\s+(?:de|del|a|al|en|con|por|para|sobre)\s*$/i, "")} (véase la sección «${titulo}»)${despues}`.replace(/\s+\)/g, ")").replace(/\(\s+/g, "(");
   }
-  const antes = texto.slice(0, i).replace(/\s+(?:de|del|a|al|en|con|por|para|sobre)\s*$/i, "");
-  return `${antes} (véase la sección «${titulo}»)${texto.slice(i + marcador.length)}`.replace(/\s+\)/g, ")").replace(/\(\s+/g, "(");
+  if (!tieneSujetoYVerbo(oracion)) oracion = neutra;
+  return `${texto.slice(0, inicio)}${oracion}${texto.slice(fin)}`;
+}
+
+/**
+ * La oración repetida del bloque que no es dueño, cambiada por una remisión al
+ * dueño (rúbrica del 5c, 4/31). Si trae un encabezado («En lo que corresponde a
+ * la desagregación…,»), se conserva. Exportada para la prueba.
+ */
+export function remitirDuplicada(texto: string, oracion: string, titulo: string): string {
+  const i = texto.indexOf(oracion);
+  if (i < 0) return texto;
+  const coma = oracion.indexOf(", ");
+  const encabezado = coma > 0 && /^(?:en lo que|en cuanto|respecto|por lo que|sobre)\b/i.test(oracion) ? oracion.slice(0, coma) : null;
+  let nueva = encabezado ? `${encabezado}, véase la sección «${titulo}».` : `Esta información se presenta en la sección «${titulo}».`;
+  if (!tieneSujetoYVerbo(nueva) && !encabezado) nueva = `Esta información se presenta en la sección «${titulo}».`;
+  return `${texto.slice(0, i)}${nueva}${texto.slice(i + oracion.length)}`;
 }
 
 const ESQUEMA = {
@@ -102,13 +145,17 @@ export async function cerrarPendientes(db: Db, documentoId: string): Promise<Res
   const vacio: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { cierres: [], uso: vacio, costo: 0 };
-  const candidatos = (await validarCruzado(db, documentoId)).filter((d) => d.tipo === "pendiente_de_afirmado" && d.duenoAfirma && d.marcador && d.otroBloque != null);
+  const discrepancias = await validarCruzado(db, documentoId);
+  const candidatos = discrepancias.filter((d) => d.tipo === "pendiente_de_afirmado" && d.duenoAfirma && d.marcador && d.otroBloque != null);
+  // Duplicación literal: el bloque que no es dueño remite (sin modelo: es literal).
+  const duplicadas = discrepancias.filter((d) => d.tipo === "duplicacion" && d.oracionRepetida && d.otroBloque != null);
   const { data: filas } = await db.from("documentos_bloques").select("numero, texto, pendientes").eq("documento_id", documentoId);
   const textoDe = new Map((filas ?? []).map((f) => [f.numero, f.texto ?? ""]));
   let uso = vacio;
   const cierres: Cierre[] = [];
   const porBloque = new Map<number, typeof candidatos>();
   for (const d of candidatos) porBloque.set(d.bloque, [...(porBloque.get(d.bloque) ?? []), d]);
+  for (const d of duplicadas) if (!porBloque.has(d.bloque)) porBloque.set(d.bloque, []);
   for (const [numero, ds] of porBloque) {
     const fila = (filas ?? []).find((f) => f.numero === numero);
     if (!fila?.texto) continue;
@@ -143,6 +190,18 @@ export async function cerrarPendientes(db: Db, documentoId: string): Promise<Res
           motivo: `Remisión posible: el bloque ${d.otroBloque} («${titulo}») responde en parte el pendiente «${d.marcador!.slice(0, 160)}». Verificación (Sonnet 5.5): parcial — ${v.razon}. El pendiente se queda.`,
         });
       }
+    }
+    for (const d of duplicadas.filter((x) => x.bloque === numero)) {
+      if (!texto.includes(d.oracionRepetida!)) continue;
+      const titulo = tituloDe(d.otroBloque!);
+      texto = remitirDuplicada(texto, d.oracionRepetida!, titulo);
+      notas.push({
+        campo: "nota_revision",
+        cubeta: "decision_emisor",
+        etiqueta: null,
+        motivo: `Cierre automático: la oración «${d.oracionRepetida!.slice(0, 160)}» repetía literalmente al bloque ${d.otroBloque} («${titulo}»), dueño del hecho; se sustituyó por una remisión.`,
+      });
+      cierres.push({ bloque: numero, dueno: d.otroBloque!, marcador: d.oracionRepetida!, veredicto: "responde", razon: "duplicación literal" });
     }
     if (!notas.length) continue;
     const pendientes = ((fila.pendientes ?? []) as { campo: string; motivo: string }[]).filter(

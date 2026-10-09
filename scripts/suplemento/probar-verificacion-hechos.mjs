@@ -17,6 +17,7 @@ import { separarAnclas } from "../../lib/suplemento/hechos/anclas.ts";
 import { cambiosNegados, incisosInexactos } from "../../lib/suplemento/hechos/validadores.ts";
 import { remisionesSinDueno, remisionesSinAncla, mapaDeDuenos } from "../../lib/suplemento/hechos/remisiones.ts";
 import { noAplicaHeredado } from "../../lib/suplemento/catalogo-incisos.ts";
+import { sustituirMarcador, tieneSujetoYVerbo } from "../../lib/suplemento/hechos/cierre.ts";
 
 let fallas = 0;
 const check = (ok, nombre, detalle = "") => {
@@ -124,6 +125,14 @@ const remA = (texto) => { const s = separarAnclas(texto); return remisionesSinAn
 check(remA("La composición de esa cartera se describe en la sección «Entidad que informa, periodo y conectividad» [B4.1].").length === 0, "remisión anclada a un hecho del bloque destino pasa");
 check(/sin el ancla|no es dueño/.test(remA("La composición de esa cartera se describe en la sección «Oportunidades: alineación y capital» [h1].").join()), "remisión sin ancla del mapa se rechaza (caso del 34)");
 check(/sin el ancla/.test(remA("La participación de las direcciones se describe en la sección «Supervisión de la estrategia, objetivos y remuneración» [B17.1].").join()) || /no es dueño/.test(remA("La participación de las direcciones se describe en la sección «Supervisión de la estrategia, objetivos y remuneración» [B17.1].").join()), "remisión al 16 anclada a un hecho del 17 se rechaza (caso del 18)");
+
+// --- Cierre: oración completa y gramática mínima (bloque 21, rúbrica del 5c) ----
+const MK = "[Pendiente: definición de corto, mediano y largo plazo — X]";
+const r21 = sustituirMarcador(`La definición del corto, mediano y largo plazo y su vínculo con los horizontes de planificación corresponden a ${MK}.`, MK, "Horizontes temporales");
+check(r21 === "La definición del corto, mediano y largo plazo y su vínculo con los horizontes de planificación se describen en la sección «Horizontes temporales».", "21: la oración completa se reescribe, sin «corresponden (véase…)»", r21);
+const rMedio = sustituirMarcador(`Se evalúan con una severidad de ${MK}, cuyos niveles se describen aparte.`, MK, "Evaluación y priorización de riesgos");
+check(tieneSujetoYVerbo(rMedio) && rMedio.includes("(véase la sección «Evaluación y priorización de riesgos»), cuyos"), "marcador a mitad de oración: paréntesis y oración con sujeto y verbo", rMedio);
+check(!tieneSujetoYVerbo("corresponden (véase la sección «Horizontes temporales»).") && !tieneSujetoYVerbo("la sección."), "gramática mínima: una oración sin sujeto en mayúscula o sin verbo no pasa");
 
 // --- Omisión silenciosa (bloque 26, rúbrica del 5c) -----------------------------
 const REQ26 = ["NIIF S2 22(a)(iii)"];

@@ -5,7 +5,7 @@ import { BLOQUES } from "@/lib/suplemento/bloques";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
 import { numerosDe } from "@/lib/evidencias/fuente";
 import { leerGlosario } from "@/lib/suplemento/glosario";
-import { remisionesSinDueno } from "./remisiones";
+import { clausulas, FIN_ORACION, remisionesSinDueno } from "./remisiones";
 import { esCambioDelEjercicio, SIN_CAMBIOS } from "./validadores";
 
 // =============================================================================
@@ -36,7 +36,7 @@ import { esCambioDelEjercicio, SIN_CAMBIOS } from "./validadores";
 
 type Db = SupabaseClient<Database>;
 
-export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "cambios_negados";
+export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "cambios_negados" | "duplicacion";
 
 export type Discrepancia = {
   bloque: number;
@@ -55,6 +55,8 @@ export type Discrepancia = {
   proporcion?: number;
   /** pendiente_de_afirmado: la oración del otro bloque que parece responderlo. */
   oracionDueno?: string;
+  /** duplicacion: la oración repetida en el bloque que NO es dueño, tal como está en su texto. */
+  oracionRepetida?: string;
 };
 
 type AnclaGuardada = { oracion: string; hechos: { id: string; hecho: string | null; fuente: string }[] };
@@ -209,6 +211,63 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
     }
   }
 
+  const tenantId = (bloques[0]?.documento as unknown as { tenant_id: string } | null)?.tenant_id;
+  const { data: perfil } = tenantId
+    ? await db.from("perfil_emisor").select("denominacion_formal, forma_de_referencia, glosario").eq("tenant_id", tenantId).maybeSingle()
+    : { data: null };
+
+  // --- 7. Duplicación literal entre bloques (rúbrica del 5c, 4/31) -------------
+  // Dos oraciones de bloques distintos que comparten 12 palabras seguidas. El
+  // dueño es el bloque dueño del hecho que ancla cualquiera de las dos; el otro
+  // remite (lo corrige el cierre automático).
+  {
+    // Sin el nombre de la emisora: la denominación completa infla las coincidencias.
+    const nombresEmisora = new Set(
+      [perfil?.denominacion_formal ?? "", perfil?.forma_de_referencia ?? ""].flatMap((n) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9ñ]+/)).filter(Boolean)
+    );
+    const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9ñ]+/).filter((w) => w && !nombresEmisora.has(w));
+    const gramas = (ws: string[]) => new Set(ws.length >= 12 ? ws.slice(0, ws.length - 11).map((_, i) => ws.slice(i, i + 12).join(" ")) : []);
+    const oraciones = bloques.flatMap((b) =>
+      (b.texto ?? "")
+        .split("\n")
+        .filter((l) => !l.trim().startsWith("|"))
+        .join("\n")
+        .split(FIN_ORACION)
+        .map((o) => o.trim())
+        // Fuera: remisiones (comparten la fórmula), frases sobre la tabla y títulos.
+        .filter((o) => o && !o.startsWith("**") && !/\btabla\b/i.test(o) && !clausulas(o).length)
+        .map((o) => ({ bloque: b.numero, oracion: o, g: gramas(norm(o)) }))
+        .filter((x) => x.g.size)
+    );
+    const duenoDeOracion = (bloque: number, oracion: string) => {
+      const a = anclas(bloques.find((b) => b.numero === bloque)!).find((x) => oracion.includes(x.oracion.slice(0, 50)) || x.oracion.includes(oracion.slice(0, 50)));
+      return (a?.hechos ?? []).map((x) => (x.hecho ? hecho.get(x.hecho)?.bloque_dueno : null)).find((n) => n != null) ?? null;
+    };
+    const vistos = new Set<string>();
+    for (let i = 0; i < oraciones.length; i++)
+      for (let j = i + 1; j < oraciones.length; j++) {
+        const a = oraciones[i], b = oraciones[j];
+        if (a.bloque === b.bloque || ![...a.g].some((x) => b.g.has(x))) continue;
+        const da = duenoDeOracion(a.bloque, a.oracion), db2 = duenoDeOracion(b.bloque, b.oracion);
+        const dueno = [da, db2].find((n) => n === a.bloque || n === b.bloque) ?? null;
+        // Sin dueño identificable por las anclas no se sabe quién remite: no se juzga.
+        if (dueno == null) continue;
+        const repetida = dueno === a.bloque ? b : a;
+        const clave = `${Math.min(a.bloque, b.bloque)}-${Math.max(a.bloque, b.bloque)}-${a.oracion.slice(0, 30)}`;
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        out.push({
+          bloque: repetida.bloque,
+          tipo: "duplicacion",
+          otroBloque: dueno,
+          cita: repetida.oracion.slice(0, 200),
+          detalle: `La misma oración está en los bloques ${a.bloque} y ${b.bloque}; el dueño del hecho es el ${dueno}.`,
+          correccion: `Quita la oración repetida y remite en una línea al bloque ${dueno} («${tituloDe(dueno)}»).`,
+          oracionRepetida: repetida.oracion,
+        });
+      }
+  }
+
   // --- 6. Cambios de proceso negados a nivel documento (Paso 5c, caso 1) -------
   // «Sin cambios» en un bloque frente a hechos de CUALQUIER bloque con verbo de
   // cambio y fecha del ejercicio.
@@ -259,10 +318,6 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
   }
 
   // --- 5. Remisiones: solo al dueño del hecho, y si lo afirma -----------------
-  const tenantId = (bloques[0]?.documento as unknown as { tenant_id: string } | null)?.tenant_id;
-  const { data: perfil } = tenantId
-    ? await db.from("perfil_emisor").select("denominacion_formal, forma_de_referencia, glosario").eq("tenant_id", tenantId).maybeSingle()
-    : { data: null };
   const nombres = [
     perfil?.denominacion_formal ?? "",
     perfil?.forma_de_referencia ?? "",
