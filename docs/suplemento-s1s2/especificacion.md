@@ -1,6 +1,24 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.35** · 8 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.36** · 8 de octubre de 2026.
+
+**Cambios respecto a 0.35** (respuestas de Esteban al Paso 5c):
+- §5: catálogo partido en incisos, aplicado en dev (migración `20261007170000`). Migraciones `20261008130000`
+  (tipo «tramite») y `20261008140000` (tipo «declaracion_negativa»).
+- §6, libro (`libro-v16`):
+  - **Trámites de acta**, con lista cerrada: solicitar un informe, designar delegados, aprobar el orden del día o el
+    acta, convocar. Quedan fuera del documento.
+  - **Declaraciones negativas:**
+    - el código las asigna por la expresión de negación;
+    - hechos nuevos: el detalle de cada objetivo, el C5 no adoptado y la ausencia de planes previos en el primer año.
+- §6, bloques (`hechos-v8`):
+  - regla 21 y validador de declaraciones negativas omitidas;
+  - «no aplica» heredado para 36(c) (sin objetivo neto) y 36(e)(i)–(iv) (sin uso previsto de créditos); sin dato,
+    queda «pendiente» con la pregunta.
+- §6, cierre de pendientes: Sonnet 5.5 verifica (responde / parcial / no responde); solo «responde» sustituye, por
+  código.
+- §7: la revisión muestra los incisos bajo su código padre. Las tablas de exposición llevan la unidad que dicen las
+  notas de la emisora.
 
 **Cambios respecto a 0.34** (Paso 5c, tercera revisión externa `revision-externa-2026-10-08.md`):
 - §5: migración `20261008120000`, que agrega el origen «automatica» al historial de bloques.
