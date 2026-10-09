@@ -233,6 +233,19 @@ export function unidadEnNotas(valor: number, notas: string | null | undefined): 
   }
   return null;
 }
+/**
+ * Base del porcentaje, si las notas la dicen junto a la cifra («16.4% del pasivo
+ * total», «12% de la cartera total»): sin ella, un porcentaje del pasivo se leía
+ * como de la cartera (rúbrica del 5c).
+ */
+export function baseDelPorcentaje(pct: number, notas: string | null | undefined): string {
+  if (!notas) return "";
+  for (const v of [...new Set([NUM.format(pct), String(pct), pct.toFixed(1)])]) {
+    const m = notas.match(new RegExp(`(?<![\\d.,])${v.replace(/[.,]/g, (x) => `\\${x}`)}\\s*%\\s+((?:del?|de la|de las|de los)\\s+[^.,;()]+)`, "i"));
+    if (m) return ` ${m[1].trim()}`;
+  }
+  return "";
+}
 const conUnidad = (valor: number | null | undefined, unidad: string | null): string => (valor == null ? "—" : unidad ? `${NUM.format(valor)} ${unidad}` : num(valor));
 
 /** 34/35/36 · Exposición y despliegue de capital, por tipo de riesgo. */
@@ -248,7 +261,7 @@ function tablaExposicion(tipos: string[], titulo: string): ConstructorTabla {
         return [
           txt(limpiar(r.nombre)),
           conUnidad(v!.cantidad_activos, v!.cantidad_activos == null ? null : unidadEnNotas(v!.cantidad_activos, notas)),
-          v!.porcentaje == null ? "—" : `${NUM.format(v!.porcentaje)} %`,
+          v!.porcentaje == null ? "—" : `${NUM.format(v!.porcentaje)} %${baseDelPorcentaje(v!.porcentaje, notas)}`,
           conUnidad(v!.capital_gasto, capitalMdp),
           conUnidad(v!.capital_financiacion, capitalMdp),
           conUnidad(v!.capital_inversion, capitalMdp),

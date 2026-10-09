@@ -195,7 +195,7 @@ const PERFIL = {
   entidad_que_informa:
     "Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V.",
   perimetro:
-    "El informe cubre la totalidad de las operaciones consolidadas en México: 118 sucursales bancarias, tres centros operativos (Monterrey, Ciudad de México y Mérida) y el corporativo. Las métricas de emisiones comprenden las operaciones propias (Alcances 1 y 2). Las emisiones financiadas se difieren conforme al alivio C4 del primer año. Las métricas de cartera se presentan como composición por sector económico, proporción de cartera sostenible y exposición cualitativa a riesgos climáticos; su cuantificación en términos de emisiones se incorporará en ejercicios subsecuentes. Las participaciones minoritarias no consolidadas se excluyen.",
+    "El informe cubre la totalidad de las operaciones consolidadas en México: 118 sucursales bancarias, tres centros operativos (Monterrey, Ciudad de México y Mérida) y el corporativo. Las métricas de emisiones comprenden las operaciones propias (Alcances 1 y 2). Las emisiones financiadas se difieren conforme al alivio C4 del primer año. Las métricas de cartera se presentan como composición por producto (empresarial, hipotecario, consumo y agropecuario), proporción de cartera sostenible y exposición a sectores intensivos en carbono; su cuantificación en términos de emisiones se incorporará en ejercicios subsecuentes. Las participaciones minoritarias no consolidadas se excluyen.",
   carta_firmante: "Andrés Villaseñor Ruiz",
   carta_cargo: "Director General",
   carta_texto: [
@@ -204,7 +204,7 @@ const PERFIL = {
     "Este informe es una línea base. Reconocemos que la medición de emisiones financiadas, la cuantificación de efectos financieros y la comparabilidad entre ejercicios son tareas que iremos completando en los próximos periodos, y asumimos el compromiso de reportar con transparencia tanto los avances como las limitaciones.",
   ].join("\n\n"),
   proceso_materialidad:
-    "Durante 2025 la Compañía evaluó los riesgos y oportunidades relacionados con el clima considerando su efecto razonablemente previsible sobre la situación financiera, el desempeño financiero, los flujos de efectivo, el acceso a financiamiento y el costo de capital. El ejercicio combinó tres fuentes: el análisis de exposición física de la red de sucursales y de los colaterales con datos del Atlas Nacional de Riesgos (CENAPRED); el análisis de sensibilidad de la cartera por sector económico ante un precio al carbono y cambios regulatorios; y entrevistas con las direcciones de Riesgos, Crédito, Tesorería y Finanzas. La materialidad se determinó con el criterio de materialidad financiera de la NIIF S1. Los marcos COSO (2017) e ISO 31000 se utilizaron como apoyo metodológico, sin sustituir el análisis requerido por la norma.",
+    "Durante 2025 la Compañía evaluó los riesgos y oportunidades relacionados con el clima considerando su efecto razonablemente previsible sobre la situación financiera, el desempeño financiero, los flujos de efectivo, el acceso a financiamiento y el costo de capital. El ejercicio combinó tres fuentes: el análisis de exposición física de la red de sucursales y de los colaterales con datos del Atlas Nacional de Riesgos (CENAPRED); el análisis de sensibilidad de la cartera por sector económico ante un precio al carbono y cambios regulatorios; y entrevistas con las direcciones de Riesgos, Crédito y Banca, Sostenibilidad y Finanzas. La materialidad se determinó con el criterio de materialidad financiera de la NIIF S1. Los marcos COSO (2017) e ISO 31000 se utilizaron como apoyo metodológico, sin sustituir el análisis requerido por la norma.",
   modelo_negocio:
     "Empresa Demo es un grupo financiero mexicano de tamaño medio que opera a través de un banco de banca múltiple, una arrendadora y una empresa de factoraje. Atiende a personas físicas, pequeñas y medianas empresas y empresas medianas en 22 estados, con concentración en el norte y el sureste del país. Al cierre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, distribuida en crédito empresarial (52%), hipotecario (21%), consumo (15%) y agropecuario (12%). La captación tradicional financia el 71% del balance y el resto proviene de emisiones en el mercado de deuda y líneas de banca de desarrollo. El grupo emplea a 2,860 personas.",
   gobierno_texto:
@@ -256,7 +256,7 @@ const PERFIL = {
   matriz_riesgos: {
     escala_max: 25,
     niveles: [
-      { nombre: "Bajo", min: 0, max: 5 },
+      { nombre: "Bajo", min: 1, max: 5 },
       { nombre: "Medio", min: 6, max: 12 },
       { nombre: "Alto", min: 13, max: 19 },
       { nombre: "Crítico", min: 20, max: 25 },
@@ -292,7 +292,8 @@ const REGISTROS = [
   {
     nombre: "Huracanes e inundaciones en la red del sureste",
     tipo: "riesgo_fisico",
-    horizontes: ["Corto plazo", "Mediano plazo"],
+    // Largo plazo también: el análisis de escenarios (26) proyecta 15% más ciclones categoría 3+ al 2040.
+    horizontes: ["Corto plazo", "Mediano plazo", "Largo plazo"],
     probabilidad: 5,
     impacto: 4,
     severidad: 20,
@@ -308,10 +309,10 @@ const REGISTROS = [
     valores: {
       cantidad_activos: 32,
       porcentaje: 26,
-      capital_gasto: 18.5,
+      capital_gasto: 12.3,
       capital_financiacion: null,
       capital_inversion: null,
-      notas: "32 de 121 instalaciones (118 sucursales y 3 centros operativos): 31 sucursales y el centro operativo de Mérida; capital de gasto en adecuaciones y seguros (MDP).",
+      notas: "32 de 121 instalaciones (118 sucursales y 3 centros operativos), 26% de las instalaciones: 31 sucursales y el centro operativo de Mérida; gasto de capital: adecuaciones de inmuebles, 12.3 MDP (las primas de seguros, 6.2 MDP, son gasto de operación y no se incluyen).",
     },
   },
   {
@@ -406,7 +407,7 @@ const REGISTROS = [
       capital_gasto: null,
       capital_financiacion: 2000,
       capital_inversion: null,
-      notas: "Cartera sostenible 6,910 MDP; financiación: bono verde vigente (MDP).",
+      notas: "Cartera sostenible 6,910 MDP, 8.0% de la cartera total; financiación: bono verde vigente de 2,000 MDP.",
     },
   },
   {
@@ -551,7 +552,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 16(a)", "NIIF S2 16(b)"],
     area: "Finanzas",
     texto:
-      "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. El gasto de capital asociado a adecuaciones y seguros de la red del sureste ascendió a 18.5 millones de pesos y la inversión ambiental del ejercicio a 31.4 millones de pesos; el gasto de 18.5 millones se registró en gastos de administración y promoción; de la inversión ambiental, los 31.0 millones de eficiencia energética se capitalizaron en propiedades, mobiliario y equipo, y los 0.4 millones de medición se registraron como gasto. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente, sobre la estimación preventiva para riesgos crediticios.",
+      "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. En la red del sureste, las adecuaciones de inmuebles (gasto de capital) sumaron 12.3 millones de pesos y se capitalizaron en propiedades, mobiliario y equipo, y las primas de seguros de daños e interrupción (gasto de operación) sumaron 6.2 millones y se registraron en gastos de administración y promoción. La inversión ambiental del ejercicio fue de 31.4 millones de pesos: de la inversión ambiental, los 31.0 millones de eficiencia energética se capitalizaron en propiedades, mobiliario y equipo, y los 0.4 millones de medición se registraron como gasto. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente, sobre la estimación preventiva para riesgos crediticios.",
   },
   {
     titulo: "Análisis de escenarios climáticos y resiliencia",
@@ -601,7 +602,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 6 (a)(v)"],
     area: "Dirección General",
     texto:
-      "El Consejo aprueba los objetivos climáticos y da seguimiento a su avance en la sesión de octubre. Las métricas climáticas no forman parte de la remuneración variable en 2025; el Comité de Prácticas Societarias evalúa su incorporación a partir de 2027.",
+      "El Consejo aprobó los objetivos climáticos en su sesión del 24 de abril de 2025, a propuesta del Comité de Sostenibilidad y Riesgos Climáticos, y da seguimiento a su avance en la sesión de octubre. Las métricas climáticas no forman parte de la remuneración variable en 2025; el Comité de Prácticas Societarias evalúa su incorporación a partir de 2027.",
   },
   {
     titulo: "Papel de la gerencia: responsabilidades, controles y procedimientos",
@@ -674,14 +675,14 @@ const NARRATIVAS = [
     ],
     area: "Riesgos",
     texto:
-      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 0-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El monitoreo es trimestral. Respecto del periodo anterior, en 2025 los procesos incorporaron el análisis de exposición física de colaterales, los criterios de disponibilidad hídrica en la evaluación del crédito agropecuario y la evaluación de riesgo de transición en las propuestas de crédito de más de 150 millones de pesos en sectores intensivos en carbono. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios.",
+      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 1-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El monitoreo es trimestral. Respecto del periodo anterior, en 2025 los procesos incorporaron el análisis de exposición física de colaterales, los criterios de disponibilidad hídrica en la evaluación del crédito agropecuario y la evaluación de riesgo de transición en las propuestas de crédito de más de 150 millones de pesos en sectores intensivos en carbono. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios.",
   },
   {
     titulo: "Enfoque de medición de emisiones y datos de entrada",
     codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     texto:
-      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal; en las 14 sucursales arrendadas con servicio incluido, sin medición directa, el consumo se estima con el promedio por metro cuadrado de las sucursales propias. Las fugas de refrigerantes (HFC) de los equipos de climatización no se incluyen en el Alcance 1 de 2025 porque no hay registros de recarga; su estimación preliminar es menor al 3% del Alcance 1 y se incorporarán al inventario de 2026. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
+      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, y los potenciales de calentamiento global (GWP) a 100 años del Quinto Informe de Evaluación del IPCC (AR5), con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal; en las 14 sucursales arrendadas con servicio incluido, sin medición directa, el consumo se estima con el promedio por metro cuadrado de las sucursales propias. Las fugas de refrigerantes (HFC) de los equipos de climatización no se incluyen en el Alcance 1 de 2025 porque no hay registros de recarga; su estimación preliminar es menor al 3% del Alcance 1 y se incorporarán al inventario de 2026. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
   },
   {
     titulo: "Enfoque de consolidación y desagregación de Alcances 1 y 2",
@@ -695,7 +696,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 29 (a)(v)"],
     area: "Administración y Operaciones",
     texto:
-      "Las emisiones de Alcance 2 se reportan con el método basado en la ubicación. La electricidad se adquiere a la CFE bajo contratos estándar; la Compañía no cuenta con contratos de energía renovable ni certificados de energía limpia, por lo que el método basado en el mercado arroja el mismo valor.",
+      "Las emisiones de Alcance 2 se reportan con el método basado en la ubicación. En las 104 sucursales propias, los centros operativos y el corporativo, la electricidad se adquiere a la CFE bajo contratos estándar; en las 14 sucursales arrendadas con servicio incluido la contrata el arrendador, y su consumo se estima. La Compañía no cuenta con contratos de energía renovable ni certificados de energía limpia, por lo que el método basado en el mercado arroja el mismo valor.",
   },
   {
     titulo: "Remuneración vinculada a métricas climáticas 2025",
@@ -723,7 +724,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 36 (e)(i)a(iv)", "NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"],
     area: "Sostenibilidad",
     texto:
-      "La Compañía no prevé el uso de créditos de carbono para compensar emisiones en el cumplimiento de sus objetivos. El objetivo de reducción de Alcances 1 y 2 se cumplirá con eficiencia energética y generación distribuida, sin compensaciones.",
+      "La Compañía no prevé el uso de créditos de carbono para compensar emisiones en el cumplimiento de sus objetivos. El objetivo de reducción de Alcances 1 y 2 se cumplirá con eficiencia energética y generación distribuida en Alcance 2 y con la renovación gradual de la flota en Alcance 1, sin compensaciones.",
   },
   {
     titulo: "Juicios significativos y fuentes de incertidumbre de estimación",
@@ -758,7 +759,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 32"],
     area: "Sostenibilidad",
     texto:
-      "La Compañía pertenece al sector de bancos comerciales conforme a la clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. Al 31 de diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, con la siguiente composición por sector económico: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960 millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090 millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La Compañía consideró la aplicabilidad de las métricas del sector de bancos comerciales conforme al juicio previsto en NIIF S2 párrafo 32 y revela las que resultan aplicables a su modelo de negocio y para las que dispone de información fiable: composición de la cartera por sector económico, proporción de cartera sostenible y exposición a sectores intensivos en carbono. Las métricas restantes del sector se evaluarán conforme la Compañía disponga de información con la calidad requerida, y esa evaluación se documenta como juicio significativo en las bases de preparación.",
+      "La Compañía pertenece al sector de bancos comerciales conforme a la clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. Al 31 de diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, con la siguiente composición por producto: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960 millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090 millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La Compañía consideró la aplicabilidad de las métricas del sector de bancos comerciales conforme al juicio previsto en NIIF S2 párrafo 32 y revela las que resultan aplicables a su modelo de negocio y para las que dispone de información fiable: composición de la cartera por sector económico, proporción de cartera sostenible y exposición a sectores intensivos en carbono. Las métricas restantes del sector se evaluarán conforme la Compañía disponga de información con la calidad requerida, y esa evaluación se documenta como juicio significativo en las bases de preparación.",
     // Las siete cifras van además como capturas confirmadas. El modelo NO las ve
     // por ahí —`entregaPorSolicitud` colapsa cada solicitud a UN valor, el
     // último confirmado— y por eso van también en la descripción, que es lo que
@@ -805,7 +806,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 29 (c) · B65 (c)"],
     area: "Administración y Operaciones",
     texto:
-      "Los efectos previstos son el cierre temporal de sucursales, daños a inmuebles y equipo, deterioro de cartera por afectación de clientes y mayores primas de seguro en el sureste; y el aumento de cartera vencida y reservas, el menor valor de las garantías rurales y la reducción de la originación agropecuaria por estrés hídrico. En 2025 el gasto de capital asociado a adecuaciones y seguros de la red del sureste fue de 18.5 millones de pesos.",
+      "Los efectos previstos son el cierre temporal de sucursales, daños a inmuebles y equipo, deterioro de cartera por afectación de clientes y mayores primas de seguro en el sureste; y el aumento de cartera vencida y reservas, el menor valor de las garantías rurales y la reducción de la originación agropecuaria por estrés hídrico. En 2025, en la red del sureste, el gasto de capital en adecuaciones fue de 12.3 millones de pesos y las primas de seguros (gasto de operación), de 6.2 millones.",
   },
   {
     titulo: "Concentración de las oportunidades climáticas en el modelo de negocio",
@@ -883,7 +884,7 @@ const CUESTIONARIOS = {
   ],
   "S2 36(e)": [
     // 1 · en qué medida el objetivo se basa en créditos de carbono
-    "No se basa en créditos de carbono. El objetivo de reducción de Alcances 1 y 2 se cumplirá con eficiencia energética y generación distribuida, sin compensaciones.",
+    "No se basa en créditos de carbono. El objetivo de reducción de Alcances 1 y 2 se cumplirá con eficiencia energética y generación distribuida en Alcance 2 y con la renovación gradual de la flota en Alcance 1, sin compensaciones.",
     // 2 · régimen de terceros que los verificaría
     "No aplica: la Compañía no prevé el uso de créditos de carbono en el cumplimiento de sus objetivos.",
     // 3 a 5 son enumeraciones y texto sobre créditos que no se usarán; se dejan
@@ -910,7 +911,7 @@ const OBJETIVOS = [
       "Reducir en 30% las emisiones brutas de Alcances 1 y 2 respecto del periodo base 2025, mediante eficiencia energética, generación solar distribuida y renovación de flota.",
     detalle: {
       validacion_tercero: "Falso",
-      revisiones: "Revisión anual por el Comité de Sostenibilidad y Riesgos Climáticos.",
+      revisiones: "Ninguna revisión en 2025: es el primer año del objetivo. Se revisa anualmente en el Comité de Sostenibilidad y Riesgos Climáticos.",
       procesos_revision: "Seguimiento trimestral de consumo y emisiones por sucursal.",
       metricas_supervision: "tCO2e por sucursal y tCO2e por colaborador.",
       resultados: "2025: línea base establecida (Alcance 1: 1,240 tCO2e; Alcance 2: 3,860 tCO2e).",
@@ -939,7 +940,7 @@ const OBJETIVOS = [
       "Llevar la cartera con etiqueta sostenible al 20% de la cartera total en 2028, desde el 8.0% del periodo base 2025.",
     detalle: {
       validacion_tercero: "Falso",
-      revisiones: "Revisión semestral por el Comité de Sostenibilidad y Riesgos Climáticos.",
+      revisiones: "Ninguna revisión en 2025: es el primer año del objetivo. Se revisa semestralmente en el Comité de Sostenibilidad y Riesgos Climáticos.",
       procesos_revision: "Conciliación semestral del saldo etiquetado con la Dirección de Crédito.",
       metricas_supervision: "Saldo y porcentaje de cartera sostenible.",
       resultados: "2025: 8.0% de la cartera total (6,910 MDP).",
@@ -967,7 +968,7 @@ const OBJETIVOS = [
       "Medir las emisiones financiadas del 80% de la cartera empresarial bajo PCAF en 2027, desde el 42% del periodo base 2025.",
     detalle: {
       validacion_tercero: "Falso",
-      revisiones: "Revisión anual por el Comité de Sostenibilidad y Riesgos Climáticos.",
+      revisiones: "Ninguna revisión en 2025: es el primer año del objetivo. Se revisa anualmente en el Comité de Sostenibilidad y Riesgos Climáticos.",
       procesos_revision: "Depuración de datos de acreditados por la Dirección de Riesgos.",
       metricas_supervision: "Porcentaje de cartera empresarial cubierta y calidad de datos PCAF.",
       resultados: "2025: 42% de la cartera empresarial, calidad de datos 4-5.",
