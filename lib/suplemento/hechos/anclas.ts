@@ -13,7 +13,9 @@
 
 export type Ancla = { oracion: string; ids: string[] };
 
-const RACHA = /((?:\s*\[h\d+\])+)\s*([.;:]?)/g;
+// [hN]: hecho del bloque. [Bn.k]: hecho del MAPA del documento al que remite una
+// remisión (rúbrica del 5c): la remisión se valida contra ese hecho.
+const RACHA = /((?:\s*\[(?:h\d+|B\d+\.\d+)\])+)\s*([.;:]?)/g;
 
 export function separarAnclas(texto: string): { texto: string; anclas: Ancla[]; ids: string[] } {
   const anclas: Ancla[] = [];
@@ -23,7 +25,7 @@ export function separarAnclas(texto: string): { texto: string; anclas: Ancla[]; 
   for (const m of texto.matchAll(RACHA)) {
     const antes = texto.slice(corte, m.index);
     limpio += antes + m[2];
-    const ids = [...m[1].matchAll(/\[(h\d+)\]/g)].map((x) => x[1]);
+    const ids = [...m[1].matchAll(/\[(h\d+|B\d+\.\d+)\]/g)].map((x) => x[1]);
     // La oración: desde el último fin de oración o salto de línea del texto limpio.
     const desde = Math.max(inicioOracion, limpio.lastIndexOf("\n") + 1);
     const oracion = limpio.slice(desde).trim();

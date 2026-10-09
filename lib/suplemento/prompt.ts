@@ -1,5 +1,6 @@
 import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloques";
 import { fronteraDe } from "@/lib/suplemento/fronteras";
+import { mapaDeDuenos } from "@/lib/suplemento/hechos/remisiones";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 
 // =============================================================================
@@ -36,7 +37,7 @@ export const PROMPT_VERSION = "calidad-v2-2026-10-06";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v8-2026-10-08";
+export const PROMPT_VERSION_HECHOS = "hechos-v10-2026-10-08";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -260,7 +261,7 @@ const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este
    · «por_conciliar»: el libro no lo pudo decidir de forma estable (sus votos no coincidieron). No marques pendiente ni elijas versión: redacta solo lo que las versiones dicen en común (nada, si no comparten nada) y deja una nota «decision_emisor» con etiqueta «por_conciliar» que diga, con las fuentes, qué hay que conciliar y que la decisión del libro fue inestable.
    Los hechos sin \`contradiccion\` no están en conflicto: no declares contradicciones por tu cuenta ni pongas pendientes por diferencias entre ellos.
 
-12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea, con el número y el título del bloque DUEÑO. Si tu texto lo necesita, remite en una frase a ESE bloque («como se describe en la sección de …») sin repetir su contenido ni sus cifras. Solo se remite al dueño del hecho: no remitas a un bloque del que no recibiste una referencia sobre ese contenido. Si el hecho es tuyo, o no hay referencia de ningún dueño, redáctalo aquí o pon un marcador de pendiente. El código verifica cada remisión.
+12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea, con el número y el título del bloque DUEÑO. Si tu texto lo necesita, remite en una frase a ESE bloque («como se describe en la sección de …») sin repetir su contenido ni sus cifras. Solo se remite al dueño del hecho: la oración que remite lleva el ancla del hecho del mapa del documento al que remite, [B17.2], junto con sus otras anclas. Si ningún hecho del mapa del bloque destino es lo que remites, no remitas ahí. Si el hecho es tuyo, o ningún bloque es dueño de él, redáctalo aquí o pon un marcador de pendiente. El código verifica cada remisión contra el mapa.
 
 13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Requisitos de tu bloque», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.
 
@@ -340,11 +341,17 @@ Lo que hace bien, y tienes que imitar:
  * es igual para todos los bloques del mismo documento, así que el caché se
  * comparte dentro de la corrida.
  */
-function indiceDeBloques(incluidos: string[] | null): string {
+function indiceDeBloques(incluidos: string[] | null, duenos?: { dueno: number; enunciado: string }[]): string {
   // MAPA DEL DOCUMENTO (Paso 5c, tercera revisión externa): número, título EXACTO
   // y qué cubre cada bloque seleccionado. Las remisiones se escriben desde aquí,
   // nunca adivinadas (el 18 y el 27 remitían al 16 lo que está en el 17).
-  const lineas = BLOQUES.filter((b) => bloqueSeleccionado(b, incluidos)).map((b) => `${b.numero}. «${b.titulo}» — cubre ${fronteraDe(b.numero).cubre}`);
+  // Con libro, también DE QUÉ HECHOS es dueño cada bloque (rúbrica del 5c: la
+  // frontera sola no evitó que el 18 y el 34 remitieran a la sección equivocada).
+  const mapa = mapaDeDuenos(duenos ?? []);
+  const lineas = BLOQUES.filter((b) => bloqueSeleccionado(b, incluidos)).map((b) => {
+    const propios = (mapa.get(b.numero) ?? []).map((h) => `     [${h.id}] ${h.enunciado.slice(0, 110)}`);
+    return [`${b.numero}. «${b.titulo}» — cubre ${fronteraDe(b.numero).cubre}`, ...(propios.length ? ["   Es dueño de:", ...propios] : [])].join("\n");
+  });
   return [
     `# Mapa del documento: los ${lineas.length} bloques que lleva`,
     "",
@@ -363,7 +370,9 @@ export function capaEstable(
   /** «hechos»: el bloque redacta desde el libro de hechos (reglas 9 a 15 propias). */
   modo: "datos" | "hechos" = "datos",
   /** Glosario del emisor (modo libro): nombres canónicos y sus variantes. */
-  glosario: { canonico: string; variantes: string[] }[] = []
+  glosario: { canonico: string; variantes: string[] }[] = [],
+  /** Hechos vigentes del libro por bloque dueño (modo libro): van al mapa del documento. */
+  duenos?: { dueno: number; enunciado: string }[]
 ): { texto: string }[] {
   // La denominación se copia CARÁCTER POR CARÁCTER, incluido el artículo en
   // minúscula si lo trae: "la Compañía" no es lo mismo que "La Compañía", y el
@@ -410,7 +419,7 @@ export function capaEstable(
           ...glosario.map((e) => `- ${e.canonico}${e.variantes.length ? ` — no: ${e.variantes.join("; ")}` : ""}`),
         ].join("\n")
       : emisor;
-    return [{ texto: REGLAS_HECHOS }, { texto: EJEMPLO_ESTILO }, { texto: indiceDeBloques(incluidos) }, { texto: conGlosario }];
+    return [{ texto: REGLAS_HECHOS }, { texto: EJEMPLO_ESTILO }, { texto: indiceDeBloques(incluidos, duenos) }, { texto: conGlosario }];
   }
 
   return [

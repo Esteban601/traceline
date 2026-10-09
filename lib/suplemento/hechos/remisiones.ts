@@ -163,3 +163,59 @@ export function remisionesSinDueno(
   }
   return out;
 }
+
+/**
+ * El mapa de dueños con ids estables por documento: `B<n>.<k>` es el k-ésimo
+ * hecho del bloque n (hasta `porBloque`). Lo usan el prompt (mapa del documento)
+ * y la validación de remisiones: deben producir los mismos ids.
+ */
+export function mapaDeDuenos(duenos: { dueno: number; enunciado: string }[], porBloque = 10): Map<number, { id: string; enunciado: string }[]> {
+  const out = new Map<number, { id: string; enunciado: string }[]>();
+  for (const h of duenos) {
+    const lista = out.get(h.dueno) ?? [];
+    if (lista.length >= porBloque) continue;
+    lista.push({ id: `B${h.dueno}.${lista.length + 1}`, enunciado: h.enunciado });
+    out.set(h.dueno, lista);
+  }
+  return out;
+}
+
+/**
+ * Remisiones del bloque validadas contra las anclas del mapa: cada oración que
+ * remite a un bloque lleva el ancla [Bn.k] de un hecho de ESE bloque.
+ */
+export function remisionesSinAncla(
+  anclas: { oracion: string; ids: string[] }[],
+  textoLimpio: string,
+  propio: number,
+  bloques: BloqueTitulo[],
+  presentes: Set<number>,
+  mapa: Map<number, { id: string }[]>
+): string[] {
+  const errores: string[] = [];
+  const idsMapa = new Set([...mapa.values()].flat().map((h) => h.id));
+  const ancladas = new Map(anclas.map((a) => [a.oracion.replace(/\s+/g, " ").trim(), a.ids.filter((i) => i.startsWith("B"))]));
+  for (const o of textoLimpio.replace(/\[Pendiente:[^\]]*\]/g, " ").split(FIN_ORACION)) {
+    for (const c of clausulas(o)) {
+      const destino = destinoDe(c.destino, bloques, propio);
+      if (destino == null) continue;
+      if (!presentes.has(destino)) {
+        errores.push(`«${c.clausula.slice(0, 120)}» remite al bloque ${destino}, que no va en este documento: redáctalo aquí o déjalo pendiente.`);
+        continue;
+      }
+      const clave = o.replace(/\s+/g, " ").trim();
+      const ids = [...ancladas.entries()].find(([k]) => k.includes(clave.slice(0, 60)) || clave.includes(k.slice(0, 60)))?.[1] ?? [];
+      const inventados = ids.filter((i) => !idsMapa.has(i));
+      if (inventados.length) errores.push(`«${c.clausula.slice(0, 120)}» ancla ${inventados.join(", ")}, que no están en el mapa del documento.`);
+      else if (!ids.some((i) => i.startsWith(`B${destino}.`))) {
+        const delDestino = (mapa.get(destino) ?? []).length;
+        errores.push(
+          delDestino
+            ? `«${c.clausula.slice(0, 120)}» remite al bloque ${destino} sin el ancla [B${destino}.k] del hecho del mapa al que remite: ánclalo, o si ninguno de sus hechos es lo que remites, no remitas ahí.`
+            : `«${c.clausula.slice(0, 120)}» remite al bloque ${destino}, que no es dueño de ningún hecho del mapa: redáctalo aquí o déjalo pendiente.`
+        );
+      }
+    }
+  }
+  return errores;
+}

@@ -15,7 +15,7 @@ import { dividir } from "../../lib/suplemento/hechos/oraciones.ts";
 import { validarCobertura } from "../../lib/suplemento/hechos/bloque.ts";
 import { separarAnclas } from "../../lib/suplemento/hechos/anclas.ts";
 import { cambiosNegados, incisosInexactos } from "../../lib/suplemento/hechos/validadores.ts";
-import { remisionesSinDueno } from "../../lib/suplemento/hechos/remisiones.ts";
+import { remisionesSinDueno, remisionesSinAncla, mapaDeDuenos } from "../../lib/suplemento/hechos/remisiones.ts";
 import { noAplicaHeredado } from "../../lib/suplemento/catalogo-incisos.ts";
 
 let fallas = 0;
@@ -68,7 +68,7 @@ const REQ = ["NIIF S2 6 (a)", "NIIF S2 6 (a)(i)", "NIIF S2 6 (a)(ii)"];
 const ids = new Set(["h1", "h2", "h3"]);
 const fila = (codigo, estado, extra = {}) => ({ codigo, estado, bloque: null, hechos: [], comentario: "", ...extra });
 const buena = [fila(REQ[0], "cubierto", { hechos: ["h1"] }), fila(REQ[1], "parcial", { hechos: ["h2"] }), fila(REQ[2], "pendiente")];
-const conMarcador = "Texto con [Pendiente: competencias — solicitud X].";
+const conMarcador = "Texto con [Pendiente: competencias — solicitud X] y [Pendiente: frecuencia — solicitud Y].";
 const COB = [
   { nombre: "cobertura completa y válida", c: buena, texto: conMarcador, espera: 0 },
   { nombre: "falta un requisito", c: buena.slice(0, 2), texto: conMarcador, re: /falta el requisito NIIF S2 6 \(a\)\(ii\)/ },
@@ -115,6 +115,22 @@ check(rem([{ numero: 4, texto: "El tratamiento de las emisiones financiadas se d
 const pend = rem([{ numero: 22, texto: "Las consideraciones del Consejo al aprobar los límites de concentración se describen en la sección de supervisión de la estrategia, objetivos y remuneración." }, { numero: 16, texto: "El Consejo informa. [Pendiente: órgano que aprobó los límites de concentración y sus consideraciones — solicitud X]" }], new Map());
 check(pend[0]?.motivo === "remite_a_pendiente", "remitir a un pendiente se rechaza", pend.map((r) => r.motivo).join());
 check(rem([{ numero: 1, texto: "El detalle se describe en las secciones correspondientes de este informe." }]).length === 0, "una remisión genérica no se juzga");
+
+// --- Remisiones ancladas al mapa (rúbrica del 5c, 18 y 34) ---------------------
+const MAPA = mapaDeDuenos([{ dueno: 4, enunciado: "La cartera total y su composición por producto." }, { dueno: 17, enunciado: "La Dirección de Riesgos coordina la identificación de riesgos climáticos." }]);
+const TIT2 = [{ numero: 4, titulo: "Entidad que informa, periodo y conectividad" }, { numero: 16, titulo: "Supervisión de la estrategia, objetivos y remuneración" }, { numero: 17, titulo: "Papel de la gerencia y controles" }, { numero: 36, titulo: "Oportunidades: alineación y capital" }];
+const PRES = new Set([4, 16, 17, 34, 36]);
+const remA = (texto) => { const s = separarAnclas(texto); return remisionesSinAncla(s.anclas, s.texto, 34, TIT2, PRES, MAPA); };
+check(remA("La composición de esa cartera se describe en la sección «Entidad que informa, periodo y conectividad» [B4.1].").length === 0, "remisión anclada a un hecho del bloque destino pasa");
+check(/sin el ancla|no es dueño/.test(remA("La composición de esa cartera se describe en la sección «Oportunidades: alineación y capital» [h1].").join()), "remisión sin ancla del mapa se rechaza (caso del 34)");
+check(/sin el ancla/.test(remA("La participación de las direcciones se describe en la sección «Supervisión de la estrategia, objetivos y remuneración» [B17.1].").join()) || /no es dueño/.test(remA("La participación de las direcciones se describe en la sección «Supervisión de la estrategia, objetivos y remuneración» [B17.1].").join()), "remisión al 16 anclada a un hecho del 17 se rechaza (caso del 18)");
+
+// --- Omisión silenciosa (bloque 26, rúbrica del 5c) -----------------------------
+const REQ26 = ["NIIF S2 22(a)(iii)"];
+const nota26 = "Para NIIF S2 22(a)(iii), los hechos cubren recursos financieros (ICAP, liquidez, vida de cartera) e inversiones planeadas, pero no dicen nada explícito sobre la capacidad de redistribuir, reutilizar, mejorar o retirar activos.";
+check(validarCobertura([fila(REQ26[0], "cubierto", { hechos: ["h1"] })], REQ26, 26, new Set(["h1"]), null, "Texto sin marcadores.", undefined, undefined, [nota26]).some((e) => /le falta algo/.test(e)), "26: «cubierto» con una nota que dice que falta algo se rechaza");
+check(validarCobertura([fila(REQ26[0], "parcial", { hechos: ["h1"] })], REQ26, 26, new Set(["h1"]), null, "Texto sin marcadores.", undefined, undefined, [nota26]).some((e) => /marcador/.test(e)), "26: «parcial» sin marcador se rechaza");
+check(validarCobertura([fila(REQ26[0], "parcial", { hechos: ["h1"] })], REQ26, 26, new Set(["h1"]), null, "Texto [Pendiente: capacidad de redistribuir activos — solicitud X].", undefined, undefined, [nota26]).length === 0, "26: «parcial» con su marcador pasa");
 
 // --- «No aplica» heredado (36(c), 36(e)) --------------------------------------
 const demo = noAplicaHeredado({ brutoNeto: ["Emisiones brutas de gases de efecto invernadero"], respuestasCreditos: ["No se basa en créditos de carbono."] });

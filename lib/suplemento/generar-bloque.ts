@@ -44,7 +44,7 @@ import { libroVigente } from "@/lib/suplemento/hechos/libro";
 import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
 import { cambiosNegados, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
 import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
-import { clausulas, FIN_ORACION } from "@/lib/suplemento/hechos/remisiones";
+import { clausulas, FIN_ORACION, mapaDeDuenos, remisionesSinAncla } from "@/lib/suplemento/hechos/remisiones";
 import { noAplicaHeredado } from "@/lib/suplemento/catalogo-incisos";
 import { aplicarGlosario, leerGlosario } from "@/lib/suplemento/glosario";
 import { defectosDeInsumo } from "@/lib/suplemento/prevuelo";
@@ -421,7 +421,7 @@ export async function generarBloque(
     : datos;
   // Después de la tabla: lo que ella cite también es fuente válida.
   const idsValidos = new Set(fuentesModelo.map((f) => f.id));
-  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null, insumo ? "hechos" : "datos", glosario);
+  const estables = capaEstable(bloque, prefs, requisitos, doc.editoriales_incluidos ?? null, insumo ? "hechos" : "datos", glosario, insumo?.duenosDelLibro);
   // Lo que respalda una cifra: los datos entregados SIN el contenido crudo de
   // las evidencias, más la tabla, los requisitos y los nombres de la emisora.
   // En modo libro, solo los hechos validados o del Perfil (regla 10).
@@ -613,11 +613,12 @@ export async function generarBloque(
       const sep = separarAnclas(parseada.texto);
       parseada.texto = sep.texto;
       anclas = sep.anclas;
-      anclasDesconocidas = sep.ids.filter((id) => !idsValidos.has(id));
+      // Las anclas [Bn.k] son del mapa del documento (remisiones): se validan aparte.
+      anclasDesconocidas = sep.ids.filter((id) => !id.startsWith("B") && !idsValidos.has(id));
       for (const id of sep.ids) if (idsValidos.has(id) && !parseada.fuentes_usadas.includes(id)) parseada.fuentes_usadas.push(id);
       const rango = new Map(insumo.hechos.map((h) => [h.id, h.rango]));
       if (bloque.clase === "normativo") {
-        soloNarrativas = anclas.filter((a) => a.ids.length && a.ids.every((id) => rango.get(id) === "narrativo")).map((a) => a.oracion.slice(0, 120));
+        soloNarrativas = anclas.filter((a) => a.ids.some((id) => !id.startsWith("B")) && a.ids.filter((id) => !id.startsWith("B")).every((id) => rango.get(id) === "narrativo")).map((a) => a.oracion.slice(0, 120));
       }
     }
 
@@ -637,7 +638,8 @@ export async function generarBloque(
           doc.editoriales_incluidos ?? null,
           parseada.texto,
           new Map(insumo.hechos.map((h) => [h.id, h.rango])),
-          new Map([...heredados].map(([c, h]) => [c, h.estado]))
+          new Map([...heredados].map(([c, h]) => [c, h.estado])),
+          parseada.notas_revision
         )
       : [];
     // Validadores deterministas del modo libro (Paso 5.4): rangos contra la
@@ -673,7 +675,21 @@ export async function generarBloque(
     const negativasOmitidas = insumo
       ? insumo.hechos.filter((h) => h.tipo === "declaracion_negativa" && !h.contradiccion && !usados.has(h.id))
       : [];
+    // Remisiones contra el mapa de dueños (rúbrica del 5c, 18 y 34): cada una
+    // ancla el hecho [Bn.k] del bloque destino.
+    const remisionesMal = insumo
+      ? remisionesSinAncla(
+          anclas,
+          parseada.texto,
+          bloque.numero,
+          BLOQUES,
+          // Van en el documento: seleccionados y no apagados por el régimen (el 33 bajo C4).
+          new Set(comp.bloques.filter((b) => b.estado !== "no_aplica" && bloqueSeleccionado(BLOQUES.find((x) => x.clave === b.clave)!, doc.editoriales_incluidos ?? null)).map((b) => BLOQUES.find((x) => x.clave === b.clave)!.numero)),
+          mapaDeDuenos(insumo.duenosDelLibro)
+        )
+      : [];
     const deterministas = [
+      ...remisionesMal,
       ...negativasOmitidas.map((h) => `Falta la declaración negativa ${h.id} («${h.enunciado.slice(0, 160)}»): responde un requisito de tu bloque; publícala en una oración, anclada.`),
       ...negados.map((h) => `El texto dice que no hubo cambios respecto del periodo anterior, pero este hecho del bloque describe un cambio en el ejercicio: ${h}. Revela el cambio.`),
       ...incisos.map((i) => `«${i}» no es el código de ningún requisito de este bloque: nombra el inciso con el código exacto de «Requisitos de tu bloque».`),

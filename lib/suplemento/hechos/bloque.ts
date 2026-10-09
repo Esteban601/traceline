@@ -58,6 +58,8 @@ export type InsumoDelBloque = {
   referencias: ReferenciaDelBloque[];
   /** Enunciados de TODOS los hechos vigentes del libro: no van al modelo; los usa el validador de cifras huérfanas. */
   enunciadosDelLibro: string[];
+  /** Hechos vigentes por bloque dueño efectivo: van al mapa del documento y validan las remisiones (rúbrica del 5c). */
+  duenosDelLibro: { dueno: number; enunciado: string }[];
 };
 
 const LARGO_REFERENCIA = 160;
@@ -67,7 +69,9 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
     .from("hechos")
     .select("id, enunciado, extracto, fuente_detalle, fuente_id, tipo, valor, unidad, periodo, rango_fuente, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado, veredicto, conciliacion")
     .eq("libro_id", libroId)
-    .neq("estado", "descartado");
+    .neq("estado", "descartado")
+    // Orden estable: el mapa del documento (capa estable, con caché) sale igual para todos los bloques.
+    .order("id");
   const seleccionado = (n: number) => bloqueSeleccionado(BLOQUES.find((b) => b.numero === n)!, incluidos);
   const duenoEfectivo = (h: { bloque_dueno: number | null; bloques_referencia: number[] }): number | null => {
     if (h.bloque_dueno != null && seleccionado(h.bloque_dueno)) return h.bloque_dueno;
@@ -120,7 +124,16 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
       completo: `${h.enunciado} ${h.extracto}`,
     }));
 
-  return { libroId, hechos, referencias, enunciadosDelLibro: (data ?? []).map((h) => h.enunciado) };
+  return {
+    libroId,
+    hechos,
+    referencias,
+    enunciadosDelLibro: (data ?? []).map((h) => h.enunciado),
+    duenosDelLibro: (data ?? [])
+      .filter((h) => h.estado === "vigente" && !["tramite"].includes(h.tipo))
+      .map((h) => ({ dueno: duenoEfectivo(h), enunciado: h.enunciado }))
+      .filter((x): x is { dueno: number; enunciado: string } => x.dueno != null),
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -135,6 +148,11 @@ export type Cobertura = {
   comentario: string;
 };
 
+/** Una nota que dice que algo falta. */
+const FALTA = /no (?:dicen?|incluyen?|cubren?|se entreg\w+|hay|consta|especifican?|precisan?|mencionan?)|falta|faltan|sin (?:dato|información)|queda(?:n)? sin/i;
+/** ¿La nota nombra el código del requisito? Tolera el espaciado irregular del catálogo. */
+const mencionaCodigo = (nota: string, codigo: string) => nota.replace(/\s+/g, "").includes(codigo.replace(/^NIIF\s*S[12]\s*/i, "").replace(/\s+/g, ""));
+
 export function validarCobertura(
   cobertura: Cobertura[],
   requisitos: string[],
@@ -145,7 +163,9 @@ export function validarCobertura(
   /** Rango de cada hecho entregado: un requisito «cubierto» solo con hechos narrativos no está cubierto (Paso 5b, punto 6). */
   rangoDe?: Map<string, RangoFuente>,
   /** Incisos cuyo estado decidió el código (36(c), 36(e)): se exige ese estado. */
-  heredados?: Map<string, "no_aplica" | "pendiente">
+  heredados?: Map<string, "no_aplica" | "pendiente">,
+  /** Notas al revisor: una que dice que a un requisito le falta algo le impide quedar «cubierto» (bloque 26, rúbrica del 5c). */
+  notas?: string[]
 ): string[] {
   const errores: string[] = [];
   const vistos = new Map<string, number>();
@@ -175,9 +195,18 @@ export function validarCobertura(
       else if (!bloqueSeleccionado(destino, incluidos)) errores.push(`${c.codigo} «asignado» al bloque ${destino.numero}, que no va en este documento`);
     }
     if (c.estado === "pendiente" && !/\[Pendiente:/.test(texto)) errores.push(`${c.codigo} «pendiente» pero el texto no lleva ningún marcador [Pendiente: …]`);
+    // OMISIÓN SILENCIOSA (rúbrica del 5c, bloque 26): «cubierto» mientras una
+    // nota del propio bloque dice que a ese requisito le falta algo.
+    if (c.estado === "cubierto" && notas?.some((n) => mencionaCodigo(n, c.codigo) && FALTA.test(n))) {
+      errores.push(`${c.codigo} «cubierto», pero una nota dice que le falta algo: márcalo «parcial» y deja en el texto el marcador de lo que falta`);
+    }
     const decidido = heredados?.get(c.codigo);
     if (decidido && c.estado !== decidido) errores.push(`${c.codigo} lo decidió el código como «${decidido}», no «${c.estado}»`);
     if (!decidido && c.estado === "no_aplica") errores.push(`${c.codigo} «no_aplica» solo se usa en los incisos que decide el código`);
   }
+  // Cada requisito «pendiente» o «parcial» deja su marcador: al menos tantos marcadores como requisitos así.
+  const conHueco = cobertura.filter((c) => (c.estado === "pendiente" || c.estado === "parcial") && requisitos.includes(c.codigo)).length;
+  const marcadores = (texto.match(/\[Pendiente:/g) ?? []).length;
+  if (conHueco > marcadores) errores.push(`${conHueco} requisito(s) «pendiente» o «parcial» y solo ${marcadores} marcador(es) en el texto: cada uno deja el suyo`);
   return errores;
 }
