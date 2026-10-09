@@ -545,7 +545,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 10(a), (b)y(c)"],
     area: "Administración y Operaciones",
     texto:
-      "La Compañía identificó dos riesgos físicos relacionados con el clima que podrían afectar razonablemente sus perspectivas. El primero, agudo: 31 sucursales y el centro operativo de Mérida se ubican en Yucatán, Quintana Roo, Tabasco y Veracruz, zonas de alta incidencia de ciclones; un evento mayor interrumpe la operación, daña activos propios y afecta la capacidad de pago de acreditados locales. Se espera en el corto y el mediano plazo. El segundo, crónico: el 12% de la cartera es agropecuaria y está concentrada en Nuevo León, Coahuila, Guanajuato y Querétaro, regiones con déficit hídrico creciente; la menor disponibilidad de agua reduce rendimientos y capacidad de pago. Se espera en el mediano y el largo plazo.",
+      "La Compañía identificó dos riesgos físicos relacionados con el clima que podrían afectar razonablemente sus perspectivas. El primero, agudo: 31 sucursales y el centro operativo de Mérida se ubican en Yucatán, Quintana Roo, Tabasco y Veracruz, zonas de alta incidencia de ciclones; un evento mayor interrumpe la operación, daña activos propios y afecta la capacidad de pago de acreditados locales. Se espera en el corto, el mediano y el largo plazo, con mayor frecuencia de ciclones intensos hacia 2040. El segundo, crónico: el 12% de la cartera es agropecuaria y está concentrada en Nuevo León, Coahuila, Guanajuato y Querétaro, regiones con déficit hídrico creciente; la menor disponibilidad de agua reduce rendimientos y capacidad de pago. Se espera en el mediano y el largo plazo.",
   },
   {
     titulo: "Efectos financieros de riesgos climáticos en estados financieros",

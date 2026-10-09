@@ -241,7 +241,9 @@ export const BLOQUES: Bloque[] = [
     respaldo: "NIIF S2 10(d) (horizontes de corto, mediano y largo plazo).",
     tipo: "Tabla",
     regimen: "ambos",
-    datapoints: [],
+    // 10(d) es la definición de los horizontes y su vínculo con la planificación: lo responde este bloque, no
+    // el 21 (rúbrica del 5c: el 21 y el 20 lo dejaban pendiente mientras el 8 lo publicaba). Desde el 8 de octubre de 2026.
+    datapoints: ["NIIF S2 10(d)"],
     tablas: [],
     perfil: ["horizontes"],
   },
@@ -410,7 +412,7 @@ export const BLOQUES: Bloque[] = [
     respaldo: "NIIF S2 10.",
     tipo: "D→T + Tabla",
     regimen: "ambos",
-    datapoints: ["NIIF S2 10(a), (b)y(c)", "NIIF S2 10(d)"],
+    datapoints: ["NIIF S2 10(a), (b)y(c)"],
     tablas: ["registros_clima"],
     perfil: ["matriz_riesgos"],
   },

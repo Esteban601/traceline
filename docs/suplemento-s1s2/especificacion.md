@@ -1829,7 +1829,7 @@ Excel de taxonomía de staging cambia en filas: es una **diferencia esperada**, 
 | 5 | Conexiones y referencias cruzadas | Normativo | NIIF S1 21–24 (información conectada) y 63 (referencias cruzadas). | Plantilla | ambos | — | — | — |
 | 6 | Juicios, supuestos e incertidumbres | Normativo | NIIF S1 74–79 (juicios e incertidumbre en la medición). | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
 | 7 | Materialidad: contexto y proceso | Editorial · recomendado | Contexto que la emisora suele querer: S1 17–18 pide aplicar la materialidad, no describir el proceso. | T→E | **varía** | — | — | `proceso_materialidad` |
-| 8 | Horizontes temporales | Normativo | NIIF S2 10(d) (horizontes de corto, mediano y largo plazo). | Tabla | ambos | — | — | `horizontes` |
+| 8 | Horizontes temporales | Normativo | NIIF S2 10(d) (horizontes de corto, mediano y largo plazo). | Tabla | ambos | `NIIF S2 10(d)` (desde el 8 de octubre de 2026; antes en el 21) | — | `horizontes` |
 | 9 | Evaluación y priorización de riesgos | Normativo | NIIF S2 25(a)(ii)–(iv) (evaluación y priorización); se solapa con el 27. | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
 | 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
 | 11 | Nuestra historia (línea de tiempo) | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
@@ -1842,7 +1842,7 @@ Excel de taxonomía de staging cambia en filas: es una **diferencia esperada**, 
 | 18 | Estructura de gobierno corporativo y organigrama | Editorial · recomendado | Complementa a 15–17: S2 6 pide identificar al órgano y su papel, no el organigrama. | T→E + imagen | ambos | — | — | `gobierno_texto`<br>`organigrama_path` |
 | 19 | Trayectoria en sostenibilidad y clima | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
 | 20 | Contexto estratégico | Editorial · opcional | S2 9 es el objetivo de la sección de estrategia, no un requisito de revelación. | D→T | ambos | — | — | `horizontes` |
-| 21 | Riesgos climáticos prioritarios | Normativo | NIIF S2 10. | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)`<br>`NIIF S2 10(d)` | `registros_clima` | `matriz_riesgos` |
+| 21 | Riesgos climáticos prioritarios | Normativo | NIIF S2 10. | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)` | `registros_clima` | `matriz_riesgos` |
 | 22 | Cambios en modelo de negocio y asignación de recursos | Normativo | NIIF S2 14(a)(i)–(ii). | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
 | 23 | Esfuerzos directos e indirectos de reducción y adaptación | Normativo | NIIF S2 14(a)(iii). | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
 | 24 | Oportunidades y cómo prevé alcanzar objetivos | Normativo | NIIF S2 10(a) y 14(a)(v). Se solapa con 21 y 25: fusión anotada como deuda de estructura. | D→T | ambos | — | `registros_clima`<br>`objetivos` | — |
