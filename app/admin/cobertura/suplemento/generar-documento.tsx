@@ -161,28 +161,19 @@ export function GenerarDocumento({
         quedan = await enCola(docId, fallos);
       }
 
-      // 4 · Cierre de pendientes por código (Paso 5c): lo que un bloque deja
-      // pendiente y otro afirma como dueño se sustituye por una remisión, sin
-      // modelo. Si falla, la coherencia lo vuelve a señalar.
+      // 4 · Cierre de pendientes (Paso 5c) y, al terminar, pasada de coherencia
+      // sobre el documento completo (Paso 3), con las discrepancias del
+      // validador cruzado como observaciones destacadas. Las dos corren en el
+      // servidor, en ese orden y fuera de esta petición (fix/pre-v40): la ruta
+      // responde 202 enseguida y la revisión muestra su estado. Si el documento
+      // quedó con fallos se corren igual: revisan lo que sí salió.
       if (!cancelado.current) {
-        await fetch(`/api/suplemento/${docId}/cierre`, { method: "POST" }).catch(() => undefined);
-      }
-
-      // 5 · Pasada de coherencia sobre el documento completo (Paso 3), que
-      // incluye las discrepancias del validador cruzado (Paso 5b) como
-      // observaciones destacadas. El validador ya no regenera bloques: sus
-      // reintentos no convergían y costaban ~$2.60 por documento (decisión de
-      // Esteban al cerrar el 5b). Corre en
-      // el servidor; no se espera aquí: sus observaciones aparecen en la
-      // revisión cuando termina. Si el documento quedó con fallos se corre
-      // igual: revisa lo que sí salió.
-      if (!cancelado.current) {
-        fetch(`/api/suplemento/${docId}/coherencia`, {
+        await fetch(`/api/suplemento/${docId}/cierre`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ origen: "fin_de_generacion" }),
+          body: JSON.stringify({ coherencia: true }),
         }).catch(() => {
-          /* la revisión ofrece correrla a mano */
+          /* la revisión ofrece correr la coherencia a mano */
         });
       }
 

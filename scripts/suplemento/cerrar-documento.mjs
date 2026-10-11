@@ -27,8 +27,17 @@ const cookie = () => [...jar].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).j
 const api = (m, r, c) => fetch(`${BASE}${r}`, { method: m, headers: { cookie: cookie(), "content-type": "application/json" }, body: c ? JSON.stringify(c) : undefined });
 
 const resumen = {};
+// El cierre corre en el servidor fuera de la petición (fix/pre-v40): 202 y se consulta su estado.
 const ci = await api("POST", `/api/suplemento/${documento}/cierre`);
-resumen.cierre = ci.ok ? await ci.json() : { error: ci.status };
+resumen.cierre = { error: ci.status };
+if (ci.status === 202) {
+  const hasta = Date.now() + 15 * 60 * 1000;
+  while (Date.now() < hasta) {
+    await new Promise((r) => setTimeout(r, 4000));
+    const e = await (await api("GET", `/api/suplemento/${documento}/cierre`)).json();
+    if (e.estado === "listo" || e.estado === "error") { resumen.cierre = { estado: e.estado, ...(e.resultado ?? {}) }; break; }
+  }
+}
 console.log(`cierre: ${resumen.cierre.cierres?.filter((c) => c.veredicto === "responde").length ?? "—"} de ${resumen.cierre.cierres?.length ?? "—"}`);
 const cr = await api("GET", `/api/suplemento/${documento}/cruzado`);
 resumen.cruzado = cr.ok ? (await cr.json()).discrepancias.map((d) => ({ bloque: d.bloque, tipo: d.tipo, otro: d.otroBloque, detalle: d.detalle.slice(0, 200) })) : { error: cr.status };

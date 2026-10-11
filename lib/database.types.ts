@@ -630,11 +630,13 @@ export type Database = {
           editado_por: string | null
           fuentes: Json
           id: string
+          libro_id: string | null
           modelo: string | null
           numero: number
           origen: string
           pendientes: Json
           prompt_version: string | null
+          respaldo: Json | null
           restaurada_de: string | null
           tenant_id: string
           texto: string
@@ -650,11 +652,13 @@ export type Database = {
           editado_por?: string | null
           fuentes?: Json
           id?: string
+          libro_id?: string | null
           modelo?: string | null
           numero: number
           origen: string
           pendientes?: Json
           prompt_version?: string | null
+          respaldo?: Json | null
           restaurada_de?: string | null
           tenant_id: string
           texto: string
@@ -670,11 +674,13 @@ export type Database = {
           editado_por?: string | null
           fuentes?: Json
           id?: string
+          libro_id?: string | null
           modelo?: string | null
           numero?: number
           origen?: string
           pendientes?: Json
           prompt_version?: string | null
+          respaldo?: Json | null
           restaurada_de?: string | null
           tenant_id?: string
           texto?: string
@@ -725,6 +731,9 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           archivo_path: string | null
+          cierre_actualizado_en: string | null
+          cierre_estado: string | null
+          cierre_resultado: Json | null
           costo_usd: number
           created_at: string
           editoriales_incluidos: string[] | null
@@ -748,6 +757,9 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           archivo_path?: string | null
+          cierre_actualizado_en?: string | null
+          cierre_estado?: string | null
+          cierre_resultado?: Json | null
           costo_usd?: number
           created_at?: string
           editoriales_incluidos?: string[] | null
@@ -771,6 +783,9 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           archivo_path?: string | null
+          cierre_actualizado_en?: string | null
+          cierre_estado?: string | null
+          cierre_resultado?: Json | null
           costo_usd?: number
           created_at?: string
           editoriales_incluidos?: string[] | null

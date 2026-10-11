@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,24 @@ export type PasadaVista = {
   creadaEn: string;
 };
 
+/** Cierre de pendientes del documento (fix/pre-v40): corre en el servidor antes de la coherencia. */
+export type EstadoCierreVista = "en_cola" | "ejecutando" | "listo" | "error";
+export type ResultadoCierreVista = { cierres?: { bloque: number; dueno: number; veredicto: string }[]; costo_usd?: number; error?: string };
+type CierreVista = { estado: EstadoCierreVista | null; resultado: ResultadoCierreVista | null };
+const enCurso = (e: EstadoCierreVista | null) => e === "en_cola" || e === "ejecutando";
+
+function textoCierre(c: CierreVista): string | null {
+  if (c.estado === "en_cola") return "Cierre de pendientes en cola…";
+  if (c.estado === "ejecutando") return "Cerrando pendientes (verificación con el modelo)…";
+  if (c.estado === "error") return `El cierre de pendientes falló: ${c.resultado?.error ?? "sin detalle"}.`;
+  if (c.estado === "listo") {
+    const cs = c.resultado?.cierres ?? [];
+    const cerrados = cs.filter((x) => x.veredicto === "responde").length;
+    return `Cierre de pendientes: ${cerrados} cerrado(s) de ${cs.length} verificado(s) · $${(c.resultado?.costo_usd ?? 0).toFixed(4)}.`;
+  }
+  return null;
+}
+
 const TIPO: Record<string, string> = {
   terminologia: "Terminología",
   repeticion: "Repetición entre bloques",
@@ -61,17 +79,45 @@ const GRAVEDAD: Record<string, { label: string; tono: Tono; orden: number }> = {
 export function CoherenciaPanel({
   documentoId,
   inicial,
+  cierreInicial,
   puedeRevisar,
 }: {
   documentoId: string;
   inicial: PasadaVista | null;
+  cierreInicial: CierreVista;
   /** Staff con el generador activo: puede correr la pasada. */
   puedeRevisar: boolean;
 }) {
   const [pasada, setPasada] = useState<PasadaVista | null>(inicial);
   const [corriendo, setCorriendo] = useState(inicial?.estado === "generando");
+  const [cierre, setCierre] = useState<CierreVista>(cierreInicial);
   const toast = useToast();
   const router = useRouter();
+
+  // Mientras el cierre esté en cola o en curso, la pantalla consulta su estado;
+  // al terminar, la coherencia que encadena el servidor ya está abierta.
+  useEffect(() => {
+    if (!enCurso(cierreInicial.estado)) return;
+    let vivo = true;
+    (async () => {
+      const hasta = Date.now() + 15 * 60 * 1000;
+      while (vivo && Date.now() < hasta) {
+        await new Promise((r) => setTimeout(r, 4000));
+        const r = await fetch(`/api/suplemento/${documentoId}/cierre`);
+        if (!r.ok) continue;
+        const d = (await r.json()) as CierreVista;
+        if (!vivo) return;
+        setCierre(d);
+        if (!enCurso(d.estado)) {
+          router.refresh();
+          return;
+        }
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [cierreInicial.estado, documentoId, router]);
 
   const esperar = useCallback(async () => {
     const hasta = Date.now() + 8 * 60 * 1000;
@@ -130,12 +176,17 @@ export function CoherenciaPanel({
           </p>
         </div>
         {puedeRevisar && (
-          <Button size="sm" variant="secondary" onClick={revisar} loading={corriendo} disabled={corriendo}>
+          <Button size="sm" variant="secondary" onClick={revisar} loading={corriendo} disabled={corriendo || enCurso(cierre.estado)}>
             {pasada ? "Volver a revisar" : "Revisar coherencia"}
           </Button>
         )}
       </div>
 
+      {textoCierre(cierre) && (
+        <p className={`mt-2 text-xs ${cierre.estado === "error" ? "text-rojo" : "text-muted"}`} data-cierre-estado={cierre.estado ?? ""}>
+          {textoCierre(cierre)}
+        </p>
+      )}
       {pasada?.estado === "error" && <p className="mt-3 text-sm text-rojo">La pasada falló: {pasada.error ?? "sin detalle"}.</p>}
       {pasada?.estado === "lista" && obs.length === 0 && (
         <p className="mt-3 text-sm text-muted">Sin observaciones: no se encontraron incoherencias entre bloques.</p>

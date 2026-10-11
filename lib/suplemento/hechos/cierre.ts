@@ -5,7 +5,7 @@ import type { Database } from "@/lib/database.types";
 import { BLOQUES } from "@/lib/suplemento/bloques";
 import { costoUsd, type Uso } from "@/lib/suplemento/modelos";
 import { MODELO_LIBRO } from "./extraer";
-import { validarCruzado } from "./cruzado";
+import { enElDocumento, validarCruzado } from "./cruzado";
 
 // =============================================================================
 // CIERRE DE PENDIENTES POR CÓDIGO, VERIFICADO (Paso 5c; verificación autorizada
@@ -256,10 +256,12 @@ export async function cerrarPendienteDirigido(
 ): Promise<Dirigido> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("sin ANTHROPIC_API_KEY");
-  const { data: filas } = await db.from("documentos_bloques").select("numero, texto").eq("documento_id", documentoId).in("numero", [c.bloque, ...c.destinos]);
+  const { data: filas } = await db.from("documentos_bloques").select("numero, texto, estado").eq("documento_id", documentoId).in("numero", [c.bloque, ...c.destinos]);
   const textoDe = (n: number) => filas?.find((f) => f.numero === n)?.texto ?? "";
   const marcador = marcadorQueEmpieza(textoDe(c.bloque), c.empieza);
   if (!marcador) return { veredicto: "sin_marcador", razon: "el marcador ya no está en el bloque", texto: null, costo: 0 };
+  const fuera = c.destinos.filter((n) => !filas?.some((f) => f.numero === n && enElDocumento(f)));
+  if (fuera.length) return { veredicto: "no_responde", razon: `el bloque ${fuera.join(", ")} no va en el documento`, texto: null, costo: 0 };
   const titulos = c.destinos.map(tituloDe);
   const juntos = c.destinos.map((n) => `## ${tituloDe(n)}\n\n${textoDe(n)}`).join("\n\n");
   const v = await verificarCierre(marcador, titulos.join("» y «"), juntos, apiKey);
@@ -281,10 +283,11 @@ export async function remitirPendienteDuplicado(
   documentoId: string,
   c: { bloque: number; empieza: string; destino: number; empiezaEnDestino: string; sujeto: string; motivo: string }
 ): Promise<Dirigido> {
-  const { data: filas } = await db.from("documentos_bloques").select("numero, texto").eq("documento_id", documentoId).in("numero", [c.bloque, c.destino]);
+  const { data: filas } = await db.from("documentos_bloques").select("numero, texto, estado").eq("documento_id", documentoId).in("numero", [c.bloque, c.destino]);
   const textoDe = (n: number) => filas?.find((f) => f.numero === n)?.texto ?? "";
   const marcador = marcadorQueEmpieza(textoDe(c.bloque), c.empieza);
   if (!marcador) return { veredicto: "sin_marcador", razon: "el marcador ya no está en el bloque", texto: null, costo: 0 };
+  if (!filas?.some((f) => f.numero === c.destino && enElDocumento(f))) return { veredicto: "no_responde", razon: `el bloque ${c.destino} no va en el documento`, texto: null, costo: 0 };
   // Solo si el destino conserva su propio pendiente: si no, la remisión no apuntaría a nada.
   if (!marcadorQueEmpieza(textoDe(c.destino), c.empiezaEnDestino)) return { veredicto: "no_responde", razon: "el destino ya no tiene el pendiente", texto: null, costo: 0 };
   const titulo = tituloDe(c.destino);
@@ -293,4 +296,54 @@ export async function remitirPendienteDuplicado(
   await guardarCierre(db, documentoId, c.bloque, texto, marcador,
     `Pendiente duplicado (${c.motivo}): «${marcador.slice(0, 160)}» queda solo en el bloque ${c.destino} («${titulo}»); este bloque remite ahí.`);
   return { veredicto: "responde", razon: "duplicado", texto, costo: 0 };
+}
+
+// =============================================================================
+// EL CIERRE FUERA DE LA PETICIÓN (fix/pre-v40, observación P2 de Codex sobre el
+// PR #17). Cada verificación puede tardar hasta 120 s y el router de Heroku
+// corta a los 30: la ruta reserva el cierre en el documento y lo corre en
+// after(), como el generador. Estado en `documentos_generados.cierre_estado`:
+// en_cola → ejecutando → listo | error. Un cierre «en_cola» o «ejecutando» con
+// más de CIERRE_ABANDONADO_MS se da por interrumpido (proceso reiniciado) y se
+// puede volver a reservar.
+// =============================================================================
+
+export const CIERRE_ABANDONADO_MS = 15 * 60 * 1000;
+export type EstadoCierre = "en_cola" | "ejecutando" | "listo" | "error";
+
+/** Reserva el cierre del documento. false si ya hay uno vivo. */
+export async function reclamarCierre(db: Db, documentoId: string): Promise<boolean> {
+  const corte = new Date(Date.now() - CIERRE_ABANDONADO_MS).toISOString();
+  const { data } = await db
+    .from("documentos_generados")
+    .update({ cierre_estado: "en_cola", cierre_resultado: null, cierre_actualizado_en: new Date().toISOString() })
+    .eq("id", documentoId)
+    .or(`cierre_estado.is.null,cierre_estado.in.(listo,error),cierre_actualizado_en.lt.${corte}`)
+    .select("id");
+  return !!data?.length;
+}
+
+/** El cierre del documento está reservado o corriendo (y no abandonado). */
+export async function cierreEnCurso(db: Db, documentoId: string): Promise<boolean> {
+  const { data } = await db.from("documentos_generados").select("cierre_estado, cierre_actualizado_en").eq("id", documentoId).maybeSingle();
+  if (!data || !["en_cola", "ejecutando"].includes(data.cierre_estado ?? "")) return false;
+  return Date.now() - new Date(data.cierre_actualizado_en ?? 0).getTime() < CIERRE_ABANDONADO_MS;
+}
+
+/** Corre un cierre reservado y deja su estado. No lanza: un fallo queda en «error». */
+export async function completarCierre(db: Db, documentoId: string): Promise<ResultadoCierre | null> {
+  const marcar = (cierre_estado: EstadoCierre, cierre_resultado: unknown = null) =>
+    db
+      .from("documentos_generados")
+      .update({ cierre_estado, cierre_resultado: cierre_resultado as never, cierre_actualizado_en: new Date().toISOString() })
+      .eq("id", documentoId);
+  await marcar("ejecutando");
+  try {
+    const r = await cerrarPendientes(db, documentoId);
+    await marcar("listo", { cierres: r.cierres.map((c) => ({ bloque: c.bloque, dueno: c.dueno, veredicto: c.veredicto })), costo_usd: r.costo });
+    return r;
+  } catch (e) {
+    await marcar("error", { error: (e instanceof Error ? e.message : String(e)).slice(0, 300) });
+    return null;
+  }
 }

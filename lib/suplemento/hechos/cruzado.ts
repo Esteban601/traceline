@@ -76,6 +76,11 @@ export function palabras(t: string): Set<string> {
   );
 }
 
+/** El bloque va en el documento (Word, aprobación): tiene texto y no es «no aplica» ni un editorial quitado. */
+export function enElDocumento(b: { texto: string | null; estado: string }): boolean {
+  return !!(b.texto ?? "").trim() && b.estado !== "no_aplica" && b.estado !== "no_seleccionado";
+}
+
 const RE_MARCADOR = /\[Pendiente:\s*([^\]—]+?)\s*(?:—[^\]]*)?\]/g;
 const RE_REMISION = /(?:como se (?:describe|indica|detalla|señala|explica|presenta)|v[ée]ase|ver la secci[oó]n|en la secci[oó]n|en el apartado)[^.]{0,100}/gi;
 
@@ -85,7 +90,10 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
     .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, documento:documentos_generados(tenant_id, reporte_id)")
     .eq("documento_id", documentoId)
     .order("numero");
-  const bloques = (filas ?? []).filter((b) => b.texto && b.estado !== "no_aplica" && !b.texto_del_emisor);
+  // Solo los bloques que van en el Word: un editorial quitado («no_seleccionado»)
+  // conserva su texto viejo y no debe afirmar, duplicar ni recibir remisiones
+  // (observación P1 de Codex sobre el PR #17). Mismo filtro que la ruta del Word.
+  const bloques = (filas ?? []).filter((b) => enElDocumento(b) && !b.texto_del_emisor);
   // Los hechos de TODOS los libros de los bloques: un bloque regenerado con un
   // libro más nuevo convive con los demás hasta la siguiente corrida completa.
   const libros = [...new Set(bloques.map((b) => b.libro_id).filter((x): x is string => !!x))];

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
 import { completarPasada, reclamarPasada } from "@/lib/suplemento/coherencia";
+import { cierreEnCurso } from "@/lib/suplemento/hechos/cierre";
 import { logEvento } from "@/lib/bitacora";
 
 export const runtime = "nodejs";
@@ -38,8 +39,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   const db = await createClient();
   const { data: doc } = await db.from("documentos_generados").select("tenant_id").eq("id", documentoId).maybeSingle();
   if (!doc) return NextResponse.json({ error: "Ese documento no existe o no es visible." }, { status: 404 });
-  const acceso = await accesoAlGenerador(db, doc.tenant_id);
+  // La pasada es parte de una generación: la del fin de la corrida la lanza la
+  // ruta del cierre; la que llega aquí exige corridas disponibles en el mes,
+  // sin gastar una. Y no lee un documento a medio cerrar (fix/pre-v40).
+  const acceso = await accesoAlGenerador(db, doc.tenant_id, { dentroDeCorrida: true });
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
+  if (await cierreEnCurso(db, documentoId)) {
+    return NextResponse.json({ error: "El cierre de pendientes está en curso; la pasada se lanza al terminar." }, { status: 409 });
+  }
 
   const r = await reclamarPasada(db, documentoId, origen, perfil.id);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
