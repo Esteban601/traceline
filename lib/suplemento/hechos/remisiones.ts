@@ -74,6 +74,14 @@ export function duenoRecalculadoPorGerencia(
   return { bloque_dueno: gerencia, bloques_referencia: referencias };
 }
 
+/**
+ * Lo que queda de un marcador al validar remisiones. Con un espacio, «…margen.
+ * [Pendiente: …]. El órgano…» quedaba «margen.  . El órgano» y FIN_ORACION ya no
+ * cortaba: la oración anterior se pegaba a la remisión siguiente (falso
+ * «otro dueño» en el 16, 11 de octubre). «[p]» conserva el corte y no aporta palabras.
+ */
+const MARCADOR_VACIO = "[p]";
+
 /** Destinos genéricos («las secciones correspondientes»): no apuntan a un bloque. */
 const GENERICO = /^(?:correspondientes?|respectivas?)\b|\bcorrespondientes?\.?$/i;
 /** Fin de oración: no corta en «S.A.B. de C.V.» ni en siglas. */
@@ -145,14 +153,14 @@ export function remisionesSinDueno(
     textos.map((t) => [
       t.numero,
       t.texto
-        .replace(/\[Pendiente:[^\]]*\]/g, " ")
+        .replace(/\[Pendiente:[^\]]*\]/g, MARCADOR_VACIO)
         .split(FIN_ORACION)
         .filter((o) => !clausulas(o).length)
         .map((o) => sin(palabrasDe(o))),
     ])
   );
   for (const b of textos) {
-    for (const o of b.texto.replace(/\[Pendiente:[^\]]*\]/g, " ").split(FIN_ORACION)) {
+    for (const o of b.texto.replace(/\[Pendiente:[^\]]*\]/g, MARCADOR_VACIO).split(FIN_ORACION)) {
       for (const c of clausulas(o)) {
         const destino = destinoDe(c.destino, bloques, b.numero);
         if (destino == null) continue;

@@ -133,6 +133,21 @@ check(r21 === "La definición del corto, mediano y largo plazo y su vínculo con
 const rMedio = sustituirMarcador(`Se evalúan con una severidad de ${MK}, cuyos niveles se describen aparte.`, MK, "Evaluación y priorización de riesgos");
 check(tieneSujetoYVerbo(rMedio) && rMedio.includes("(véase la sección «Evaluación y priorización de riesgos»), cuyos"), "marcador a mitad de oración: paréntesis y oración con sujeto y verbo", rMedio);
 check(!tieneSujetoYVerbo("corresponden (véase la sección «Horizontes temporales»).") && !tieneSujetoYVerbo("la sección."), "gramática mínima: una oración sin sujeto en mayúscula o sin verbo no pasa");
+// Un pendiente que es toda la oración no pega la oración anterior a la remisión siguiente (falso «otro dueño» en el 16, 11 de octubre).
+const T16 = [
+  { numero: 16, texto: "Al aprobar la línea de financiamiento para riego tecnificado, el Consejo consideró las compensaciones de crecimiento. [Pendiente: órgano que aprobó los límites — X]. El órgano que aprueba la estrategia se describe en la sección «Roles y responsabilidades del órgano de gobierno»." },
+  { numero: 15, texto: "El Consejo supervisa los riesgos. [Pendiente: órgano que aprueba la estrategia — Y]." },
+];
+const H16 = [{ id: "r", dueno: 16, enunciado: "Al aprobar la línea de financiamiento para riego tecnificado, el Consejo consideró las compensaciones de crecimiento." }];
+const rem16 = remisionesSinDueno(T16, [{ numero: 15, titulo: "Roles y responsabilidades del órgano de gobierno" }, { numero: 16, titulo: "Supervisión de la estrategia, objetivos y remuneración" }], new Set([15, 16]), H16, new Map(), ["Empresa Demo"]);
+check(!rem16.some((r) => /riego/.test(r.contenido)), "16: la oración previa a un pendiente suelto no entra al contenido de la remisión siguiente", JSON.stringify(rem16.map((r) => r.contenido.slice(0, 60))));
+// Cierres dirigidos (lector externo del 11 de octubre): dos secciones, y sujeto dado cuando el marcador es toda la oración.
+const MK2 = "[Pendiente: respuesta de la Compañía al riesgo de precio al carbono — Y]";
+const r21b = sustituirMarcador(`La respuesta de la Compañía a este riesgo consiste en ${MK2}.`, MK2, ["Recursos asignados y progreso de planes", "Papel de la gerencia y controles"]);
+check(r21b === "La respuesta de la Compañía a este riesgo se describe en las secciones «Recursos asignados y progreso de planes» y «Papel de la gerencia y controles».", "21: remisión a dos secciones con la oración completa", r21b);
+const MK3 = "[Pendiente: órgano que aprueba la estrategia — Z]";
+const r16 = sustituirMarcador(`Texto previo. ${MK3}`, MK3, "Roles y responsabilidades del órgano de gobierno", "El órgano que aprueba la estrategia frente al cambio climático");
+check(r16 === "Texto previo. El órgano que aprueba la estrategia frente al cambio climático se describe en la sección «Roles y responsabilidades del órgano de gobierno».", "16: pendiente duplicado que es toda la oración remite con el sujeto dado, no «Esta información»", r16);
 
 // --- Omisión silenciosa (bloque 26, rúbrica del 5c) -----------------------------
 const REQ26 = ["NIIF S2 22(a)(iii)"];

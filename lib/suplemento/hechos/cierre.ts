@@ -53,7 +53,7 @@ const COLA = /\s*(?:,\s*)?(?:(?:que\s+)?(?:corresponden?|es|son|está|están|se\
  *   · si la oración resultante no tiene sujeto y verbo → «Esta información se
  *     presenta en la sección «…».»
  */
-export function sustituirMarcador(texto: string, marcador: string, titulo: string): string {
+export function sustituirMarcador(texto: string, marcador: string, titulo: string | string[], sujetoSiFalta?: string): string {
   const i = texto.indexOf(marcador);
   if (i < 0) return texto;
   const punto = texto.lastIndexOf(". ", i);
@@ -62,14 +62,19 @@ export function sustituirMarcador(texto: string, marcador: string, titulo: strin
   const fin = finPunto < 0 ? texto.length : finPunto + 1;
   const antes = texto.slice(inicio, i);
   const despues = texto.slice(i + marcador.length, fin);
-  const neutra = `Esta información se presenta en la sección «${titulo}».`;
+  // Varias secciones (cierre dirigido): «las secciones «A» y «B»», «véanse».
+  const titulos = Array.isArray(titulo) ? titulo : [titulo];
+  const seccion = titulos.length > 1 ? `las secciones ${titulos.slice(0, -1).map((t) => `«${t}»`).join(", ")} y «${titulos.at(-1)}»` : `la sección «${titulos[0]}»`;
+  const vease = titulos.length > 1 ? "véanse" : "véase";
+  const neutra = `Esta información se presenta en ${seccion}.`;
   let oracion: string;
   if (despues.replace(/[\s.,;:]+/g, " ").trim().split(" ").filter(Boolean).length < 4) {
-    const sujeto = antes.replace(COLA, "").trim();
+    // El marcador es toda la oración: el que llama puede dar el sujeto, para no dejar «Esta información» sin antecedente.
+    const sujeto = antes.replace(COLA, "").trim() || (sujetoSiFalta ?? "");
     const plural = /^(?:los|las)\s/i.test(sujeto) || /\s(?:y|e)\s+(?:su|sus|el|la|los|las)\s/i.test(sujeto);
-    oracion = sujeto.split(/\s+/).length >= 3 ? `${sujeto} ${plural ? "se describen" : "se describe"} en la sección «${titulo}».` : neutra;
+    oracion = sujeto.split(/\s+/).length >= 3 ? `${sujeto} ${plural ? "se describen" : "se describe"} en ${seccion}.` : neutra;
   } else {
-    oracion = `${antes.replace(/\s+(?:de|del|a|al|en|con|por|para|sobre)\s*$/i, "")} (véase la sección «${titulo}»)${despues}`.replace(/\s+\)/g, ")").replace(/\(\s+/g, "(");
+    oracion = `${antes.replace(/\s+(?:de|del|a|al|en|con|por|para|sobre)\s*$/i, "")} (${vease} ${seccion})${despues}`.replace(/\s+\)/g, ")").replace(/\(\s+/g, "(");
   }
   if (!tieneSujetoYVerbo(oracion)) oracion = neutra;
   return `${texto.slice(0, inicio)}${oracion}${texto.slice(fin)}`;
@@ -214,4 +219,78 @@ export async function cerrarPendientes(db: Db, documentoId: string): Promise<Res
       .eq("numero", numero);
   }
   return { cierres, uso, costo: costoUsd(MODELO_LIBRO, uso) };
+}
+
+// =============================================================================
+// CIERRES DIRIGIDOS (lector externo del 11 de octubre de 2026). Los decide una
+// persona —qué pendiente y a qué secciones— y el código los ejecuta con las
+// mismas reglas que el cierre automático, sin regenerar:
+//   · cerrarPendienteDirigido: un pendiente que el validador cruzado no propone
+//     (p. ej. lo responden DOS secciones juntas). Se verifica con el texto de
+//     todas; solo «responde» sustituye. Si no, el pendiente se queda con nota.
+//   · remitirPendienteDuplicado: el mismo pendiente en dos bloques; queda en uno
+//     y el otro remite a él. Sin modelo: no cierra nada, solo quita el duplicado.
+// =============================================================================
+
+type Dirigido = { veredicto: Veredicto | "sin_marcador"; razon: string; texto: string | null; costo: number };
+
+async function guardarCierre(db: Db, documentoId: string, numero: number, texto: string, quitar: string | null, nota: string) {
+  const { data: fila } = await db.from("documentos_bloques").select("pendientes").eq("documento_id", documentoId).eq("numero", numero).single();
+  const pendientes = ((fila?.pendientes ?? []) as { campo: string; motivo: string }[]).filter(
+    (p) => !quitar || p.campo !== "bloque" || !normal(quitar).includes(normal(p.motivo).replace(/^\[?pendiente:\s*/, "").slice(0, 60))
+  );
+  const notas = [{ campo: "nota_revision", cubeta: "decision_emisor", etiqueta: null, motivo: nota }];
+  await db
+    .from("documentos_bloques")
+    .update({ texto, pendientes: [...pendientes, ...notas] as never, origen_texto: "automatica", updated_at: new Date().toISOString() })
+    .eq("documento_id", documentoId)
+    .eq("numero", numero);
+}
+
+const marcadorQueEmpieza = (texto: string, empieza: string) => texto.match(new RegExp(`\\[Pendiente: ${empieza.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\]]*\\]`))?.[0] ?? null;
+
+export async function cerrarPendienteDirigido(
+  db: Db,
+  documentoId: string,
+  c: { bloque: number; empieza: string; destinos: number[]; motivo: string }
+): Promise<Dirigido> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("sin ANTHROPIC_API_KEY");
+  const { data: filas } = await db.from("documentos_bloques").select("numero, texto").eq("documento_id", documentoId).in("numero", [c.bloque, ...c.destinos]);
+  const textoDe = (n: number) => filas?.find((f) => f.numero === n)?.texto ?? "";
+  const marcador = marcadorQueEmpieza(textoDe(c.bloque), c.empieza);
+  if (!marcador) return { veredicto: "sin_marcador", razon: "el marcador ya no está en el bloque", texto: null, costo: 0 };
+  const titulos = c.destinos.map(tituloDe);
+  const juntos = c.destinos.map((n) => `## ${tituloDe(n)}\n\n${textoDe(n)}`).join("\n\n");
+  const v = await verificarCierre(marcador, titulos.join("» y «"), juntos, apiKey);
+  const costo = costoUsd(MODELO_LIBRO, v.uso);
+  const secciones = titulos.map((t) => `«${t}»`).join(" y ");
+  if (v.veredicto !== "responde") {
+    await guardarCierre(db, documentoId, c.bloque, textoDe(c.bloque), null,
+      `Cierre dirigido no aplicado (${c.motivo}): las secciones ${secciones} no responden por completo el pendiente «${marcador.slice(0, 160)}». Verificación (Sonnet 5.5): ${v.veredicto} — ${v.razon}. El pendiente se queda.`);
+    return { veredicto: v.veredicto, razon: v.razon, texto: null, costo };
+  }
+  const texto = sustituirMarcador(textoDe(c.bloque), marcador, titulos);
+  await guardarCierre(db, documentoId, c.bloque, texto, marcador,
+    `Cierre dirigido (${c.motivo}): el pendiente «${marcador.slice(0, 160)}» se sustituyó por una remisión a ${secciones}. Verificación (Sonnet 5.5): responde — ${v.razon}`);
+  return { veredicto: "responde", razon: v.razon, texto, costo };
+}
+
+export async function remitirPendienteDuplicado(
+  db: Db,
+  documentoId: string,
+  c: { bloque: number; empieza: string; destino: number; empiezaEnDestino: string; sujeto: string; motivo: string }
+): Promise<Dirigido> {
+  const { data: filas } = await db.from("documentos_bloques").select("numero, texto").eq("documento_id", documentoId).in("numero", [c.bloque, c.destino]);
+  const textoDe = (n: number) => filas?.find((f) => f.numero === n)?.texto ?? "";
+  const marcador = marcadorQueEmpieza(textoDe(c.bloque), c.empieza);
+  if (!marcador) return { veredicto: "sin_marcador", razon: "el marcador ya no está en el bloque", texto: null, costo: 0 };
+  // Solo si el destino conserva su propio pendiente: si no, la remisión no apuntaría a nada.
+  if (!marcadorQueEmpieza(textoDe(c.destino), c.empiezaEnDestino)) return { veredicto: "no_responde", razon: "el destino ya no tiene el pendiente", texto: null, costo: 0 };
+  const titulo = tituloDe(c.destino);
+  // sustituirMarcador ya aplica la gramática mínima (si falla, queda la remisión neutra).
+  const texto = sustituirMarcador(textoDe(c.bloque), marcador, titulo, c.sujeto);
+  await guardarCierre(db, documentoId, c.bloque, texto, marcador,
+    `Pendiente duplicado (${c.motivo}): «${marcador.slice(0, 160)}» queda solo en el bloque ${c.destino} («${titulo}»); este bloque remite ahí.`);
+  return { veredicto: "responde", razon: "duplicado", texto, costo: 0 };
 }
