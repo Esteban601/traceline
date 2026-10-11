@@ -199,7 +199,7 @@ const PERFIL = {
   carta_firmante: "Andrés Villaseñor Ruiz",
   carta_cargo: "Director General",
   carta_texto: [
-    "Presentamos el primer Informe de Sostenibilidad de Empresa Demo preparado conforme a las Normas NIIF S1 y S2. Para una institución financiera, el cambio climático no es únicamente un asunto de huella operativa: es un factor que incide en la calidad de nuestra cartera, en el valor de los colaterales que respaldan nuestros créditos y en las expectativas de los inversionistas que financian nuestro crecimiento.",
+    "Presentamos el primer informe de Empresa Demo preparado conforme a las Normas NIIF S1 y S2, que da continuidad a los informes anuales de sustentabilidad que publicamos desde 2017 bajo GRI. Para una institución financiera, el cambio climático no es únicamente un asunto de huella operativa: es un factor que incide en la calidad de nuestra cartera, en el valor de los colaterales que respaldan nuestros créditos y en las expectativas de los inversionistas que financian nuestro crecimiento.",
     "Durante 2025 fortalecimos la gobernanza de estos temas con la creación del Comité de Sostenibilidad y Riesgos Climáticos, integramos criterios climáticos en la evaluación de crédito para los sectores de mayor exposición y concluimos la primera evaluación de riesgos físicos sobre nuestra red de sucursales y sobre la cartera agropecuaria e inmobiliaria.",
     "Este informe es una línea base. Reconocemos que la medición de emisiones financiadas, la cuantificación de efectos financieros y la comparabilidad entre ejercicios son tareas que iremos completando en los próximos periodos, y asumimos el compromiso de reportar con transparencia tanto los avances como las limitaciones.",
   ].join("\n\n"),
@@ -413,7 +413,7 @@ const REGISTROS = [
   {
     nombre: "Eficiencia operativa de la red",
     tipo: "oportunidad",
-    horizontes: ["Corto plazo"],
+    horizontes: ["Mediano plazo"],
     probabilidad: null,
     impacto: null,
     severidad: null,
@@ -731,7 +731,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S1 74"],
     area: "Sostenibilidad",
     texto:
-      "Los principales juicios fueron la delimitación del perímetro (operaciones propias para emisiones; cartera como exposición cualitativa), la clasificación sectorial por intensidad de carbono y la elección de escenarios. Las incertidumbres de medición se concentran en la calidad de datos de acreditados, en la estimación de emisiones de Alcance 2 a partir de facturación —no hay medición directa en 14 sucursales arrendadas con servicio incluido—, en la exclusión de las fugas de refrigerantes (HFC) del Alcance 1 por falta de registros de recarga, y en la estimación de exposición de colaterales por código postal.",
+      "Los principales juicios fueron la delimitación del perímetro (operaciones propias para las emisiones de Alcances 1 y 2; emisiones financiadas fuera del informe por el alivio C4, aunque la medición interna bajo PCAF ya cubre el 42% de la cartera empresarial con calidad de datos 4-5), la clasificación sectorial por intensidad de carbono y la elección de escenarios. Las incertidumbres de medición se concentran en la calidad de datos de acreditados, en la estimación de emisiones de Alcance 2 a partir de facturación —no hay medición directa en 14 sucursales arrendadas con servicio incluido—, en la exclusión de las fugas de refrigerantes (HFC) del Alcance 1 por falta de registros de recarga, y en la estimación de exposición de colaterales por código postal.",
   },
   {
     titulo: "Cambios previstos en la situación financiera por el clima",
