@@ -9,6 +9,8 @@ import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { REGIMEN_LABEL, ALIVIOS } from "@/lib/perfil-emisor";
 import { SuplementoView } from "./suplemento-view";
 import { GenerarPrueba } from "./generar-prueba";
+import { opcionesLiterales } from "@/lib/suplemento/texto-del-emisor";
+import { prevuelo } from "@/lib/suplemento/prevuelo";
 
 export const metadata: Metadata = { title: "Suplemento S1 y S2" };
 
@@ -76,13 +78,31 @@ export default async function SuplementoPage({
   // dice "no me indexes", no "aquí se puede gastar en llamadas al modelo".
   // Bandera de la emisora (`tenants.generador_activo`): apagada, la página sigue
   // mostrando el semáforo pero no ofrece generar. Las rutas lo niegan igual.
+  // La selección de editoriales del último documento abierto de este reporte,
+  // para que regenerar respete lo que se eligió (encargo suplemento-calidad).
+  const { data: ultimoDoc } = await db
+    .from("documentos_generados")
+    .select("editoriales_incluidos, textos_literales")
+    .eq("reporte_id", reporteId)
+    .eq("tipo", "suplemento_s1s2")
+    .eq("idioma", "es")
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: repTenant } = await db
     .from("reportes")
-    .select("tenants(generador_activo)")
+    .select("tenant_id, tenants(generador_activo)")
     .eq("id", reporteId)
     .maybeSingle();
   const generadorActivo =
     (repTenant?.tenants as unknown as { generador_activo: boolean } | null)?.generador_activo ?? false;
+
+  // Adjuntos que cada editorial puede usar sin reescribir (Paso 3).
+  const literalesOpciones = repTenant?.tenant_id ? await opcionesLiterales(db, repTenant.tenant_id) : {};
+
+  // Pre-vuelo del documento (Paso 5.4), con la selección del último documento.
+  const avisosPrevuelo = esStaff(perfil) || esAdminCliente(perfil) ? await prevuelo(db, reporteId, ultimoDoc?.editoriales_incluidos ?? null) : [];
 
   const conBotonDePrueba = esStaff(perfil) && generadorActivo && process.env.SUPLEMENTO_PRUEBA === "1";
 
@@ -104,10 +124,13 @@ export default async function SuplementoPage({
         anioAdopcion={res.anioAdopcion}
         aliviosActivos={aliviosActivos}
         bloques={res.bloques}
-        resumen={res.resumen}
         reporteId={reporteId}
         puedeGenerar={esStaff(perfil) && generadorActivo}
         generadorActivo={generadorActivo}
+        seleccionInicial={ultimoDoc?.editoriales_incluidos ?? null}
+        opcionesLiterales={literalesOpciones}
+        literalesIniciales={(ultimoDoc?.textos_literales as Record<string, string> | null) ?? null}
+        prevuelo={avisosPrevuelo}
       />
     </Marco>
   );

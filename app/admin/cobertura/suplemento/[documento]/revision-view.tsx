@@ -9,6 +9,9 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { Tono } from "@/lib/estados";
 import { cambiarEstado, guardarTexto, type EstadoAccion } from "./actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Historial, type VersionVista } from "./historial";
+import { bloqueantesDeAprobacion, motivoDeRechazo } from "@/lib/suplemento/aprobacion";
 
 // =============================================================================
 // La vista de revisión. Un bloque a la vez, con todo lo que hace falta para
@@ -23,7 +26,8 @@ export type BloqueRevision = {
   texto: string | null;
   fuentes: { tipo: string; id: string; detalle: string }[];
   pendientes: string[];
-  notasRevision: string[];
+  /** Notas al revisor; en modo libro, con su cubeta y su etiqueta (Paso 5.4). */
+  notasRevision: { texto: string; cubeta: string | null; etiqueta: string | null }[];
   modelo: string | null;
   /**
    * Con qué versión del prompt se escribió ESTE texto. Se muestra porque un
@@ -37,6 +41,31 @@ export type BloqueRevision = {
   tokensSalida: number;
   editadoEn: string | null;
   editadoPor: string | null;
+  /** Texto del emisor copiado literal de un adjunto, sin pasar por el modelo (Paso 3). */
+  textoDelEmisor: boolean;
+  /** Historial del bloque, de la versión más reciente a la más antigua (Paso 4). */
+  versiones: VersionVista[];
+  /** Cobertura por subrequisito, si se generó desde el libro de hechos (Paso 5). */
+  cobertura: { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario: string; requisito?: string | null; padre?: string | null; requisitoPadre?: string | null }[] | null;
+  /** Modo revisión (Paso 5b): por oración del texto, los hechos que la sostienen. El texto publicable no las lleva. */
+  anclas: { oracion: string; hechos: { id: string; fuente: string }[] }[] | null;
+};
+
+/** Las tres cubetas de notas (Paso 5.4); las notas de antes, sin cubeta, al final. */
+const CUBETAS: { clave: string | null; titulo: string }[] = [
+  { clave: "decision_emisor", titulo: "decisiones del emisor" },
+  { clave: "revelacion_voluntaria", titulo: "revelación voluntaria" },
+  { clave: "defecto_insumo", titulo: "defectos de insumo" },
+  { clave: null, titulo: "para el revisor" },
+];
+
+const ESTADO_COBERTURA: Record<string, { label: string; tono: Tono }> = {
+  cubierto: { label: "Cubierto", tono: "verde" },
+  parcial: { label: "Parcial", tono: "ambar" },
+  pendiente: { label: "Pendiente", tono: "rojo" },
+  asignado: { label: "Asignado", tono: "gris" },
+  // «No aplica» heredado (36(c), 36(e)): lo decide el código con los datos de la emisora.
+  no_aplica: { label: "No aplica", tono: "gris" },
 };
 
 const VACIO: EstadoAccion = { ok: false, error: null, mensaje: null };
@@ -46,6 +75,7 @@ const META: Record<string, { label: string; tono: Tono }> = {
   borrador: { label: "Borrador", tono: "verde" },
   error: { label: "Error", tono: "rojo" },
   no_aplica: { label: "No aplica", tono: "gris" },
+  no_seleccionado: { label: "No seleccionado", tono: "gris" },
   pendiente_adjunto: { label: "Espera adjunto", tono: "ambar" },
   en_revision: { label: "En revisión", tono: "azul" },
   aprobado: { label: "Aprobado", tono: "verde" },
@@ -70,6 +100,8 @@ export function RevisionView(p: {
   puedeAprobar: boolean;
   /** `tenants.generador_activo`: con el generador apagado no se ofrece regenerar (la ruta lo niega igual). */
   generadorActivo: boolean;
+  /** Observaciones de la pasada de coherencia (Paso 3), debajo del resumen. */
+  panelCoherencia?: React.ReactNode;
 }) {
   const [sEstado, aEstado] = useActionState(cambiarEstado, VACIO);
   const toast = useToast();
@@ -88,15 +120,14 @@ export function RevisionView(p: {
 
   // Lo que impide aprobar, calculado aquí para decirlo ANTES de que alguien lo
   // intente. El servidor lo vuelve a comprobar: esto es cortesía, no la barrera.
-  const bloqueantes = useMemo(
-    () =>
-      p.bloques.filter(
-        (b) =>
-          b.estado !== "no_aplica" &&
-          (b.pendientes.length > 0 || ["generando", "error", "pendiente_adjunto"].includes(b.estado))
-      ),
-    [p.bloques]
-  );
+  // La MISMA regla que la acción del servidor (lib/suplemento/aprobacion.ts).
+  const bloqueantes = useMemo(() => {
+    const titulo = new Map(p.bloques.map((b) => [b.numero, b.titulo]));
+    return bloqueantesDeAprobacion(
+      p.bloques.map((b) => ({ numero: b.numero, estado: b.estado, texto: b.texto, pendientes: b.pendientes.length }))
+    ).map((x) => ({ ...x, titulo: titulo.get(x.numero) ?? "" }));
+  }, [p.bloques]);
+  const motivoBloqueo = bloqueantes.length ? motivoDeRechazo(bloqueantes) : null;
 
   const secciones = useMemo(() => {
     const out: { nombre: string; items: BloqueRevision[] }[] = [];
@@ -167,16 +198,14 @@ export function RevisionView(p: {
             <form action={aEstado}>
               <input type="hidden" name="documento_id" value={p.documentoId} />
               <input type="hidden" name="estado" value="aprobado" />
-              <Button type="submit" size="sm" disabled={bloqueantes.length > 0} title={
-                bloqueantes.length > 0 ? "Hay bloques con pendientes o sin generar" : "Aprobar el documento"
-              }>
+              <Button type="submit" size="sm" disabled={bloqueantes.length > 0} title={motivoBloqueo ?? "Aprobar el documento"}>
                 Aprobar
               </Button>
             </form>
           )}
           {bloqueantes.length > 0 && p.puedeAprobar && (
-            <span className="text-sm text-muted">
-              No se puede aprobar: {bloqueantes.length} bloque(s) con pendientes o sin generar.
+            <span className="text-sm text-muted" data-motivo-bloqueo>
+              {motivoBloqueo}
             </span>
           )}
         </div>
@@ -192,7 +221,7 @@ export function RevisionView(p: {
                   <span className="font-mono text-xs text-muted">{b.numero}</span> {b.titulo}
                   <span className="text-muted">
                     {" — "}
-                    {b.pendientes.length ? `${b.pendientes.length} pendiente(s)` : META[b.estado]?.label ?? b.estado}
+                    {b.motivo}
                   </span>
                 </li>
               ))}
@@ -200,6 +229,8 @@ export function RevisionView(p: {
           </details>
         )}
       </Card>
+
+      {p.panelCoherencia}
 
       {secciones.map((sec) => (
         <section key={sec.nombre}>
@@ -289,8 +320,22 @@ function BloqueCard({
   regenerable: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
+  // Enlaces desde la coherencia (validador cruzado): #bloque-N abre y muestra el bloque.
+  useEffect(() => {
+    const abrir = () => {
+      if (window.location.hash === `#bloque-${bloque.numero}`) {
+        setAbierto(true);
+        document.getElementById(`bloque-${bloque.numero}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    abrir();
+    window.addEventListener("hashchange", abrir);
+    return () => window.removeEventListener("hashchange", abrir);
+  }, [bloque.numero]);
   const [editando, setEditando] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
+  // A6 (Paso 4): el aviso antes de regenerar un bloque editado a mano.
+  const [avisoEdicion, setAvisoEdicion] = useState<string | null>(null);
   // `guardando` deshabilita el botón mientras la acción va en vuelo. Sin esto,
   // un clic impaciente de más dispara otra acción de servidor: es lo que dejó
   // tres entradas de bitácora para una sola edición del bloque 4.
@@ -314,7 +359,18 @@ function BloqueCard({
     return b.tokensSalida / (b.duracionMs / 1000);
   }
 
-  async function regenerar() {
+  /** Un bloque editado a mano pide confirmación antes de regenerarse. */
+  function pedirRegenerar() {
+    if (bloque.editadoEn) {
+      const fecha = new Date(bloque.editadoEn).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+      setAvisoEdicion(`Se perderá la edición de ${bloque.editadoPor ?? "una persona"} del día ${fecha}; queda en el historial.`);
+      return;
+    }
+    void regenerar(false);
+  }
+
+  async function regenerar(confirmarEdicion: boolean) {
+    setAvisoEdicion(null);
     setRegenerando(true);
     try {
       const res = await fetch(`/api/suplemento/${documentoId}/bloque/${bloque.numero}`, {
@@ -322,8 +378,13 @@ function BloqueCard({
         headers: { "content-type": "application/json" },
         // Regenerar a mano reinicia el contador de cortes: quien pulsa el botón
         // está empezando de nuevo, no reintentando la tanda anterior.
-        body: JSON.stringify({ reiniciarIntentos: true }),
+        body: JSON.stringify({ reiniciarIntentos: true, confirmarEdicion }),
       });
+      // El servidor también lo exige (la pantalla puede estar desactualizada).
+      if (res.status === 428) {
+        setAvisoEdicion((await res.json()).error ?? "Este bloque tiene una edición a mano; queda en el historial.");
+        return;
+      }
       if (res.status !== 202) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       toast.success(`Bloque ${bloque.numero} regenerándose. Recarga en un momento.`);
     } catch (e) {
@@ -336,6 +397,7 @@ function BloqueCard({
   const meta = META[bloque.estado] ?? { label: bloque.estado, tono: "gris" as Tono };
 
   return (
+    <div id={`bloque-${bloque.numero}`} className="scroll-mt-4">
     <Card className="overflow-hidden">
       <button
         type="button"
@@ -348,7 +410,7 @@ function BloqueCard({
           <span className="block truncate text-sm font-medium text-ink">{bloque.titulo}</span>
           <span className="block truncate text-xs text-muted">
             {bloque.texto ? `${bloque.texto.length.toLocaleString("es-MX")} caracteres` : "sin texto"}
-            {bloque.modelo ? ` · ${bloque.modelo}` : ""}
+            {bloque.textoDelEmisor ? " · copiado del archivo, sin modelo" : bloque.modelo ? ` · ${bloque.modelo}` : ""}
             {bloque.promptVersion ? ` · ${bloque.promptVersion}` : ""}
             {bloque.costoUsd > 0 ? ` · $${bloque.costoUsd.toFixed(4)}` : ""}
             {tokensPorSegundo(bloque) !== null
@@ -357,6 +419,7 @@ function BloqueCard({
             {bloque.editadoEn ? ` · editado por ${bloque.editadoPor ?? "alguien"}` : ""}
           </span>
         </span>
+        {bloque.textoDelEmisor && <Chip tono="azul">Texto del emisor</Chip>}
         {bloque.pendientes.length > 0 && <Chip tono="ambar">{bloque.pendientes.length} pend.</Chip>}
         <Chip tono={meta.tono}>{meta.label}</Chip>
         <span aria-hidden className={cn("shrink-0 text-muted transition", abierto && "rotate-90")}>›</span>
@@ -364,7 +427,11 @@ function BloqueCard({
 
       {abierto && (
         <div className="space-y-4 border-t border-line px-4 py-4">
-          {bloque.texto ? (
+          {bloque.estado === "no_seleccionado" ? (
+            <p className="text-sm text-muted">
+              Bloque editorial no seleccionado: no va en este documento. Se enciende al generar.
+            </p>
+          ) : bloque.texto ? (
             editando ? (
               <form action={aTexto} className="space-y-2">
                 <input type="hidden" name="documento_id" value={documentoId} />
@@ -404,17 +471,83 @@ function BloqueCard({
           )}
 
           <div className="flex flex-wrap gap-2">
-            {editable && bloque.texto && !editando && (
+            {editable && bloque.texto && !editando && bloque.estado !== "no_seleccionado" && (
               <Button size="sm" variant="secondary" onClick={() => setEditando(true)}>
                 Editar
               </Button>
             )}
-            {regenerable && bloque.estado !== "no_aplica" && (
-              <Button size="sm" variant="ghost" onClick={regenerar} loading={regenerando}>
+            {regenerable && bloque.estado !== "no_aplica" && bloque.estado !== "no_seleccionado" && (
+              <Button size="sm" variant="ghost" onClick={pedirRegenerar} loading={regenerando}>
                 Regenerar
               </Button>
             )}
           </div>
+
+          <ConfirmDialog
+            open={!!avisoEdicion}
+            titulo={`Regenerar el bloque ${bloque.numero}`}
+            descripcion={avisoEdicion ?? ""}
+            confirmar="Regenerar de todos modos"
+            tono="danger"
+            onConfirm={() => void regenerar(true)}
+            onCancel={() => setAvisoEdicion(null)}
+          />
+
+          <Historial
+            documentoId={documentoId}
+            numero={bloque.numero}
+            versiones={bloque.versiones}
+            textoActual={bloque.texto}
+            puedeRestaurar={editable && bloque.estado !== "generando"}
+          />
+
+          {bloque.cobertura && bloque.cobertura.length > 0 && (
+            <Lista
+              titulo="Cobertura por subrequisito · juicio del generador"
+              ayuda="Que el texto responda cada requisito es juicio del modelo, no una verificación. El texto del requisito viene del catálogo. El código solo comprueba que estén todos los requisitos del bloque y que los hechos citados existan."
+            >
+              {bloque.cobertura.map((c, i, todas) => (
+                <li key={c.codigo} className={cn("text-sm", c.padre && "ml-5")} data-cobertura={c.codigo}>
+                  {/* Hijos bajo su padre: el encabezado del padre va antes de su primer inciso. */}
+                  {c.padre && todas[i - 1]?.padre !== c.padre && (
+                    <div className="-ml-5 mb-1 flex flex-wrap items-baseline gap-2" data-padre={c.padre}>
+                      <span className="font-mono text-xs font-semibold text-ink">{c.padre}</span>
+                      {c.requisitoPadre && <span className="text-xs text-muted">{c.requisitoPadre}</span>}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-mono text-xs text-ink">{c.codigo}</span>
+                    <Chip tono={ESTADO_COBERTURA[c.estado]?.tono ?? "gris"}>{ESTADO_COBERTURA[c.estado]?.label ?? c.estado}</Chip>
+                    <span className="text-muted">
+                      {c.estado === "asignado" && c.bloque ? `bloque ${c.bloque}` : `${c.hechos.length} hecho(s)`}
+                      {c.comentario ? ` — ${c.comentario}` : ""}
+                    </span>
+                  </div>
+                  {c.requisito && <p className="mt-0.5 text-xs text-muted">{c.requisito}</p>}
+                </li>
+              ))}
+            </Lista>
+          )}
+
+          {bloque.anclas && bloque.anclas.length > 0 && (
+            <details className="rounded-lg border border-line px-3 py-2" data-anclas={bloque.numero}>
+              <summary className="cursor-pointer text-sm font-medium text-ink">Anclas por oración ({bloque.anclas.length})</summary>
+              <p className="mt-1 text-xs text-muted">Solo para revisión: el texto publicado no las lleva. Cada oración, con los hechos que la sostienen.</p>
+              <ol className="mt-2 space-y-2">
+                {bloque.anclas.map((a, i) => (
+                  <li key={i} className="text-sm">
+                    <span className="text-ink">{a.oracion}</span>{" "}
+                    {a.hechos.map((h) => (
+                      <span key={h.id} title={h.fuente} className="ml-1 rounded bg-teal/10 px-1 font-mono text-xs text-teal">
+                        [{h.id}]
+                      </span>
+                    ))}
+                    {a.hechos.length > 0 && <div className="text-xs text-muted">{a.hechos.map((h) => `${h.id}: ${h.fuente}`).join(" · ")}</div>}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
 
           {bloque.fuentes.length > 0 && (
             <Lista titulo="Fuentes">
@@ -435,16 +568,27 @@ function BloqueCard({
             </Lista>
           )}
 
-          {bloque.notasRevision.length > 0 && (
-            <Lista titulo="Notas para el revisor" ayuda="No se publican.">
-              {bloque.notasRevision.map((x, i) => (
-                <li key={i} className="text-sm leading-relaxed text-ink">{x}</li>
-              ))}
-            </Lista>
-          )}
+          {bloque.notasRevision.length > 0 &&
+            CUBETAS.map(({ clave, titulo }) => {
+              const notas = bloque.notasRevision.filter((n) => (n.cubeta ?? null) === clave);
+              if (!notas.length) return null;
+              return (
+                <Lista key={clave ?? "sin"} titulo={`Notas · ${titulo}`} ayuda="No se publican.">
+                  {notas.map((n, i) => (
+                    <li key={i} className="text-sm leading-relaxed text-ink" data-cubeta={clave ?? "sin_clasificar"}>
+                      {n.etiqueta === "por_conciliar" && <Chip tono="ambar">Por conciliar</Chip>}
+                      {n.etiqueta === "contradiccion" && <Chip tono="rojo">Contradicción</Chip>}
+                      {n.etiqueta ? " " : ""}
+                      {n.texto}
+                    </li>
+                  ))}
+                </Lista>
+              );
+            })}
         </div>
       )}
     </Card>
+    </div>
   );
 }
 
@@ -472,6 +616,8 @@ function Enlace({ id }: { id: string }) {
     : tipo === "obj" ? "/admin/objetivos"
     : tipo === "cue" ? "/admin/cuestionarios"
     : tipo === "perfil" ? "/admin/perfil"
+    // Documento del Perfil (adj:<adjunto>:<lugar>): sus archivos están en el Perfil.
+    : tipo === "adj" ? "/admin/perfil"
     : null;
   if (!href) return <code className="text-xs text-muted">{id}</code>;
   return (

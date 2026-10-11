@@ -1,4 +1,6 @@
-import { BLOQUES, type Bloque } from "@/lib/suplemento/bloques";
+import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloques";
+import { fronteraDe } from "@/lib/suplemento/fronteras";
+import { mapaDeDuenos } from "@/lib/suplemento/hechos/remisiones";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 
 // =============================================================================
@@ -29,7 +31,13 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 // reglas nuevas atacan eso.
 // =============================================================================
 
-export const PROMPT_VERSION = "a5b-v3-2026-10-04";
+// calidad-v2: documentos del Perfil del emisor como contexto citado (regla 10)
+// y documento sugerido dentro de «qué falta» del marcador (Paso 2).
+export const PROMPT_VERSION = "calidad-v2-2026-10-06";
+// Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
+// v2: caché compartido (requisitos en la volátil), glosario, notas en tres
+// cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
+export const PROMPT_VERSION_HECHOS = "hechos-v10-2026-10-08";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -41,7 +49,7 @@ export type RequisitoNiif = { codigo: string; descripcion: string };
 
 export type FuenteEntregada = {
   id: string;
-  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia";
+  tipo: "solicitud" | "registro" | "objetivo" | "cuestionario" | "perfil" | "reporte" | "evidencia" | "documento" | "hecho";
   detalle: string;
 };
 
@@ -84,6 +92,7 @@ export const VOCABULARIO_PROHIBIDO = [
   "perfil:",
   "reporte:",
   "evi:",
+  "adj:",
 ];
 
 /** El marcador de pendiente, con formato uniforme. Es lo único que se permite. */
@@ -193,6 +202,8 @@ Donde falte un dato, escribe exactamente:
 
 \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`
 
+Cuando haya un documento de la emisora que resolvería el hueco, nómbralo DENTRO de «qué falta», entre paréntesis y con la forma «documento sugerido: …»: \`[Pendiente: integrantes del comité que supervisa los asuntos climáticos (documento sugerido: acta de instalación del comité o estatutos sociales) — Perfil del emisor, Gobierno corporativo]\`. Sugiere documentos que una emisora tiene (acta, estatutos, reglamento, política, informe, inventario), no los inventes con nombre propio.
+
 Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes no es un marcador y el servidor lo rechaza: el revisor los retira buscando los corchetes, y sin ellos la frase se publicaría tal cual. Ese marcador es para el revisor interno y se retira antes de aprobar el documento; es el único lugar donde puedes nombrar una solicitud o un campo. Fuera de él, el texto no admite ese vocabulario.
 
 **El marcador OCUPA EL LUGAR DEL DATO. No lo anuncies.** Nunca escribas una frase que prometa algo que luego resulta ser un marcador: nada de «la calificación asignada se presenta a continuación» seguido de un pendiente, ni «el detalle se describe más adelante» si ese detalle falta. Si el dato no está, la oración lo dice en el sitio donde iría el dato y no promete nada alrededor. Un borrador que anuncia una tabla inexistente, publicado sin revisar, miente.
@@ -205,7 +216,7 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 
 2. TODA CIFRA LLEVA SU FUENTE EN \`fuentes_usadas\`, nunca en el texto. Si citas un id que no se te entregó, la respuesta se rechaza entera.
 
-3. NO TE SALGAS DE TU BLOQUE. Abajo tienes el índice de los cuarenta bloques del documento. Lo que le toca a otro, no lo escribes: se repetiría en el informe. La instrucción volátil te dice qué cubre el tuyo y qué bloques cubren lo contiguo.
+3. NO TE SALGAS DE TU BLOQUE. Abajo tienes el índice de los bloques que lleva este documento. Lo que le toca a otro, no lo escribes: se repetiría en el informe. La instrucción volátil te dice qué cubre el tuyo y qué bloques cubren lo contiguo.
 
 4. REGISTRO FORMAL, TERCERA PERSONA. Nada de "nosotros" ni "creemos". Sin adjetivos promocionales: nada de "sólido", "robusto", "líder", "comprometido", "de vanguardia". La norma pide describir, no persuadir.
 
@@ -219,6 +230,8 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 
 9. EL DOCUMENTO DE RESPALDO ES CONTEXTO, NO FUENTE DE CIFRAS. Una solicitud puede traer \`documento_de_respaldo\`: el texto leído del archivo que la sustenta, con un id entre corchetes por página, párrafo, tabla u hoja (\`[evi:…]\`). Úsalo para describir con precisión lo que la emisora hace —procesos, responsables, frecuencias, alcance— y pon en \`fuentes_usadas\` el id exacto de la página o párrafo de donde lo tomaste. Pero NINGUNA CIFRA sale de ahí: las cifras vienen solo de \`valor\`, de la tabla, de \`texto_confirmado\` o de los demás datos entregados, y una cifra que solo aparece en el documento se rechaza. Si trae \`texto_confirmado\`, ese texto ya lo revisó la emisora: es la base preferida para redactar; cítalo con los ids de \`citar_con\`. Los ids van en \`fuentes_usadas\`, nunca en el texto.
 
+10. LOS DOCUMENTOS DE LA EMISORA SON CONTEXTO CITADO, NO FUENTE DE CIFRAS. Puede venir una sección «Documentos de la emisora»: extractos de los documentos que la emisora adjuntó a su perfil —estatutos, códigos, actas, reglamentos, organigramas—, ya seleccionados por pertinencia para este bloque, con un id entre corchetes por página o tramo (\`[adj:…]\`). Úsalos para describir lo que la emisora tiene y hace —qué órgano supervisa, qué comité existe y qué le corresponde, cómo se informa, qué política aplica— y pon en \`fuentes_usadas\` el id exacto de cada página o tramo del que tomaste algo. Si un campo del perfil está vacío y su contenido está en un documento, redáctalo desde el documento. Igual que en la regla 9: NINGUNA CIFRA sale de ahí (número de sesiones, de consejeros, porcentajes, montos, fechas de una sesión); si la revelación la necesita, va un marcador de pendiente. Lo que el documento no dice no se completa, y si un documento aparece como «no se pudo leer», lo que dependía de él es un pendiente que lo nombra.
+
 # Qué va en \`notas_revision\` y qué no
 
 \`notas_revision\` es un canal aparte, para el revisor de IRStrat. NO se publica. Ahí —y solo ahí— pones los juicios que tú no debes resolver:
@@ -228,6 +241,52 @@ Con los corchetes y con la raya larga, siempre. Un «Pendiente:» sin corchetes 
 - Una revelación voluntaria que los datos harían posible y la norma no exige.
 
 En \`notas_revision\` sí puedes hablar con vocabulario interno: ese campo no se publica.`;
+
+// -----------------------------------------------------------------------------
+// REGLAS EN MODO LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5.3).
+//
+// Mismas reglas 1 a 8 y misma sección de notas; las 9 y 10 —documento de
+// respaldo y documentos del Perfil como contexto— se sustituyen por las del
+// libro: solo hechos, jerarquía de fuentes, contradicciones sin elegir,
+// referencias de una línea y cobertura por subrequisito. Responden a la revisión
+// externa del 7 de octubre de 2026 (duplicación, procedencia, inferencias).
+// -----------------------------------------------------------------------------
+const REGLAS_LIBRO = `9. SOLO HECHOS DEL LIBRO. Tus datos son los HECHOS de este bloque: cada uno trae un id (h1, h2…), su rango de fuente, un enunciado, el extracto literal de la fuente y la fuente. Todo lo que el texto afirme sale de un hecho, y su id va en \`fuentes_usadas\`. Lo que no dice ningún hecho no se escribe: ni conclusiones («el Consejo aprueba las políticas de riesgos» no permite decir que existe una política de riesgo climático), ni causas, ni calificativos, ni el desarrollo de una sigla, ni contexto que no traiga un hecho. Puedes juntar dos hechos en una frase; no derivar de ellos algo que ninguno dice. Si un requisito necesita algo que ningún hecho dice, va un marcador de pendiente. NO HAY OBLIGACIÓN DE USAR TODOS LOS HECHOS: usa solo los que respondan a un requisito de tu bloque; los demás, ignóralos (no los publiques ni los comentes en notas). Que un hecho esté verificado no lo hace pertinente.
+
+10. JERARQUÍA DE FUENTES: validado > perfil > adjunto > narrativo. Si dos hechos dicen lo mismo, cita el de mayor rango. Un hecho NARRATIVO (Carta de la Dirección, textos editoriales) no sostiene una afirmación por sí solo: solo acompaña a un hecho de otro rango que diga lo mismo; si es el único que lo dice, no se publica. Las CIFRAS salen solo de hechos validados o del perfil, o de la tabla ya armada; una cifra que solo trae un hecho de adjunto no se publica: va un marcador de pendiente y una nota.
+
+11. CONTRADICCIONES: las decide el libro, no tú. Un hecho con \`contradiccion\` trae el nombre de su grupo (c1, c2…), y en \`contradicciones\` está el veredicto de cada grupo:
+   · «excluyente»: las versiones no pueden ser ciertas a la vez. No elijas ninguna: en el lugar del dato va un marcador de pendiente que diga qué hay que conciliar, y una nota «decision_emisor» con etiqueta «contradiccion» con las dos versiones y sus fuentes. El documento sugerido del marcador no puede ser uno que ya está entre tus fuentes (si el reglamento ya se leyó y no resuelve, no lo pidas: pide el documento que sí decidiría).
+   · «compatible» o «secuencia»: son ciertas a la vez (el Comité propone y el Consejo aprueba; la propuesta, la creación y la instalación son momentos de una misma cronología). Redacta con la \`conciliacion\` que trae —puedes ajustar la sintaxis, no el contenido— y deja una nota breve «decision_emisor» con etiqueta «por_conciliar». NO va marcador.
+   · «por_conciliar»: el libro no lo pudo decidir de forma estable (sus votos no coincidieron). No marques pendiente ni elijas versión: redacta solo lo que las versiones dicen en común (nada, si no comparten nada) y deja una nota «decision_emisor» con etiqueta «por_conciliar» que diga, con las fuentes, qué hay que conciliar y que la decisión del libro fue inestable.
+   Los hechos sin \`contradiccion\` no están en conflicto: no declares contradicciones por tu cuenta ni pongas pendientes por diferencias entre ellos.
+
+12. REFERENCIAS: lo que desarrolla otro bloque te llega como referencia de una línea, con el número y el título del bloque DUEÑO. Si tu texto lo necesita, remite en una frase a ESE bloque («como se describe en la sección de …») sin repetir su contenido ni sus cifras. Solo se remite al dueño del hecho: la oración que remite lleva el ancla del hecho del mapa del documento al que remite, [B17.2], junto con sus otras anclas. Si ningún hecho del mapa del bloque destino es lo que remites, no remitas ahí. Si el hecho es tuyo, o ningún bloque es dueño de él, redáctalo aquí o pon un marcador de pendiente. El código verifica cada remisión contra el mapa.
+
+13. COBERTURA: en \`cobertura\` va una fila por cada requisito de «Requisitos de tu bloque», con el código exacto: «cubierto» si el texto lo responde con hechos (sus ids en \`hechos\`); «parcial» si lo responde en parte (ids, y en \`comentario\` qué falta); «pendiente» si falta y el texto lleva su marcador; «asignado» si lo responde otro bloque del documento (su número en \`bloque\`; los requisitos que se remiten vienen en \`remitir_a_otro_bloque\`). Se verifica por código: un id que no se entregó, un requisito que falte o sobre, o un bloque que no responde ese requisito, rechazan la respuesta.
+
+14. NOTAS EN TRES CUBETAS. Cada nota de \`notas_revision\` lleva su cubeta: «decision_emisor» (lo que la emisora tiene que decidir o conciliar: contradicciones entre fuentes —con etiqueta «contradiccion»— y la misma función atribuida a dos sujetos —etiqueta «por_conciliar»—), «revelacion_voluntaria» (lo que los hechos permitirían revelar sin que la norma lo exija) y «defecto_insumo» (lo que falta o está mal en las fuentes: un dato ausente, un nombre o una cifra que no cuadra). Los defectos de insumo que ya se reportaron a nivel documento (te llegan en «Defectos ya reportados») NO se repiten; un defecto de insumo va solo si es de un hecho de este bloque, y a lo sumo dos. Notas cortas: una o dos oraciones.
+
+15. NOMBRES: usa siempre el nombre canónico del glosario de la emisora para órganos, comités y direcciones, aunque el hecho use otro.
+
+16. ANCLAS: cierra cada oración del texto que afirme algo con los ids de los hechos que la sostienen, entre corchetes y antes del punto: «… en su sesión del 27 de febrero de 2025 [h3][h5].». Una oración que solo lleva un marcador de pendiente o una remisión no lleva ancla. El código retira las anclas del texto publicable y las muestra al revisor; un id que no se entregó rechaza la respuesta.
+
+17. INCISOS: en el texto, las notas y la cobertura, un inciso de la norma se nombra solo con el código exacto de «Requisitos de tu bloque» (p. ej. «NIIF S2 25 (a)(ii)»), nunca con un número de inciso que no esté en esa lista.
+
+18. CAMBIOS: no escribas que un proceso «no registró cambios» respecto del periodo anterior si alguno de tus hechos describe un cambio en el ejercicio («integró», «incorporó», «creó en 2025»): ese cambio es lo que se revela.
+
+19. SIN RELLENO: no cierres un párrafo ni el bloque reenunciando lo que acabas de decir («De este modo…», «En suma…», «La secuencia descrita comprende…», «En conjunto…»). Si ya lo dijiste, termina.
+
+20. SIN CALIFICATIVOS SIN SUSTENTO: no califiques una meta, un proceso o una cifra como «alineado con», «consistente con» o «conforme a» un acuerdo, una trayectoria, un estándar o una mejor práctica (el Acuerdo de París, SBTi, 1.5 °C) si ningún hecho dice exactamente eso y cómo se determinó. Si un hecho lo dice, atribúyelo («la Compañía considera que…») y, si no dice el método, deja una nota «defecto_insumo» que lo pida.
+
+21. DECLARACIONES NEGATIVAS: un hecho con \`tipo: "declaracion_negativa"\` («no usa créditos de carbono», «ninguna revisión al objetivo en 2025», «no hace uso del alivio C5», «no existen planes revelados en periodos anteriores») RESPONDE su requisito: publícalo en una oración y ánclalo. Omitirlo deja el requisito sin respuesta; el código lo rechaza.`;
+
+const REGLAS_HECHOS = (() => {
+  const ini = REGLAS.indexOf("9. EL DOCUMENTO DE RESPALDO");
+  const fin = REGLAS.indexOf("# Qué va en `notas_revision`");
+  if (ini < 0 || fin < 0) throw new Error("prompt.ts: no se encontraron las reglas 9 y 10 a sustituir");
+  return `${REGLAS.slice(0, ini)}${REGLAS_LIBRO}\n\n${REGLAS.slice(fin)}`;
+})();
 
 // -----------------------------------------------------------------------------
 // EJEMPLO DE ESTILO — el bloque equivalente de un informe real ya publicado.
@@ -276,12 +335,27 @@ Lo que hace bien, y tienes que imitar:
 
 `;
 
-function indiceDeBloques(): string {
-  const lineas = BLOQUES.map((b) => `${b.numero}. ${b.titulo}`);
+/**
+ * El índice de los bloques QUE LLEVA ESTE DOCUMENTO: los normativos y los
+ * editoriales seleccionados (encargo suplemento-calidad). Va en la capa estable:
+ * es igual para todos los bloques del mismo documento, así que el caché se
+ * comparte dentro de la corrida.
+ */
+function indiceDeBloques(incluidos: string[] | null, duenos?: { dueno: number; enunciado: string }[]): string {
+  // MAPA DEL DOCUMENTO (Paso 5c, tercera revisión externa): número, título EXACTO
+  // y qué cubre cada bloque seleccionado. Las remisiones se escriben desde aquí,
+  // nunca adivinadas (el 18 y el 27 remitían al 16 lo que está en el 17).
+  // Con libro, también DE QUÉ HECHOS es dueño cada bloque (rúbrica del 5c: la
+  // frontera sola no evitó que el 18 y el 34 remitieran a la sección equivocada).
+  const mapa = mapaDeDuenos(duenos ?? []);
+  const lineas = BLOQUES.filter((b) => bloqueSeleccionado(b, incluidos)).map((b) => {
+    const propios = (mapa.get(b.numero) ?? []).map((h) => `     [${h.id}] ${h.enunciado.slice(0, 110)}`);
+    return [`${b.numero}. «${b.titulo}» — cubre ${fronteraDe(b.numero).cubre}`, ...(propios.length ? ["   Es dueño de:", ...propios] : [])].join("\n");
+  });
   return [
-    "# El documento completo: los 40 bloques",
+    `# Mapa del documento: los ${lineas.length} bloques que lleva`,
     "",
-    "Cada bloque lo escribe una llamada distinta. Esto es lo que cubre cada uno, para que no invadas el terreno de otro:",
+    "Cada bloque lo escribe una llamada distinta. Esto es lo que cubre cada uno, para que no invadas el terreno de otro y para remitir bien: solo se remite a un bloque de este mapa, nombrándolo con su título exacto («como se describe en la sección «…»»), y solo si este mapa dice que cubre ese tema o si recibiste una referencia suya. Un bloque que no está en el mapa no existe en este documento.",
     "",
     ...lineas,
   ].join("\n");
@@ -290,7 +364,15 @@ function indiceDeBloques(): string {
 export function capaEstable(
   bloque: Bloque,
   prefs: PreferenciasEmisor,
-  requisitos: RequisitoNiif[]
+  requisitos: RequisitoNiif[],
+  /** Editoriales que lleva el documento (null = documento anterior: los 40). */
+  incluidos: string[] | null = null,
+  /** «hechos»: el bloque redacta desde el libro de hechos (reglas 9 a 15 propias). */
+  modo: "datos" | "hechos" = "datos",
+  /** Glosario del emisor (modo libro): nombres canónicos y sus variantes. */
+  glosario: { canonico: string; variantes: string[] }[] = [],
+  /** Hechos vigentes del libro por bloque dueño (modo libro): van al mapa del documento. */
+  duenos?: { dueno: number; enunciado: string }[]
 ): { texto: string }[] {
   // La denominación se copia CARÁCTER POR CARÁCTER, incluido el artículo en
   // minúscula si lo trae: "la Compañía" no es lo mismo que "La Compañía", y el
@@ -321,10 +403,29 @@ export function capaEstable(
         "Este bloque no sale de la taxonomía: se redacta a partir de las tablas y del perfil de la emisora.",
       ].join("\n");
 
+  // CACHÉ COMPARTIDO (modo libro, Paso 5.4): la capa estable es IGUAL para
+  // todos los bloques del documento —reglas, ejemplo, índice, emisora y
+  // glosario—, así que el primero la escribe y los demás la leen. Los
+  // requisitos, que cambian de bloque a bloque, pasan a la capa volátil.
+  if (modo === "hechos") {
+    const conGlosario = glosario.length
+      ? [
+          emisor,
+          "",
+          "# Glosario de la emisora",
+          "",
+          "Nombres que se publican (a la izquierda) y otros nombres con que aparecen en las fuentes, que NO se usan:",
+          "",
+          ...glosario.map((e) => `- ${e.canonico}${e.variantes.length ? ` — no: ${e.variantes.join("; ")}` : ""}`),
+        ].join("\n")
+      : emisor;
+    return [{ texto: REGLAS_HECHOS }, { texto: EJEMPLO_ESTILO }, { texto: indiceDeBloques(incluidos, duenos) }, { texto: conGlosario }];
+  }
+
   return [
     { texto: REGLAS },
     { texto: EJEMPLO_ESTILO },
-    { texto: indiceDeBloques() },
+    { texto: indiceDeBloques(incluidos) },
     { texto: emisor },
     { texto: req },
   ];
@@ -343,6 +444,14 @@ export type DatosVolatiles = {
   /** Qué cubre este bloque y qué cubren los contiguos, para no invadirlos. */
   fronteras: { cubre: string; noCubre: { numeros: number[]; que: string }[] };
   extension: string;
+  /** Extractos de los documentos del Perfil, ya seleccionados (adjuntos-bloque.ts). */
+  documentos?: string | null;
+  /** Modo libro: los requisitos del bloque (salen de la capa estable para compartir el caché). */
+  requisitos?: { codigo: string; descripcion: string }[] | null;
+  /** Incisos cuyo estado decidió el código («no aplica» heredado o pendiente por falta de dato). */
+  heredados?: { codigo: string; estado: "no_aplica" | "pendiente"; motivo: string }[];
+  /** Modo libro: defectos de insumo ya reportados a nivel documento (pre-vuelo). */
+  defectosDocumento?: string[];
 };
 
 /**
@@ -386,6 +495,29 @@ export function capaVolatil(v: DatosVolatiles): string {
     "",
     `Este bloque cubre: ${v.fronteras.cubre}`,
     "",
+    ...(v.requisitos
+      ? [
+          "# Requisitos de tu bloque",
+          "",
+          ...(v.requisitos.length
+            ? ["Cúbrelos todos; cada uno tiene su fila en `cobertura`.", "", ...v.requisitos.map((r) => `- ${r.codigo} — ${r.descripcion}`)]
+            : ["Este bloque no sale de la taxonomía: `cobertura` va vacía."]),
+          "",
+          ...(v.heredados?.length
+            ? [
+                "# Incisos ya decididos por el código",
+                "",
+                "Su estado en `cobertura` es el que se indica, no otro. «no_aplica»: una oración breve que diga por qué no aplica, con el hecho que lo sostiene. «pendiente»: un marcador que haga la pregunta.",
+                "",
+                ...v.heredados.map((h) => `- ${h.codigo}: ${h.estado} — ${h.motivo}`),
+                "",
+              ]
+            : []),
+        ]
+      : []),
+    ...(v.defectosDocumento?.length
+      ? ["# Defectos ya reportados a nivel documento", "", "No los repitas en tus notas:", "", ...v.defectosDocumento.map((d) => `- ${d}`), ""]
+      : []),
     "Lo que NO te toca:",
     noCubre,
     "",
@@ -425,6 +557,16 @@ export function capaVolatil(v: DatosVolatiles): string {
     JSON.stringify(v.datos, null, 1),
     "```",
     "",
+    ...(v.documentos
+      ? [
+          "# Documentos de la emisora",
+          "",
+          "Extractos de los documentos que la emisora adjuntó a su perfil, elegidos por pertinencia a este bloque. Contexto que se cita por su id; ninguna cifra sale de aquí (regla 10).",
+          "",
+          v.documentos,
+          "",
+        ]
+      : []),
     "# Extensión y forma",
     "",
     v.extension,
@@ -441,7 +583,7 @@ export const ESQUEMA_SALIDA = {
     texto: {
       type: "string" as const,
       description:
-        "La revelación de la emisora, publicable tal cual. Prosa corrida, sin markdown, sin vocabulario de proceso interno. Los huecos van como [Pendiente: qué falta — de qué solicitud o campo].",
+        "La revelación de la emisora, publicable tal cual. Prosa corrida, sin markdown, sin vocabulario de proceso interno. Los huecos van como [Pendiente: qué falta (documento sugerido: …, si lo hay) — de qué solicitud o campo].",
     },
     fuentes_usadas: {
       type: "array" as const,
@@ -462,4 +604,86 @@ export const ESQUEMA_SALIDA = {
   },
   required: ["texto", "fuentes_usadas", "pendientes", "notas_revision"],
   additionalProperties: false as const,
+};
+
+/** Salida en modo libro: la misma, más la cobertura por subrequisito. */
+export const ESQUEMA_SALIDA_HECHOS = {
+  ...ESQUEMA_SALIDA,
+  properties: {
+    ...ESQUEMA_SALIDA.properties,
+    fuentes_usadas: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description: "Ids de los hechos (h1, h2…) y de las fuentes de la tabla que se usaron. Solo ids entregados.",
+    },
+    cobertura: {
+      type: "array" as const,
+      description: "Una fila por requisito del bloque.",
+      items: {
+        type: "object" as const,
+        properties: {
+          codigo: { type: "string" as const },
+          estado: { type: "string" as const, enum: ["cubierto", "parcial", "pendiente", "asignado"] },
+          bloque: { anyOf: [{ type: "integer" as const }, { type: "null" as const }] },
+          hechos: { type: "array" as const, items: { type: "string" as const } },
+          comentario: { type: "string" as const },
+        },
+        required: ["codigo", "estado", "bloque", "hechos", "comentario"],
+        additionalProperties: false as const,
+      },
+    },
+  },
+  required: [...ESQUEMA_SALIDA.required, "cobertura"],
+};
+
+/** Modo libro v3 (Paso 5b): anclas en el texto y cobertura compacta. */
+export const ESQUEMA_SALIDA_HECHOS_V3_PARCIAL = {
+  texto: {
+    type: "string" as const,
+    description:
+      "La revelación de la emisora. Prosa corrida, sin markdown, sin vocabulario de proceso interno. Cada oración que afirma algo cierra con sus anclas [h1][h2] antes del punto (regla 16); el código las retira al publicar. Los huecos van como [Pendiente: qué falta — de qué solicitud o campo].",
+  },
+  cobertura: {
+    type: "array" as const,
+    description: "Una fila por requisito del bloque, con su código exacto.",
+    items: {
+      type: "object" as const,
+      properties: {
+        codigo: { type: "string" as const },
+        estado: { type: "string" as const, enum: ["cubierto", "parcial", "pendiente", "asignado", "no_aplica"] },
+        bloque: { anyOf: [{ type: "integer" as const }, { type: "null" as const }] },
+        hechos: { type: "array" as const, items: { type: "string" as const } },
+        comentario: { type: "string" as const, description: "Vacío si «cubierto» o «asignado». Si «parcial» o «pendiente», qué falta, en 15 palabras o menos. «no_aplica» solo para los incisos ya decididos por el código." },
+      },
+      required: ["codigo", "estado", "bloque", "hechos", "comentario"],
+      additionalProperties: false as const,
+    },
+  },
+};
+
+/** Modo libro v2: notas con su cubeta (regla 14). */
+export const ESQUEMA_SALIDA_HECHOS_V2 = {
+  ...ESQUEMA_SALIDA_HECHOS,
+  properties: {
+    ...ESQUEMA_SALIDA_HECHOS.properties,
+    notas_revision: {
+      type: "array" as const,
+      description: "Juicios para el revisor de IRStrat, que NO se publican, cada uno en su cubeta.",
+      items: {
+        type: "object" as const,
+        properties: {
+          cubeta: { type: "string" as const, enum: ["decision_emisor", "revelacion_voluntaria", "defecto_insumo"] },
+          etiqueta: { anyOf: [{ type: "string" as const, enum: ["contradiccion", "por_conciliar"] }, { type: "null" as const }] },
+          texto: { type: "string" as const },
+        },
+        required: ["cubeta", "etiqueta", "texto"],
+        additionalProperties: false as const,
+      },
+    },
+  },
+};
+
+export const ESQUEMA_SALIDA_HECHOS_V3 = {
+  ...ESQUEMA_SALIDA_HECHOS_V2,
+  properties: { ...ESQUEMA_SALIDA_HECHOS_V2.properties, ...ESQUEMA_SALIDA_HECHOS_V3_PARCIAL },
 };

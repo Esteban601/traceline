@@ -55,7 +55,18 @@ export type Adjunto = {
   creadoEn: string;
   subidoPor: string | null;
   url: string | null;
+  /** Estado de su lectura para el generador (null = sin fila: adjunto anterior a la lectura). */
+  lectura: { estado: string; mensaje: string | null } | null;
 };
+
+/** Cómo se ve la lectura de un adjunto: lo que el generador puede usar de él. */
+function etiquetaLectura(l: Adjunto["lectura"]): string | null {
+  if (!l) return null;
+  if (l.estado === "extraido") return l.mensaje ? `Leído · ${l.mensaje}` : "Leído";
+  if (l.estado === "pendiente" || l.estado === "procesando") return "En lectura";
+  if (l.estado === "omitido") return l.mensaje ?? "Sin leer";
+  return `No se pudo leer${l.mensaje ? ` · ${l.mensaje}` : ""}`;
+}
 
 export type PerfilData = {
   denominacion_formal: string | null;
@@ -69,6 +80,8 @@ export type PerfilData = {
   proceso_materialidad: string | null;
   modelo_negocio: string | null;
   gobierno_texto: string | null;
+  /** Glosario en texto, una línea por nombre: «Canónico = variante; variante». */
+  glosario: string;
   organigrama_path: string | null;
   horizontes: Horizonte[];
   hitos_corporativos: Hito[];
@@ -914,6 +927,23 @@ export function PerfilView({
                 pide saber quién supervisa y con qué frecuencia.
               </p>
             </div>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor={`${uid}-glo`}>
+                Glosario de nombres
+              </label>
+              <textarea
+                id={`${uid}-glo`}
+                name="glosario"
+                rows={4}
+                defaultValue={p?.glosario ?? ""}
+                placeholder={"Dirección de Crédito y Banca = Dirección de Crédito; Crédito y Banca"}
+                className={cn(AREA, "mt-2 font-mono text-xs")}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Una línea por órgano, comité o dirección: el nombre que se publica, «=», y los otros nombres con que
+                aparece en los documentos, separados por «;». El suplemento usa siempre el primero.
+              </p>
+            </div>
             {guardar()}
             <Aviso state={sGob} seccion="gobierno" />
           </form>
@@ -1126,6 +1156,7 @@ function Adjuntos({
                 <span className="block text-xs text-muted">
                   {tamano(a.tamano)}
                   {a.subidoPor ? ` · ${a.subidoPor}` : ""} · {fmtFechaHora(a.creadoEn)}
+                  {etiquetaLectura(a.lectura) ? ` · ${etiquetaLectura(a.lectura)}` : ""}
                 </span>
               </span>
               <form action={aQuitar}>

@@ -42,7 +42,11 @@ const txt = (v: string | null | undefined): string =>
 
 /** Arma una tabla markdown. Devuelve null si no hay una sola fila: un bloque sin
  *  datos no lleva una tabla vacía, lleva su marcador de pendiente. */
-function tabla(titulo: string, cols: string[], filas: string[][], alinear?: ("izq" | "der")[]): string | null {
+/** Un booleano capturado («Verdadero», «Falso») se publica como «Sí» o «No» (tercera revisión externa, C). */
+const publicable = (celda: string): string => (/^(verdadero|true)$/i.test(celda.trim()) ? "Sí" : /^(falso|false)$/i.test(celda.trim()) ? "No" : celda);
+
+function tabla(titulo: string, cols: string[], filasCrudas: string[][], alinear?: ("izq" | "der")[]): string | null {
+  const filas = filasCrudas.map((f) => f.map(publicable));
   if (filas.length === 0) return null;
   const sep = cols.map((_, i) => (alinear?.[i] === "der" ? "---:" : "---"));
   return [
@@ -187,16 +191,62 @@ const tablaRiesgosPrioritarios: ConstructorTabla = (c) => {
   );
 };
 
-/** 29 · Emisiones GEI: las cifras cuantitativas del bloque. */
+/**
+ * Concepto publicable de una cifra de emisiones: el alcance, no el título de la
+ * solicitud («Inventario GEI Alcance 1 con memoria de cálculo» es un nombre de
+ * captura, no una etiqueta de informe).
+ */
+function conceptoGei(titulo: string): string {
+  const t = limpiar(titulo);
+  const alcance = t.match(/alcance\s*([123])/i)?.[1];
+  if (!alcance) return t;
+  const base = `Emisiones de Alcance ${alcance}`;
+  if (alcance === "2" && /ubicaci[oó]n/i.test(t) && !/mercado/i.test(t)) return `${base} (ubicación)`;
+  if (alcance === "2" && /mercado/i.test(t) && !/ubicaci[oó]n/i.test(t)) return `${base} (mercado)`;
+  return base;
+}
+
+/**
+ * 29 · Emisiones GEI: solo las cifras de emisiones (en CO2 equivalente). Los
+ * datos de entrada —litros de combustible, kWh— no son emisiones: los describe
+ * el bloque 30 (tercera revisión externa, C).
+ */
 const tablaGei: ConstructorTabla = (c) => {
-  const filas = cifrasDelBloque(c).map(({ s, valor }) => [
-    txt(limpiar(s.titulo)),
-    num(valor),
-    txt(s.unidad_esperada),
-    String(c.ens.reporte.ejercicio),
-  ]);
+  const filas = cifrasDelBloque(c)
+    .filter(({ s }) => /co2/i.test(s.unidad_esperada ?? ""))
+    .map(({ s, valor }) => [conceptoGei(s.titulo), num(valor), txt(s.unidad_esperada), String(c.ens.reporte.ejercicio)]);
   return tabla("Emisiones brutas absolutas de gases de efecto invernadero", ["Concepto", "Valor", "Unidad", "Ejercicio"], filas, ["izq", "der", "izq", "der"]);
 };
+
+/**
+ * Unidad de una cifra según las notas de exposición de la emisora: el registro
+ * no captura unidades, así que solo se publica la que las notas dicen junto a la
+ * cifra («10,370 MDP», «32 de 121 instalaciones»). Sin unidad en las notas, la
+ * cifra va sola: no se adivina (tercera revisión externa, añadido 11).
+ */
+export function unidadEnNotas(valor: number, notas: string | null | undefined): string | null {
+  if (!notas) return null;
+  const variantes = [...new Set([NUM.format(valor), String(valor)])].map((x) => x.replace(/[.,]/g, (m) => `\\${m}`));
+  for (const v of variantes) {
+    const m = notas.match(new RegExp(`(?<![\\d.,])${v}\\s+(?:de\\s+(?:las\\s+|los\\s+)?[\\d.,]+\\s+)?(MDP|millones de pesos|sucursales|instalaciones|sitios)`, "i"));
+    if (m) return /millones de pesos/i.test(m[1]) ? "MDP" : m[1];
+  }
+  return null;
+}
+/**
+ * Base del porcentaje, si las notas la dicen junto a la cifra («16.4% del pasivo
+ * total», «12% de la cartera total»): sin ella, un porcentaje del pasivo se leía
+ * como de la cartera (rúbrica del 5c).
+ */
+export function baseDelPorcentaje(pct: number, notas: string | null | undefined): string {
+  if (!notas) return "";
+  for (const v of [...new Set([NUM.format(pct), String(pct), pct.toFixed(1)])]) {
+    const m = notas.match(new RegExp(`(?<![\\d.,])${v.replace(/[.,]/g, (x) => `\\${x}`)}\\s*%\\s+((?:del?|de la|de las|de los)\\s+[^.,;()]+)`, "i"));
+    if (m) return ` ${m[1].trim()}`;
+  }
+  return "";
+}
+const conUnidad = (valor: number | null | undefined, unidad: string | null): string => (valor == null ? "—" : unidad ? `${NUM.format(valor)} ${unidad}` : num(valor));
 
 /** 34/35/36 · Exposición y despliegue de capital, por tipo de riesgo. */
 function tablaExposicion(tipos: string[], titulo: string): ConstructorTabla {
@@ -205,13 +255,16 @@ function tablaExposicion(tipos: string[], titulo: string): ConstructorTabla {
       .filter((x) => x.v)
       .map(({ r, v }) => {
         citarRegistro(c, r.id, limpiar(r.nombre), r.tipo);
+        const notas = (v as { notas?: string | null }).notas ?? null;
+        // El capital va en MDP cuando las notas lo dicen; la cantidad de activos, con la unidad que acompañe a su cifra.
+        const capitalMdp = /\bMDP\b|millones de pesos/i.test(notas ?? "") ? "MDP" : null;
         return [
           txt(limpiar(r.nombre)),
-          num(v!.cantidad_activos),
-          v!.porcentaje == null ? "—" : `${NUM.format(v!.porcentaje)} %`,
-          num(v!.capital_gasto),
-          num(v!.capital_financiacion),
-          num(v!.capital_inversion),
+          conUnidad(v!.cantidad_activos, v!.cantidad_activos == null ? null : unidadEnNotas(v!.cantidad_activos, notas)),
+          v!.porcentaje == null ? "—" : `${NUM.format(v!.porcentaje)} %${baseDelPorcentaje(v!.porcentaje, notas)}`,
+          conUnidad(v!.capital_gasto, capitalMdp),
+          conUnidad(v!.capital_financiacion, capitalMdp),
+          conUnidad(v!.capital_inversion, capitalMdp),
         ];
       });
     return tabla(
