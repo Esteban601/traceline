@@ -1,6 +1,13 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.36** · 8 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.37** · 11 de octubre de 2026.
+
+**Cambios respecto a 0.36** (cierre del Paso 5c, decisión de Esteban):
+- §6, rúbrica externa: 3.9 el 9 de octubre y coherencia 4 el 11 de octubre; criterio de cierre cumplido.
+- §6, libro: los hechos con sujeto de gerencia son del bloque 17. `recalcular-duenos.mjs` aplica la regla a un libro
+  existente sin volver a extraer.
+- §6, cierre: cierres dirigidos (un pendiente a varias secciones, verificado; un pendiente duplicado que remite).
+- §6, validador cruzado: un pendiente que es toda la oración ya no pega la oración anterior a la remisión siguiente.
 
 **Cambios respecto a 0.35** (respuestas de Esteban al Paso 5c):
 - §5: catálogo partido en incisos, aplicado en dev (migración `20261007170000`). Migraciones `20261008130000`
@@ -945,6 +952,26 @@ No se generan en paralelo desde los datos.
 
 **Dependencias nuevas.** SDK de Anthropic, `docx`. Variable `ANTHROPIC_API_KEY` en Heroku y `.env.local`, una llave
 por ambiente.
+
+**Rúbrica externa y cierre del encargo suplemento-calidad (Paso 5c).** Criterio de cierre: coherencia ≥ 4,
+tablas ≥ 4 y trazabilidad ≥ 4, calificadas por un lector externo sobre el Word del documento demo `98d57a6a`
+en dev.
+
+| Fecha | Word calificado | Resultado |
+|---|---|---|
+| 9 de octubre de 2026 | Última vuelta de la rúbrica, con 17 bloques regenerados | **3.9**: tablas 4, trazabilidad 4, coherencia 3. No cierra. Quedan la remisión 18→16 y tres inconsistencias del demo |
+| 11 de octubre de 2026 | Libro 31c7d5f6 (dueño de los hechos de gerencia en el 17), demo corregido y bloques 1, 6, 16, 17, 18 y 24 regenerados | **Coherencia 4**, con las dos cosas pendientes resueltas. El lector «firmaría con pendientes cerrados». **Criterio de cierre cumplido** |
+
+Lectura del 11 de octubre, en lo que pidió antes del PR (sin regenerar), con los cierres dirigidos de
+`lib/suplemento/hechos/cierre.ts`:
+- **21:** el pendiente de la respuesta al riesgo de precio al carbono se verificó contra 25 y 17 juntos. La verificación
+  de Sonnet 5.5 dio «no responde», así que el pendiente se queda con nota y no se forzó.
+- **16:** el pendiente duplicado «órgano que aprueba la estrategia» queda solo en el 15, y el 16 remite con la oración
+  completa.
+
+Validador cruzado al cerrar: 12 observaciones (`referencia/suplemento-calidad/paso5c-final/`). Una es el 16→15 de la
+decisión anterior: el 15 conserva el pendiente, así que el 16 remite a un pendiente. Las demás quedan como revisión
+humana por documento (encargo, deudas).
 
 ---
 
