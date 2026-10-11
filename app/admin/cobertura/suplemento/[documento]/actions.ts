@@ -257,7 +257,7 @@ export async function restaurarVersion(_p: EstadoAccion, fd: FormData): Promise<
 
   const { data: v } = await a.db
     .from("documentos_bloques_versiones")
-    .select("id, documento_id, numero, version, texto, fuentes, pendientes, prompt_version, modelo, texto_del_emisor, editado_por, editado_en")
+    .select("id, documento_id, numero, version, texto, fuentes, pendientes, prompt_version, modelo, texto_del_emisor, editado_por, editado_en, respaldo, libro_id")
     .eq("id", versionId)
     .eq("documento_id", documentoId)
     .maybeSingle();
@@ -273,6 +273,12 @@ export async function restaurarVersion(_p: EstadoAccion, fd: FormData): Promise<
   if (actual.estado === "generando") return ERR("El bloque se está generando; espera a que termine.");
   if ((actual.texto ?? "") === v.texto) return ERR(`La versión ${v.version} ya es el texto actual.`);
 
+  // El respaldo (cobertura y anclas) y el libro vuelven con el texto: si no, la
+  // revisión y el validador cruzado presentarían los de la generación más nueva
+  // como respaldo del texto restaurado (observación P2 de Codex sobre el PR #17).
+  // Una versión anterior al 11/10/2026 no los guardó: se limpian.
+  const respaldo = (v.respaldo ?? null) as { cobertura?: unknown; anclas?: unknown } | null;
+
   const { error } = await a.db
     .from("documentos_bloques")
     .update({
@@ -283,6 +289,9 @@ export async function restaurarVersion(_p: EstadoAccion, fd: FormData): Promise<
       prompt_version: v.prompt_version,
       modelo: v.modelo,
       texto_del_emisor: v.texto_del_emisor,
+      cobertura: (respaldo?.cobertura ?? null) as never,
+      anclas: (respaldo?.anclas ?? null) as never,
+      libro_id: v.libro_id ?? null,
       origen_texto: "restauracion",
       restaurada_de: v.id,
       editado_por: v.editado_por,

@@ -32,7 +32,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   const db = await createClient();
   const { data: rep } = await db.from("reportes").select("tenant_id").eq("id", reporteId).maybeSingle();
   if (!rep) return NextResponse.json({ error: "Ese reporte no existe o no es visible." }, { status: 404 });
-  const acceso = await accesoAlGenerador(db, rep.tenant_id);
+  // El libro es parte de una generación: exige corridas disponibles en el mes, sin gastar una.
+  const acceso = await accesoAlGenerador(db, rep.tenant_id, { dentroDeCorrida: true });
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
 
   const r = await reclamarLibro(db, reporteId, perfil.id);

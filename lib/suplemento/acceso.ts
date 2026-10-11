@@ -14,6 +14,11 @@ import type { createClient } from "@/lib/supabase/server";
 //     natural y emisora, las lance quien las lance. Solo lo exige la corrida
 //     completa (POST …/generar); regenerar un bloque no cuenta. 0 apaga el
 //     generador. 429.
+//   · El libro de hechos y la pasada de coherencia son PARTE de una corrida
+//     (decisión de Esteban del 11 de octubre de 2026): no se cuentan aparte. La
+//     que corre al final de una generación no pide nada más; la que se lanza a
+//     mano exige que la emisora tenga corridas disponibles en el mes, sin gastar
+//     una (`dentroDeCorrida`). El cierre dirigido (script) no cuenta. 429.
 //
 // La corrida completa se cuenta por la bitácora (`suplemento_documento_abierto`,
 // que la ruta de generar escribe una vez por corrida), la misma fuente con la que
@@ -43,7 +48,7 @@ export async function corridasDelMes(db: Db, tenantId: string): Promise<number> 
 export async function accesoAlGenerador(
   db: Db,
   tenantId: string,
-  { corridaCompleta = false }: { corridaCompleta?: boolean } = {}
+  { corridaCompleta = false, dentroDeCorrida = false }: { corridaCompleta?: boolean; dentroDeCorrida?: boolean } = {}
 ): Promise<Acceso> {
   const { data: t } = await db
     .from("tenants")
@@ -63,6 +68,13 @@ export async function accesoAlGenerador(
         error: `Esta emisora ya usó sus ${t.generaciones_mes_max} generaciones completas del mes. Puedes regenerar bloques sueltos.`,
       };
     }
+  }
+  if (dentroDeCorrida && (await corridasDelMes(db, tenantId)) >= t.generaciones_mes_max) {
+    return {
+      ok: false,
+      status: 429,
+      error: `Esta emisora ya usó sus ${t.generaciones_mes_max} generaciones completas del mes; el libro de hechos y la pasada de coherencia son parte de una generación.`,
+    };
   }
   return { ok: true };
 }

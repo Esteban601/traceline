@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 import { padreDe } from "@/lib/suplemento/catalogo-incisos";
-import { CoherenciaPanel, type ObservacionVista, type PasadaVista } from "./coherencia-panel";
+import { CoherenciaPanel, type EstadoCierreVista, type ObservacionVista, type PasadaVista, type ResultadoCierreVista } from "./coherencia-panel";
 import { RevisionView, type BloqueRevision } from "./revision-view";
 import type { VersionVista } from "./historial";
 
@@ -37,7 +37,7 @@ export default async function RevisionPage({
   const { data: doc } = await db
     .from("documentos_generados")
     .select(
-      "id, version, idioma, estado, regimen, alivios, versiones_aprobadas, costo_usd, tokens_entrada, tokens_salida, created_at, aprobado_en, reporte_id, tenant_id, aprobado:perfiles_usuario!documentos_generados_aprobado_por_fkey(nombre), generado:perfiles_usuario!documentos_generados_generado_por_fkey(nombre)"
+      "id, version, idioma, estado, regimen, alivios, versiones_aprobadas, cierre_estado, cierre_resultado, costo_usd, tokens_entrada, tokens_salida, created_at, aprobado_en, reporte_id, tenant_id, aprobado:perfiles_usuario!documentos_generados_aprobado_por_fkey(nombre), generado:perfiles_usuario!documentos_generados_generado_por_fkey(nombre)"
     )
     .eq("id", documentoId)
     .maybeSingle();
@@ -185,6 +185,7 @@ export default async function RevisionPage({
           <CoherenciaPanel
             documentoId={documentoId}
             inicial={pasadaVista}
+            cierreInicial={{ estado: (doc.cierre_estado as EstadoCierreVista | null) ?? null, resultado: (doc.cierre_resultado as unknown as ResultadoCierreVista | null) ?? null }}
             puedeRevisar={esStaff(perfil) && (tenant?.generador_activo ?? false)}
           />
         }

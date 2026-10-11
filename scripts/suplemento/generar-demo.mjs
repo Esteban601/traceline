@@ -71,9 +71,20 @@ if (abierto.primero !== undefined && !(await uno(abierto.primero))) fallos.push(
 await Promise.all(Array.from({ length: 3 }, async () => { for (;;) { const n = cola.shift(); if (n === undefined) return; if (!(await uno(n))) fallos.push(n); } }));
 for (const n of [...fallos]) { if (await uno(n)) fallos.splice(fallos.indexOf(n), 1); }
 
-// Cierre de pendientes por código (Paso 5c), como la pantalla.
-const cierre = await api("POST", `/api/suplemento/${abierto.documentoId}/cierre`);
-const cierreJson = cierre.ok ? await cierre.json() : null;
+// Cierre de pendientes (Paso 5c) y coherencia encadenada, como la pantalla: el
+// servidor los corre fuera de la petición (fix/pre-v40); aquí se consulta el estado.
+const inicioCierre = new Date().toISOString();
+const cierre = await api("POST", `/api/suplemento/${abierto.documentoId}/cierre`, { coherencia: true });
+let cierreJson = null;
+if (cierre.status === 202) {
+  const hasta = Date.now() + 15 * 60 * 1000;
+  while (Date.now() < hasta) {
+    await new Promise((res) => setTimeout(res, 4000));
+    const e = await (await api("GET", `/api/suplemento/${abierto.documentoId}/cierre`)).json();
+    if (e.estado === "listo") { cierreJson = { cierres: e.resultado?.cierres ?? [], costo: e.resultado?.costo_usd ?? 0 }; break; }
+    if (e.estado === "error") break;
+  }
+}
 const cierres = cierreJson ? { verificados: cierreJson.cierres.map((c) => ({ bloque: c.bloque, dueno: c.dueno, veredicto: c.veredicto })), costoUsd: cierreJson.costo } : null;
 console.log(`cierre de pendientes: ${cierres ? `${cierres.verificados.filter((c) => c.veredicto === "responde").length} cerrados de ${cierres.verificados.length} verificados ($${cierres.costoUsd.toFixed(4)})` : `error ${cierre.status}`}`);
 
@@ -87,16 +98,16 @@ const cruzado = { discrepancias: null };
 }
 console.log(`validador cruzado: ${cruzado.discrepancias?.length ?? "—"} discrepancias (a la coherencia, sin reintento)`);
 
-// Pasada de coherencia al final, como la pantalla (Paso 3): se espera y se cuenta.
-const pc = await api("POST", `/api/suplemento/${abierto.documentoId}/coherencia`, { origen: "fin_de_generacion" });
-let coherencia = { http: pc.status };
-if (pc.status === 202) {
+// Pasada de coherencia al final (Paso 3): la lanzó el servidor al terminar el
+// cierre; se espera la que se abrió después de pedirlo y se cuenta.
+let coherencia = { http: cierre.status };
+{
   const hasta = Date.now() + 8 * 60 * 1000;
   while (Date.now() < hasta) {
     await new Promise((res) => setTimeout(res, 5000));
     const c = await api("GET", `/api/suplemento/${abierto.documentoId}/coherencia`);
     const d = c.ok ? await c.json() : null;
-    if (d && d.estado !== "generando") {
+    if (d && new Date(d.created_at) >= new Date(inicioCierre) && d.estado !== "generando") {
       coherencia = { estado: d.estado, observaciones: (d.observaciones ?? []).length, descartadas: d.descartadas, costoUsd: Number(d.costo_usd), segundos: Math.round(d.duracion_ms / 1000), error: d.error };
       break;
     }
