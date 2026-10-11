@@ -53,9 +53,25 @@ export const ORGANOS = ["consejo", "administracion", "comite", "comites", "direc
  * puntúa, y el 18 remitía el papel de las direcciones al 16 (rúbrica del 5c).
  */
 const SUJETO_GERENCIA =
-  /^(?:a nivel de gesti[oó]n,\s*)?(?:la|el|los|las)\s+(?:direcci[oó]n(?:es)?\s+de\b|direcci[oó]n general\b|director(?:es)?\b|responsables de las direcciones\b|gerencia\b|comit[eé] de direcci[oó]n\b)/i;
+  /^(?:a nivel de gesti[oó]n,\s*)?(?:la|el|los|las)\s+(?:direcci[oó]n(?:es)?\s+de\b|direcci[oó]n general\b|director(?:a|es|as)?\b|responsables de las direcciones\b|gerencia\b|comit[eé] de direcci[oó]n\b)/i;
 export function esDeGerencia(oracion: string): boolean {
   return SUJETO_GERENCIA.test(oracion.trim());
+}
+
+/**
+ * La misma regla sobre un hecho ya guardado, sin volver a extraer. El libro no
+ * guarda los bloques sugeridos de la fuente, pero cuando el dueño se fijó «por
+ * requisitos» la elección del modelo quedó primera en `bloques_referencia`: si
+ * fue la gerencia y el enunciado tiene sujeto de gerencia, el dueño es la gerencia.
+ */
+export function duenoRecalculadoPorGerencia(
+  h: { enunciado: string; bloque_dueno: number | null; bloques_referencia: number[]; verificacion: string | null },
+  gerencia: number
+): { bloque_dueno: number; bloques_referencia: number[] } | null {
+  if (h.bloque_dueno === gerencia || !/dueño por requisitos/.test(h.verificacion ?? "")) return null;
+  if (h.bloques_referencia[0] !== gerencia || !esDeGerencia(h.enunciado)) return null;
+  const referencias = [...new Set([h.bloque_dueno, ...h.bloques_referencia].filter((n): n is number => n != null && n !== gerencia))].slice(0, 3);
+  return { bloque_dueno: gerencia, bloques_referencia: referencias };
 }
 
 /** Destinos genéricos («las secciones correspondientes»): no apuntan a un bloque. */

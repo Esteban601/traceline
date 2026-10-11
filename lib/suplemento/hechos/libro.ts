@@ -183,8 +183,11 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
           const w = sinOrganos(palabrasDe(oraciones.get(p.oracion)!.texto));
           const puntos = sugeridos.map((n) => ({ n, pts: [...w].filter((x) => vocabulario.get(n)?.has(x)).length })).sort((a, b) => b.pts - a.pts || a.n - b.n);
           if (puntos[0].pts >= 3 && puntos[0].pts >= 1.5 * puntos[1].pts) porRequisitos = puntos[0].n;
-          // Sujeto de gerencia: el dueño es el bloque de la gerencia aunque el vocabulario diga otro.
-          if (BLOQUE_GERENCIA != null && sugeridos.includes(BLOQUE_GERENCIA) && esDeGerencia(oraciones.get(p.oracion)!.texto)) porRequisitos = BLOQUE_GERENCIA;
+          // Sujeto de gerencia: el dueño es el bloque de la gerencia aunque el vocabulario diga otro,
+          // si la fuente lo sugiere o el modelo lo eligió (una fuente de 6(a) también trae oraciones de gerencia).
+          const gerenciaPosible = BLOQUE_GERENCIA != null && (sugeridos.includes(BLOQUE_GERENCIA) || h.bloque_dueno === BLOQUE_GERENCIA);
+          // El sujeto se busca también en el enunciado: en un acta la oración suele abrir con el acuerdo, no con quién.
+          if (gerenciaPosible && (esDeGerencia(h.enunciado) || esDeGerencia(oraciones.get(p.oracion)!.texto))) porRequisitos = BLOQUE_GERENCIA;
         }
         const unico = sugeridos.length === 1 ? sugeridos : porRequisitos != null ? [porRequisitos] : [];
         if (h.estado === "vigente" && unico.length === 1) {
