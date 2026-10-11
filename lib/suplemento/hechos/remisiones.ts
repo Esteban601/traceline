@@ -45,6 +45,19 @@ const DESTINO = /secci[oó]n(?:es)?\s+(?:de\s+|sobre\s+|relativa\s+a\s+|dedicada
 /** Órganos y nombres genéricos de gobierno: aparecen en casi todo y no distinguen contenidos. */
 export const ORGANOS = ["consejo", "administracion", "comite", "comites", "direccion", "direcciones", "sostenibilidad", "general", "gobierno", "organo", "organos", "gerencia"];
 
+/**
+ * La oración tiene por sujeto a la gerencia (direcciones, Director General,
+ * Comité de Dirección), no al Consejo ni a sus comités. Sus hechos son del
+ * bloque de «Papel de la gerencia» (NIIF S2 6(b)): por vocabulario ganaba el de
+ * supervisión de la estrategia, porque «gerencia» está entre los ÓRGANOS y no
+ * puntúa, y el 18 remitía el papel de las direcciones al 16 (rúbrica del 5c).
+ */
+const SUJETO_GERENCIA =
+  /^(?:a nivel de gesti[oó]n,\s*)?(?:la|el|los|las)\s+(?:direcci[oó]n(?:es)?\s+de\b|direcci[oó]n general\b|director(?:es)?\b|responsables de las direcciones\b|gerencia\b|comit[eé] de direcci[oó]n\b)/i;
+export function esDeGerencia(oracion: string): boolean {
+  return SUJETO_GERENCIA.test(oracion.trim());
+}
+
 /** Destinos genéricos («las secciones correspondientes»): no apuntan a un bloque. */
 const GENERICO = /^(?:correspondientes?|respectivas?)\b|\bcorrespondientes?\.?$/i;
 /** Fin de oración: no corta en «S.A.B. de C.V.» ni en siglas. */

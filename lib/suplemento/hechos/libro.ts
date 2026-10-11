@@ -8,7 +8,7 @@ import type { Uso } from "@/lib/suplemento/modelos";
 import { recolectar } from "./fuentes";
 import { clasificar, esObligatoria, lotes, MODELO_LIBRO, PROMPT_LIBRO_VERSION, type BloqueCatalogo, type FuenteEnOraciones } from "./extraer";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
-import { ORGANOS, palabrasDe } from "./remisiones";
+import { esDeGerencia, ORGANOS, palabrasDe } from "./remisiones";
 import { sinRepetidos, verificarClasificado } from "./verificar";
 import { decidirContradicciones } from "./conflictos";
 import { dividir } from "./oraciones";
@@ -31,6 +31,8 @@ import { NEGACION, ORDEN_RANGO, type HechoNuevo, type UnidadTexto } from "./tipo
 
 type Db = SupabaseClient<Database>;
 const ABANDONADO_MS = 15 * 60 * 1000;
+/** Bloque «Papel de la gerencia y controles» (NIIF S2 6(b)): dueño de los hechos con sujeto de gerencia. */
+const BLOQUE_GERENCIA = BLOQUES.find((b) => b.clave === "gerencia_controles")?.numero ?? null;
 
 /** Huella de los insumos de un libro: si no cambia, el libro sigue valiendo. */
 export function huellaDe(material: unknown): string {
@@ -181,6 +183,8 @@ export async function construirLibro(db: Db, libroId: string, reporteId: string,
           const w = sinOrganos(palabrasDe(oraciones.get(p.oracion)!.texto));
           const puntos = sugeridos.map((n) => ({ n, pts: [...w].filter((x) => vocabulario.get(n)?.has(x)).length })).sort((a, b) => b.pts - a.pts || a.n - b.n);
           if (puntos[0].pts >= 3 && puntos[0].pts >= 1.5 * puntos[1].pts) porRequisitos = puntos[0].n;
+          // Sujeto de gerencia: el dueño es el bloque de la gerencia aunque el vocabulario diga otro.
+          if (BLOQUE_GERENCIA != null && sugeridos.includes(BLOQUE_GERENCIA) && esDeGerencia(oraciones.get(p.oracion)!.texto)) porRequisitos = BLOQUE_GERENCIA;
         }
         const unico = sugeridos.length === 1 ? sugeridos : porRequisitos != null ? [porRequisitos] : [];
         if (h.estado === "vigente" && unico.length === 1) {
