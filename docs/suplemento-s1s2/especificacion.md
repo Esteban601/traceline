@@ -1,6 +1,21 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.40** · 13 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.41** · 13 de octubre de 2026.
+
+**Cambios respecto a 0.40** (encargo 2026-10-13-excel-respuestas-narrativas; revisión externa del Excel de taxonomía,
+aprobada por Esteban como cambio de alcance):
+- §6.1 nuevo, Excel de taxonomía con respuestas: tabla `respuestas_datapoint`, regla de publicación (respuestas solo
+  del último documento aprobado; «En preparación» en borrador), incisos bajo su padre.
+- §6.1, alivios en las hojas de datos: con C4 no se exporta Alcance 3 (total ni categorías), con C3 no se exportan
+  comparativos del año anterior y con E5 no se exportan las hojas de NIIF S1; las celdas dicen «No revelado · alivio
+  C4/C3/E5», en borrador y en aprobado, igual que el Word.
+- §6.1, hoja «Leyenda» nueva: las hojas de datos son capturas validadas y salen con o sin suplemento; la columna
+  «Respuesta», solo desde documento aprobado.
+- §6.1, marcadores en los Excel: «Pendiente: …» en texto plano en la taxonomía y celda vacía en el Formato
+  electrónico; la base conserva `[Pendiente: … — …]` (CLAUDE.md §5, 1.10).
+- §6.1, «No aplica · E5»: sin sección en el suplemento; el texto remite al párrafo de NIIF S2.
+- §3, Word: la numeración de las secciones es consecutiva entre las que van en el documento (sin saltos por
+  editoriales apagados o bloques fuera); las remisiones «Ver sección N» del Excel usan esa numeración.
 
 **Cambios respecto a 0.39:** §10, registro del despliegue v40 a staging.
 
@@ -1014,6 +1029,27 @@ Lectura del 11 de octubre, en lo que pidió antes del PR (sin regenerar), con lo
 Validador cruzado al cerrar: 12 observaciones (`referencia/suplemento-calidad/paso5c-final/`). Una es el 16→15 de la
 decisión anterior: el 15 conserva el pendiente, así que el 16 remite a un pendiente. Las demás quedan como revisión
 humana por documento (encargo, deudas).
+
+### 6.1 Excel de taxonomía con respuestas (encargo 2026-10-13-excel-respuestas-narrativas)
+
+- **Respuestas** (`respuestas_datapoint`, `lib/suplemento/respuestas.ts`): una por código del catálogo (destino
+  taxonomía, hasta 4 oraciones) y una por datapoint de conceptos text o text block del Formato electrónico (hasta 6
+  oraciones y 900 caracteres). Se generan al aprobar un documento, desde las versiones aprobadas de los bloques y los
+  hechos de su cobertura; el código decide no aplica, pendiente y captura, y el modelo solo resume el bloque dueño.
+  Un documento aprobado nuevo reemplaza las del anterior.
+- **Publicación:** la columna «Respuesta» (E) de la hoja «Taxonomía NIIF S1 S2» lleva las respuestas del último
+  documento aprobado; sin ellas, «En preparación». El auditor descarga este libro y nunca ve un borrador. Con el
+  generador apagado, la columna no se agrega. Los incisos hijos van agrupados bajo su padre.
+- **Marcadores:** la base guarda `[Pendiente: … — …]`; el Excel de taxonomía escribe «Pendiente: … — …» en texto plano
+  y el Formato electrónico deja la celda vacía. Ninguna celda exportada empieza con «[».
+- **«No aplica · E5»:** los códigos de NIIF S1 sin sección propia, con el alivio E5 vigente, dicen que no hay sección
+  en el suplemento y remiten al párrafo de NIIF S2 que lo responde.
+- **Alivios en las hojas de datos** (borrador y aprobado, como el Word): C4 deja fuera Alcance 3 (total y categorías),
+  C3 deja fuera los comparativos del año anterior y E5 deja fuera las hojas de NIIF S1; las celdas dicen «No revelado ·
+  alivio C4», «… C3» o «… E5».
+- **Hoja «Leyenda»:** explica que las hojas de datos son capturas validadas y salen con o sin suplemento, que la
+  columna «Respuesta» sale solo desde documento aprobado, y qué significa «No revelado · alivio».
+- **Remisiones:** «Ver sección N · título», con N la numeración consecutiva del Word.
 
 ---
 
