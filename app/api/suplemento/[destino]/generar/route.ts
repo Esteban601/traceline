@@ -6,6 +6,7 @@ import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
+import { cierreEnCurso } from "@/lib/suplemento/hechos/cierre";
 import { opcionesLiterales } from "@/lib/suplemento/texto-del-emisor";
 import { edicionesDelDocumento, fechaLarga } from "@/lib/suplemento/edicion";
 
@@ -130,6 +131,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   let creado = false;
 
   if (ultimo && ultimo.estado !== "aprobado") {
+    // Reabrir el documento vacía sus bloques: con el cierre de la corrida
+    // anterior en curso, ese cierre leería o escribiría la corrida nueva
+    // (observación P2 de Codex sobre el PR #18). Se espera a que termine.
+    if (await cierreEnCurso(db, ultimo.id)) {
+      return NextResponse.json(
+        { error: "El cierre de pendientes de la corrida anterior sigue en curso; vuelve a generar cuando termine." },
+        { status: 409 }
+      );
+    }
     // EDICIONES HUMANAS (CLAUDE.md §5, A6). Reabrir el documento deja en cola
     // todos sus bloques y vacía sus textos; los editados a mano no se pisan sin
     // que quien genera lo confirme. Nada se pierde: cada texto queda en el
