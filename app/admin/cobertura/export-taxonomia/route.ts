@@ -16,7 +16,10 @@ import {
   type ObjRow,
   type RegRow,
   type RegValRow,
+  noRevelado,
 } from "@/lib/reporte/ensamblar";
+import type { Alivios } from "@/lib/perfil-emisor";
+import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
 
 export const runtime = "nodejs";
 
@@ -133,7 +136,10 @@ function escribirRespuestas(
     vistos.add(codigo);
     const esHijo = Object.hasOwn(PADRE_DE, codigo);
     const celda = ws.getCell(`E${nf}`);
-    const texto = respuestas ? respuestas.get(codigo) ?? null : EN_PREPARACION;
+    // Ninguna celda exportada lleva el marcador «[Pendiente: …]» (CLAUDE.md §5,
+    // 1.10): en este libro va en texto plano.
+    const r = respuestas?.get(codigo);
+    const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
     celda.value = texto ?? EN_PREPARACION;
     if (texto === null || texto === EN_PREPARACION) enPreparacion++;
     else escritas++;
@@ -144,6 +150,35 @@ function escribirRespuestas(
     }
   });
   return { escritas, enPreparacion, hijos };
+}
+
+/**
+ * HOJA «LEYENDA» (revisión externa, puntos 1 y 3; especificación 0.41, §6.1).
+ * Qué es cada parte del libro y por qué una celda dice «No revelado · alivio».
+ */
+function escribirLeyenda(wb: ExcelJS.Workbook, alivios: Alivios): void {
+  const ws = wb.getWorksheet("Leyenda") ?? wb.addWorksheet("Leyenda");
+  ws.getColumn(1).width = 34;
+  ws.getColumn(2).width = 110;
+  const filas: [string, string][] = [
+    ["Leyenda", ""],
+    ["Hojas de datos", "Las hojas por párrafo (NIIF S2 29(a)(i), 29(b), 33, …) llevan capturas validadas en la plataforma. Se exportan con o sin suplemento: no dependen de que el documento esté aprobado."],
+    ["Columna «Respuesta»", "La columna E de la hoja «Taxonomía NIIF S1 S2» lleva la respuesta a cada requisito, redactada desde el último documento del Suplemento NIIF S1/S2 APROBADO, con remisión a su sección. Mientras no haya documento aprobado dice «En preparación»: nunca se exporta un borrador."],
+    ["«Pendiente: …»", "El requisito no tiene información en el documento aprobado: dice qué falta y de dónde debe salir."],
+    ["«No aplica»", "El requisito no aplica en este ejercicio, por el régimen o por la condición de la emisora."],
+    ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan las emisiones de Alcance 3, ni su total ni sus categorías."],
+    ["«No revelado · alivio C3»", "Alivio transitorio del primer año (NIIF S2 C3): no se presentan comparativos del ejercicio anterior."],
+    ["«No revelado · alivio E5»", "Alivio transitorio del primer año (NIIF S1 E5): el informe trata solo los riesgos y oportunidades relacionados con el clima; las hojas de NIIF S1 remiten a las de NIIF S2."],
+    ["Alivios de este reporte", (["C3", "C4", "E5"] as const).filter((k) => alivios[k]).join(", ") || "Ninguno vigente en este ejercicio."],
+  ];
+  filas.forEach(([a, b], i) => {
+    const fila = ws.getRow(i + 1);
+    fila.getCell(1).value = a;
+    fila.getCell(2).value = b;
+    fila.getCell(1).font = { bold: true };
+    fila.getCell(2).alignment = { wrapText: true, vertical: "top" };
+  });
+  ws.getRow(1).getCell(1).font = { bold: true, size: 14 };
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -254,7 +289,9 @@ function escribirRegistros(
   vigentePorReg: Map<string, Map<number, RegValRow>>,
   hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
   /** Ejercicio del reporte: los años se resuelven relativos a él, no fijos. */
-  ejercicio: number
+  ejercicio: number,
+  /** Alivios vigentes: con C3 la columna del año anterior dice «No revelado · alivio C3». */
+  alivios: Alivios = {}
 ): number {
   let escritas = 0;
   const num = (ws: ExcelJS.Worksheet, addr: string, val: number, fmt: string) => {
@@ -299,6 +336,10 @@ function escribirRegistros(
           [ejercicio - 1, sec.cols.v2024] as const,
         ]) {
           if (!grupo) continue;
+          if (anio < ejercicio && alivios.C3) {
+            ws.getCell(`${grupo.cantidad}${fila}`).value = noRevelado("C3");
+            continue;
+          }
           const v = vig?.get(anio);
           const tieneDato =
             v &&
@@ -361,7 +402,9 @@ function escribirObjetivos(
   wb: ExcelJS.Workbook,
   objetivos: ObjRow[], // activos, ordenados por `orden`
   detallePorObj: Map<string, ObjDetRow>,
-  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
+  /** Alivios vigentes: con E5 la hoja NIIF S1 51 no se llena (el informe es solo de clima). */
+  alivios: Alivios = {}
 ): number {
   let escritas = 0;
   const put = (
@@ -480,7 +523,13 @@ function escribirObjetivos(
 
   // --- S1 51 — TODOS los objetivos, secciones Riesgos / Oportunidades ---
   const s51 = wb.getWorksheet("NIIF S1 51");
-  if (s51) {
+  if (s51 && alivios.E5) {
+    // E5: el primer ejercicio se informa solo sobre clima, y los objetivos
+    // climáticos ya van en NIIF S2 33 a 36 (el Word tampoco publica los demás).
+    s51.getCell("A4").value = `${noRevelado("E5")}: los objetivos climáticos se presentan en la hoja NIIF S2 33.`;
+    s51.getCell("A14").value = noRevelado("E5");
+    marcar("NIIF S1 51", s51, 18);
+  } else if (s51) {
     const seccion = (naturaleza: string, inicio: number, fin: number) => {
       const lista = objetivos.filter((o) => o.naturaleza === naturaleza);
       const vis = lista.slice(0, fin - inicio + 1);
@@ -740,7 +789,8 @@ export async function GET(request: Request) {
     ens.registros,
     ens.vigentePorRegistro,
     hojasTocadas,
-    reporte.ejercicio
+    reporte.ejercicio,
+    reporte.aliviosVigentes
   );
 
   // Objetivos climáticos y de sostenibilidad (5 hojas: S1 51 + S2 33/34/35/36).
@@ -748,8 +798,22 @@ export async function GET(request: Request) {
     wb,
     ens.objetivos,
     ens.detallePorObjetivo,
-    hojasTocadas
+    hojasTocadas,
+    reporte.aliviosVigentes
   );
+
+  // NIIF S1 46-50 (métricas de S1): la plantilla no se llena desde la base; con
+  // E5 se dice que no se revela, igual que el Word, que no la publica.
+  const s4650 = wb.getWorksheet("NIIF S1 46-50");
+  if (s4650 && reporte.aliviosVigentes.E5) {
+    s4650.getCell("A6").value = `${noRevelado("E5")}: las métricas climáticas se presentan en las hojas NIIF S2 29.`;
+    s4650.getCell("A19").value = noRevelado("E5");
+    const prev = hojasTocadas.get("NIIF S1 46-50") ?? { ws: s4650, ultimaFila: 0 };
+    prev.ultimaFila = Math.max(prev.ultimaFila, 21);
+    hojasTocadas.set("NIIF S1 46-50", prev);
+  }
+
+  escribirLeyenda(wb, reporte.aliviosVigentes);
 
   // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
   const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas);

@@ -9,6 +9,7 @@ import { vocabularioProhibidoEn } from "@/lib/suplemento/prompt";
 import { oracionesDe } from "@/lib/suplemento/hechos/oraciones";
 import { NEGACION } from "@/lib/suplemento/hechos/tipos";
 import { numerosDe } from "@/lib/evidencias/fuente";
+import { numeracionConsecutiva } from "@/lib/suplemento/numeracion";
 import { leerAlivios, type Alivios } from "@/lib/perfil-emisor";
 import { ensamblarReporte } from "@/lib/reporte/ensamblar";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
@@ -173,10 +174,37 @@ export function respuestaDeCaptura(valor: number, unidad: string | null, periodo
   return `${v}${unidad ? ` ${unidad}` : ""} (ejercicio ${periodo}), según captura validada.`;
 }
 
-export const remision = (numero: number) => {
+/**
+ * «Ver sección N · título», con N la numeración consecutiva del Word
+ * (especificación 0.41): `numeracion` sale de numeracionConsecutiva sobre los
+ * bloques que van en el documento. Sin ella, el número del bloque.
+ */
+export const remision = (numero: number, numeracion?: Map<number, number>) => {
   const b = BLOQUES.find((x) => x.numero === numero);
-  return b ? `Ver sección ${numero} · ${b.titulo}` : null;
+  return b ? `Ver sección ${numeracion?.get(numero) ?? numero} · ${b.titulo}` : null;
 };
+
+/** El texto sin la remisión que añade el código (para reutilizarlo con la numeración vigente). */
+export const sinRemision = (t: string) => t.replace(/\s*Ver sección \d+ · [^.]*\.?\s*$/u, "").trim();
+
+/**
+ * Una respuesta como va en un Excel exportado (CLAUDE.md §5, 1.10): la base
+ * guarda `[Pendiente: … — …]`; el Excel de taxonomía lo escribe en texto plano.
+ * Ninguna celda exportada empieza con «[».
+ */
+export function pendienteEnTextoPlano(texto: string): string {
+  return texto.replace(/\[Pendiente:\s*([^\]]*)\]/g, "Pendiente: $1").replace(/^\[+\s*/, "").trim();
+}
+
+/** Para el Formato electrónico: un pendiente deja la celda vacía. */
+export function paraFormatoElectronico(estado: EstadoRespuesta, texto: string | null): string | null {
+  return estado === "pendiente" || !texto ? null : pendienteEnTextoPlano(texto);
+}
+
+/** «No aplica · E5»: no hay sección en el suplemento; se remite al párrafo de NIIF S2 que lo responde. */
+export function textoNoAplicaE5(parS2: string | null): string {
+  return `No aplica. ${ORACION_E5} Sin sección en el suplemento${parS2 ? `; ver ${parS2}` : ""}.`;
+}
 
 // -----------------------------------------------------------------------------
 // Insumos del documento aprobado
@@ -185,6 +213,10 @@ type Cobertura = { codigo: string; estado: string; bloque: number | null; hechos
 type Ancla = { oracion: string; hechos: { id: string; hecho: string | null }[] };
 type VersionAprobada = { numero: number; version: number; texto: string; cobertura: Cobertura[]; anclas: Ancla[]; libro_id: string | null };
 type HechoLibro = { id: string; tipo: string; enunciado: string; extracto: string; valor: number | null; unidad: string | null; estado: string };
+type Previa = {
+  destino: Destino; clave: string; texto: string | null; bloque: number | null; bloque_version: number | null; prompt_version: string | null;
+  hechos: string[]; notas: string[]; costo_usd: number; tokens_entrada: number; tokens_cache_escritura: number; tokens_cache_lectura: number; tokens_salida: number;
+};
 
 type Plan =
   | { codigo: string; via: "regla"; estado: "no_aplica" | "pendiente"; texto: string; notas?: string[] }
@@ -208,8 +240,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   const aprobadas = (doc.versiones_aprobadas ?? {}) as Record<string, { id: string; version: number }>;
   const ids = Object.values(aprobadas).map((v) => v.id);
 
-  const [{ data: versiones }, { data: catalogo }, { data: perfil }, { data: enlaces }] = await Promise.all([
+  const [{ data: versiones }, { data: previas }, { data: catalogo }, { data: perfil }, { data: enlaces }] = await Promise.all([
     db.from("documentos_bloques_versiones").select("id, numero, version, texto, respaldo, libro_id").in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+    // Respuestas del modelo ya generadas para este documento: si su bloque sigue
+    // en la misma versión aprobada y con la misma versión de prompt, se reutilizan
+    // (sin llamada) — solo cambia lo que el código añade, como la remisión.
+    db.from("respuestas_datapoint").select("destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("documento_id", documentoId).eq("origen", "modelo"),
     db.from("datapoints_taxonomia").select("id, codigo, descripcion").eq("activo", true),
     db.from("perfil_emisor").select("glosario").eq("tenant_id", doc.tenant_id).maybeSingle(),
     db.from("mapeo_solicitud_datapoint").select("datapoint_id, solicitud:solicitudes!inner(id, reporte_id, titulo)").eq("solicitud.reporte_id", doc.reporte_id),
@@ -220,6 +256,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const r = (v.respaldo ?? {}) as { cobertura?: Cobertura[]; anclas?: Ancla[] };
     porBloque.set(v.numero, { numero: v.numero, version: v.version, texto: v.texto, cobertura: r.cobertura ?? [], anclas: r.anclas ?? [], libro_id: v.libro_id });
   }
+  const numeracion = numeracionConsecutiva(porBloque.keys());
+  const previaDe = new Map(((previas ?? []) as Previa[]).map((p) => [`${p.destino}|${p.clave}`, p]));
   const libros = [...new Set([...porBloque.values()].map((v) => v.libro_id).filter((x): x is string => !!x))];
   const hechos = new Map<string, HechoLibro>();
   for (const l of libros) {
@@ -300,7 +338,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const sinBloque = !BLOQUES.some((x) => x.datapoints.includes(codigo));
     if (sinBloque && codigo.startsWith("NIIF S1") && alivios.E5) {
       const par = PAR_S2_DE_S1.get(sinCodigoNorma(codigo));
-      return { codigo, via: "regla", estado: "no_aplica", texto: `No aplica. ${ORACION_E5}${par ? ` La información sobre clima correspondiente se presenta en ${par}.` : ""}` };
+      return { codigo, via: "regla", estado: "no_aplica", texto: textoNoAplicaE5(par ?? null) };
     }
     const catId = codigos.find((c) => c.codigo === codigo)?.id;
     const sols = catId ? solsPorDatapoint.get(catId) ?? [] : [];
@@ -351,7 +389,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   const trabajos = [...porBloqueModelo.entries()].map(([numero, ps]) => async () => {
     if (opciones.latido && !(await opciones.latido())) throw new Error("La reserva de las respuestas pasó a otra corrida.");
     const v = porBloque.get(numero)!;
-    const r = await responderBloque(v, ps, { hechos, descripcion, glosario, destinosDe, apiKey });
+    const r = await responderBloque(v, ps, { hechos, descripcion, glosario, destinosDe, apiKey, numeracion, previaDe });
     uso = sumar(uso, r.uso);
     filas.push(...r.filas);
   });
@@ -416,7 +454,15 @@ type Salida = { codigo: string; destino: Destino; texto: string; hechos: string[
 async function responderBloque(
   v: VersionAprobada,
   planes: Extract<Plan, { via: "bloque" }>[],
-  ctx: { hechos: Map<string, HechoLibro>; descripcion: Map<string, string>; glosario: EntradaGlosario[]; destinosDe: (c: string) => Destino[]; apiKey?: string }
+  ctx: {
+    hechos: Map<string, HechoLibro>;
+    descripcion: Map<string, string>;
+    glosario: EntradaGlosario[];
+    destinosDe: (c: string) => Destino[];
+    apiKey?: string;
+    numeracion?: Map<number, number>;
+    previaDe?: Map<string, Previa>;
+  }
 ): Promise<{ filas: FilaRespuesta[]; uso: Uso }> {
   // Ids locales por bloque: h1, h2… en el orden en que aparecen.
   const local = new Map<string, string>();
@@ -436,7 +482,14 @@ async function responderBloque(
   const finales = new Map<string, { texto: string; citados: string[]; origen: OrigenRespuesta; notas: string[] }>();
   const clave = (p: { codigo: string; destino: Destino }) => `${p.destino}|${p.codigo}`;
 
-  let pendientes = pedidos;
+  // Reutilizables: misma versión aprobada del bloque y misma versión de prompt.
+  const reutilizadas = new Map<string, Previa>();
+  for (const p of pedidos) {
+    const prev = ctx.previaDe?.get(clave(p));
+    if (prev?.texto && prev.bloque === v.numero && prev.bloque_version === v.version && prev.prompt_version === PROMPT_RESPUESTAS) reutilizadas.set(clave(p), prev);
+  }
+  const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
+  let pendientes = llamados;
   const motivos = new Map<string, string[]>();
   for (let intento = 1; intento <= 2 && pendientes.length && ctx.apiKey; intento++) {
     let salida: Salida[] = [];
@@ -471,8 +524,30 @@ async function responderBloque(
   }
 
   const filas: FilaRespuesta[] = [];
-  const porRespuesta = pedidos.length ? costoUsd(MODELO_RESPUESTAS, uso) / pedidos.length : 0;
+  const porRespuesta = llamados.length ? costoUsd(MODELO_RESPUESTAS, uso) / llamados.length : 0;
+  const rem = remision(v.numero, ctx.numeracion);
   for (const p of pedidos) {
+    const prev = reutilizadas.get(clave(p));
+    if (prev) {
+      filas.push({
+        destino: p.destino,
+        clave: p.codigo,
+        tipo_campo: p.destino === "formato" ? "text block" : "text",
+        estado: "respuesta",
+        origen: "modelo",
+        texto: p.destino === "taxonomia" && rem ? `${sinRemision(prev.texto!)} ${rem}.` : prev.texto,
+        valor: null,
+        bloque: v.numero,
+        bloque_version: v.version,
+        hechos: prev.hechos,
+        notas: prev.notas,
+        modelo: MODELO_RESPUESTAS,
+        prompt_version: PROMPT_RESPUESTAS,
+        uso: { entrada: prev.tokens_entrada, cacheEscritura: prev.tokens_cache_escritura, cacheLectura: prev.tokens_cache_lectura, salida: prev.tokens_salida },
+        costo_usd: Number(prev.costo_usd),
+      });
+      continue;
+    }
     let f = finales.get(clave(p));
     if (!f) {
       // Respaldo sin modelo: las oraciones del bloque aprobado ancladas a estos hechos.
@@ -484,14 +559,13 @@ async function responderBloque(
     }
     const porLocal = new Map(p.hechos.map((h) => [h.local, h.id]));
     const hechosCitados = f.origen === "modelo" ? f.citados.map((c) => porLocal.get(c)).filter((x): x is string => !!x) : p.uuids;
-    const rem = p.destino === "taxonomia" ? remision(v.numero) : null;
     filas.push({
       destino: p.destino,
       clave: p.codigo,
       tipo_campo: p.destino === "formato" ? "text block" : "text",
       estado: "respuesta",
       origen: f.origen,
-      texto: rem ? `${f.texto} ${rem}.` : f.texto,
+      texto: p.destino === "taxonomia" && rem ? `${f.texto} ${rem}.` : f.texto,
       valor: null,
       bloque: v.numero,
       bloque_version: v.version,
@@ -499,7 +573,7 @@ async function responderBloque(
       notas: f.notas,
       modelo: f.origen === "modelo" ? MODELO_RESPUESTAS : null,
       prompt_version: f.origen === "modelo" ? PROMPT_RESPUESTAS : null,
-      uso: { entrada: Math.round(uso.entrada / pedidos.length), cacheEscritura: Math.round(uso.cacheEscritura / pedidos.length), cacheLectura: Math.round(uso.cacheLectura / pedidos.length), salida: Math.round(uso.salida / pedidos.length) },
+      uso: { entrada: Math.round(uso.entrada / llamados.length), cacheEscritura: Math.round(uso.cacheEscritura / llamados.length), cacheLectura: Math.round(uso.cacheLectura / llamados.length), salida: Math.round(uso.salida / llamados.length) },
       costo_usd: Math.round(porRespuesta * 10_000) / 10_000,
     });
   }

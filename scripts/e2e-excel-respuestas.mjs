@@ -123,7 +123,8 @@ try {
   const fila = psql(`select estado || '|' || origen || '|' || bloque || '|' || texto from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave=${lit(CODIGO)}`);
   const [eF, oF, bF, tF] = fila.split("|");
   ok(eF === "respuesta" && oF === "bloque" && bF === "15", `${CODIGO}: respuesta del bloque 15, por oraciones ancladas sin modelo (${eF}/${oF}/${bF})`);
-  ok((tF ?? "").includes(SENAL_APROBADA) && (tF ?? "").endsWith("Ver sección 15 · Roles y responsabilidades del órgano de gobierno."), "lleva la oración aprobada y la remisión «Ver sección 15 · …»");
+  // Numeración consecutiva del Word: el documento de prueba solo lleva el bloque 15, que es su sección 1.
+  ok((tF ?? "").includes(SENAL_APROBADA) && (tF ?? "").endsWith("Ver sección 1 · Roles y responsabilidades del órgano de gobierno."), "lleva la oración aprobada y la remisión con la numeración del documento («Ver sección 1 · …»)");
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='formato' and clave=${lit(CODIGO)}`) === "1", "y su variante para el Formato electrónico");
   ok(Number(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia'`)) >= 110, "una fila por código del catálogo");
   ok(Number(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and estado='no_aplica'`)) > 0 && Number(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and estado='pendiente'`)) > 0, "con «no aplica» y «pendiente» explícitos donde no hay sección");
