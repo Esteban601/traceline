@@ -135,7 +135,8 @@ try {
   ok(![...x3.porCodigo.values()].some((x) => x.e === "En preparación"), "ninguna celda «En preparación»");
   ok(x3.porCodigo.get("NIIF S2 25 (a)(i)")?.nivel === 1 && x3.porCodigo.get("NIIF S2 25 (a)(i)a(v)")?.nivel === 0, "los incisos hijos quedan agrupados bajo su padre (nivel 1)");
   const pendiente = psql(`select clave from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and estado='pendiente' and clave in (${[...x3.porCodigo.keys()].map(lit).join(",")}) order by clave limit 1`);
-  ok(/^\[Pendiente: .+ — .+\]$/.test(x3.porCodigo.get(pendiente)?.e ?? ""), `el pendiente lleva el marcador del Word (${pendiente}: «${(x3.porCodigo.get(pendiente)?.e ?? "").slice(0, 60)}…»)`);
+  // CLAUDE.md §5 (1.10): en el Excel el pendiente va en texto plano, sin corchetes.
+  ok(/^Pendiente: .+ — .+[^\]]$/.test(x3.porCodigo.get(pendiente)?.e ?? ""), `el pendiente va en texto plano, «Pendiente: … — …» (${pendiente}: «${(x3.porCodigo.get(pendiente)?.e ?? "").slice(0, 60)}…»)`);
 
   console.log("\n4. Versión nueva en borrador: sigue el último aprobado");
   nuevoDocumento(`El Consejo de Administración supervisa los riesgos climáticos (${SENAL_BORRADOR}).`);

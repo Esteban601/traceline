@@ -13,12 +13,17 @@ import {
   LIMITES,
   PAR_S2_DE_S1,
   oracionesAncladas,
+  paraFormatoElectronico,
+  pendienteEnTextoPlano,
   remision,
+  sinRemision,
+  textoNoAplicaE5,
   respuestaDeCaptura,
   textoNoAplicaHeredado,
   validarRespuesta,
 } from "../lib/suplemento/respuestas.ts";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
+import { numeracionConsecutiva } from "../lib/suplemento/numeracion.ts";
 
 const fallas = [];
 const ok = (c, m) => { if (!c) fallas.push(m); console.log(`${c ? "  ✓" : "  ✗"} ${m}`); };
@@ -59,6 +64,15 @@ for (const c of ["NIIF S2 36 (c)", "NIIF S2 36 (e)(ii)"]) {
 }
 ok(DATAPOINTS_FORMATO_TEXTO.has("NIIF S2 6 (a)") && DATAPOINTS_FORMATO_TEXTO.size > 50, `datapoints del formato con conceptos text/text block: ${DATAPOINTS_FORMATO_TEXTO.size}`);
 ok(PAR_S2_DE_S1.get("niifs127(a)") === "NIIF S2 6 (a)", "par S1→S2 del mapeo: NIIF S1 27(a) → NIIF S2 6 (a)");
+
+console.log("\n3. Revisión externa del Excel (especificación 0.41)");
+ok(pendienteEnTextoPlano("[Pendiente: dato X — solicitud Y]") === "Pendiente: dato X — solicitud Y", "el pendiente sale en texto plano para el Excel");
+ok(paraFormatoElectronico("pendiente", "[Pendiente: dato X — solicitud Y]") === null && paraFormatoElectronico("respuesta", "Texto.") === "Texto.", "en el Formato electrónico, un pendiente deja la celda vacía");
+ok(textoNoAplicaE5("NIIF S2 6 (a)").endsWith("Sin sección en el suplemento; ver NIIF S2 6 (a).") && textoNoAplicaE5(null).endsWith("Sin sección en el suplemento."), "«No aplica · E5»: sin sección en el suplemento; ver NIIF S2 N");
+const num = numeracionConsecutiva([21, 19, 15, 33, 19]);
+ok(num.get(15) === 1 && num.get(19) === 2 && num.get(21) === 3 && num.get(33) === 4, "numeración consecutiva: 15, 19, 21, 33 → 1, 2, 3, 4");
+ok(remision(21, num) === "Ver sección 3 · Riesgos climáticos prioritarios", "la remisión usa la numeración del documento");
+ok(sinRemision("La Compañía revela X. Ver sección 22 · Riesgos climáticos prioritarios.") === "La Compañía revela X.", "la remisión se quita para reutilizar el texto con la numeración vigente");
 
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);
