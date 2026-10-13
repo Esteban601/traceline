@@ -100,8 +100,11 @@ try {
     ok(k(5) === `Informe de Sostenibilidad y Clima ${ejercicio}`, "fila 5: regla fija con el ejercicio");
     let corchete = 0;
     let menciones = 0;
-    wb.eachSheet((h) => h.eachRow((row) => row.eachCell((c) => { const x = texto(c.value); if (x.startsWith("[")) corchete++; if (/autl[aá]n/i.test(x)) menciones++; })));
-    ok(corchete === 0, "ninguna celda empieza con «[»");
+    wb.eachSheet((h) => h.eachRow((row) => row.eachCell((c) => { if (/autl[aá]n/i.test(texto(c.value))) menciones++; })));
+    // Las respuestas (columna K y «Tabla NIIF»); los encabezados «[100000] …» de la columna D son estructura del formato.
+    ws.eachRow((row, n) => { if (n > 3 && texto(row.getCell(11).value).startsWith("[")) corchete++; });
+    wb.getWorksheet("Tabla NIIF").eachRow((row) => row.eachCell((c) => { if (texto(c.value).startsWith("[")) corchete++; }));
+    ok(corchete === 0, "ninguna respuesta (columna K, «Tabla NIIF») empieza con «[»");
     ok(menciones === 0, "ninguna celda nombra a la emisora de referencia");
     const registros = Number(psql(`select count(*) from registros_clima where reporte_id=${lit(REPORTE)} and activo`));
     let filasTN = 0;
