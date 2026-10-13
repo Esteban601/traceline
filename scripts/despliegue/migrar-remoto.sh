@@ -95,8 +95,10 @@ fi
 
 [[ -n "$DB_URL" ]] || falla "Falta la URL de la base de $DESTINO."
 [[ "$DB_URL" != *"PEGAR_"* ]] || falla "La URL conserva el marcador PEGAR_."
-[[ "$DB_URL" == *"$REF"* ]] || falla "La URL no apunta a $REF ($DESTINO)."
-[[ "$DB_URL" != *"$OTRO"* ]] || falla "La URL contiene el ref del otro proyecto ($OTRO)."
+# Ref en el host (conexión directa) o en el usuario (session pooler), y nunca el del otro proyecto.
+# shellcheck source=url-destino.sh
+source "$RAIZ/scripts/despliegue/url-destino.sh"
+url_apunta_a "$DB_URL" "$REF" "$OTRO" || falla "La URL de $DESTINO $URL_MOTIVO."
 echo "destino: $DESTINO ($REF) ✓ · $(git rev-parse --short HEAD) · psql $("$PSQL" --version | awk '{print $3}')"
 
 # Lista lo pendiente. Una conexión fallida también deja la lista vacía, así que
