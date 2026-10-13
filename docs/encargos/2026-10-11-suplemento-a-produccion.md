@@ -244,7 +244,7 @@ Esteban, además, toma la instantánea de Carso «antes» con `scripts/ensayo/in
 ```sh
 gh pr merge <n> --merge                          # merge commit, con el comentario de revisión
 cd ~/Repositorios/vert-evidencia && git fetch origin && git merge --ff-only origin/main
-git rev-parse --short HEAD origin/main           # iguales
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" && echo "HEAD = origin/main ✓"   # con --short, dos revisiones fallan
 nvm use 22 && pnpm install --frozen-lockfile
 ```
 
@@ -253,6 +253,7 @@ usa la URL del **session pooler**, con usuario `postgres.<ref>`. El script la ac
 el ensayo.
 ```sh
 cd ~/Repositorios/vert-evidencia && git status --short && git rev-parse --short HEAD   # limpio, = origin/main
+mkdir -p referencia/lineas-base/v40/despues          # la carpeta de la instantánea de después
 read -rs STAGING_DB_URL && export STAGING_DB_URL       # se pega sin eco
 bash scripts/despliegue/migrar-remoto.sh staging                # revisión: 18 pendientes == ESPERADAS
 bash scripts/despliegue/migrar-remoto.sh staging --aplicar      # pide el ref; al final: nada pendiente, 86 de 86, barrera 105
@@ -270,7 +271,7 @@ diff referencia/lineas-base/v40/antes/instantanea-v40.txt referencia/lineas-base
 
 **3. Despliegue (Claude Code, con la autorización de Esteban por chat).**
 ```sh
-cd ~/Repositorios/vert-evidencia && git rev-parse --short HEAD origin/main      # iguales
+cd ~/Repositorios/vert-evidencia && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" && echo "HEAD = origin/main ✓"
 git push heroku main
 heroku releases -a traceline-staging -n 2        # v40 · Deploy <sha de main>
 heroku ps -a traceline-staging                   # web.1: up
