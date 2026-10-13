@@ -321,6 +321,9 @@ if (DECISIONES) {
     x.regla = (x.regla ?? "").replace(/NIIF S2 29 \(b\)/g, c.codigo);
     x.revision = { origen: "Esteban (13 de octubre de 2026)", categoria: "corrección de Ref" };
   }
+  // Códigos que el catálogo no tiene: van a la lista de ampliación como deuda
+  // (decisión de Esteban, 13 de octubre de 2026); la fila queda «sin mapeo».
+  for (const x of resultado) if (x.capa === "sin candidato" && x.nota && !/ampliación/.test(x.nota)) x.nota += " · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)";
   // Las filas sin decisión propia que son subconceptos vuelven a heredar de su padre ya revisado.
   for (const x of resultado) {
     const m = !x.revision && x.clasificacion.match(/^subconcepto de la fila (\d+)/);

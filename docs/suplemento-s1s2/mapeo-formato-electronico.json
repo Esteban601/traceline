@@ -6460,7 +6460,7 @@
    "confianza": "—",
    "bloque": null,
    "regla": "Solo sector financiero (Perfil); si no, «No aplica». Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
-   "nota": "NIIF S2 29B(a) no existe en el catálogo",
+   "nota": "NIIF S2 29B(a) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)",
    "alivioE5": false,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
@@ -6484,7 +6484,7 @@
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "sector financiero"
    },
-   "nota": "NIIF S2 29B(a) no existe en el catálogo"
+   "nota": "NIIF S2 29B(a) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)"
   },
   {
    "fila": 437,
