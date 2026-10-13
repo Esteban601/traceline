@@ -256,3 +256,22 @@ export function remisionesSinAncla(
   }
   return errores;
 }
+
+/**
+ * Regla de degradación del validador de remisiones (fix/pre-v40-b, decisión de
+ * Esteban del 13 de octubre de 2026): en el SEGUNDO intento, si lo único que se
+ * rechaza son remisiones sin ancla, el bloque se acepta y cada remisión va como
+ * observación del validador. Cualquier otro rechazo (cifras, fuentes, voz,
+ * marcadores, cobertura u otro validador) sigue dejando el bloque en error.
+ */
+export function aceptaConRemisionesSinAncla(
+  intento: number,
+  f: { remisiones: number; deterministas: number; inventadas: number; prohibidas: number; marcadores: number; sinRespaldo: number; cobertura: number }
+): boolean {
+  return (
+    intento === 2 &&
+    f.remisiones > 0 &&
+    f.deterministas === f.remisiones &&
+    f.inventadas + f.prohibidas + f.marcadores + f.sinRespaldo + f.cobertura === 0
+  );
+}

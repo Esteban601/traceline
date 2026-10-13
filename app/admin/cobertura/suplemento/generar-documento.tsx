@@ -36,7 +36,8 @@ const CONCURRENCIA = 3;
 const INTERVALO_MS = 2000;
 const LIMITE_MS = 3 * 60 * 1000;
 
-type Estado = "listo" | "abriendo" | "generando" | "cerrando" | "hecho" | "error";
+// «sigue»: pasaron 20 min y el cierre no terminó; no se da por terminado ni se ofrece Generar (Codex, PR #20).
+type Estado = "listo" | "abriendo" | "generando" | "cerrando" | "sigue" | "hecho" | "error";
 
 export function GenerarDocumento({
   reporteId,
@@ -179,10 +180,21 @@ export function GenerarDocumento({
         if (c?.status === 202) {
           setEstado("cerrando");
           const hasta = Date.now() + 20 * 60 * 1000;
+          let terminado = false;
           while (Date.now() < hasta && !cancelado.current) {
             await new Promise((r) => setTimeout(r, 4000));
             const e = await fetch(`/api/suplemento/${docId}/cierre`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-            if (e?.estado === "listo" || e?.estado === "error") break;
+            if (e?.estado === "listo" || e?.estado === "error") {
+              terminado = true;
+              break;
+            }
+          }
+          if (!terminado) {
+            setFallidos(quedan);
+            setEstado("sigue");
+            toast.error("El cierre de pendientes sigue en curso; la revisión muestra su estado.");
+            router.refresh();
+            return;
           }
         }
       }
@@ -223,9 +235,15 @@ export function GenerarDocumento({
       <Button
         onClick={() => generar()}
         loading={estado === "abriendo" || estado === "generando" || estado === "cerrando"}
-        disabled={estado === "generando" || estado === "cerrando"}
+        disabled={estado === "generando" || estado === "cerrando" || estado === "sigue"}
       >
-        {estado === "generando" ? `Generando ${hechos}/${total}…` : estado === "cerrando" ? "Cerrando pendientes…" : "Generar suplemento"}
+        {estado === "generando"
+          ? `Generando ${hechos}/${total}…`
+          : estado === "cerrando"
+            ? "Cerrando pendientes…"
+            : estado === "sigue"
+              ? "El cierre sigue en curso"
+              : "Generar suplemento"}
       </Button>
 
       {estado === "generando" && (

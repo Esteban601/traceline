@@ -125,10 +125,9 @@ let coherencia = { http: cierre.status };
 }
 
 const { data: bloques } = await db.from("documentos_bloques").select("numero, estado, costo_usd, tokens_entrada, tokens_salida, pendientes, duracion_ms").eq("documento_id", abierto.documentoId);
-const segs = bloques.filter((b) => b.duracion_ms).map((b) => b.duracion_ms / 1000).sort((a, b) => a - b);
+// Solo los bloques de ESTA corrida: un documento reabierto conserva la duración de los que no se regeneran.
+const segs = bloques.filter((b) => b.duracion_ms && abierto.porGenerar.includes(b.numero)).map((b) => b.duracion_ms / 1000).sort((a, b) => a - b);
 const pct = (q) => (segs.length ? Number(segs[Math.min(segs.length - 1, Math.floor(q * segs.length))].toFixed(1)) : null);
-const porRuta = {};
-for (const x of peticiones) { const k = `${x.metodo} ${x.ruta}`; porRuta[k] = { n: (porRuta[k]?.n ?? 0) + 1, maxMs: Math.max(porRuta[k]?.maxMs ?? 0, x.ms) }; }
 const porEstado = {};
 for (const b of bloques) porEstado[b.estado] = (porEstado[b.estado] ?? 0) + 1;
 const costo = bloques.reduce((s, b) => s + Number(b.costo_usd ?? 0), 0);
@@ -140,6 +139,10 @@ fs.writeFileSync(docx, Buffer.from(await w.arrayBuffer()));
 execFileSync("soffice", ["--headless", "--convert-to", "pdf", "--outdir", carpeta, docx], { stdio: "ignore" });
 const pdf = fs.readFileSync(path.join(carpeta, `${seleccion}.pdf`)).toString("latin1");
 const paginas = (pdf.match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+
+// Después de la última petición (el Word), para que el resumen por ruta sume lo mismo que el total.
+const porRuta = {};
+for (const x of peticiones) { const k = `${x.metodo} ${x.ruta}`; porRuta[k] = { n: (porRuta[k]?.n ?? 0) + 1, maxMs: Math.max(porRuta[k]?.maxMs ?? 0, x.ms) }; }
 
 const resumen = {
   seleccion,

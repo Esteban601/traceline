@@ -28,6 +28,7 @@
     "e2e:historial-bloques": "node scripts/e2e-historial-bloques.mjs",
     "e2e:aprobar-bloqueantes": "node scripts/e2e-aprobar-bloqueantes.mjs",
     "e2e:pre-v40": "node scripts/e2e-pre-v40.mjs",
+    "e2e:pre-v40-b": "node --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs scripts/e2e-pre-v40-b.mjs",
     "e2e:cierre-reserva": "ANTHROPIC_API_KEY=e2e-sin-llave ANTHROPIC_BASE_URL=http://127.0.0.1:9 node --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs scripts/e2e-cierre-reserva.mjs",
     "e2e:jefe-sube-evidencia": "node scripts/e2e-jefe-sube-evidencia.mjs",
     "e2e:recordatorios": "node scripts/e2e-recordatorios.mjs",
