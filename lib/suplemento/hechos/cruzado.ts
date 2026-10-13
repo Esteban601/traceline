@@ -36,7 +36,7 @@ import { esCambioDelEjercicio, SIN_CAMBIOS } from "./validadores";
 
 type Db = SupabaseClient<Database>;
 
-export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "remision_sin_ancla" | "cambios_negados" | "duplicacion";
+export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "remision_sin_ancla" | "repite_contenido" | "cambios_negados" | "duplicacion";
 
 export type Discrepancia = {
   bloque: number;
@@ -166,16 +166,21 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
       });
     }
 
-    // --- 3b. Remisiones sin ancla aceptadas en el reintento --------------------
-    // El generador ya no deja el bloque en error por esto (fix/pre-v40-b): las
-    // guarda como nota del validador y aquí se vuelven observación.
-    for (const n of ((b.pendientes ?? []) as unknown as { campo?: string; cubeta?: string; motivo?: string }[]).filter((x) => x.campo === "nota_revision" && x.cubeta === "validador")) {
+    // --- 3b. Colocación aceptada en el reintento ---------------------------------
+    // El generador ya no deja el bloque en error por esto (fix/pre-v40-b y -c): lo
+    // guarda como nota del validador y aquí se vuelve observación. Remisión sin
+    // ancla o texto que repite el contenido de otro bloque (etiqueta de la nota).
+    for (const n of ((b.pendientes ?? []) as unknown as { campo?: string; cubeta?: string; etiqueta?: string; motivo?: string }[]).filter((x) => x.campo === "nota_revision" && x.cubeta === "validador")) {
+      const repite = n.etiqueta === "texto_reescrito";
+      const otro = Number((repite ? /bloque (\d+)/ : /remite al bloque (\d+)/).exec(n.motivo ?? "")?.[1]) || null;
       out.push({
         bloque: b.numero,
-        tipo: "remision_sin_ancla",
-        otroBloque: Number(/remite al bloque (\d+)/.exec(n.motivo ?? "")?.[1]) || null,
+        tipo: repite ? "repite_contenido" : "remision_sin_ancla",
+        otroBloque: otro,
         cita: (n.motivo ?? "").slice(0, 200),
-        detalle: `Remisión aceptada en el reintento sin el ancla del hecho al que remite: ${(n.motivo ?? "").slice(0, 200)}`,
+        detalle: repite
+          ? `Repite contenido del bloque ${otro ?? "?"}: ${(n.motivo ?? "").slice(0, 200)}`
+          : `Remisión aceptada en el reintento sin el ancla del hecho al que remite: ${(n.motivo ?? "").slice(0, 200)}`,
         correccion: (n.motivo ?? "").slice(0, 400),
       });
     }

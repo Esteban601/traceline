@@ -1,6 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.37** · 11 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.38** · 13 de octubre de 2026.
+
+**Cambios respecto a 0.37** (decisiones de Esteban del 13 de octubre de 2026, antes de v40):
+- §6, generador: **los validadores de datos fallan; los de colocación degradan.**
+- §6, cierre: la reserva del cierre lleva un identificador y se renueva en cada verificación; la reapertura en `generar`
+  la toma después de revisar las ediciones a mano.
 
 **Cambios respecto a 0.36** (cierre del Paso 5c, decisión de Esteban):
 - §6, rúbrica externa: 3.9 el 9 de octubre y coherencia 4 el 11 de octubre; criterio de cierre cumplido.
@@ -952,6 +957,33 @@ No se generan en paralelo desde los datos.
 
 **Dependencias nuevas.** SDK de Anthropic, `docx`. Variable `ANTHROPIC_API_KEY` en Heroku y `.env.local`, una llave
 por ambiente.
+
+**Validadores de datos y de colocación** (decisión de Esteban del 13 de octubre de 2026). Cuando un validador
+rechaza la respuesta del modelo, el bloque tiene un reintento. Después del segundo intento, el resultado depende del
+tipo de validador:
+- **Datos: el bloque queda en «error» y no entra al documento.** Son los validadores que protegen lo que se afirma:
+  - fuentes inventadas;
+  - cifras sin respaldo;
+  - vocabulario de plataforma;
+  - marcadores mal formados;
+  - cobertura inválida;
+  - declaraciones negativas omitidas, cambios negados, incisos inexactos, rangos incoherentes y hechos solo
+    narrativos;
+  - remisiones que mandan al lector a lo que no existe: a un bloque que no va en el documento, a uno que no es dueño
+    de ningún hecho, o con el ancla de un hecho inventado.
+- **Colocación: el bloque queda en borrador.** Son los validadores que solo cuestionan dónde va un contenido
+  verdadero:
+  - una remisión a un bloque del documento con hechos, pero sin el ancla `[Bn.k]` del hecho al que remite;
+  - un texto que reescribe un hecho que desarrolla otro bloque.
+
+  Cada caso se guarda como nota del bloque en la cubeta «validador»: `remision_sin_ancla` o `texto_reescrito`. El
+  validador cruzado la reporta como `remision_sin_ancla` o `repite_contenido` («repite contenido del bloque N»), con
+  gravedad media en la coherencia. La revisión la muestra en «observaciones del validador». No es un pendiente y no
+  bloquea la aprobación.
+- **Implementación:** `aceptaConObservacionesDeColocacion` y `remisionesSinAnclaTipadas`
+  (`lib/suplemento/hechos/remisiones.ts`).
+- **Origen:** el bloque 25 del A8 de v40 quedó en «error» dos veces: primero por una remisión sin ancla y después por
+  un texto reescrito del bloque 40.
 
 **Rúbrica externa y cierre del encargo suplemento-calidad (Paso 5c).** Criterio de cierre: coherencia ≥ 4,
 tablas ≥ 4 y trazabilidad ≥ 4, calificadas por un lector externo sobre el Word del documento demo `98d57a6a`

@@ -148,18 +148,6 @@ async function generar(req: Request, ctx: { params: Promise<{ destino: string }>
   let creado = false;
 
   if (ultimo && ultimo.estado !== "aprobado") {
-    // Reabrir el documento vacía sus bloques: con el cierre de la corrida
-    // anterior en curso, ese cierre leería o escribiría la corrida nueva
-    // (observación P2 de Codex sobre el PR #18). Se espera a que termine; y
-    // mientras se reabre, la reserva es de la reapertura (ver POST).
-    const reserva = await reclamarCierre(db, ultimo.id);
-    if (!reserva) {
-      return NextResponse.json(
-        { error: "El cierre de pendientes de la corrida anterior sigue en curso; vuelve a generar cuando termine." },
-        { status: 409 }
-      );
-    }
-    reapertura.r = { documento: ultimo.id, reserva };
     // EDICIONES HUMANAS (CLAUDE.md §5, A6). Reabrir el documento deja en cola
     // todos sus bloques y vacía sus textos; los editados a mano no se pisan sin
     // que quien genera lo confirme. Nada se pierde: cada texto queda en el
@@ -177,6 +165,20 @@ async function generar(req: Request, ctx: { params: Promise<{ destino: string }>
         );
       }
     }
+    // Reabrir el documento vacía sus bloques: con el cierre de la corrida
+    // anterior en curso, ese cierre leería o escribiría la corrida nueva
+    // (observación P2 de Codex sobre el PR #18). Se espera a que termine; y
+    // mientras se reabre, la reserva es de la reapertura (ver POST). Va DESPUÉS
+    // de las ediciones: un 428 no reabre nada y no debe borrar el resumen del
+    // cierre anterior al soltar la reserva (P2 de Codex sobre el PR #22).
+    const reserva = await reclamarCierre(db, ultimo.id);
+    if (!reserva) {
+      return NextResponse.json(
+        { error: "El cierre de pendientes de la corrida anterior sigue en curso; vuelve a generar cuando termine." },
+        { status: 409 }
+      );
+    }
+    reapertura.r = { documento: ultimo.id, reserva };
     documentoId = ultimo.id;
     version = ultimo.version;
     // REFRESCAR EL RÉGIMEN CONGELADO. Congelar significa "esto es lo que regía
