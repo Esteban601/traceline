@@ -35,8 +35,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createServerClient } from "@supabase/ssr";
 
-// El ref del ensayo de v40 se agrega cuando Esteban cree el proyecto (Paso 4).
-const REFS = { ewgnvjtjhvdltvkopptn: "staging" };
+// Ensayo de v40: creado por Esteban el 13/10/2026 (Paso 4).
+const REFS = { ewgnvjtjhvdltvkopptn: "staging", vdubzcjtujxayefzhhco: "ensayo" };
 const APPS = {
   staging: "https://traceline-staging-70ce5b369e7c.herokuapp.com",
   ensayo: "https://traceline-dev-d4fd7a3cda04.herokuapp.com",
@@ -65,7 +65,7 @@ const ambiente = Object.entries(REFS).find(([ref]) => URL_SB.includes(ref))?.[1]
 const BASE = process.env.BASE_URL;
 if (!ambiente || !ANON || !credArch || (!carpetaAntes && !carpetaDespues && !generar)) {
   console.error("Uso: comprobar-v40.mjs (--antes <dir> | --despues <dir> | --generar) --credenciales <archivo>");
-  console.error("     con NEXT_PUBLIC_SUPABASE_URL (staging) y NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  console.error("     con NEXT_PUBLIC_SUPABASE_URL (staging o ensayo) y NEXT_PUBLIC_SUPABASE_ANON_KEY.");
   process.exit(2);
 }
 if (BASE && BASE !== APPS[ambiente]) {

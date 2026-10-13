@@ -23,9 +23,9 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-# El ensayo de v33 (sqpxcxewoznhpwvhxamy) se borró el 5/10. El de v40 lo crea
-# Esteban en el Paso 4 y su ref se escribe aquí; hasta entonces, «ensayo» falla.
-REF_ENSAYO="PENDIENTE_REF_ENSAYO_V40"
+# Ensayo de v40 (creado por Esteban el 13/10/2026, Postgres 17). El de v33
+# (sqpxcxewoznhpwvhxamy) se borró el 5/10.
+REF_ENSAYO="vdubzcjtujxayefzhhco"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
 # v40 (encargo 2026-10-11-suplemento-a-produccion): las 16 del encargo
 # suplemento-calidad (PR #17) y las 2 de fix/pre-v40 (PR #18).
