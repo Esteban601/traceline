@@ -1,0 +1,6987 @@
+{
+ "resumen": {
+  "formato": {
+   "archivo": "Estructura_Formato_NIIF_S1_S2_Autlan.xlsx",
+   "sha256": "69b062137cd8",
+   "hoja": "Estructura Formato Electronico"
+  },
+  "filas": 364,
+  "porClasificacion": {
+   "encabezado": 5,
+   "concepto": 250,
+   "subconcepto": 106,
+   "miembro de tabla": 3
+  },
+  "porCapa": {
+   "—": 8,
+   "Perfil": 16,
+   "1 · fuente": 234,
+   "2 · etiqueta": 83,
+   "sin candidato": 23
+  },
+  "porConfianza": {
+   "—": 31,
+   "baja": 14,
+   "alta": 217,
+   "media": 102
+  },
+  "conDatapoint": 317,
+  "conBloque": 204
+ },
+ "conceptos": [
+  {
+   "fila": 4,
+   "seccion": "100000",
+   "tipo": "abstract",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "encabezado",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin respuesta (encabezado)"
+  },
+  {
+   "fila": 5,
+   "seccion": "100000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": null,
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Perfil: campo por definir con Esteban"
+  },
+  {
+   "fila": 6,
+   "seccion": "100000",
+   "tipo": "enumeración",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.tipo_instrumento (nuevo)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.tipo_instrumento (nuevo)"
+  },
+  {
+   "fila": 7,
+   "seccion": "100000",
+   "tipo": "enumeración",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.fiduciario (nuevo)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.fiduciario (nuevo)"
+  },
+  {
+   "fila": 8,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.clave_cotizacion (nuevo)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.clave_cotizacion (nuevo)"
+  },
+  {
+   "fila": 9,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.logo",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.logo"
+  },
+  {
+   "fila": 10,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.denominacion_formal",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.denominacion_formal"
+  },
+  {
+   "fila": 11,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "reporte.ejercicio",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde reporte.ejercicio"
+  },
+  {
+   "fila": 13,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.clave_cotizacion (nuevo)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.clave_cotizacion (nuevo)"
+  },
+  {
+   "fila": 14,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.fiduciario (nuevo)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.fiduciario (nuevo)"
+  },
+  {
+   "fila": 15,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.fiduciario (nuevo)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.fiduciario (nuevo)"
+  },
+  {
+   "fila": 16,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.logo",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.logo"
+  },
+  {
+   "fila": 17,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.denominacion_formal",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.denominacion_formal"
+  },
+  {
+   "fila": 18,
+   "seccion": "100000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 17",
+   "capa": "Perfil",
+   "datapoint": null,
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 17 (text block)"
+  },
+  {
+   "fila": 19,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "perfil.denominacion_formal",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde perfil.denominacion_formal"
+  },
+  {
+   "fila": 20,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": null,
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Perfil: campo por definir con Esteban"
+  },
+  {
+   "fila": 21,
+   "seccion": "100000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "Perfil",
+   "datapoint": null,
+   "perfil": "reporte.ejercicio",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Desde reporte.ejercicio"
+  },
+  {
+   "fila": 24,
+   "seccion": "200000",
+   "tipo": "abstract",
+   "parrafos": [
+    "NIIF S1 26",
+    "NIIF S2 5"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "encabezado",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin respuesta (encabezado)"
+  },
+  {
+   "fila": 25,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (a)",
+    "NIIF S2 6 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 26,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 27 (a)",
+    "NIIF S2 6 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 25",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 25 (text block)"
+  },
+  {
+   "fila": 27,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 27(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 28,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (a)(i)",
+    "NIIF S2 6 (a)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(i)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(i): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 30,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (a)(ii)",
+    "NIIF S2 6 (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(ii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(ii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 32,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (a)(iii)",
+    "NIIF S2 6 (a)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(iii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(iii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 34,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (a)(iv)",
+    "NIIF S2 6 (a)(iv)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(iv)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(iv): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 36,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (a)(v)",
+    "NIIF S2 6 (a)(v)",
+    "NIIF S2 6",
+    "NIIF S2 29 (g)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(v): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 38,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 27 (a)(v)",
+    "NIIF S2 6 (a)(v)"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S1 27(a)(v)",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 39,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 27 (a)(v)",
+    "NIIF S2 6 (a)(v)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 38",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 38 (booleano)"
+  },
+  {
+   "fila": 41,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 27 (a)(v)",
+    "NIIF S2 6 (a)(v)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 38",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 38 (booleano)"
+  },
+  {
+   "fila": 43,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 27 (b)",
+    "NIIF S2 6 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(b): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 44,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 27 (b)(i)",
+    "NIIF S2 6 (b)(i)"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 6(b)(i)",
+   "confianza": "media",
+   "bloque": 17,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 6(b)(i)",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 45,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 27 (b)(i)",
+    "NIIF S2 6 (b)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 44",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 6(b)(i)",
+   "confianza": "media",
+   "bloque": 17,
+   "regla": "Se responde junto con la fila 44 (booleano)"
+  },
+  {
+   "fila": 47,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (b)(i)",
+    "NIIF S2 6 (b)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(b)(i)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(b)(i): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 49,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 27 (b)(ii)",
+    "NIIF S2 6 (b)(ii)"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(b)(ii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S1 27(b)(ii)",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 50,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 27 (b)(ii)",
+    "NIIF S2 6 (b)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 49",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(b)(ii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 49 (booleano)"
+  },
+  {
+   "fila": 52,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 27 (b)(ii)",
+    "NIIF S2 6 (b)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(b)(ii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(b)(ii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 54,
+   "seccion": "200000",
+   "tipo": "abstract",
+   "parrafos": [
+    "NIIF S1 28",
+    "NIIF S1 29",
+    "NIIF S2 8",
+    "NIIF S2 9"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "encabezado",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin respuesta (encabezado)"
+  },
+  {
+   "fila": 55,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 30",
+    "NIIF S2 10"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 30(a)y(b)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 30(a)y(b): «Pendiente»",
+   "nota": "4 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 56,
+   "seccion": "200000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S1 30 (a)",
+    "NIIF S2 10 (a)",
+    "NIIF S2 11",
+    "NIIF S2 12"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 57,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 30 (c)",
+    "NIIF S2 10 (d)",
+    "NIIF S1 31"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 30(c)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 30(c): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 59,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 32",
+    "NIIF S2 13",
+    "NIIF S2 23"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 32(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 32(b): «Pendiente»",
+   "nota": "4 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 60,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 32 (a)",
+    "NIIF S2 13 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 32(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 32(a): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 62,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 32 (b)",
+    "NIIF S2 13 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 32(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 32(b): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 63,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 32 (b)",
+    "NIIF S2 13 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 62",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 32(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 62 (text block)"
+  },
+  {
+   "fila": 64,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 33",
+    "NIIF S2 14",
+    "NIIF S2 23"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 33(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 33(a): «Pendiente»",
+   "nota": "10 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 65,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 33 (a)",
+    "NIIF S2 14 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 33(a)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 33(a): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 67,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 14 (a)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(i)",
+   "confianza": "alta",
+   "bloque": 22,
+   "regla": "Modelo, desde el bloque 22 aprobado y los hechos de NIIF S2 14(a)(i)",
+   "nota": null
+  },
+  {
+   "fila": 68,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 67",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(i)",
+   "confianza": "alta",
+   "bloque": 22,
+   "regla": "Se responde junto con la fila 67 (text block)"
+  },
+  {
+   "fila": 69,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 14 (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(ii)",
+   "confianza": "alta",
+   "bloque": 22,
+   "regla": "Modelo, desde el bloque 22 aprobado y los hechos de NIIF S2 14(a)(ii)",
+   "nota": null
+  },
+  {
+   "fila": 70,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 14 (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 69",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(ii)",
+   "confianza": "alta",
+   "bloque": 22,
+   "regla": "Se responde junto con la fila 69 (text block)"
+  },
+  {
+   "fila": 71,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 14 (a)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(iii)",
+   "confianza": "alta",
+   "bloque": 23,
+   "regla": "Modelo, desde el bloque 23 aprobado y los hechos de NIIF S2 14(a)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 72,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 14 (a)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 71",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(iii)",
+   "confianza": "alta",
+   "bloque": 23,
+   "regla": "Se responde junto con la fila 71 (text block)"
+  },
+  {
+   "fila": 73,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 14 (a)(iv)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(iv)",
+   "confianza": "alta",
+   "bloque": 28,
+   "regla": "Modelo, desde el bloque 28 aprobado y los hechos de NIIF S2 14(a)(iv)",
+   "nota": null
+  },
+  {
+   "fila": 75,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 14 (a)(v)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(a)(v)",
+   "confianza": "alta",
+   "bloque": 25,
+   "regla": "Modelo, desde el bloque 25 aprobado y los hechos de NIIF S2 14(a)(v)",
+   "nota": null
+  },
+  {
+   "fila": 77,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 14 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 14(b)",
+   "confianza": "alta",
+   "bloque": 25,
+   "regla": "Modelo, desde el bloque 25 aprobado y los hechos de NIIF S2 14(b)",
+   "nota": null
+  },
+  {
+   "fila": 79,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 33 (b)",
+    "NIIF S2 14 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 33(b)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 33(b): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 81,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 33 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 33(c)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 33(c): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 82,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 81",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 33(c)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 81 (text block)"
+  },
+  {
+   "fila": 83,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 34",
+    "NIIF S2 15",
+    "NIIF S2 23"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (d) · B65 (c)",
+   "confianza": "media",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (c)",
+   "nota": null
+  },
+  {
+   "fila": 84,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 40(a)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 40(a): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 85,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (a)",
+    "NIIF S2 16 (a)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(a): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 86,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 35 (a)",
+    "NIIF S2 16 (a)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 85",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 85 (text block)"
+  },
+  {
+   "fila": 87,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (a)",
+    "NIIF S2 16 (a)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(a): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 88,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 35 (a)",
+    "NIIF S2 16 (a)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 87",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 87 (text block)"
+  },
+  {
+   "fila": 89,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (a)",
+    "NIIF S2 16 (a)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(a): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 90,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 35 (a)",
+    "NIIF S2 16 (a)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 89",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 89 (text block)"
+  },
+  {
+   "fila": 91,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 40(a)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 40(a): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 92,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (b)",
+    "NIIF S2 16 (b)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(b): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 93,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 92",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 92 (text block)"
+  },
+  {
+   "fila": 94,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 35 (c)(i)(ii)",
+    "NIIF S2 16 (c)(i)(ii)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(c)(i)(ii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(c)(i)(ii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 95,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (c)(i)(ii)",
+    "NIIF S2 16 (c)(i)(ii)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(c)(i)(ii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(c)(i)(ii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 96,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 35 (d)",
+    "NIIF S2 16 (d)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(d)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(d): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 97,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (d)",
+    "NIIF S2 16 (d)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(d)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(d): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 98,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 35 (d)",
+    "NIIF S2 16 (d)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(d)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(d): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 99,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 35 (d)",
+    "NIIF S2 16 (d)",
+    "NIIF S1 36",
+    "NIIF S1 40"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 35(d)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(d): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 100,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 40",
+    "NIIF S2 21",
+    "NIIF S1 36"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 40(a)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 40(a): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 102,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 100",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 40(a)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 100 (text block)"
+  },
+  {
+   "fila": 103,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 41",
+    "NIIF S1 42"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 41",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 41: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 105,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 22",
+    "NIIF S2 B1",
+    "NIIF S2 B18"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(a)(ii)",
+   "confianza": "media",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(a)(ii)",
+   "nota": "6 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 106,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 22 (a)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(a)(i)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(a)(i)",
+   "nota": null
+  },
+  {
+   "fila": 108,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 22 (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(a)(ii)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(a)(ii)",
+   "nota": null
+  },
+  {
+   "fila": 110,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 22 (a)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(a)(iii)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(a)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 112,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 22 (b)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(b)(i)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(i)",
+   "nota": null
+  },
+  {
+   "fila": 114,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 22 (b)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(b)(ii)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(ii)",
+   "nota": null
+  },
+  {
+   "fila": 116,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 22 (b)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(b)(iii)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 117,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 22 (b)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(b)(iii)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 119,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 22 (b)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 22(b)(iii)",
+   "confianza": "alta",
+   "bloque": 26,
+   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 121,
+   "seccion": "200000",
+   "tipo": "abstract",
+   "parrafos": [
+    "NIIF S1 43",
+    "NIIF S2 24"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "encabezado",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin respuesta (encabezado)"
+  },
+  {
+   "fila": 122,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)",
+    "NIIF S2 25 (a)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(i)a(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(i)a(v): «Pendiente»",
+   "nota": "14 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 124,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)(i)",
+    "NIIF S2 25 (a)(i)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(i)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(i): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 125,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 44 (a)(i)",
+    "NIIF S2 25 (a)(i)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 124",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(i)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 124 (text block)"
+  },
+  {
+   "fila": 126,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)(ii)",
+    "NIIF S2 25 (a)(ii)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(ii)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(ii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 128,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)(iii)",
+    "NIIF S2 25 (a)(iii)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(iii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(iii): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 129,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 44 (a)(iii)",
+    "NIIF S2 25 (a)(iii)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 128",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(iii)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 128 (text block)"
+  },
+  {
+   "fila": 130,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)(iv)",
+    "NIIF S2 25 (a)(iv)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(iv)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(iv): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 132,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)(v)",
+    "NIIF S2 25 (a)(v)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(v): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 134,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 44 (a)(vi)",
+    "NIIF S2 25 (a)(vi)",
+    "NIIF S2 26"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(vi)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S1 44 (a)(vi)",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 135,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 44 (a)(vi)",
+    "NIIF S2 25 (a)(vi)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 134",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(vi)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 134 (booleano)"
+  },
+  {
+   "fila": 137,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (a)(vi)",
+    "NIIF S2 25 (a)(vi)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (a)(vi)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(vi): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 139,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (b)",
+    "NIIF S2 25 (b)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (b): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 141,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 44 (c)",
+    "NIIF S2 25 (c)",
+    "NIIF S2 26"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 44 (c)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (c): «Pendiente»",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 143,
+   "seccion": "200000",
+   "tipo": "abstract",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "encabezado",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin respuesta (encabezado)"
+  },
+  {
+   "fila": 144,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 45",
+    "NIIF S1 27",
+    "NIIF S1 52",
+    "NIIF S1 53"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(v): «Pendiente»",
+   "nota": "9 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 145,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 144",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 144 (text)"
+  },
+  {
+   "fila": 146,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 144",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 144 (text)"
+  },
+  {
+   "fila": 147,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 144",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 144 (text)"
+  },
+  {
+   "fila": 148,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 72",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S1 72",
+   "nota": null
+  },
+  {
+   "fila": 149,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 151,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 149",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 149 (text block)"
+  },
+  {
+   "fila": 152,
+   "seccion": "200000",
+   "tipo": "enumeración",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 72",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S1 72",
+   "nota": null
+  },
+  {
+   "fila": 153,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 32(b)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 32(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 155,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 32(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 32(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 157,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 159,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 32(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 32(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 161,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 72",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S1 72",
+   "nota": null
+  },
+  {
+   "fila": 162,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 161",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 72",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 161 (booleano)"
+  },
+  {
+   "fila": 163,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 165,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 50 (b)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 163",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 163 (text block)"
+  },
+  {
+   "fila": 166,
+   "seccion": "200000",
+   "tipo": "enumeración",
+   "parrafos": [
+    "NIIF S1 50 (b)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 33(b)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S1 33(b)",
+   "nota": null
+  },
+  {
+   "fila": 167,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (c)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 27(b)(ii)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(b)(ii): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 169,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (d)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 46 a 50: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 171,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 172,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 173,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 174,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 175,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 176,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 177,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 178,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 179,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 180,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 181,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 182,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 183,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 184,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 185,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 169",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 46 a 50",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 169 (text block)"
+  },
+  {
+   "fila": 186,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 188,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 190,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 192,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 194,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(v): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 195,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 51",
+    "NIIF S2 33"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 196,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 195",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Se responde junto con la fila 195 (text)"
+  },
+  {
+   "fila": 197,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51",
+    "NIIF S2 33"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 199,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 13(a)",
+   "confianza": "baja",
+   "bloque": 13,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 13(a)",
+   "nota": null
+  },
+  {
+   "fila": 200,
+   "seccion": "200000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S1 51"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S1 51",
+   "nota": null
+  },
+  {
+   "fila": 201,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 51"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 200",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 200 (enumeración valor unico)"
+  },
+  {
+   "fila": 202,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (a)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 204,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (b)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 206,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (c)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 208,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (d)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 210,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (e)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 212,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (f)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 214,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 51 (g)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 51: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 216,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 214",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 51",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 214 (text block)"
+  },
+  {
+   "fila": 217,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 219,
+   "seccion": "200000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 33",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 220,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 33",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 219",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Se responde junto con la fila 219 (enumeración valor unico)"
+  },
+  {
+   "fila": 221,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (a)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 223,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (b)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 224,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 33 (b)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 223",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Se responde junto con la fila 223 (text block)"
+  },
+  {
+   "fila": 225,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (c)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 226,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 33 (c)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 225",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Se responde junto con la fila 225 (text block)"
+  },
+  {
+   "fila": 227,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (d)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 229,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (e)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 231,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (f)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 233,
+   "seccion": "200000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 33 (g)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 234,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 33 (g)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 233",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Se responde junto con la fila 233 (enumeración valor unico)"
+  },
+  {
+   "fila": 235,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 33 (h)",
+    "NIIF S2 B66",
+    "NIIF S2 B67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 33",
+   "confianza": "alta",
+   "bloque": 38,
+   "regla": "Modelo, desde el bloque 38 aprobado y los hechos de NIIF S2 33",
+   "nota": null
+  },
+  {
+   "fila": 237,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 34 (a)"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 34",
+   "confianza": "alta",
+   "bloque": 39,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 34",
+   "nota": null
+  },
+  {
+   "fila": 238,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 34 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 237",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 34",
+   "confianza": "alta",
+   "bloque": 39,
+   "regla": "Se responde junto con la fila 237 (booleano)"
+  },
+  {
+   "fila": 239,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 34 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 34",
+   "confianza": "alta",
+   "bloque": 39,
+   "regla": "Modelo, desde el bloque 39 aprobado y los hechos de NIIF S2 34",
+   "nota": null
+  },
+  {
+   "fila": 241,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 34 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 34",
+   "confianza": "alta",
+   "bloque": 39,
+   "regla": "Modelo, desde el bloque 39 aprobado y los hechos de NIIF S2 34",
+   "nota": null
+  },
+  {
+   "fila": 243,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 34 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 34",
+   "confianza": "alta",
+   "bloque": 39,
+   "regla": "Modelo, desde el bloque 39 aprobado y los hechos de NIIF S2 34",
+   "nota": null
+  },
+  {
+   "fila": 245,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 35"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 35",
+   "confianza": "alta",
+   "bloque": 39,
+   "regla": "Modelo, desde el bloque 39 aprobado y los hechos de NIIF S2 35",
+   "nota": null
+  },
+  {
+   "fila": 247,
+   "seccion": "200000",
+   "tipo": "enumeración multiples valores",
+   "parrafos": [
+    "NIIF S2 36 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (a)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 36 (a)",
+   "nota": null
+  },
+  {
+   "fila": 248,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 247",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (a)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 247 (enumeración multiples valores)"
+  },
+  {
+   "fila": 249,
+   "seccion": "200000",
+   "tipo": "enumeración multiples valores",
+   "parrafos": [
+    "NIIF S2 36 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (b)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 36 (b)",
+   "nota": null
+  },
+  {
+   "fila": 250,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 249",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (b)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 249 (enumeración multiples valores)"
+  },
+  {
+   "fila": 251,
+   "seccion": "200000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 36 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (c)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 36 (c)",
+   "nota": null
+  },
+  {
+   "fila": 252,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 251",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (c)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 251 (enumeración valor unico)"
+  },
+  {
+   "fila": 253,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 36 (d)"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (d)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 36 (d)",
+   "nota": null
+  },
+  {
+   "fila": 254,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 253",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (d)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 253 (booleano)"
+  },
+  {
+   "fila": 255,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 36 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(i)a(iv)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S2 36 (e)(i)a(iv): «Pendiente»",
+   "nota": "5 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 256,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 36 (e)(i)a(iv)",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 36 (e)(i)a(iv)",
+   "nota": null
+  },
+  {
+   "fila": 257,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 259,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 36 (e)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(i)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Modelo, desde el bloque 40 aprobado y los hechos de NIIF S2 36 (e)(i)",
+   "nota": null
+  },
+  {
+   "fila": 261,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 36 (e)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(ii)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Modelo, desde el bloque 40 aprobado y los hechos de NIIF S2 36 (e)(ii)",
+   "nota": null
+  },
+  {
+   "fila": 263,
+   "seccion": "200000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 36 (e)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iii)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 36 (e)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 264,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (e)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 263",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iii)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 263 (enumeración valor unico)"
+  },
+  {
+   "fila": 265,
+   "seccion": "200000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 36 (e)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iii)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 36 (e)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 266,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (e)(iii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 265",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iii)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 265 (enumeración valor unico)"
+  },
+  {
+   "fila": 267,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 36 (e)(iv)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iv)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Modelo, desde el bloque 40 aprobado y los hechos de NIIF S2 36 (e)(iv)",
+   "nota": null
+  },
+  {
+   "fila": 268,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 36 (e)(iv)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 267",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iv)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 267 (text block)"
+  },
+  {
+   "fila": 269,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 267",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iv)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 267 (text block)"
+  },
+  {
+   "fila": 270,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 267",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iv)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 267 (text block)"
+  },
+  {
+   "fila": 272,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 267",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 36 (e)(iv)",
+   "confianza": "alta",
+   "bloque": 40,
+   "regla": "Se responde junto con la fila 267 (text block)"
+  },
+  {
+   "fila": 273,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 274,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 273",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 273 (booleano)"
+  },
+  {
+   "fila": 275,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 66 (a)",
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 277,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 66 (a)",
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 279,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 66 (b)",
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 30(c)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 30(c): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 281,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 66 (c)",
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 44 (a)(v)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 44 (a)(v): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 283,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 68",
+    "NIIF S1 67"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 35(a)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(a): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 285,
+   "seccion": "200000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S1 72"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 72",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 72: «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 286,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 72",
+   "confianza": "alta",
+   "bloque": null,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S1 72",
+   "nota": null
+  },
+  {
+   "fila": 287,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 74"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 74",
+   "confianza": "alta",
+   "bloque": 6,
+   "regla": "Modelo, desde el bloque 6 aprobado y los hechos de NIIF S1 74",
+   "nota": null
+  },
+  {
+   "fila": 288,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 74",
+    "NIIF S1 76"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 287",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 74",
+   "confianza": "alta",
+   "bloque": 6,
+   "regla": "Se responde junto con la fila 287 (text block)"
+  },
+  {
+   "fila": 289,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 74",
+    "NIIF S1 76"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 74",
+   "confianza": "alta",
+   "bloque": 6,
+   "regla": "Modelo, desde el bloque 6 aprobado y los hechos de NIIF S1 74",
+   "nota": null
+  },
+  {
+   "fila": 291,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 77",
+    "NIIF S1 82"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 289",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S1 74",
+   "confianza": "alta",
+   "bloque": 6,
+   "regla": "Se responde junto con la fila 289 (text block)"
+  },
+  {
+   "fila": 292,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 77",
+    "NIIF S1 82"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 74",
+   "confianza": "media",
+   "bloque": 6,
+   "regla": "Modelo, desde el bloque 6 aprobado y los hechos de NIIF S1 74",
+   "nota": null
+  },
+  {
+   "fila": 294,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 83",
+    "NIIF S1 86",
+    "NIIF S1 B58 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 292",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 74",
+   "confianza": "media",
+   "bloque": 6,
+   "regla": "Se responde junto con la fila 292 (text block)"
+  },
+  {
+   "fila": 295,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 83",
+    "NIIF S1 86",
+    "NIIF S1 B58 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 33(b)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 33(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 297,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 83",
+    "NIIF S1 86",
+    "NIIF S1 B58 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 299,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 83",
+    "NIIF S1 86",
+    "NIIF S1 B58 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 35(b): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 301,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 299",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 299 (text block)"
+  },
+  {
+   "fila": 302,
+   "seccion": "200000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 299",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 35(b)",
+   "confianza": "baja",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 299 (text block)"
+  },
+  {
+   "fila": 303,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 306,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 303",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 303 (booleano)"
+  },
+  {
+   "fila": 307,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 23"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(i)",
+   "confianza": "media",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 29 (a)(i)",
+   "nota": null
+  },
+  {
+   "fila": 308,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "media",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 309,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 23",
+    "NIIF S2 29 (a)(i)",
+    "NIIF S2 B19",
+    "NIIF S2 B22"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(i)",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 29 (a)(i)",
+   "nota": null
+  },
+  {
+   "fila": 311,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 23",
+    "NIIF S2 29 (a)(i)",
+    "NIIF S2 B19",
+    "NIIF S2 B22"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 309",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(i)",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Se responde junto con la fila 309 (text)"
+  },
+  {
+   "fila": 313,
+   "seccion": "210000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 29 (a)(ii)",
+    "NIIF S2 B23",
+    "NIIF S2 B25"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(ii)",
+   "confianza": "alta",
+   "bloque": 30,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 29 (a)(ii)",
+   "nota": null
+  },
+  {
+   "fila": 315,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(ii)",
+    "NIIF S2 B23",
+    "NIIF S2 B25"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 313",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(ii)",
+   "confianza": "alta",
+   "bloque": 30,
+   "regla": "Se responde junto con la fila 313 (booleano)"
+  },
+  {
+   "fila": 317,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (a)(iii)",
+    "NIIF S2 B26",
+    "NIIF S2 B29"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(iii)",
+   "confianza": "alta",
+   "bloque": 30,
+   "regla": "Modelo, desde el bloque 30 aprobado y los hechos de NIIF S2 29 (a)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 318,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(iii)",
+    "NIIF S2 B26",
+    "NIIF S2 B29"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(iii)",
+   "confianza": "alta",
+   "bloque": 30,
+   "regla": "Modelo, desde el bloque 30 aprobado y los hechos de NIIF S2 29 (a)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 320,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(iii)",
+    "NIIF S2 B26",
+    "NIIF S2 B29"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(iii)",
+   "confianza": "alta",
+   "bloque": 30,
+   "regla": "Modelo, desde el bloque 30 aprobado y los hechos de NIIF S2 29 (a)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 322,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(iii)",
+    "NIIF S2 B26",
+    "NIIF S2 B29"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(iii)",
+   "confianza": "alta",
+   "bloque": 30,
+   "regla": "Modelo, desde el bloque 30 aprobado y los hechos de NIIF S2 29 (a)(iii)",
+   "nota": null
+  },
+  {
+   "fila": 324,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (a)(iv)",
+    "NIIF S2 5"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "media",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 325,
+   "seccion": "210000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(iv)",
+    "NIIF S2 5"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 326,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 325",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 325 (tabla)"
+  },
+  {
+   "fila": 327,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 328,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 327",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Se responde junto con la fila 327 (text block)"
+  },
+  {
+   "fila": 329,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(v)",
+    "NIIF S2 B30",
+    "NIIF S2 B31"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 327",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Se responde junto con la fila 327 (text block)"
+  },
+  {
+   "fila": 330,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(v)",
+    "NIIF S2 B30",
+    "NIIF S2 B31"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(v)",
+   "confianza": "alta",
+   "bloque": 32,
+   "regla": "Modelo, desde el bloque 32 aprobado y los hechos de NIIF S2 29 (a)(v)",
+   "nota": null
+  },
+  {
+   "fila": 332,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(v)",
+    "NIIF S2 B30",
+    "NIIF S2 B31"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(v)",
+   "confianza": "alta",
+   "bloque": 32,
+   "regla": "Modelo, desde el bloque 32 aprobado y los hechos de NIIF S2 29 (a)(v)",
+   "nota": null
+  },
+  {
+   "fila": 334,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(1)",
+    "NIIF S2 B32",
+    "NIIF S2 B57"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(1)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(1)",
+   "nota": null
+  },
+  {
+   "fila": 335,
+   "seccion": "210000",
+   "tipo": "enumeración multiple",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(1)",
+    "NIIF S2 B32",
+    "NIIF S2 B57"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(1)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (a)(vi)(1)",
+   "nota": null
+  },
+  {
+   "fila": 336,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "media",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 337,
+   "seccion": "210000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(1)",
+    "NIIF S2 B32",
+    "NIIF S2 B57",
+    "NIIF S2 12"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(1)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(1))",
+   "nota": null
+  },
+  {
+   "fila": 338,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B32",
+    "NIIF S2 B57"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 339,
+   "seccion": "210000",
+   "tipo": "enumeración multiple",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B32",
+    "NIIF S2 B57"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 340,
+   "seccion": "210000",
+   "tipo": "enumeración multiple",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B32",
+    "NIIF S2 B57"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 342,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI19 a EI24",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI19 a EI24",
+   "nota": null
+  },
+  {
+   "fila": 343,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 342",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI19 a EI24",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Se responde junto con la fila 342 (text block)"
+  },
+  {
+   "fila": 344,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (b) · B65 (b)",
+   "confianza": "media",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (b)",
+   "nota": null
+  },
+  {
+   "fila": 345,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 344",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (b) · B65 (b)",
+   "confianza": "media",
+   "bloque": 34,
+   "regla": "Se responde junto con la fila 344 (text block)"
+  },
+  {
+   "fila": 346,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 344",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (b) · B65 (b)",
+   "confianza": "media",
+   "bloque": 34,
+   "regla": "Se responde junto con la fila 344 (text block)"
+  },
+  {
+   "fila": 347,
+   "seccion": "210000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (b))",
+   "nota": null
+  },
+  {
+   "fila": 348,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 350,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (e)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e)",
+   "nota": null
+  },
+  {
+   "fila": 352,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 353,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 352",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Se responde junto con la fila 352 (text block)"
+  },
+  {
+   "fila": 354,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 31",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 356,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 31",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 358,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 31",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 360,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 31",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 361,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 31",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 363,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 361",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Se responde junto con la fila 361 (text block)"
+  },
+  {
+   "fila": 364,
+   "seccion": "210000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (b)",
+   "nota": null
+  },
+  {
+   "fila": 365,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 364",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Se responde junto con la fila 364 (enumeración valor unico)"
+  },
+  {
+   "fila": 367,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (c) · B65 (b)",
+   "confianza": "media",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (b)",
+   "nota": null
+  },
+  {
+   "fila": 368,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 367",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (c) · B65 (b)",
+   "confianza": "media",
+   "bloque": 35,
+   "regla": "Se responde junto con la fila 367 (text block)"
+  },
+  {
+   "fila": 369,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 367",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (c) · B65 (b)",
+   "confianza": "media",
+   "bloque": 35,
+   "regla": "Se responde junto con la fila 367 (text block)"
+  },
+  {
+   "fila": 370,
+   "seccion": "210000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (b)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (b)",
+   "confianza": "alta",
+   "bloque": 34,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (b))",
+   "nota": null
+  },
+  {
+   "fila": 371,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 373,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (e)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e)",
+   "nota": null
+  },
+  {
+   "fila": 375,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 376,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 375",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Se responde junto con la fila 375 (text block)"
+  },
+  {
+   "fila": 377,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 379,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 381,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 383,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 384,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 386,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 384",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Se responde junto con la fila 384 (text block)"
+  },
+  {
+   "fila": 387,
+   "seccion": "210000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (c)",
+   "nota": null
+  },
+  {
+   "fila": 388,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (c)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 387",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (c)",
+   "confianza": "alta",
+   "bloque": 35,
+   "regla": "Se responde junto con la fila 387 (enumeración valor unico)"
+  },
+  {
+   "fila": 390,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 13(a)",
+   "confianza": "media",
+   "bloque": 13,
+   "regla": "Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(a)",
+   "nota": null
+  },
+  {
+   "fila": 391,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 390",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 13(a)",
+   "confianza": "media",
+   "bloque": 13,
+   "regla": "Se responde junto con la fila 390 (text block)"
+  },
+  {
+   "fila": 392,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 390",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 13(a)",
+   "confianza": "media",
+   "bloque": 13,
+   "regla": "Se responde junto con la fila 390 (text block)"
+  },
+  {
+   "fila": 393,
+   "seccion": "210000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (d))",
+   "nota": null
+  },
+  {
+   "fila": 394,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 396,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (e)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e)",
+   "nota": null
+  },
+  {
+   "fila": 398,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 399,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 398",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Se responde junto con la fila 398 (text block)"
+  },
+  {
+   "fila": 400,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 402,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 404,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 406,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 407,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 409,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 407",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Se responde junto con la fila 407 (text block)"
+  },
+  {
+   "fila": 410,
+   "seccion": "210000",
+   "tipo": "enumeración valor unico",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (d)",
+   "nota": null
+  },
+  {
+   "fila": 411,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (d)",
+    "NIIF S2 B64",
+    "NIIF S2 B65 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 410",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (d)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Se responde junto con la fila 410 (enumeración valor unico)"
+  },
+  {
+   "fila": 413,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (e)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e)",
+   "nota": null
+  },
+  {
+   "fila": 414,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (e)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (e)",
+   "confianza": "alta",
+   "bloque": 36,
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e)",
+   "nota": null
+  },
+  {
+   "fila": 416,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (f) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Modelo, desde el bloque 37 aprobado y los hechos de NIIF S2 29 (f) (i) y (ii)",
+   "nota": null
+  },
+  {
+   "fila": 417,
+   "seccion": "210000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 29 (f)(i)"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (f) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 29 (f) (i) y (ii)",
+   "nota": null
+  },
+  {
+   "fila": 418,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (f)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 417",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (f) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Se responde junto con la fila 417 (booleano)"
+  },
+  {
+   "fila": 420,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (f)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 421,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (f)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 420",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 420 (text block)"
+  },
+  {
+   "fila": 422,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (f)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 424,
+   "seccion": "210000",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S1 27(a)(v)",
+   "confianza": "media",
+   "bloque": null,
+   "regla": "Sin bloque dueño para NIIF S1 27(a)(v): «Pendiente»",
+   "nota": null
+  },
+  {
+   "fila": 425,
+   "seccion": "210000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 29 (g)(i)"
+   ],
+   "lista": true,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (g) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 29 (g) (i) y (ii)",
+   "nota": null
+  },
+  {
+   "fila": 426,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (g)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 425",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (g) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Se responde junto con la fila 425 (booleano)"
+  },
+  {
+   "fila": 428,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (g)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 25 (b)",
+   "confianza": "media",
+   "bloque": 27,
+   "regla": "Modelo, desde el bloque 27 aprobado y los hechos de NIIF S2 25 (b)",
+   "nota": null
+  },
+  {
+   "fila": 430,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (g)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (g) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Modelo, desde el bloque 37 aprobado y los hechos de NIIF S2 29 (g) (i) y (ii)",
+   "nota": null
+  },
+  {
+   "fila": 432,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29A"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 430",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (g) (i) y (ii)",
+   "confianza": "alta",
+   "bloque": 37,
+   "regla": "Se responde junto con la fila 430 (text block)"
+  },
+  {
+   "fila": 433,
+   "seccion": "210000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 29B"
+   ],
+   "lista": true,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 435,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29B (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 436,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 435",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Se responde junto con la fila 435 (text block)"
+  },
+  {
+   "fila": 437,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29B (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 EI14 a E18",
+   "confianza": "alta",
+   "bloque": 29,
+   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
+   "nota": null
+  },
+  {
+   "fila": 439,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29C"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "media",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 441,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29C"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "media",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 443,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Modelo, desde el bloque 4 aprobado y los hechos de NIIF S2 32",
+   "nota": null
+  },
+  {
+   "fila": 444,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "subconcepto de la fila 443",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Se responde junto con la fila 443 (text block)"
+  },
+  {
+   "fila": 446,
+   "seccion": "210000",
+   "tipo": "enumeración multiple",
+   "parrafos": [
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 32",
+   "nota": null
+  },
+  {
+   "fila": 447,
+   "seccion": "210000",
+   "tipo": "enumeración multiple",
+   "parrafos": [
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": true,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Valor de la lista desde el Perfil o el hecho de NIIF S2 32",
+   "nota": null
+  },
+  {
+   "fila": 448,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 447",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Se responde junto con la fila 447 (enumeración multiple)"
+  },
+  {
+   "fila": 449,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 447",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Se responde junto con la fila 447 (enumeración multiple)"
+  },
+  {
+   "fila": 450,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 58",
+    "NIIF S2 B63A"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 447",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Se responde junto con la fila 447 (enumeración multiple)"
+  },
+  {
+   "fila": 452,
+   "seccion": "211100",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 447",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Se responde junto con la fila 447 (enumeración multiple)"
+  },
+  {
+   "fila": 453,
+   "seccion": "211100",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 447",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Se responde junto con la fila 447 (enumeración multiple)"
+  },
+  {
+   "fila": 454,
+   "seccion": "211100",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 455,
+   "seccion": "211100",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B61 (a)",
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "media",
+   "bloque": 33,
+   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 456,
+   "seccion": "211100",
+   "tipo": "porcentaje",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B61 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Cifra confirmada con unidad (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 458,
+   "seccion": "211100",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B61 (c)",
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "media",
+   "bloque": 33,
+   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": "2 códigos del párrafo; elegido por la etiqueta"
+  },
+  {
+   "fila": 459,
+   "seccion": "211100",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B61 (c)",
+    "NIIF S2 32"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 458",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "media",
+   "bloque": 33,
+   "regla": "Se responde junto con la fila 458 (text block)"
+  },
+  {
+   "fila": 460,
+   "seccion": "211100",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B61 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 462,
+   "seccion": "211100",
+   "tipo": "text block",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(iv) EI5",
+   "confianza": "media",
+   "bloque": 31,
+   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 31 aprobado y los hechos de NIIF S2 29 (a)(iv) EI5",
+   "nota": null
+  },
+  {
+   "fila": 463,
+   "seccion": "211100",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 462",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(iv) EI5",
+   "confianza": "media",
+   "bloque": 31,
+   "regla": "Se responde junto con la fila 462 (text block)"
+  },
+  {
+   "fila": 466,
+   "seccion": "211200",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 462",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(iv) EI5",
+   "confianza": "media",
+   "bloque": 31,
+   "regla": "Se responde junto con la fila 462 (text block)"
+  },
+  {
+   "fila": 467,
+   "seccion": "211200",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 462",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(iv) EI5",
+   "confianza": "media",
+   "bloque": 31,
+   "regla": "Se responde junto con la fila 462 (text block)"
+  },
+  {
+   "fila": 468,
+   "seccion": "211200",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 469,
+   "seccion": "211200",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 470,
+   "seccion": "211200",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 471,
+   "seccion": "211200",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 472,
+   "seccion": "211200",
+   "tipo": "porcentaje",
+   "parrafos": [
+    "NIIF S2 B62 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Cifra confirmada con unidad (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 474,
+   "seccion": "211200",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 476,
+   "seccion": "211200",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 478,
+   "seccion": "211200",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62A (a)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 479,
+   "seccion": "211200",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62A (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 481,
+   "seccion": "211200",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62A (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 483,
+   "seccion": "211200",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62A (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 484,
+   "seccion": "211200",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B62A (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 483",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Se responde junto con la fila 483 (text block)"
+  },
+  {
+   "fila": 487,
+   "seccion": "211300",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 483",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Se responde junto con la fila 483 (text block)"
+  },
+  {
+   "fila": 488,
+   "seccion": "211300",
+   "tipo": "text",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "2 · etiqueta",
+   "datapoint": "NIIF S2 32",
+   "confianza": "alta",
+   "bloque": 4,
+   "regla": "Modelo, desde el bloque 4 aprobado y los hechos de NIIF S2 32",
+   "nota": null
+  },
+  {
+   "fila": 489,
+   "seccion": "211300",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 490,
+   "seccion": "211300",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 491,
+   "seccion": "211300",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (a)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 492,
+   "seccion": "211300",
+   "tipo": "porcentaje",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Cifra confirmada con unidad (NIIF S2 29 (a)(vi)(2))",
+   "nota": null
+  },
+  {
+   "fila": 494,
+   "seccion": "211300",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 495,
+   "seccion": "211300",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (c)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 494",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Se responde junto con la fila 494 (text block)"
+  },
+  {
+   "fila": 496,
+   "seccion": "211300",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63 (d)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 498,
+   "seccion": "211300",
+   "tipo": "text",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63A (a)(i)",
+    "NIIF S2 B62A (a)(i)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 499,
+   "seccion": "211300",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63A (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 501,
+   "seccion": "211300",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63A (a)(ii)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 503,
+   "seccion": "211300",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63A (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "nota": null
+  },
+  {
+   "fila": 504,
+   "seccion": "211300",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29 (a)(vi)(2)",
+    "NIIF S2 B63A (b)"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 503",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Se responde junto con la fila 503 (text block)"
+  },
+  {
+   "fila": 506,
+   "seccion": "211300",
+   "tipo": "(sin tipo)",
+   "parrafos": [],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "subconcepto de la fila 503",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Se responde junto con la fila 503 (text block)"
+  },
+  {
+   "fila": 582,
+   "seccion": "901000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 B50"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "miembro de tabla",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Miembro del eje de la tabla [901000]: se escribe como columna o fila de la tabla"
+  },
+  {
+   "fila": 584,
+   "seccion": "901000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S1 B50",
+    "NIIF S1 B59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": null
+  },
+  {
+   "fila": 585,
+   "seccion": "901000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 B50",
+    "NIIF S1 B59"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "miembro de tabla",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Miembro del eje de la tabla [901000]: se escribe como columna o fila de la tabla"
+  },
+  {
+   "fila": 587,
+   "seccion": "901000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S1 B54"
+   ],
+   "lista": false,
+   "respondidaAutlan": false,
+   "clasificacion": "miembro de tabla",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Miembro del eje de la tabla [901000]: se escribe como columna o fila de la tabla"
+  }
+ ],
+ "sinMapeo": [
+  {
+   "fila": 56,
+   "seccion": "200000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S1 30 (a)",
+    "NIIF S2 10 (a)",
+    "NIIF S2 11",
+    "NIIF S2 12"
+   ]
+  },
+  {
+   "fila": 149,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 46",
+    "NIIF S1 49",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ]
+  },
+  {
+   "fila": 157,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ]
+  },
+  {
+   "fila": 163,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 50 (a)",
+    "NIIF S1 54",
+    "NIIF S1 59"
+   ]
+  },
+  {
+   "fila": 186,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ]
+  },
+  {
+   "fila": 188,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ]
+  },
+  {
+   "fila": 190,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ]
+  },
+  {
+   "fila": 192,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 52",
+    "NIIF S1 B52"
+   ]
+  },
+  {
+   "fila": 257,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": []
+  },
+  {
+   "fila": 273,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 64",
+    "NIIF S2 65"
+   ]
+  },
+  {
+   "fila": 297,
+   "seccion": "200000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S1 83",
+    "NIIF S1 86",
+    "NIIF S1 B58 (a)"
+   ]
+  },
+  {
+   "fila": 303,
+   "seccion": "200000",
+   "tipo": "booleano",
+   "parrafos": []
+  },
+  {
+   "fila": 325,
+   "seccion": "210000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S2 29 (a)(iv)",
+    "NIIF S2 5"
+   ]
+  },
+  {
+   "fila": 420,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29 (f)(i)"
+   ]
+  },
+  {
+   "fila": 435,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29B (a)"
+   ]
+  },
+  {
+   "fila": 584,
+   "seccion": "901000",
+   "tipo": "tabla",
+   "parrafos": [
+    "NIIF S1 B50",
+    "NIIF S1 B59"
+   ]
+  }
+ ],
+ "parrafosSinCodigo": {
+  "NIIF S1 30 (a)": [
+   56
+  ],
+  "NIIF S1 31": [
+   57
+  ],
+  "NIIF S1 34": [
+   83
+  ],
+  "NIIF S1 36": [
+   84,
+   85,
+   87,
+   89,
+   91,
+   92,
+   94,
+   95,
+   96,
+   97,
+   98,
+   99,
+   100
+  ],
+  "NIIF S1 42": [
+   103
+  ],
+  "NIIF S1 45": [
+   144
+  ],
+  "NIIF S1 46": [
+   148,
+   149,
+   152,
+   153,
+   155
+  ],
+  "NIIF S1 49": [
+   148,
+   149,
+   152,
+   153,
+   155
+  ],
+  "NIIF S1 50 (a)": [
+   157,
+   159,
+   161,
+   163
+  ],
+  "NIIF S1 50 (b)": [
+   166
+  ],
+  "NIIF S1 50 (c)": [
+   167
+  ],
+  "NIIF S1 50 (d)": [
+   169
+  ],
+  "NIIF S1 51 (a)": [
+   202
+  ],
+  "NIIF S1 51 (b)": [
+   204
+  ],
+  "NIIF S1 51 (c)": [
+   206
+  ],
+  "NIIF S1 51 (d)": [
+   208
+  ],
+  "NIIF S1 51 (e)": [
+   210
+  ],
+  "NIIF S1 51 (f)": [
+   212
+  ],
+  "NIIF S1 51 (g)": [
+   214
+  ],
+  "NIIF S1 52": [
+   144,
+   186,
+   188,
+   190,
+   192
+  ],
+  "NIIF S1 53": [
+   144
+  ],
+  "NIIF S1 54": [
+   148,
+   149,
+   152,
+   153,
+   155,
+   157,
+   159,
+   161,
+   163,
+   166,
+   167,
+   169
+  ],
+  "NIIF S1 59": [
+   148,
+   149,
+   152,
+   153,
+   155,
+   157,
+   159,
+   161,
+   163,
+   166,
+   167,
+   169
+  ],
+  "NIIF S1 66 (a)": [
+   275,
+   277
+  ],
+  "NIIF S1 66 (b)": [
+   279
+  ],
+  "NIIF S1 66 (c)": [
+   281
+  ],
+  "NIIF S1 67": [
+   283
+  ],
+  "NIIF S1 68": [
+   283
+  ],
+  "NIIF S1 76": [
+   289
+  ],
+  "NIIF S1 77": [
+   292
+  ],
+  "NIIF S1 82": [
+   292
+  ],
+  "NIIF S1 83": [
+   295,
+   297,
+   299
+  ],
+  "NIIF S1 86": [
+   295,
+   297,
+   299
+  ],
+  "NIIF S1 B50": [
+   584
+  ],
+  "NIIF S1 B52": [
+   186,
+   188,
+   190,
+   192
+  ],
+  "NIIF S1 B58 (a)": [
+   295,
+   297,
+   299
+  ],
+  "NIIF S1 B59": [
+   584
+  ],
+  "NIIF S2 10 (a)": [
+   56
+  ],
+  "NIIF S2 11": [
+   56
+  ],
+  "NIIF S2 12": [
+   56,
+   337
+  ],
+  "NIIF S2 15": [
+   83
+  ],
+  "NIIF S2 21": [
+   100
+  ],
+  "NIIF S2 23": [
+   59,
+   64,
+   83,
+   307,
+   309
+  ],
+  "NIIF S2 26": [
+   122,
+   124,
+   126,
+   128,
+   130,
+   132,
+   134,
+   137,
+   139,
+   141
+  ],
+  "NIIF S2 29 (a)(iv)": [
+   324,
+   325
+  ],
+  "NIIF S2 29 (f)(i)": [
+   417,
+   420,
+   422
+  ],
+  "NIIF S2 29 (g)(i)": [
+   36,
+   425,
+   428,
+   430
+  ],
+  "NIIF S2 29B (a)": [
+   435
+  ],
+  "NIIF S2 29B (b)": [
+   437
+  ],
+  "NIIF S2 29B": [
+   433
+  ],
+  "NIIF S2 29C": [
+   439,
+   441
+  ],
+  "NIIF S2 31": [
+   354,
+   356,
+   358,
+   360,
+   361
+  ],
+  "NIIF S2 33 (a)": [
+   221
+  ],
+  "NIIF S2 33 (b)": [
+   223
+  ],
+  "NIIF S2 33 (c)": [
+   225
+  ],
+  "NIIF S2 33 (d)": [
+   227
+  ],
+  "NIIF S2 33 (e)": [
+   229
+  ],
+  "NIIF S2 33 (f)": [
+   231
+  ],
+  "NIIF S2 33 (g)": [
+   233
+  ],
+  "NIIF S2 33 (h)": [
+   235
+  ],
+  "NIIF S2 34 (a)": [
+   237
+  ],
+  "NIIF S2 34 (b)": [
+   239
+  ],
+  "NIIF S2 34 (c)": [
+   241
+  ],
+  "NIIF S2 34 (d)": [
+   243
+  ],
+  "NIIF S2 5": [
+   324,
+   325
+  ],
+  "NIIF S2 64": [
+   273,
+   275,
+   277,
+   279,
+   281
+  ],
+  "NIIF S2 65": [
+   273,
+   275,
+   277,
+   279,
+   281
+  ],
+  "NIIF S2 B1": [
+   105
+  ],
+  "NIIF S2 B18": [
+   105
+  ],
+  "NIIF S2 B19": [
+   309
+  ],
+  "NIIF S2 B22": [
+   309
+  ],
+  "NIIF S2 B23": [
+   313
+  ],
+  "NIIF S2 B25": [
+   313
+  ],
+  "NIIF S2 B26": [
+   317,
+   318,
+   320,
+   322
+  ],
+  "NIIF S2 B29": [
+   317,
+   318,
+   320,
+   322
+  ],
+  "NIIF S2 B30": [
+   330,
+   332
+  ],
+  "NIIF S2 B31": [
+   330,
+   332
+  ],
+  "NIIF S2 B32": [
+   334,
+   335,
+   337,
+   338,
+   339,
+   340
+  ],
+  "NIIF S2 B57": [
+   334,
+   335,
+   337,
+   338,
+   339,
+   340
+  ],
+  "NIIF S2 B61 (a)": [
+   455
+  ],
+  "NIIF S2 B61 (c)": [
+   456,
+   458
+  ],
+  "NIIF S2 B61 (d)": [
+   460
+  ],
+  "NIIF S2 B62 (a)": [
+   469,
+   470,
+   471
+  ],
+  "NIIF S2 B62 (c)": [
+   472,
+   474
+  ],
+  "NIIF S2 B62 (d)": [
+   476
+  ],
+  "NIIF S2 B62A (a)(i)": [
+   478,
+   498
+  ],
+  "NIIF S2 B62A (a)(ii)": [
+   479,
+   481
+  ],
+  "NIIF S2 B62A (b)": [
+   483
+  ],
+  "NIIF S2 B63 (a)": [
+   489,
+   490,
+   491
+  ],
+  "NIIF S2 B63 (c)": [
+   492,
+   494
+  ],
+  "NIIF S2 B63 (d)": [
+   496
+  ],
+  "NIIF S2 B63A (a)(i)": [
+   498
+  ],
+  "NIIF S2 B63A (a)(ii)": [
+   499,
+   501
+  ],
+  "NIIF S2 B63A (b)": [
+   503
+  ],
+  "NIIF S2 B64": [
+   347,
+   352,
+   354,
+   356,
+   358,
+   360,
+   361,
+   364,
+   370,
+   375,
+   377,
+   379,
+   381,
+   383,
+   384,
+   387,
+   393,
+   398,
+   400,
+   402,
+   404,
+   406,
+   407,
+   410
+  ],
+  "NIIF S2 B65 (a)": [
+   347,
+   370,
+   393
+  ],
+  "NIIF S2 B65 (b)": [
+   352,
+   375,
+   398
+  ],
+  "NIIF S2 B65 (c)": [
+   354,
+   356,
+   358,
+   360,
+   361,
+   377,
+   379,
+   381,
+   383,
+   384,
+   400,
+   402,
+   404,
+   406,
+   407
+  ],
+  "NIIF S2 B65 (d)": [
+   364,
+   387,
+   410
+  ],
+  "NIIF S2 B66": [
+   217,
+   219,
+   221,
+   223,
+   225,
+   227,
+   229,
+   231,
+   233,
+   235
+  ],
+  "NIIF S2 B67": [
+   217,
+   219,
+   221,
+   223,
+   225,
+   227,
+   229,
+   231,
+   233,
+   235
+  ]
+ }
+}
