@@ -7,7 +7,7 @@
 //
 // CUESTA DINERO: cada bloque es una llamada al modelo (~$0.22). Solo contra una
 // app LOCAL apuntada al proyecto dev (NEXT_PUBLIC_SUPABASE_URL con el ref de
-// dev); nunca staging. Entra como el analista del seed (ANALISTA_PASSWORD o la
+// dev) o contra traceline-dev, que apunta al mismo proyecto; nunca staging. Entra como el analista del seed (ANALISTA_PASSWORD o la
 // del seed local) por la misma ruta que la pantalla: POST …/generar con la
 // selección, cada bloque por su ruta (el 29 primero, luego de tres en tres) y el
 // Word por …/word. Convierte el Word a PDF con LibreOffice para contar páginas.
@@ -34,7 +34,10 @@ if (!["solo-normativo", "recomendados", "todos"].includes(seleccion) || !carpeta
   console.error("Uso: generar-demo.mjs <solo-normativo|recomendados|todos> <carpeta> [baseUrl]");
   process.exit(2);
 }
-if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE)) { console.error(`✗ Solo contra una app local, no ${BASE}.`); process.exit(2); }
+// traceline-dev también vale: apunta al proyecto dev de Esteban (especificación §10) y es
+// donde se mide el A8 de v40 en un dyno real (encargo 2026-10-11-suplemento-a-produccion, Paso 3).
+const APP_DEV = "https://traceline-dev-d4fd7a3cda04.herokuapp.com";
+if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(BASE) && BASE !== APP_DEV) { console.error(`✗ Solo contra una app local o traceline-dev, no ${BASE}.`); process.exit(2); }
 if (!URL_SB.includes(REF_DEV)) { console.error("✗ Solo contra el proyecto dev (NEXT_PUBLIC_SUPABASE_URL de dev)."); process.exit(2); }
 
 const jar = new Map();
@@ -42,7 +45,14 @@ const db = createServerClient(URL_SB, ANON, { cookies: { getAll: () => [...jar].
 const { error: eLogin } = await db.auth.signInWithPassword({ email: "analista@irstrat.example", password: process.env.ANALISTA_PASSWORD || "Demo2025!" });
 if (eLogin) { console.error(`✗ login: ${eLogin.message}`); process.exit(2); }
 const cookie = () => [...jar].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
-const api = (metodo, ruta, cuerpo) => fetch(`${BASE}${ruta}`, { method: metodo, headers: { cookie: cookie(), "content-type": "application/json" }, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+// Cada petición se mide desde el cliente: ninguna debe pasar de los 30 s del router de Heroku.
+const peticiones = [];
+const api = async (metodo, ruta, cuerpo) => {
+  const t0 = Date.now();
+  const r = await fetch(`${BASE}${ruta}`, { method: metodo, headers: { cookie: cookie(), "content-type": "application/json" }, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+  peticiones.push({ metodo, ruta: ruta.replace(/[0-9a-f-]{36}/g, ":id").replace(/\/bloque\/\d+/, "/bloque/:n"), status: r.status, ms: Date.now() - t0 });
+  return r;
+};
 
 const editoriales = seleccion === "solo-normativo" ? [] : seleccion === "recomendados" ? RECOMENDADOS : [...RECOMENDADOS, ...OPCIONALES];
 
@@ -114,7 +124,11 @@ let coherencia = { http: cierre.status };
   }
 }
 
-const { data: bloques } = await db.from("documentos_bloques").select("numero, estado, costo_usd, tokens_entrada, tokens_salida, pendientes").eq("documento_id", abierto.documentoId);
+const { data: bloques } = await db.from("documentos_bloques").select("numero, estado, costo_usd, tokens_entrada, tokens_salida, pendientes, duracion_ms").eq("documento_id", abierto.documentoId);
+const segs = bloques.filter((b) => b.duracion_ms).map((b) => b.duracion_ms / 1000).sort((a, b) => a - b);
+const pct = (q) => (segs.length ? Number(segs[Math.min(segs.length - 1, Math.floor(q * segs.length))].toFixed(1)) : null);
+const porRuta = {};
+for (const x of peticiones) { const k = `${x.metodo} ${x.ruta}`; porRuta[k] = { n: (porRuta[k]?.n ?? 0) + 1, maxMs: Math.max(porRuta[k]?.maxMs ?? 0, x.ms) }; }
 const porEstado = {};
 for (const b of bloques) porEstado[b.estado] = (porEstado[b.estado] ?? 0) + 1;
 const costo = bloques.reduce((s, b) => s + Number(b.costo_usd ?? 0), 0);
@@ -140,6 +154,8 @@ const resumen = {
   tokensEntrada: bloques.reduce((s, b) => s + (b.tokens_entrada ?? 0), 0),
   tokensSalida: bloques.reduce((s, b) => s + (b.tokens_salida ?? 0), 0),
   minutos: Number(((Date.now() - inicio) / 60000).toFixed(1)),
+  bloquesSegundos: { mediana: pct(0.5), p90: pct(0.9), maximo: segs.length ? Number(segs.at(-1).toFixed(1)) : null },
+  peticiones: { total: peticiones.length, maxMs: Math.max(...peticiones.map((x) => x.ms)), masDe30s: peticiones.filter((x) => x.ms > 30000).length, status5xx: peticiones.filter((x) => x.status >= 500).length, porRuta },
   coherencia,
   cruzado,
   cierres,
