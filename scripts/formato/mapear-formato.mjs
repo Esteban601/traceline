@@ -38,7 +38,7 @@ import { BLOQUES } from "../../lib/suplemento/bloques.ts";
 const require = createRequire(import.meta.url);
 const ExcelJS = require("exceljs");
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null; };
-const [FORMATO, CATALOGO, JSON_OUT, MD_OUT, REVISION] = ["--formato", "--catalogo", "--json", "--md", "--revision"].map(arg);
+const [FORMATO, CATALOGO, JSON_OUT, MD_OUT, REVISION, DECISIONES] = ["--formato", "--catalogo", "--json", "--md", "--revision", "--decisiones"].map(arg);
 if (!FORMATO || !CATALOGO || !JSON_OUT || !MD_OUT || !REVISION) { console.error("Uso: mapear-formato.mjs --formato … --catalogo … --json … --md … --revision …"); process.exit(2); }
 
 const HOJA = "Estructura Formato Electronico";
@@ -73,6 +73,50 @@ function similitud(etiqueta, candidatos) {
     .sort((a, b) => b.s - a.s);
 }
 
+/**
+ * Un código escrito a mano («NIIF S2 29(f)(i)») contra el catálogo, con su nombre
+ * EXACTO (CLAUDE.md §4: nunca por igualdad de cadena escrita a mano). Igual sin
+ * espacios; si no, el único código que lo contiene con un nombre combinado
+ * («NIIF S2 29 (f) (i) y (ii)», «NIIF S2 10(a), (b)y(c)», «… EI5»); si hay varios,
+ * el agrupado («… (a)(i)a(v)»). Sin nada: null, y se reporta.
+ */
+function resolver(codigo) {
+  const k = clave(codigo);
+  const exacto = catalogo.find((c) => c.k === k);
+  if (exacto) return { c: exacto, como: "exacto" };
+  const contienen = catalogo.filter((c) => c.k.startsWith(k) && c.k !== k);
+  const combinados = contienen.filter((c) => !c.k.slice(k.length).startsWith("(") || /\)y\(|,\(/.test(c.k.slice(k.length)));
+  if (combinados.length === 1) return { c: combinados[0], como: `nombre combinado «${combinados[0].codigo}»` };
+  const agrupado = contienen.find((c) => /\)a\(/.test(c.k));
+  if (agrupado) return { c: agrupado, como: `código agrupado «${agrupado.codigo}»` };
+  if (contienen.length === 1) return { c: contienen[0], como: `único inciso «${contienen[0].codigo}»` };
+  // Párrafo sin código propio con varios incisos del MISMO bloque dueño: el bloque
+  // se sabe, el datapoint no (lo decide Esteban).
+  const duenos = new Set(contienen.map((c) => duenoDe.get(c.codigo)).filter((n) => n != null));
+  if (contienen.length > 1 && duenos.size === 1) return { c: null, bloque: [...duenos][0], como: `sin código propio; sus ${contienen.length} incisos son del bloque ${[...duenos][0]}` };
+  return null;
+}
+
+/**
+ * Regla S1→S2 de la revisión del 13 de octubre (hoja Leyenda): con el alivio E5 el
+ * suplemento responde lo general de NIIF S1 con su equivalente de NIIF S2, que es
+ * el que tiene bloque dueño. Si el Ref cita el par S1/S2, se usa el S2; para los
+ * párrafos de S1 sin par, esta tabla. Toda respuesta así lleva la oración fija del
+ * alivio E5.
+ */
+const CORRESPONDENCIAS = [
+  { s1: /^NIIF S1 40 ?\(a\)/, s2: "NIIF S2 21(a)" },
+  { s1: /^NIIF S1 41\b/, s2: "NIIF S2 22" },
+  { s1: /^NIIF S1 (?:46|47|48|49|50)\b/, regla: "Métricas S1 46–50: una fila por métrica intersectorial de NIIF S2 29, ligada a cada riesgo u oportunidad de la fila 56", metricas: true },
+  { s1: /^NIIF S1 51\b/, s2: "NIIF S2 33" },
+  { s1: /^NIIF S1 B?52\b/, regla: "«No aplica» el primer año (sin periodo comparativo)", primerAnio: true },
+  { s1: /^NIIF S1 66\b/, regla: "Desde el reporte: fechas del ejercicio (Perfil)", perfil: "reporte.ejercicio" },
+  { s1: /^NIIF S1 68\b/, regla: "Campo nuevo del Perfil: hechos posteriores al cierre", perfil: "perfil.hechos_posteriores (nuevo)" },
+  { s1: /^NIIF S1 72\b/, bloque: 2, regla: "Declaración de cumplimiento: bloque 2 (plantilla)" },
+  { s1: /^NIIF S1 (?:7[4-9]|8[0-2])\b/, bloque: 6, regla: "Juicios e incertidumbres: bloque 6" },
+  { s1: /^NIIF S1 8[3-6]\b/, regla: "«No aplica» el primer año", primerAnio: true },
+];
+
 // --- Lectura del formato ---------------------------------------------------------
 const wb = new ExcelJS.Workbook();
 await wb.xlsx.readFile(FORMATO);
@@ -84,11 +128,14 @@ for (let r = 4; r <= ws.rowCount; r++) {
   const d = txt(ws.getCell(`D${r}`).value).trim();
   const m = d.match(/^\[(\d{6})\]/);
   if (m) { seccion = m[1]; continue; }
-  if (/^8/.test(seccion)) continue; // métricas por industria (SASB): Fase C
-  const tipo = txt(ws.getCell(`F${r}`).value).trim().toLowerCase();
+  const vD = ws.getCell(`D${r}`).value;
+  // Imagen dentro de la celda (tabla-plantilla de la BMV): ExcelJS la lee como error (#VALUE!).
+  const imagen = !!(vD && typeof vD === "object" && "error" in vD);
+  if (/^8/.test(seccion) && !imagen) continue; // métricas por industria (SASB): Fase C
+  const tipo = txt(ws.getCell(`F${r}`).value).trim().toLowerCase() || (imagen ? "tabla" : "");
   if (!d && !tipo) continue;
   if (tipo === "tipo de formato") continue; // encabezado repetido dentro de la hoja
-  filas.push({ fila: r, seccion, etiqueta: d, tipo: tipo || null, ref: txt(ws.getCell(`A${r}`).value).trim(), fuente: txt(ws.getCell(`G${r}`).value).trim(), lista: txt(ws.getCell(`E${r}`).value).trim(), respondidaAutlan: !!txt(ws.getCell(`K${r}`).value).trim() });
+  filas.push({ fila: r, seccion, imagen, etiqueta: d, tipo: tipo || null, ref: txt(ws.getCell(`A${r}`).value).trim(), fuente: txt(ws.getCell(`G${r}`).value).trim(), lista: txt(ws.getCell(`E${r}`).value).trim(), respondidaEnReferencia: !!txt(ws.getCell(`K${r}`).value).trim() });
 }
 
 // --- Perfil para [100000] (campos nuevos: clave de cotización, tipo de instrumento, fiduciario)
@@ -106,7 +153,7 @@ const PERFIL = [
 // --- Mapeo -----------------------------------------------------------------------
 let padre = null;
 const resultado = filas.map((f) => {
-  const base = { fila: f.fila, seccion: f.seccion, tipo: f.tipo ?? "(sin tipo)", parrafos: [...new Set([...parrafos(f.ref), ...parrafos(f.fuente)].map((p) => p.codigo))], lista: !!f.lista, respondidaAutlan: f.respondidaAutlan };
+  const base = { fila: f.fila, seccion: f.seccion, tipo: f.tipo ?? "(sin tipo)", parrafos: [...new Set([...parrafos(f.ref), ...parrafos(f.fuente)].map((p) => p.codigo))], lista: !!f.lista, respondidaEnReferencia: f.respondidaEnReferencia };
   if (!f.tipo) {
     if (f.seccion === "901000") return { ...base, clasificacion: "miembro de tabla", capa: "—", datapoint: null, confianza: "—", bloque: null, regla: "Miembro del eje de la tabla [901000]: se escribe como columna o fila de la tabla" };
     if (padre) return { ...base, clasificacion: `subconcepto de la fila ${padre.fila}`, capa: padre.capa, datapoint: padre.datapoint, confianza: padre.confianza, bloque: padre.bloque, regla: `Se responde junto con la fila ${padre.fila} (${padre.tipo})` };
@@ -128,10 +175,30 @@ const resultado = filas.map((f) => {
         else if (c.k.startsWith(k + "(")) hijos.push(c);
         else if (k.startsWith(c.k + "(")) padres.push(c);
       }
+      // Nombre combinado («NIIF S2 10(a), (b)y(c)»): cuenta como exacto.
+      const res = resolver(p.codigo);
+      if (res?.c && /^nombre combinado/.test(res.como) && !exactos.includes(res.c)) exactos.push(res.c);
     }
-    let capa, elegido = null, confianza, nota = null;
-    const capa1 = exactos.length ? exactos : hijos.length ? hijos : padres;
-    if (capa1.length) {
+    let capa, elegido = null, confianza, nota = null, alivioE5 = false, reglaFija = null;
+    // Regla S1→S2: con el par en el Ref, solo cuentan los códigos de S2.
+    const par = normas.has("S1") && normas.has("S2");
+    const soloS2 = (l) => (par ? l.filter((c) => c.norma === "S2") : l);
+    const [ex, hi, pa] = [soloS2(exactos), soloS2(hijos), soloS2(padres)];
+    if (par && (ex.length || hi.length || pa.length)) alivioE5 = true;
+    const capa1 = ex.length ? ex : hi.length ? hi : pa;
+    const corr = normas.size === 1 && normas.has("S1") ? CORRESPONDENCIAS.find((x) => ps.some((p) => x.s1.test(p.codigo))) : null;
+    if (corr) {
+      alivioE5 = true;
+      capa = "1 · correspondencia S1→S2";
+      if (corr.s2) {
+        const res = resolver(corr.s2);
+        elegido = res?.c ?? null;
+        confianza = res?.c ? (res.como === "exacto" ? "alta" : "media") : res ? "media" : "—";
+        nota = res ? (res.como === "exacto" ? null : `${corr.s2} → ${res.como}`) : `${corr.s2} no existe en el catálogo`;
+        if (res && !res.c) { corr.bloqueComun = res.bloque; reglaFija = `Modelo, desde el bloque ${res.bloque} aprobado (incisos de ${corr.s2}); datapoint por decidir`; }
+        if (!res) capa = "sin candidato";
+      } else { reglaFija = corr.regla; confianza = "alta"; }
+    } else if (capa1.length) {
       capa = "1 · fuente";
       const orden = similitud(f.etiqueta, [...new Set(capa1)]);
       elegido = orden[0].c;
@@ -146,20 +213,112 @@ const resultado = filas.map((f) => {
         confianza = s >= 0.5 && margen >= 0.1 ? "alta" : s >= 0.35 ? "media" : "baja";
       } else { capa = "sin candidato"; confianza = "—"; }
     }
-    const bloque = elegido ? duenoDe.get(elegido.codigo) ?? null : null;
-    const regla = !elegido ? "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo"
+    const bloque = elegido ? duenoDe.get(elegido.codigo) ?? null : corr?.bloque ?? corr?.bloqueComun ?? null;
+    const regla = reglaFija ? reglaFija : !elegido ? "Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo"
       : /text/.test(f.tipo) ? (bloque ? `Modelo, desde el bloque ${bloque} aprobado y los hechos de ${elegido.codigo}` : `Sin bloque dueño para ${elegido.codigo}: «Pendiente»`)
       : f.tipo === "booleano" ? `Sí/No desde un hecho o declaración negativa de ${elegido.codigo}`
       : /enumeraci/.test(f.tipo) ? `Valor de la lista desde el Perfil o el hecho de ${elegido.codigo}`
       : f.tipo === "porcentaje" ? `Cifra confirmada con unidad (${elegido.codigo})`
       : f.tipo === "tabla" ? `Tabla desde registros de clima u objetivos (${elegido.codigo})`
       : `Revisar tipo «${f.tipo}»`;
-    r = { ...base, clasificacion: "concepto", capa, datapoint: elegido?.codigo ?? null, confianza, bloque, regla, nota };
+    r = { ...base, clasificacion: "concepto", capa, datapoint: elegido?.codigo ?? null, confianza, bloque, regla: regla + (alivioE5 ? " · lleva la oración fija del alivio E5" : ""), nota, alivioE5, perfil: corr?.perfil ?? undefined };
     if (/^2111/.test(f.seccion)) r.regla = `Solo sector financiero (Perfil); si no, «No aplica». ${r.regla}`;
   }
   padre = r;
   return r;
 });
+
+// --- Revisión de Esteban (13 de octubre de 2026) -------------------------------------
+// La decisión de cada fila es la columna N del Excel revisado (Esteban) o, si está
+// vacía, la P (propuesta del asesor, que Esteban acepta al dejar N vacía). Cada
+// decisión se interpreta con patrones explícitos; la que no encaja se reporta, no
+// se adivina. De su texto no pasa al repositorio nada que nombre a una emisora.
+const noInterpretadas = [];
+const estructuraImagen = new Set();
+if (DECISIONES) {
+  const rv = new ExcelJS.Workbook();
+  await rv.xlsx.readFile(DECISIONES);
+  const hm = rv.getWorksheet("Mapeo");
+  const col = {};
+  hm.getRow(1).eachCell((c, i) => { const t = txt(c.value); if (/^Fila$/.test(t)) col.fila = i; if (/^Decisión de Esteban/.test(t)) col.n = i; if (/^Propuesta del asesor/.test(t)) col.p = i; if (/^Etiqueta leída de la imagen|imagen/i.test(t)) col.o = i; });
+  const dec = new Map();
+  hm.eachRow((f, nf) => {
+    if (nf === 1) return;
+    const fila = Number(txt(f.getCell(col.fila).value));
+    const n = txt(f.getCell(col.n).value).trim(), pr = txt(f.getCell(col.p).value).trim();
+    if (col.o && txt(f.getCell(col.o).value).trim()) estructuraImagen.add(fila);
+    if (n || pr) dec.set(fila, { texto: n || pr, origen: n ? "Esteban" : "asesor (aceptada por Esteban)" });
+  });
+  const porFila = new Map(resultado.map((x) => [x.fila, x]));
+  const sinEmisora = (t) => t.split(/(?<=[.;])\s+|\s+\(?(?=Ojo:)/).filter((x) => !/Autl[aá]n/i.test(x)).join(" ").replace(/;?\s*(?:el|la|los) [^;.]*propuest[oa]s? (?:es|son) incorrect[oa]s?\.?/gi, "").replace(/\s+/g, " ").trim();
+  const codigosS2 = (t) => [...t.matchAll(/S2\s*(\d+[A-Z]?)\s*((?:\([a-z0-9ivx]+\))*)/g)].map((m) => `NIIF S2 ${m[1]}${m[2]}`);
+  const resolverTexto = (t) => { for (const c of codigosS2(t)) { const r = resolver(c) ?? resolver(c + "(a)"); if (r) return { ...r, pedido: c }; } return codigosS2(t).length ? { c: null, pedido: codigosS2(t)[0] } : null; };
+  const bloqueDe = (t, res) => { const m = t.match(/bloque (\d+)/); return m ? Number(m[1]) : res?.c ? duenoDe.get(res.c.codigo) ?? null : res?.bloque ?? null; };
+  const aplicar = (x, d) => {
+    const t = d.texto;
+    let m;
+    x.revision = { origen: d.origen };
+    if ((m = t.match(/^Igual que (?:la fila )?(\d+)/))) { const otra = dec.get(Number(m[1])); if (otra) return aplicar(x, { ...otra, origen: d.origen }); }
+    if ((m = t.match(/^Regla S1→S2: usar (NIIF S2 [^ ]+(?: [^ (]+)?)/))) {
+      const res = resolver(m[1].replace(/\s*\(el código.*$/, ""));
+      Object.assign(x, { clasificacion: "concepto", capa: "3 · revisión (S1→S2)", datapoint: res?.c?.codigo ?? null, bloque: res?.c ? duenoDe.get(res.c.codigo) ?? null : res?.bloque ?? null, confianza: res?.c ? "alta" : res ? "media" : "—", alivioE5: true, nota: res && res.como !== "exacto" ? `${m[1]} → ${res.como}` : res ? null : `${m[1]} no existe en el catálogo` });
+      x.regla = x.datapoint ? `Modelo, desde el bloque ${x.bloque} aprobado y los hechos de ${x.datapoint} · lleva la oración fija del alivio E5`
+        : x.bloque ? `Modelo, desde el bloque ${x.bloque} aprobado; datapoint por decidir · lleva la oración fija del alivio E5` : "Sin datapoint en el catálogo: «Pendiente»";
+      return (x.revision.categoria = "regla S1→S2");
+    }
+    if (/^Fuera de alcance/.test(t)) { Object.assign(x, { clasificacion: "fuera de alcance (SASB, Fase C)", capa: "—", datapoint: null, bloque: null, confianza: "—", regla: "Métricas por industria: pendiente de catálogo SASB" }); return (x.revision.categoria = "fuera de alcance"); }
+    if ((m = t.match(/^Corrección: es la lista de opciones de la fila (\d+)/))) { const pa = porFila.get(Number(m[1])); Object.assign(x, { clasificacion: `subconcepto de la fila ${m[1]}`, capa: pa?.capa ?? "—", datapoint: pa?.datapoint ?? null, bloque: pa?.bloque ?? null, confianza: pa?.confianza ?? "—", regla: `Lista de opciones de la fila ${m[1]}`, perfil: undefined }); return (x.revision.categoria = "subconcepto"); }
+    if (/^(Estructura|Etiqueta de|Encabezado «|Encabezado \(gris\)|Encabezado de \[|Corrección: es (?:la etiqueta|el encabezado)|Corrección: «[^»]+» es encabezado)/.test(t) || (/^Encabezado/.test(t) && /\(gris\)/.test(t))) {
+      Object.assign(x, { clasificacion: "encabezado", capa: "—", datapoint: null, bloque: null, confianza: "—", regla: /plantilla/.test(t) ? "Estructura de plantilla: se genera al iterar la tabla o las métricas" : "Sin respuesta (encabezado)", alivioE5: false, nota: null });
+      return (x.revision.categoria = "encabezado");
+    }
+    if (/^Encabezado/.test(t)) {
+      const res = resolverTexto(t);
+      Object.assign(x, { clasificacion: "encabezado narrativo", capa: "3 · revisión", datapoint: null, bloque: bloqueDe(t, res), confianza: "alta", regla: `Párrafo introductorio desde el bloque ${bloqueDe(t, res) ?? "?"} aprobado`, nota: null });
+      return (x.revision.categoria = "encabezado narrativo");
+    }
+    if (/^Confirmo regla sector/.test(t)) { x.confianza = "alta"; return (x.revision.categoria = "confirmada (sector financiero)"); }
+    if (/^Confirmo encabezado desde bloque (\d+)/.test(t)) { const b = Number(t.match(/bloque (\d+)/)[1]); Object.assign(x, { clasificacion: "encabezado narrativo", bloque: b, confianza: "alta", regla: `Párrafo introductorio desde el bloque ${b} aprobado` }); return (x.revision.categoria = "confirmada"); }
+    if (/^Confirmo/.test(t)) { const res = resolverTexto(t); if (res?.c && !x.datapoint) { x.datapoint = res.c.codigo; } if (/bloque (\d+)/.test(t)) x.bloque = Number(t.match(/bloque (\d+)/)[1]); x.confianza = "alta"; return (x.revision.categoria = "confirmada"); }
+    if ((m = t.match(/^Regla fija: (.+)$/))) { Object.assign(x, { clasificacion: "concepto", capa: "regla fija", datapoint: null, bloque: null, confianza: "alta", regla: `Regla fija: ${sinEmisora(m[1])}`, alivioE5: false, nota: null }); return (x.revision.categoria = "regla fija"); }
+    if (/^Primer año/.test(t)) { Object.assign(x, { capa: "regla primer año", datapoint: x.datapoint, confianza: "alta", regla: sinEmisora(t), primerAnio: true }); return (x.revision.categoria = "primer año"); }
+    if (/^(Tabla|Sub-tabla)/.test(t) || (x.tipo === "tabla" && codigosS2(t).length)) {
+      const res = resolverTexto(t);
+      Object.assign(x, { tipo: "tabla", clasificacion: "concepto", capa: "3 · revisión (tabla)", datapoint: res?.c?.codigo ?? null, bloque: bloqueDe(t, res), confianza: res?.c ? "alta" : "media", regla: sinEmisora(t), nota: res && !res.c ? `${res.pedido} no existe en el catálogo` : res?.como && res.como !== "exacto" ? `${res.pedido} → ${res.como}` : null });
+      return (x.revision.categoria = "tabla");
+    }
+    if (/^(?:Regla: )?(?:Perfil\/reporte|perfil\.|reporte\.|Regla desde reporte\.)/.test(t) || /campo nuevo de Perfil/.test(t)) {
+      const campo = t.match(/(perfil\.[a-z_]+|reporte\.[a-z_]+)/)?.[1] ?? (/hechos posteriores/.test(t) ? "perfil.hechos_posteriores" : /fecha de (inicio|fin)/.test(t) ? "reporte.ejercicio (fechas)" : null);
+      const resto = sinEmisora(t).replace(/^(?:Regla desde |Perfil\/reporte: )?(?:perfil|reporte)\.[a-z_]+(?: \(nuevo\))?[,:;]?\s*/, "").replace(/^S1 \d+ [^:]*:\s*/, "").replace(/\s*No es [^.]*\.?$/, "").trim();
+      Object.assign(x, { clasificacion: "concepto", capa: "Perfil", datapoint: null, bloque: null, confianza: "alta", perfil: campo + (/nuevo/.test(t) ? " (nuevo)" : ""), regla: `Desde ${campo}${/nuevo/.test(t) ? " (campo nuevo)" : ""}${resto ? `: ${resto}` : ""}`, alivioE5: false, nota: null });
+      return (x.revision.categoria = "Perfil o reporte");
+    }
+    if ((m = t.match(/^Regla(?: por [a-zé]+)?: (.+)$/))) { Object.assign(x, { capa: "3 · revisión (regla)", datapoint: null, bloque: null, confianza: "alta", regla: sinEmisora(m[1]) }); return (x.revision.categoria = "regla"); }
+    if (/Solo sector financiero|S2 29B/.test(t)) {
+      const res = resolverTexto(t);
+      Object.assign(x, { regla: `Solo sector financiero (Perfil); si no, «No aplica». ${x.regla}`, confianza: x.datapoint ? "alta" : "—" });
+      if (res && !res.c) { Object.assign(x, { capa: "sin candidato", datapoint: null, nota: `${res.pedido} no existe en el catálogo` }); }
+      return (x.revision.categoria = "sector financiero");
+    }
+    const res = resolverTexto(t);
+    if (res) {
+      Object.assign(x, { clasificacion: "concepto", capa: res.c ? "3 · revisión" : "sin candidato", datapoint: res.c?.codigo ?? null, bloque: bloqueDe(t, res), confianza: res.c ? "alta" : "—", regla: sinEmisora(t), nota: !res.c ? (res.bloque ? `${res.pedido}: ${res.como}` : `${res.pedido} no existe en el catálogo`) : res.como !== "exacto" ? `${res.pedido} → ${res.como}` : null, alivioE5: x.alivioE5 && !!res.c });
+      return (x.revision.categoria = "datapoint y bloque");
+    }
+    noInterpretadas.push({ fila: x.fila });
+    x.revision.categoria = "no interpretada";
+  };
+  for (const x of resultado) { const d = dec.get(x.fila); if (d) aplicar(x, d); }
+  // Las filas sin decisión propia que son subconceptos vuelven a heredar de su padre ya revisado.
+  for (const x of resultado) {
+    const m = !x.revision && x.clasificacion.match(/^subconcepto de la fila (\d+)/);
+    const pa = m && porFila.get(Number(m[1]));
+    if (pa) Object.assign(x, { capa: pa.capa, datapoint: pa.datapoint, bloque: pa.bloque, confianza: pa.confianza, alivioE5: pa.alivioE5, primerAnio: pa.primerAnio, regla: `Se responde junto con la fila ${pa.fila} (${pa.tipo})` });
+  }
+  // Métricas S1 46–50 (filas 144–185): un solo bloque que se itera por métrica de S2 29.
+  for (const x of resultado) if (x.fila >= 144 && x.fila <= 185) x.grupo = "métricas S1 46–50: una fila por métrica intersectorial de NIIF S2 29, ligada a cada riesgo u oportunidad de la fila 56";
+  for (const x of resultado) if (estructuraImagen.has(x.fila)) x.estructura = "tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git";
+}
 
 // --- Sin mapeo: conceptos con tipo sin datapoint, con los párrafos que piden ------
 const sinMapeo = resultado.filter((x) => x.clasificacion === "concepto" && x.capa === "sin candidato");
@@ -176,6 +335,8 @@ const resumen = {
   porConfianza: cuenta((x) => x.confianza),
   conDatapoint: resultado.filter((x) => x.datapoint).length,
   conBloque: resultado.filter((x) => x.bloque).length,
+  conAlivioE5: resultado.filter((x) => x.alivioE5).length,
+  revision: DECISIONES ? { archivo: path.basename(DECISIONES), porCategoria: cuenta((x) => x.revision?.categoria ?? "(sin decisión)"), noInterpretadas: noInterpretadas.map((x) => x.fila) } : null,
 };
 fs.writeFileSync(JSON_OUT, JSON.stringify({ resumen, conceptos: resultado, sinMapeo: sinMapeo.map((x) => ({ fila: x.fila, seccion: x.seccion, tipo: x.tipo, parrafos: x.parrafos })), parrafosSinCodigo: Object.fromEntries([...parrafosSinCodigo].sort()) }, null, 1));
 
@@ -188,8 +349,9 @@ md.push(`- Clasificación: ${Object.entries(resumen.porClasificacion).map(([k, v
 md.push(`- Capa que resolvió: ${Object.entries(resumen.porCapa).map(([k, v]) => `${k} ${v}`).join(" · ")}.`);
 md.push(`- Confianza: ${Object.entries(resumen.porConfianza).map(([k, v]) => `${k} ${v}`).join(" · ")}.`);
 md.push(`- Con datapoint propuesto: ${resumen.conDatapoint}; con bloque dueño: ${resumen.conBloque}.`, "");
-md.push(`## Conceptos`, "", `| Fila | Sección | Tipo | Clasificación | Párrafos citados | Datapoint propuesto | Capa | Confianza | Bloque | Regla de llenado |`, `|---:|---|---|---|---|---|---|---|---:|---|`);
-for (const x of resultado) md.push(`| ${x.fila} | ${x.seccion} | ${x.tipo} | ${x.clasificacion} | ${x.parrafos.join("; ") || "—"} | ${x.datapoint ?? (x.perfil ? "—" : "—")} | ${x.capa} | ${x.confianza} | ${x.bloque ?? "—"} | ${x.regla}${x.nota ? ` (${x.nota})` : ""} |`);
+if (resumen.revision) md.push(`- Revisión de Esteban (\`${resumen.revision.archivo}\`): ${Object.entries(resumen.revision.porCategoria).map(([k, v]) => `${k} ${v}`).join(" · ")}. No interpretadas: ${resumen.revision.noInterpretadas.length ? resumen.revision.noInterpretadas.join(", ") : "ninguna"}.`, `- Llevan la oración fija del alivio E5: ${resumen.conAlivioE5}.`, "");
+md.push(`## Conceptos`, "", `| Fila | Sección | Tipo | Clasificación | Párrafos citados | Datapoint propuesto | Capa | Confianza | Bloque | E5 | Revisión | Regla de llenado |`, `|---:|---|---|---|---|---|---|---|---:|:-:|---|---|`);
+for (const x of resultado) md.push(`| ${x.fila} | ${x.seccion} | ${x.tipo} | ${x.clasificacion} | ${x.parrafos.join("; ") || "—"} | ${x.datapoint ?? (x.perfil ? x.perfil : "—")} | ${x.capa} | ${x.confianza} | ${x.bloque ?? "—"} | ${x.alivioE5 ? "sí" : ""} | ${x.revision ? `${x.revision.categoria} (${x.revision.origen})` : ""} | ${x.regla}${x.nota ? ` (${x.nota})` : ""}${x.grupo ? ` · ${x.grupo}` : ""}${x.estructura ? ` · ${x.estructura}` : ""} |`);
 md.push("", `## Sin mapeo (propuesta de ampliación del catálogo; no se crea nada ahora)`, "", `### Conceptos con tipo sin datapoint (${sinMapeo.length})`, "", `| Fila | Sección | Tipo | Párrafos que piden |`, `|---:|---|---|---|`);
 for (const x of sinMapeo) md.push(`| ${x.fila} | ${x.seccion} | ${x.tipo} | ${x.parrafos.join("; ") || "(sin párrafo citado)"} |`);
 md.push("", `### Párrafos citados por el formato que no tienen código en el catálogo (${parrafosSinCodigo.size})`, "", `| Párrafo | Filas que lo citan |`, `|---|---|`);
@@ -204,19 +366,19 @@ hoja.columns = [
   { header: "Tipo", key: "tipo", width: 18 }, { header: "Clasificación", key: "clasificacion", width: 22 }, { header: "Ref / Fuente", key: "parrafos", width: 26 },
   { header: "Datapoint propuesto", key: "datapoint", width: 24 }, { header: "Capa", key: "capa", width: 14 }, { header: "Confianza", key: "confianza", width: 11 },
   { header: "Semáforo", key: "semaforo", width: 10 }, { header: "Bloque dueño", key: "bloque", width: 34 }, { header: "Regla de llenado", key: "regla", width: 60 },
-  { header: "Respondida por Autlán", key: "autlan", width: 11 }, { header: "Decisión de Esteban", key: "decision", width: 40 },
+  { header: "Respondida por Autlán", key: "autlan", width: 11 }, { header: "Revisión aplicada", key: "revision", width: 30 }, { header: "Decisión de Esteban", key: "decision", width: 40 },
 ];
 const etiquetaDe = new Map(filas.map((f) => [f.fila, f.etiqueta]));
 const COLOR = { verde: "FFC6EFCE", amarillo: "FFFFEB9C", rojo: "FFFFC7CE", gris: "FFE7E6E6" };
 for (const x of resultado) {
-  const semaforo = x.confianza === "alta" ? "verde" : x.confianza === "media" ? "amarillo" : x.confianza === "baja" || x.capa === "sin candidato" ? "rojo" : "gris";
-  const fila = hoja.addRow({ fila: x.fila, seccion: x.seccion, etiqueta: etiquetaDe.get(x.fila), tipo: x.tipo, clasificacion: x.clasificacion, parrafos: x.parrafos.join("; "), datapoint: x.datapoint ?? x.perfil ?? "", capa: x.capa, confianza: x.confianza, semaforo, bloque: x.bloque ? `${x.bloque} · ${tituloDe.get(x.bloque)}` : "", regla: x.regla + (x.nota ? ` (${x.nota})` : ""), autlan: x.respondidaAutlan ? "Sí" : "", decision: "" });
+  const semaforo = /^(encabezado$|fuera|miembro)/.test(x.clasificacion) ? "gris" : x.confianza === "alta" ? "verde" : x.confianza === "media" ? "amarillo" : x.confianza === "baja" || x.capa === "sin candidato" ? "rojo" : "gris";
+  const fila = hoja.addRow({ fila: x.fila, seccion: x.seccion, etiqueta: etiquetaDe.get(x.fila), tipo: x.tipo, clasificacion: x.clasificacion, parrafos: x.parrafos.join("; "), datapoint: x.datapoint ?? x.perfil ?? "", capa: x.capa, confianza: x.confianza, semaforo, bloque: x.bloque ? `${x.bloque} · ${tituloDe.get(x.bloque)}` : "", regla: x.regla + (x.nota ? ` (${x.nota})` : ""), autlan: x.respondidaEnReferencia ? "Sí" : "", revision: x.revision ? `${x.revision.categoria} (${x.revision.origen})` : "", decision: "" });
   fila.getCell("semaforo").fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR[semaforo] } };
   fila.alignment = { vertical: "top", wrapText: true };
 }
 hoja.getRow(1).font = { bold: true };
 hoja.views = [{ state: "frozen", ySplit: 1 }];
-hoja.autoFilter = { from: "A1", to: "N1" };
+hoja.autoFilter = { from: "A1", to: "O1" };
 const leyenda = out.addWorksheet("Leyenda");
 leyenda.addRows([["Semáforo", "Significado"], ["verde", "Confianza alta: código exacto del párrafo, o elegido con margen claro"], ["amarillo", "Confianza media: revisar el datapoint propuesto"], ["rojo", "Confianza baja o sin candidato: decidir o pasar a «sin mapeo»"], ["gris", "Encabezado, Perfil sin regla o miembro de tabla: sin datapoint"], [], ["Decisión de Esteban", "Vacío = de acuerdo. Si no: el datapoint correcto, «sin mapeo» o la regla que corresponda."]]);
 await out.xlsx.writeFile(REVISION);
