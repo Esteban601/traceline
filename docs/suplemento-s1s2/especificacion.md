@@ -1,6 +1,8 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.39** · 13 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.40** · 13 de octubre de 2026.
+
+**Cambios respecto a 0.39:** §10, registro del despliegue v40 a staging.
 
 **Cambios respecto a 0.38** (cierre del Paso 4 de v40):
 - §6, validador cruzado: una observación guardada del validador (remisión sin ancla o texto reescrito) se descarta si
@@ -1491,6 +1493,39 @@ Verificación en staging tras el release (solo conteos y booleanos sobre los log
 
 Punto de reversión: `heroku releases:rollback v38 -a traceline-staging`. Revierte solo el código; las migraciones son
 aditivas y se quedan. Con el código de v38, el resumen vuelve a ser el digest anterior.
+
+### staging · release v40 · 13 de octubre de 2026 · `e6e3308`
+
+**Suplemento de calidad.** Encargo `docs/encargos/2026-10-11-suplemento-a-produccion.md`, por el PR #25
+(`dev/ajustes-sep26` → `main`, merge commit `0d361d9`), revisado con el asesor y aprobado por Esteban. Más el commit
+operativo `e6e3308` sobre `main`: `migrar-remoto.sh` acepta el ref en el host o en el usuario del session pooler.
+Qué entra: §6 (libro de hechos, validador cruzado, cierre, coherencia, regla de datos y colocación) y el catálogo
+partido en 18 incisos (Anexo A). Orden de v33 y v39:
+
+1. Merge (Claude Code).
+2. Migraciones (Esteban).
+3. `git push heroku main` (Claude Code).
+
+**Migraciones.** Aplicadas por Esteban con `migrar-remoto.sh staging --aplicar`, con la URL del session pooler (en su red
+el host directo no resuelve): 18 de 18, **86 de 86 alineadas, barrera 105** (era 90). Son las 16 del encargo de calidad
+(`20261006140000` a `20261008140000`) y `20261011120000_versiones_respaldo` y `20261011121000_documentos_cierre_estado`.
+Antes, ensayo completo en la copia `vdubzcjtujxayefzhhco` (encargo §7, Paso 4).
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Release | ✓ v40 · Deploy `e6e33089`; `web.1` up; `/login` 200 |
+| Logs desde el release | ✓ 105 líneas, 83 peticiones al router: 0 respuestas 5xx, 0 `Error:`, 0 códigos H |
+| `comprobar-v40 --despues` | ✓ Banderas de las 21 emisoras idénticas a las de antes; 18 incisos activos; Grupo Carso sin libro, hechos, coherencia ni historial, 0 adjuntos; `GET …/cierre` 200 |
+| Excel de CLEPSA, Banco Base y Grupo Carso (`comparar-excel-v40.mjs`) | ✓ 0 diferencias no esperadas en las tres; 435 esperadas en cada una, por las 18 filas de incisos de la plantilla; igual que en el ensayo |
+| Grupo Carso, instantánea antes y después de migrar | ✓ Idénticas en las 24 líneas (`mapeo_solicitud_datapoint:incisos|0`) |
+| Vitrina de Banco Base | ✓ Word y PDF 200, sin «Empresa Demo», nada sin sustituir; 2 filas de bitácora del mockup |
+| Generación completa de Empresa Demo | ✓ Libro de hechos en 24 s ($0.14, 66 hechos); 33 bloques en borrador y 7 «no aplica», **0 fallos**; 26 páginas; Word con `verify:word` en verde; 13.2 min; por bloque, mediana 51 s, p90 80.8 s, máximo 98.2 s; cierre 2 de 5 ($0.01); coherencia 21 observaciones en 121 s ($0.86); validador cruzado 7. **Costo $9.52.** Ninguna petición de más de 30 s: 561 en el cliente (máxima 2.1 s) y 649 en el router (máxima 2.2 s, sin códigos H). Cuenta 1 corrida del mes de Empresa Demo |
+
+Punto de reversión: `heroku releases:rollback v39 -a traceline-staging`. Revierte solo el código; las migraciones son
+aditivas y se quedan. En el ensayo, el código de v39 sobre la base migrada dio el Excel idéntico y `verificar-main`
+26 de 26.
 
 ### Deudas conocidas
 
