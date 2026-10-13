@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -743,6 +743,9 @@ export type Database = {
           idioma: string
           regimen: string | null
           reporte_id: string
+          respuestas_actualizado_en: string | null
+          respuestas_estado: string | null
+          respuestas_resultado: Json | null
           tenant_id: string
           textos_literales: Json | null
           tipo: string
@@ -769,6 +772,9 @@ export type Database = {
           idioma?: string
           regimen?: string | null
           reporte_id: string
+          respuestas_actualizado_en?: string | null
+          respuestas_estado?: string | null
+          respuestas_resultado?: Json | null
           tenant_id: string
           textos_literales?: Json | null
           tipo?: string
@@ -795,6 +801,9 @@ export type Database = {
           idioma?: string
           regimen?: string | null
           reporte_id?: string
+          respuestas_actualizado_en?: string | null
+          respuestas_estado?: string | null
+          respuestas_resultado?: Json | null
           tenant_id?: string
           textos_literales?: Json | null
           tipo?: string
@@ -2093,6 +2102,109 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "reportes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respuestas_datapoint: {
+        Row: {
+          bloque: number | null
+          bloque_version: number | null
+          clave: string
+          costo_usd: number
+          created_at: string
+          destino: string
+          documento_id: string
+          estado: string
+          hechos: Json
+          id: string
+          modelo: string | null
+          notas: Json
+          origen: string
+          prompt_version: string | null
+          reporte_id: string
+          tenant_id: string
+          texto: string | null
+          tipo_campo: string
+          tokens_cache_escritura: number
+          tokens_cache_lectura: number
+          tokens_entrada: number
+          tokens_salida: number
+          valor: Json | null
+          version_documento: number
+        }
+        Insert: {
+          bloque?: number | null
+          bloque_version?: number | null
+          clave: string
+          costo_usd?: number
+          created_at?: string
+          destino: string
+          documento_id: string
+          estado: string
+          hechos?: Json
+          id?: string
+          modelo?: string | null
+          notas?: Json
+          origen: string
+          prompt_version?: string | null
+          reporte_id: string
+          tenant_id: string
+          texto?: string | null
+          tipo_campo?: string
+          tokens_cache_escritura?: number
+          tokens_cache_lectura?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+          valor?: Json | null
+          version_documento: number
+        }
+        Update: {
+          bloque?: number | null
+          bloque_version?: number | null
+          clave?: string
+          costo_usd?: number
+          created_at?: string
+          destino?: string
+          documento_id?: string
+          estado?: string
+          hechos?: Json
+          id?: string
+          modelo?: string | null
+          notas?: Json
+          origen?: string
+          prompt_version?: string | null
+          reporte_id?: string
+          tenant_id?: string
+          texto?: string | null
+          tipo_campo?: string
+          tokens_cache_escritura?: number
+          tokens_cache_lectura?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+          valor?: Json | null
+          version_documento?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respuestas_datapoint_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_generados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respuestas_datapoint_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respuestas_datapoint_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
