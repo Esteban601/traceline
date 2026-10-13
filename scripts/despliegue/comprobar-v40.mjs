@@ -35,8 +35,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createServerClient } from "@supabase/ssr";
 
-// Ensayo de v40: creado por Esteban el 13/10/2026 (Paso 4).
-const REFS = { ewgnvjtjhvdltvkopptn: "staging", vdubzcjtujxayefzhhco: "ensayo" };
+// El ensayo de v40 (vdubzcjtujxayefzhhco) se borró al cerrar el despliegue: solo staging.
+const REFS = { ewgnvjtjhvdltvkopptn: "staging" };
 const APPS = {
   staging: "https://traceline-staging-70ce5b369e7c.herokuapp.com",
   ensayo: "https://traceline-dev-d4fd7a3cda04.herokuapp.com",

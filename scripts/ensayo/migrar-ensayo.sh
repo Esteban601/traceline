@@ -17,7 +17,7 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-REF_ENSAYO="vdubzcjtujxayefzhhco"
+REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 
 falla() { echo "✗ $*" >&2; exit 1; }
