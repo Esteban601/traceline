@@ -317,12 +317,13 @@ async function main() {
       cellText(s36, "A3") === a3,
     "el objetivo de la fila 3 es el mismo en S2 33/34/35/36"
   );
-  // La fila 3 es ahora el objetivo de reducción de emisiones, sin validación de
-  // tercero; el que sí la tiene —cartera sostenible, con opinión de segunda
-  // parte— es la fila 4. Se comprueban los dos para que el booleano siga
-  // probándose en sus dos valores.
+  // La fila 3 es el objetivo de reducción de emisiones y la 4 el de cartera
+  // sostenible; ninguno tiene validación por tercero. El valor «Verdadero» del
+  // booleano se sigue probando en S2 22(b)(i) B5.
   ok(cellText(s34, "B3") === "Falso", "S2 34: B3 (validación por tercero) = 'Falso' (booleano)");
-  ok(cellText(s34, "B4") === "Verdadero", "S2 34: B4 (validación por tercero) = 'Verdadero' (booleano)");
+  // 'Falso' desde el 8 de octubre de 2026: la opinión de segunda parte cubre el marco de bonos verdes, no el
+  // objetivo de cartera sostenible (tercera revisión externa, B; poblar-demo.mjs).
+  ok(cellText(s34, "B4") === "Falso", "S2 34: B4 (validación por tercero) = 'Falso' (booleano)");
   ok(cellText(s35, "B3").length > 0, "S2 35: B3 (resultados) del objetivo completo lleno");
   ok(
     cellText(s36, "B3").includes("Dióxido de carbono (CO2)"),

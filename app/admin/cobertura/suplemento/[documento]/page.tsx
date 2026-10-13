@@ -6,7 +6,10 @@ import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { EmptyState } from "@/components/ui/empty-state";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
+import { padreDe } from "@/lib/suplemento/catalogo-incisos";
+import { CoherenciaPanel, type EstadoCierreVista, type ObservacionVista, type PasadaVista, type ResultadoCierreVista } from "./coherencia-panel";
 import { RevisionView, type BloqueRevision } from "./revision-view";
+import type { VersionVista } from "./historial";
 
 export const metadata: Metadata = { title: "Revisión del suplemento" };
 
@@ -34,7 +37,7 @@ export default async function RevisionPage({
   const { data: doc } = await db
     .from("documentos_generados")
     .select(
-      "id, version, idioma, estado, regimen, alivios, costo_usd, tokens_entrada, tokens_salida, created_at, aprobado_en, reporte_id, tenant_id, aprobado:perfiles_usuario!documentos_generados_aprobado_por_fkey(nombre), generado:perfiles_usuario!documentos_generados_generado_por_fkey(nombre)"
+      "id, version, idioma, estado, regimen, alivios, versiones_aprobadas, cierre_estado, cierre_resultado, costo_usd, tokens_entrada, tokens_salida, created_at, aprobado_en, reporte_id, tenant_id, aprobado:perfiles_usuario!documentos_generados_aprobado_por_fkey(nombre), generado:perfiles_usuario!documentos_generados_generado_por_fkey(nombre)"
     )
     .eq("id", documentoId)
     .maybeSingle();
@@ -60,14 +63,54 @@ export default async function RevisionPage({
     db
       .from("documentos_bloques")
       .select(
-        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
+        "numero, clave, titulo, seccion, estado, texto, fuentes, pendientes, modelo, prompt_version, costo_usd, duracion_ms, tokens_entrada, tokens_entrada_cache_escritura, tokens_entrada_cache_lectura, tokens_salida, texto_del_emisor, cobertura, anclas, editado_en, editado:perfiles_usuario!documentos_bloques_editado_por_fkey(nombre)"
       )
       .eq("documento_id", documentoId)
       .order("numero"),
   ]);
 
+  // HISTORIAL (Paso 4): todas las versiones de los bloques, de la más reciente a
+  // la más antigua, con su autor.
+  const { data: filasVersiones } = await db
+    .from("documentos_bloques_versiones")
+    .select("id, numero, version, origen, texto, fuentes, prompt_version, modelo, created_at, restaurada_de, autor:perfiles_usuario!documentos_bloques_versiones_autor_id_fkey(nombre)")
+    .eq("documento_id", documentoId)
+    .order("version", { ascending: false });
+  const aprobadas = new Set(
+    Object.values((doc.versiones_aprobadas ?? {}) as Record<string, { id: string }>).map((v) => v.id)
+  );
+  const numeroDeVersion = new Map((filasVersiones ?? []).map((v) => [v.id, v.version]));
+  const versionesPorBloque = new Map<number, VersionVista[]>();
+  for (const v of filasVersiones ?? []) {
+    const lista = versionesPorBloque.get(v.numero) ?? [];
+    lista.push({
+      id: v.id,
+      version: v.version,
+      origen: v.origen as VersionVista["origen"],
+      texto: v.texto,
+      fuentes: ((v.fuentes ?? []) as { detalle: string }[]).map((f) => f.detalle),
+      promptVersion: v.prompt_version,
+      modelo: v.modelo,
+      autor: (v.autor as unknown as { nombre: string } | null)?.nombre ?? null,
+      creadaEn: v.created_at,
+      restauradaDe: v.restaurada_de ? numeroDeVersion.get(v.restaurada_de) ?? null : null,
+      aprobada: aprobadas.has(v.id),
+    });
+    versionesPorBloque.set(v.numero, lista);
+  }
+
+  // Cobertura (Paso 5b): el texto de cada requisito lo pone la pantalla, desde
+  // el catálogo; el modelo solo da el código y su juicio.
+  const codigosCobertura = [
+    ...new Set((filas ?? []).flatMap((b) => ((b.cobertura ?? []) as { codigo: string }[]).flatMap((c) => [c.codigo, padreDe(c.codigo)].filter((x): x is string => !!x)))),
+  ];
+  const { data: requisitosCatalogo } = codigosCobertura.length
+    ? await db.from("datapoints_taxonomia").select("codigo, descripcion").in("codigo", codigosCobertura)
+    : { data: [] as { codigo: string; descripcion: string }[] };
+  const textoRequisito = new Map((requisitosCatalogo ?? []).map((r) => [r.codigo, r.descripcion]));
+
   const bloques: BloqueRevision[] = (filas ?? []).map((b) => {
-    const ps = (b.pendientes ?? []) as { campo: string; motivo: string }[];
+    const ps = (b.pendientes ?? []) as { campo: string; motivo: string; cubeta?: string | null; etiqueta?: string | null }[];
     return {
       numero: b.numero,
       titulo: b.titulo,
@@ -76,7 +119,9 @@ export default async function RevisionPage({
       texto: b.texto,
       fuentes: (b.fuentes ?? []) as { tipo: string; id: string; detalle: string }[],
       pendientes: ps.filter((p) => p.campo !== "nota_revision").map((p) => p.motivo),
-      notasRevision: ps.filter((p) => p.campo === "nota_revision").map((p) => p.motivo),
+      notasRevision: ps
+        .filter((p) => p.campo === "nota_revision")
+        .map((p) => ({ texto: p.motivo, cubeta: p.cubeta ?? null, etiqueta: p.etiqueta ?? null })),
       modelo: b.modelo,
       promptVersion: b.prompt_version,
       costoUsd: Number(b.costo_usd ?? 0),
@@ -84,8 +129,39 @@ export default async function RevisionPage({
       tokensSalida: b.tokens_salida,
       editadoEn: b.editado_en,
       editadoPor: (b.editado as unknown as { nombre: string } | null)?.nombre ?? null,
+      textoDelEmisor: b.texto_del_emisor,
+      versiones: versionesPorBloque.get(b.numero) ?? [],
+      cobertura: b.cobertura
+        ? (b.cobertura as unknown as NonNullable<BloqueRevision["cobertura"]>).map((c) => {
+            const padre = padreDe(c.codigo);
+            return { ...c, requisito: textoRequisito.get(c.codigo) ?? null, padre, requisitoPadre: padre ? textoRequisito.get(padre) ?? null : null };
+          })
+        : null,
+      anclas: (b.anclas as unknown as BloqueRevision["anclas"]) ?? null,
     };
   });
+
+  // Última pasada de coherencia del documento (Paso 3).
+  const { data: pasada } = await db
+    .from("observaciones_coherencia")
+    .select("estado, observaciones, descartadas, bloques_revisados, costo_usd, duracion_ms, modelo, error, created_at")
+    .eq("documento_id", documentoId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const pasadaVista: PasadaVista | null = pasada
+    ? {
+        estado: pasada.estado as PasadaVista["estado"],
+        observaciones: (Array.isArray(pasada.observaciones) ? pasada.observaciones : []) as unknown as ObservacionVista[],
+        descartadas: pasada.descartadas,
+        bloquesRevisados: pasada.bloques_revisados,
+        costoUsd: Number(pasada.costo_usd ?? 0),
+        duracionMs: pasada.duracion_ms,
+        modelo: pasada.modelo,
+        error: pasada.error,
+        creadaEn: pasada.created_at,
+      }
+    : null;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -105,6 +181,14 @@ export default async function RevisionPage({
         bloques={bloques}
         puedeAprobar={esStaff(perfil)}
         generadorActivo={tenant?.generador_activo ?? false}
+        panelCoherencia={
+          <CoherenciaPanel
+            documentoId={documentoId}
+            inicial={pasadaVista}
+            cierreInicial={{ estado: (doc.cierre_estado as EstadoCierreVista | null) ?? null, resultado: (doc.cierre_resultado as unknown as ResultadoCierreVista | null) ?? null }}
+            puedeRevisar={esStaff(perfil) && (tenant?.generador_activo ?? false)}
+          />
+        }
       />
     </div>
   );

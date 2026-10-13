@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 
@@ -35,9 +36,19 @@ const CONCURRENCIA = 3;
 const INTERVALO_MS = 2000;
 const LIMITE_MS = 3 * 60 * 1000;
 
-type Estado = "listo" | "abriendo" | "generando" | "hecho" | "error";
+// «sigue»: pasaron 20 min y el cierre no terminó; no se da por terminado ni se ofrece Generar (Codex, PR #20).
+type Estado = "listo" | "abriendo" | "generando" | "cerrando" | "sigue" | "hecho" | "error";
 
-export function GenerarDocumento({ reporteId }: { reporteId: string }) {
+export function GenerarDocumento({
+  reporteId,
+  editoriales,
+  literales = {},
+}: {
+  reporteId: string;
+  editoriales: string[];
+  /** Editoriales que llevan el texto del emisor sin reescribir: {clave: adjunto}. */
+  literales?: Record<string, string>;
+}) {
   const [estado, setEstado] = useState<Estado>("listo");
   const [total, setTotal] = useState(0);
   const [hechos, setHechos] = useState(0);
@@ -46,6 +57,8 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
   const [documentoId, setDocumentoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const cancelado = useRef(false);
+  // A6 (Paso 4): bloques editados a mano que la regeneración reemplazaría.
+  const [ediciones, setEdiciones] = useState<{ numero: number; titulo: string; autor: string; fecha: string }[] | null>(null);
   const toast = useToast();
   const router = useRouter();
 
@@ -99,7 +112,8 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
     [generarUno]
   );
 
-  const generar = useCallback(async () => {
+  const generar = useCallback(async (confirmarEdiciones = false) => {
+    setEdiciones(null);
     cancelado.current = false;
     setEstado("abriendo");
     setError(null);
@@ -107,8 +121,19 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
     setFallidos([]);
 
     try {
-      const res = await fetch(`/api/suplemento/${reporteId}/generar`, { method: "POST" });
+      // La selección de editoriales viaja con la petición y se guarda en el documento.
+      const res = await fetch(`/api/suplemento/${reporteId}/generar`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ editoriales, literales, confirmarEdiciones }),
+      });
       const abierto = await res.json();
+      // Hay ediciones humanas: se pregunta antes de pisarlas (quedan en el historial).
+      if (res.status === 428 && Array.isArray(abierto.ediciones)) {
+        setEdiciones(abierto.ediciones);
+        setEstado("listo");
+        return;
+      }
       if (!res.ok) throw new Error(abierto.error ?? `HTTP ${res.status}`);
 
       const docId: string = abierto.documentoId;
@@ -137,6 +162,43 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
         quedan = await enCola(docId, fallos);
       }
 
+      // 4 · Cierre de pendientes (Paso 5c) y, al terminar, pasada de coherencia
+      // sobre el documento completo (Paso 3), con las discrepancias del
+      // validador cruzado como observaciones destacadas. Las dos corren en el
+      // servidor, en ese orden y fuera de esta petición (fix/pre-v40): la ruta
+      // responde 202 enseguida y la revisión muestra su estado. Si el documento
+      // quedó con fallos se corren igual: revisan lo que sí salió.
+      // «Generar» no se vuelve a ofrecer hasta que el cierre termine: reabrir el
+      // documento con el cierre en curso le cambiaría los bloques por debajo (la
+      // ruta de generar también lo rechaza con 409; fix/cierre-reserva).
+      if (!cancelado.current) {
+        const c = await fetch(`/api/suplemento/${docId}/cierre`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ coherencia: true }),
+        }).catch(() => null);
+        if (c?.status === 202) {
+          setEstado("cerrando");
+          const hasta = Date.now() + 20 * 60 * 1000;
+          let terminado = false;
+          while (Date.now() < hasta && !cancelado.current) {
+            await new Promise((r) => setTimeout(r, 4000));
+            const e = await fetch(`/api/suplemento/${docId}/cierre`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+            if (e?.estado === "listo" || e?.estado === "error") {
+              terminado = true;
+              break;
+            }
+          }
+          if (!terminado) {
+            setFallidos(quedan);
+            setEstado("sigue");
+            toast.error("El cierre de pendientes sigue en curso; la revisión muestra su estado.");
+            router.refresh();
+            return;
+          }
+        }
+      }
+
       setFallidos(quedan);
       setEstado(quedan.length ? "error" : "hecho");
       if (quedan.length === 0) toast.success("Documento generado.");
@@ -146,14 +208,42 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
       setError(e instanceof Error ? e.message : String(e));
       setEstado("error");
     }
-  }, [reporteId, generarUno, enCola, toast, router]);
+  }, [reporteId, editoriales, literales, generarUno, enCola, toast, router]);
 
   const pct = total ? Math.round((hechos / total) * 100) : 0;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button onClick={generar} loading={estado === "abriendo" || estado === "generando"} disabled={estado === "generando"}>
-        {estado === "generando" ? `Generando ${hechos}/${total}…` : "Generar suplemento"}
+      <ConfirmDialog
+        open={!!ediciones}
+        titulo="Hay bloques editados a mano"
+        descripcion="Regenerar el documento reemplaza sus textos. Las ediciones no se borran: quedan en el historial de cada bloque."
+        confirmar="Regenerar de todos modos"
+        tono="danger"
+        onConfirm={() => generar(true)}
+        onCancel={() => setEdiciones(null)}
+      >
+        <ul className="space-y-1 text-sm text-ink">
+          {(ediciones ?? []).map((e) => (
+            <li key={e.numero}>
+              <span className="font-mono text-xs text-muted">{e.numero}</span> {e.titulo}: se perderá la edición de {e.autor} del día{" "}
+              {new Date(e.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}.
+            </li>
+          ))}
+        </ul>
+      </ConfirmDialog>
+      <Button
+        onClick={() => generar()}
+        loading={estado === "abriendo" || estado === "generando" || estado === "cerrando"}
+        disabled={estado === "generando" || estado === "cerrando" || estado === "sigue"}
+      >
+        {estado === "generando"
+          ? `Generando ${hechos}/${total}…`
+          : estado === "cerrando"
+            ? "Cerrando pendientes…"
+            : estado === "sigue"
+              ? "El cierre sigue en curso"
+              : "Generar suplemento"}
       </Button>
 
       {estado === "generando" && (
@@ -167,7 +257,7 @@ export function GenerarDocumento({ reporteId }: { reporteId: string }) {
         </>
       )}
 
-      {documentoId && estado !== "generando" && (
+      {documentoId && estado !== "generando" && estado !== "cerrando" && (
         <a
           href={`/admin/cobertura/suplemento/${documentoId}`}
           className={cn("text-sm font-medium text-teal hover:underline")}

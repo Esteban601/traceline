@@ -7,6 +7,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  ImageRun,
   PageBreak,
   PageNumber,
   Packer,
@@ -43,13 +44,33 @@ export type BloqueWord = {
   seccion: string | null;
   estado: string;
   texto: string | null;
+  /** La imagen del bloque (organigrama del Perfil en los «T→E + imagen»), con su pie. */
+  imagen?: ImagenWord | null;
 };
+
+export type ImagenWord = { datos: Buffer; tipo: "png" | "jpg"; ancho: number; alto: number; pie: string };
 
 export type DocumentoWord = {
   version: number;
   estado: string;
   bloques: BloqueWord[];
+  /**
+   * Propiedades personalizadas del .docx (Archivo › Propiedades): de qué
+   * documento y de qué versión de cada bloque salió este archivo (Paso 4).
+   */
+  propiedades?: { nombre: string; valor: string }[];
 };
+
+/**
+ * Qué bloques llevan imagen y de qué campo del Perfil sale (bloques.ts los marca
+ * «T→E + imagen»). El pie de figura dice qué muestra, no cómo se llama el archivo.
+ */
+export const IMAGEN_DE_BLOQUE: Record<number, { campo: "organigrama_path"; pie: string }> = {
+  18: { campo: "organigrama_path", pie: "Estructura de gobierno" },
+};
+
+/** Ancho máximo de una figura: el de la caja de texto (21 cm − 2 × 2 cm ≈ 640 px). */
+const ANCHO_FIGURA_MAX = 600;
 
 export type EmisorWord = {
   denominacion: string;
@@ -64,8 +85,17 @@ const LINEA = "C9C2B4";
 const TITULO_INFORME = "Informe de Sostenibilidad NIIF S1 y S2";
 const MARCA_AGUA = "BORRADOR GENERADO · PENDIENTE DE REVISIÓN";
 
-/** Referencias NIIF por bloque, del mismo mapeo que usa el generador. */
-const REFERENCIAS = new Map(BLOQUES.map((b) => [b.numero, b.datapoints]));
+/**
+ * Título publicado: el vigente de `bloques.ts`, no el que se guardó al generar
+ * (un título corregido —23, 30— no espera a que se regenere el bloque).
+ *
+ * LOS CÓDIGOS NORMATIVOS YA NO VAN EN EL WORD (tercera revisión externa, C):
+ * salían duplicados, colapsados («25 (a)(i)a(v)») y citaban ejemplos
+ * ilustrativos (EI) como si fueran requerimientos. Se quedan en la pantalla de
+ * revisión, en la cobertura por subrequisito, con el texto del catálogo.
+ */
+const TITULO = new Map(BLOQUES.map((b) => [b.numero, b.titulo]));
+const tituloDe = (b: { numero: number; titulo: string }) => TITULO.get(b.numero) ?? b.titulo;
 
 // -----------------------------------------------------------------------------
 // El texto del bloque llega con la tabla pegada delante
@@ -84,12 +114,15 @@ type Trozo =
 const esSeparadorMd = (l: string): boolean => /^\|[\s:|-]+\|$/.test(l.trim());
 const esFilaMd = (l: string): boolean => l.trim().startsWith("|") && l.trim().endsWith("|");
 
+// Un booleano capturado se publica como «Sí» o «No», también en documentos
+// generados antes de que la tabla lo hiciera (tercera revisión externa, C).
 const celdasDe = (l: string): string[] =>
   l
     .trim()
     .slice(1, -1)
     .split("|")
-    .map((c) => c.trim());
+    .map((c) => c.trim())
+    .map((c) => (/^(verdadero|true)$/i.test(c) ? "Sí" : /^(falso|false)$/i.test(c) ? "No" : c));
 
 export function trocear(texto: string): Trozo[] {
   const lineas = texto.split("\n");
@@ -264,7 +297,7 @@ function indice(bloques: BloqueWord[]): Paragraph[] {
         spacing: { after: 40 },
         children: [
           new TextRun({ text: `${b.numero}. `, size: 20, color: GRIS }),
-          new TextRun({ text: b.titulo, size: 20, color: "1A1A1A" }),
+          new TextRun({ text: tituloDe(b), size: 20, color: "1A1A1A" }),
         ],
       })
     );
@@ -317,26 +350,53 @@ function tablaWord(encabezados: string[], filas: string[][]): Table {
   });
 }
 
-function bloqueWord(b: BloqueWord): (Paragraph | Table)[] {
+/** La figura —imagen centrada y su pie numerado— lista para insertarse. */
+function figura(img: ImagenWord, n: number): Paragraph[] {
+  const escala = Math.min(1, ANCHO_FIGURA_MAX / img.ancho);
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 160, after: 80 },
+      keepNext: true,
+      children: [
+        new ImageRun({
+          type: img.tipo,
+          data: img.datos,
+          transformation: { width: Math.round(img.ancho * escala), height: Math.round(img.alto * escala) },
+          altText: { title: img.pie, description: img.pie, name: `Figura ${n}` },
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 240 },
+      children: [
+        new TextRun({ text: `Figura ${n}. `, bold: true, italics: true, size: 18, color: GRIS }),
+        new TextRun({ text: img.pie, italics: true, size: 18, color: GRIS }),
+      ],
+    }),
+  ];
+}
+
+function bloqueWord(b: BloqueWord, numeroFigura: () => number): (Paragraph | Table)[] {
   const salida: (Paragraph | Table)[] = [];
 
   salida.push(
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 360, after: 60 },
-      children: [new TextRun({ text: b.titulo, bold: true, size: 26, color: TINTA })],
+      children: [new TextRun({ text: tituloDe(b), bold: true, size: 26, color: TINTA })],
     })
   );
 
-  const refs = REFERENCIAS.get(b.numero) ?? [];
-  if (refs.length > 0) {
-    salida.push(
-      new Paragraph({
-        spacing: { after: 180 },
-        children: [new TextRun({ text: refs.join(" · "), size: 16, color: ORO })],
-      })
-    );
-  }
+  // LA FIGURA VA DESPUÉS DEL PRIMER PÁRRAFO: es el que la presenta («el
+  // organigrama que acompaña esta sección muestra…»). Sin párrafos, al final.
+  let figuraPuesta = !b.imagen;
+  const ponerFigura = () => {
+    if (figuraPuesta || !b.imagen) return;
+    salida.push(...figura(b.imagen, numeroFigura()));
+    figuraPuesta = true;
+  };
 
   for (const t of trocear(b.texto ?? "")) {
     if (t.tipo === "tabla") {
@@ -357,8 +417,10 @@ function bloqueWord(b: BloqueWord): (Paragraph | Table)[] {
           children: runs(t.texto),
         })
       );
+      ponerFigura();
     }
   }
+  ponerFigura();
 
   return salida;
 }
@@ -375,7 +437,7 @@ export function nombreArchivo(denominacion: string, ejercicio: number, version: 
 }
 
 /**
- * Arma el .docx completo. Los bloques `no_aplica` se OMITEN —el régimen los
+ * Arma el .docx completo. Los bloques `no_aplica` y `no_seleccionado` se OMITEN —el régimen los
  * excluye, así que no existen para el lector— y los de plantilla entran como
  * cualquier otro: su texto es fijo, no vacío.
  */
@@ -383,12 +445,16 @@ export async function construirWord(
   emisor: EmisorWord,
   doc: DocumentoWord
 ): Promise<Buffer> {
+  // `no_seleccionado`: editorial que el documento no lleva. Puede conservar el
+  // texto de una tanda anterior, y por eso se filtra por estado y no por texto.
   const visibles = doc.bloques
-    .filter((b) => b.estado !== "no_aplica")
+    .filter((b) => b.estado !== "no_aplica" && b.estado !== "no_seleccionado")
     .filter((b) => (b.texto ?? "").trim().length > 0)
     .sort((a, b) => a.numero - b.numero);
 
   const cuerpo: (Paragraph | Table)[] = [];
+  let figuras = 0;
+  const numeroFigura = () => ++figuras;
   let seccionActual: string | null = "";
   for (const b of visibles) {
     if (b.seccion && b.seccion !== seccionActual) {
@@ -402,7 +468,7 @@ export async function construirWord(
         })
       );
     }
-    cuerpo.push(...bloqueWord(b));
+    cuerpo.push(...bloqueWord(b, numeroFigura));
   }
 
   const borrador = doc.estado !== "aprobado";
@@ -411,6 +477,7 @@ export async function construirWord(
     creator: emisor.denominacion,
     title: `${TITULO_INFORME} · ${emisor.ejercicio}`,
     description: borrador ? MARCA_AGUA : TITULO_INFORME,
+    customProperties: (doc.propiedades ?? []).map((p) => ({ name: p.nombre, value: p.valor })),
     styles: {
       default: {
         document: { run: { font: "Calibri", size: 22 } },

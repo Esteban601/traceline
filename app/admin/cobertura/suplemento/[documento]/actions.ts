@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { avisarDocumentoAprobado } from "@/lib/notificaciones/inmediatos";
+import { bloqueantesDeAprobacion, motivoDeRechazo } from "@/lib/suplemento/aprobacion";
 
 // =============================================================================
 // Acciones de la vista de revisión: editar un bloque y mover el estado del
@@ -98,6 +99,10 @@ export async function guardarTexto(_p: EstadoAccion, fd: FormData): Promise<Esta
     .from("documentos_bloques")
     .update({
       texto: normalizado,
+      // Historial (Paso 4): el trigger registra la versión como edición, con
+      // este autor. Un texto editado ya no es una restauración.
+      origen_texto: "edicion",
+      restaurada_de: null,
       editado_por: a.perfil.id,
       editado_en: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -150,35 +155,53 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
     return ERR("El documento está aprobado; para cambiarlo hay que abrir una versión nueva.");
   }
 
-  // APROBAR ESTÁ BLOQUEADO MIENTRAS QUEDE UN PENDIENTE. Es la regla de §7.5: un
-  // documento aprobado con un [Pendiente: …] dentro sale a la calle diciendo que
-  // le falta un dato. Se comprueba en el servidor, no solo escondiendo el botón.
+  // APROBAR ESTÁ BLOQUEADO mientras un bloque seleccionado no esté terminado
+  // —en cola, generándose, con error, esperando adjunto o sin texto— o lleve un
+  // pendiente (§7.5). La regla vive en lib/suplemento/aprobacion.ts, la misma
+  // que usa la pantalla. Se comprueba aquí, no solo escondiendo el botón.
   if (destino === "aprobado") {
     const { data: bloques } = await a.db
       .from("documentos_bloques")
-      .select("numero, titulo, estado, pendientes")
+      .select("numero, estado, texto, pendientes")
       .eq("documento_id", documentoId);
-
-    const conPendiente = (bloques ?? []).filter(
-      (b) =>
-        b.estado !== "no_aplica" &&
-        Array.isArray(b.pendientes) &&
-        (b.pendientes as { campo: string }[]).some((p) => p.campo !== "nota_revision")
+    const bloqueantes = bloqueantesDeAprobacion(
+      (bloques ?? []).map((b) => ({
+        numero: b.numero,
+        estado: b.estado,
+        texto: b.texto,
+        pendientes: Array.isArray(b.pendientes)
+          ? (b.pendientes as { campo: string }[]).filter((p) => p.campo !== "nota_revision").length
+          : 0,
+      }))
     );
-    const sinGenerar = (bloques ?? []).filter((b) =>
-      ["generando", "error", "pendiente_adjunto"].includes(b.estado)
-    );
+    if (bloqueantes.length) return ERR(motivoDeRechazo(bloqueantes));
+  }
 
-    if (conPendiente.length || sinGenerar.length) {
-      const partes: string[] = [];
-      if (conPendiente.length) {
-        partes.push(`${conPendiente.length} bloque(s) con pendientes: ${conPendiente.map((b) => b.numero).join(", ")}`);
-      }
-      if (sinGenerar.length) {
-        partes.push(`${sinGenerar.length} sin generar o en error: ${sinGenerar.map((b) => b.numero).join(", ")}`);
-      }
-      return ERR(`No se puede aprobar. ${partes.join(". ")}.`);
+  // VERSIONES APROBADAS (Paso 4): qué versión de cada bloque compone lo que se
+  // aprueba. El Word aprobado se arma con ellas y las registra en sus
+  // propiedades, así que un texto que cambiara después no se colaría.
+  let versionesAprobadas: Record<string, { id: string; version: number }> | null = null;
+  if (destino === "aprobado") {
+    const { data: enDoc } = await a.db
+      .from("documentos_bloques")
+      .select("numero, estado, texto")
+      .eq("documento_id", documentoId);
+    const visibles = new Set(
+      (enDoc ?? [])
+        .filter((b) => b.estado !== "no_aplica" && b.estado !== "no_seleccionado" && (b.texto ?? "").trim())
+        .map((b) => b.numero)
+    );
+    const { data: versiones } = await a.db
+      .from("documentos_bloques_versiones")
+      .select("id, numero, version")
+      .eq("documento_id", documentoId)
+      .order("version", { ascending: false });
+    versionesAprobadas = {};
+    for (const v of versiones ?? []) {
+      if (visibles.has(v.numero) && !versionesAprobadas[v.numero]) versionesAprobadas[v.numero] = { id: v.id, version: v.version };
     }
+    const sinVersion = [...visibles].filter((n) => !versionesAprobadas![n]);
+    if (sinVersion.length) return ERR(`No se puede aprobar: bloques sin versión registrada (${sinVersion.join(", ")}).`);
   }
 
   const ahora = new Date().toISOString();
@@ -186,7 +209,7 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
     .from("documentos_generados")
     .update(
       destino === "aprobado"
-        ? { estado: destino, updated_at: ahora, aprobado_por: a.perfil.id, aprobado_en: ahora }
+        ? { estado: destino, updated_at: ahora, aprobado_por: a.perfil.id, aprobado_en: ahora, versiones_aprobadas: versionesAprobadas }
         : { estado: destino, updated_at: ahora }
     )
     .eq("id", documentoId);
@@ -211,4 +234,85 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
   revalidatePath(`/admin/cobertura/suplemento/${documentoId}`);
   const etiqueta = destino === "en_revision" ? "en revisión" : destino;
   return OK(`Documento ${etiqueta}.`);
+}
+
+/**
+ * Restaura una versión anterior de un bloque (historial, Paso 4).
+ *
+ * No borra nada: el texto restaurado entra como una versión NUEVA (origen
+ * «restauracion», con `restaurada_de`), y la que estaba queda en el historial.
+ * Si la versión restaurada llevaba una edición humana, el bloque la conserva
+ * como editado —quién y cuándo—, porque ese texto sigue siendo de una persona y
+ * regenerarlo pedirá confirmación.
+ */
+export async function restaurarVersion(_p: EstadoAccion, fd: FormData): Promise<EstadoAccion> {
+  const documentoId = String(fd.get("documento_id") ?? "");
+  const versionId = String(fd.get("version_id") ?? "");
+
+  const a = await autorizar(documentoId);
+  if (!a.ok) return ERR(a.error);
+  if (a.doc.estado === "aprobado") {
+    return ERR("El documento está aprobado; para cambiarlo hay que abrir una versión nueva.");
+  }
+
+  const { data: v } = await a.db
+    .from("documentos_bloques_versiones")
+    .select("id, documento_id, numero, version, texto, fuentes, pendientes, prompt_version, modelo, texto_del_emisor, editado_por, editado_en, respaldo, libro_id")
+    .eq("id", versionId)
+    .eq("documento_id", documentoId)
+    .maybeSingle();
+  if (!v) return ERR("Esa versión no existe en este documento.");
+
+  const { data: actual } = await a.db
+    .from("documentos_bloques")
+    .select("texto, estado")
+    .eq("documento_id", documentoId)
+    .eq("numero", v.numero)
+    .maybeSingle();
+  if (!actual) return ERR("El bloque no existe en este documento.");
+  if (actual.estado === "generando") return ERR("El bloque se está generando; espera a que termine.");
+  if ((actual.texto ?? "") === v.texto) return ERR(`La versión ${v.version} ya es el texto actual.`);
+
+  // El respaldo (cobertura y anclas) y el libro vuelven con el texto: si no, la
+  // revisión y el validador cruzado presentarían los de la generación más nueva
+  // como respaldo del texto restaurado (observación P2 de Codex sobre el PR #17).
+  // Una versión anterior al 11/10/2026 no los guardó: se limpian.
+  const respaldo = (v.respaldo ?? null) as { cobertura?: unknown; anclas?: unknown } | null;
+
+  const { error } = await a.db
+    .from("documentos_bloques")
+    .update({
+      estado: "borrador",
+      texto: v.texto,
+      fuentes: v.fuentes,
+      pendientes: v.pendientes,
+      prompt_version: v.prompt_version,
+      modelo: v.modelo,
+      texto_del_emisor: v.texto_del_emisor,
+      cobertura: (respaldo?.cobertura ?? null) as never,
+      anclas: (respaldo?.anclas ?? null) as never,
+      libro_id: v.libro_id ?? null,
+      origen_texto: "restauracion",
+      restaurada_de: v.id,
+      editado_por: v.editado_por,
+      editado_en: v.editado_en,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("documento_id", documentoId)
+    .eq("numero", v.numero);
+  if (error) return ERR("No se pudo restaurar la versión.");
+
+  after(async () => {
+    await logEvento(a.db, {
+      tenantId: a.doc.tenant_id,
+      usuarioId: a.perfil.id,
+      accion: "suplemento_bloque_restaurado",
+      entidad: "documentos_generados",
+      entidadId: documentoId,
+      detalle: { bloque: v.numero, version_restaurada: v.version },
+    });
+  });
+
+  revalidatePath(`/admin/cobertura/suplemento/${documentoId}`);
+  return OK(`Bloque ${v.numero}: restaurada la versión ${v.version}.`);
 }

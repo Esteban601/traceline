@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/badge";
@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { Tono } from "@/lib/estados";
 import { GenerarDocumento } from "./generar-documento";
+import { bloquePorClave, editorialesPorDefecto, type ClaseBloque } from "@/lib/suplemento/bloques";
+import type { OpcionLiteral } from "@/lib/suplemento/texto-del-emisor";
+import { PrevueloPanel, type AvisoVista } from "./prevuelo-panel";
 import type {
   BloqueEvaluado,
   EstadoBloque,
   Faltante,
-  ResumenCompletitud,
 } from "@/lib/suplemento/completitud";
 
 // =============================================================================
@@ -74,10 +76,13 @@ export function SuplementoView({
   anioAdopcion,
   aliviosActivos,
   bloques,
-  resumen,
   reporteId,
   puedeGenerar,
   generadorActivo,
+  seleccionInicial,
+  opcionesLiterales = {},
+  literalesIniciales,
+  prevuelo = [],
 }: {
   nombreReporte: string;
   ejercicio: number;
@@ -87,14 +92,65 @@ export function SuplementoView({
   anioAdopcion: number | null;
   aliviosActivos: string[];
   bloques: BloqueEvaluado[];
-  resumen: ResumenCompletitud;
   reporteId: string;
   /** Solo el staff genera el documento en A5a; el admin del cliente en A8. */
   puedeGenerar: boolean;
   /** `tenants.generador_activo`: apagado, no se ofrece generar y se dice por qué. */
   generadorActivo: boolean;
+  /** Editoriales del último documento abierto, si lo hay; si no, los recomendados. */
+  seleccionInicial?: string[] | null;
+  /** Por editorial, los adjuntos del Perfil que puede usar sin reescribir (Paso 3). */
+  opcionesLiterales?: Record<string, OpcionLiteral[]>;
+  /** Textos literales del último documento: {clave: adjunto}. */
+  literalesIniciales?: Record<string, string> | null;
+  /** Pre-vuelo del documento (Paso 5.4). */
+  prevuelo?: AvisoVista[];
 }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
+  // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): los recomendados
+  // encendidos, los opcionales apagados. Lo que no se selecciona no se genera,
+  // no va en el índice ni en el Word, y no cuenta en el semáforo.
+  const [editoriales, setEditoriales] = useState<Set<string>>(() => new Set(seleccionInicial ?? editorialesPorDefecto()));
+  // TEXTO DEL EMISOR SIN REESCRIBIR (Paso 3): por editorial, el adjunto cuyo
+  // texto va literal. Solo se conserva lo que sigue siendo una opción válida.
+  const [literales, setLiterales] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      Object.entries(literalesIniciales ?? {}).filter(([clave, adj]) => (opcionesLiterales[clave] ?? []).some((o) => o.adjuntoId === adj))
+    )
+  );
+  const elegirLiteral = (clave: string, adjunto: string) =>
+    setLiterales((prev) => {
+      const s = { ...prev };
+      if (adjunto) s[clave] = adjunto;
+      else delete s[clave];
+      return s;
+    });
+  // Solo viajan los de editoriales seleccionados.
+  const literalesPedidos = Object.fromEntries(Object.entries(literales).filter(([clave]) => editoriales.has(clave)));
+  const claseDe = (clave: string): ClaseBloque => bloquePorClave(clave)?.clase ?? "normativo";
+  const incluido = (b: BloqueEvaluado) => claseDe(b.clave) === "normativo" || editoriales.has(b.clave);
+  const alternarEditorial = (clave: string) =>
+    setEditoriales((prev) => {
+      const s = new Set(prev);
+      if (s.has(clave)) s.delete(clave);
+      else s.add(clave);
+      return s;
+    });
+  // El semáforo, contado SOLO sobre lo seleccionado.
+  const cuenta = useMemo(() => {
+    const sel = bloques.filter((b) => (bloquePorClave(b.clave)?.clase ?? "normativo") === "normativo" || editoriales.has(b.clave));
+    const n = (e: EstadoBloque) => sel.filter((b) => b.estado === e).length;
+    return {
+      completos: n("completo"),
+      parciales: n("parcial"),
+      vacios: n("vacio"),
+      plantilla: n("plantilla"),
+      noAplican: n("no_aplica"),
+      sinRegimen: n("sin_regimen"),
+      seleccionados: sel.length,
+      fuera: bloques.length - sel.length,
+    };
+  }, [bloques, editoriales]);
   const alternar = (clave: string) =>
     setAbiertos((prev) => {
       const s = new Set(prev);
@@ -165,13 +221,20 @@ export function SuplementoView({
         )}
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Contador label="Completos" n={resumen.completos} tono="verde" />
-          <Contador label="Con pendientes" n={resumen.parciales} tono="ambar" />
-          <Contador label="Sin evidencia" n={resumen.vacios} tono="rojo" />
-          <Contador label="De plantilla" n={resumen.plantilla} tono="gris" />
-          <Contador label="No aplican" n={resumen.noAplican} tono="gris" />
-          <Contador label="Sin régimen" n={resumen.sinRegimen} tono="gris" />
+          <Contador label="Completos" n={cuenta.completos} tono="verde" />
+          <Contador label="Con pendientes" n={cuenta.parciales} tono="ambar" />
+          <Contador label="Sin evidencia" n={cuenta.vacios} tono="rojo" />
+          <Contador label="De plantilla" n={cuenta.plantilla} tono="gris" />
+          <Contador label="No aplican" n={cuenta.noAplican} tono="gris" />
+          <Contador label="Sin régimen" n={cuenta.sinRegimen} tono="gris" />
         </div>
+        <p className="mt-3 text-xs text-muted">
+          {cuenta.seleccionados} de {bloques.length} bloques en el documento
+          {cuenta.fuera > 0 ? ` · ${cuenta.fuera} editorial(es) sin seleccionar` : ""}. Los normativos van siempre;
+          los editoriales se eligen abajo.
+        </p>
+
+        <PrevueloPanel reporteId={reporteId} avisos={prevuelo} puedeArmarLibro={puedeGenerar && generadorActivo} />
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
           {!generadorActivo ? (
@@ -180,7 +243,7 @@ export function SuplementoView({
               contrato de encargado lo cubra.
             </span>
           ) : puedeGenerar ? (
-            <GenerarDocumento reporteId={reporteId} />
+            <GenerarDocumento reporteId={reporteId} editoriales={[...editoriales]} literales={literalesPedidos} />
           ) : (
             <>
               <Button disabled title="Disponible para el equipo de IRStrat">
@@ -207,6 +270,12 @@ export function SuplementoView({
                 bloque={b}
                 abierto={abiertos.has(b.clave)}
                 onToggle={() => alternar(b.clave)}
+                clase={claseDe(b.clave)}
+                incluido={incluido(b)}
+                onIncluir={puedeGenerar && generadorActivo ? () => alternarEditorial(b.clave) : undefined}
+                opciones={opcionesLiterales[b.clave] ?? []}
+                literal={literales[b.clave] ?? ""}
+                onLiteral={puedeGenerar && generadorActivo ? (adj) => elegirLiteral(b.clave, adj) : undefined}
               />
             ))}
           </div>
@@ -247,20 +316,73 @@ function Punto({ tono }: { tono: Tono }) {
   return <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", clase)} />;
 }
 
+const CLASE_LABEL: Record<ClaseBloque, string | null> = {
+  normativo: null,
+  editorial_recomendado: "Editorial · recomendado",
+  editorial_opcional: "Editorial · opcional",
+};
+
 function BloqueFila({
   bloque,
   abierto,
   onToggle,
+  clase,
+  incluido,
+  onIncluir,
+  opciones = [],
+  literal = "",
+  onLiteral,
 }: {
   bloque: BloqueEvaluado;
   abierto: boolean;
   onToggle: () => void;
+  clase: ClaseBloque;
+  incluido: boolean;
+  /** Solo editoriales, y solo si quien mira puede generar. */
+  onIncluir?: () => void;
+  /** Adjuntos que el editorial puede usar sin reescribir, y el elegido ("" = redactar). */
+  opciones?: OpcionLiteral[];
+  literal?: string;
+  onLiteral?: (adjunto: string) => void;
 }) {
-  const meta = META[bloque.estado];
+  const meta = incluido ? META[bloque.estado] : { label: "No seleccionado", tono: "gris" as Tono, glifo: "—" };
+  const etiquetaClase = CLASE_LABEL[clase];
   const expandible = bloque.faltantes.length > 0 || bloque.motivoNoAplica != null;
 
   return (
-    <Card className="overflow-hidden">
+    <Card className={cn("overflow-hidden", !incluido && "opacity-60")}>
+      {etiquetaClase && (
+        <div className="flex items-center justify-between gap-3 border-b border-line/60 bg-crema/40 px-4 py-1.5">
+          <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{etiquetaClase}</span>
+          {onLiteral && incluido && opciones.length > 0 && (
+            <select
+              value={literal}
+              onChange={(e) => onLiteral(e.target.value)}
+              aria-label={`Texto del bloque ${bloque.numero}`}
+              className="ml-auto max-w-[22rem] truncate rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink"
+            >
+              <option value="">Redactar con el generador</option>
+              {opciones.map((o) => (
+                <option key={o.adjuntoId} value={o.adjuntoId}>
+                  Usar el texto de «{o.archivo}» sin reescribir
+                </option>
+              ))}
+            </select>
+          )}
+          {onIncluir && (
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-ink">
+              <input
+                type="checkbox"
+                checked={incluido}
+                onChange={onIncluir}
+                aria-label={`Incluir el bloque ${bloque.numero} · ${bloque.titulo}`}
+                className="size-4 accent-teal"
+              />
+              Incluir
+            </label>
+          )}
+        </div>
+      )}
       <button
         type="button"
         onClick={expandible ? onToggle : undefined}

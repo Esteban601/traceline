@@ -23,16 +23,35 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-REF_ENSAYO="sqpxcxewoznhpwvhxamy"
+# Ensayo de v40 (creado por Esteban el 13/10/2026, Postgres 17). El de v33
+# (sqpxcxewoznhpwvhxamy) se borró el 5/10.
+REF_ENSAYO="vdubzcjtujxayefzhhco"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# v39 (encargo 2026-10-06-sistema-de-alertas): el interruptor del resumen diario
-# y la tabla de avisos retenidos por el tope.
-# Anteriores: v33, las 30 de 20261005120000 a 20261005130100; v32.1,
+# v40 (encargo 2026-10-11-suplemento-a-produccion): las 16 del encargo
+# suplemento-calidad (PR #17) y las 2 de fix/pre-v40 (PR #18).
+# Anteriores: v39, 20261006120000 y 20261006130000; v33, las 30 de
+# 20261005120000 a 20261005130100; v32.1,
 # 20261004170000_jefe_area_sube_evidencia; v31, 20261001140000; v30,
 # 20261001120000; v29, las 20260929*.
 ESPERADAS=(
-  20261006120000_perfiles_recibe_resumen_diario.sql
-  20261006130000_correos_retenidos.sql
+  20261006140000_suplemento_editoriales.sql
+  20261006150000_perfil_adjuntos_contenido.sql
+  20261006160000_suplemento_texto_del_emisor.sql
+  20261006160100_observaciones_coherencia.sql
+  20261006170000_documentos_bloques_versiones.sql
+  20261007120000_libro_hechos.sql
+  20261007130000_libro_hechos_reutilizado.sql
+  20261007140000_documentos_bloques_cobertura.sql
+  20261007150000_perfil_glosario.sql
+  20261007160000_libro_estable.sql
+  20261007161000_hechos_alcance_entidad.sql
+  20261007170000_catalogo_incisos.sql
+  20261007180000_hechos_por_conciliar.sql
+  20261008120000_origen_automatica.sql
+  20261008130000_hechos_tramite.sql
+  20261008140000_hechos_declaracion_negativa.sql
+  20261011120000_versiones_respaldo.sql
+  20261011121000_documentos_cierre_estado.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
@@ -40,7 +59,10 @@ ESPERADAS=(
 # v33: 69 de antes + 12 de las cuatro tablas del generador + 6 de las dos de
 # captura sugerida = 87 (medido en local y en dev).
 # v39: 87 + 3 de correos_retenidos = 90 (medido en local y en dev).
-BARRERA_ESPERADA="${BARRERA_ESPERADA:-90}"
+# v40: 90 + 15 de las cinco tablas nuevas (perfil_emisor_adjuntos_contenido,
+# observaciones_coherencia, documentos_bloques_versiones, libros_hechos, hechos)
+# = 105 (medido en dev el 11/10/2026, también tras las 2 de fix/pre-v40).
+BARRERA_ESPERADA="${BARRERA_ESPERADA:-105}"
 
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 falla() { echo "✗ $*" >&2; exit 1; }
@@ -55,6 +77,7 @@ PSQL="${PSQL:-/opt/homebrew/opt/postgresql@17/bin/psql}"
 
 cd "$RAIZ"
 if [[ "$DESTINO" == "ensayo" ]]; then
+  [[ "$REF_ENSAYO" != PENDIENTE_* ]] || falla "Falta el ref del proyecto de ensayo de v40 en REF_ENSAYO (Paso 4)."
   REF="$REF_ENSAYO"; OTRO="$REF_STAGING"
   DB_URL="$(grep -E '^ENSAYO_DB_URL=' .env.ensayo.local 2>/dev/null | tail -n1 | cut -d= -f2- | sed -E "s/^[\"']|[\"']$//g")"
 else

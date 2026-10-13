@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { BLOQUES } from "@/lib/suplemento/bloques";
+import { BLOQUES, bloqueSeleccionado, normalizarSeleccion } from "@/lib/suplemento/bloques";
 import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
+import { liberarCierre, reclamarCierre } from "@/lib/suplemento/hechos/cierre";
+import { opcionesLiterales } from "@/lib/suplemento/texto-del-emisor";
+import { edicionesDelDocumento, fechaLarga } from "@/lib/suplemento/edicion";
 
 export const runtime = "nodejs";
 
@@ -25,16 +28,53 @@ export const runtime = "nodejs";
 //      abre una VERSIÓN NUEVA en vez de tocarlo: un documento aprobado es un
 //      entregable firmado y regenerarlo encima borraría lo que alguien revisó.
 //   2. Congela el régimen y los alivios con los que se genera.
-//   3. Inserta los 40 bloques en 'generando', salvo los que el régimen excluye,
-//      que entran directamente en 'no_aplica' y no cuestan una llamada.
+//   3. Inserta los bloques SELECCIONADOS (normativos y editoriales elegidos) en
+//      cola, salvo los que el régimen excluye, que entran en 'no_aplica'; los
+//      editoriales no elegidos quedan 'no_seleccionado'. Ninguno de los dos cuesta
+//      una llamada.
 //
 // El cliente recibe la lista y decide el orden. Dispara el 29 primero para
 // calentar el caché —su capa estable es la que comparten los cuarenta— y el
 // resto con concurrencia 3.
 // =============================================================================
 
-export async function POST(_req: Request, ctx: { params: Promise<{ destino: string }> }) {
+/**
+ * La reapertura de un documento toma la reserva del cierre en el mismo paso
+ * atómico con que comprueba que no hay uno en curso (observación P1 de Codex
+ * sobre el PR #20): mientras se reabre, un POST …/cierre recibe 409. La reserva
+ * se suelta al salir, por la vía que sea; la toma el cierre del final de la corrida.
+ */
+type Reapertura = { r: { documento: string; reserva: string } | null };
+
+export async function POST(req: Request, ctx: { params: Promise<{ destino: string }> }) {
+  const reapertura: Reapertura = { r: null };
+  try {
+    return await generar(req, ctx, reapertura);
+  } finally {
+    if (reapertura.r) await liberarCierre(await createClient(), reapertura.r.documento, reapertura.r.reserva);
+  }
+}
+
+async function generar(req: Request, ctx: { params: Promise<{ destino: string }> }, reapertura: Reapertura) {
   const { destino: reporteId } = await ctx.params;
+  // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): las claves de los
+  // bloques editoriales que lleva el documento. Sin cuerpo, los recomendados.
+  // TEXTOS LITERALES (Paso 3): {clave del editorial: adjunto} para los bloques
+  // que llevan el texto del emisor sin reescribir. Se validan abajo, contra los
+  // adjuntos de la emisora del reporte.
+  let pedido: unknown = undefined;
+  let pedidoLiterales: unknown = undefined;
+  // A6 (Paso 4): regenerar encima de bloques editados a mano exige confirmarlo.
+  let confirmarEdiciones = false;
+  try {
+    const cuerpo = (await req.json()) as { editoriales?: unknown; literales?: unknown; confirmarEdiciones?: unknown } | null;
+    pedido = cuerpo?.editoriales;
+    pedidoLiterales = cuerpo?.literales;
+    confirmarEdiciones = cuerpo?.confirmarEdiciones === true;
+  } catch {
+    /* sin cuerpo: selección por defecto */
+  }
+  const editoriales = normalizarSeleccion(pedido);
 
   const perfil = await getPerfilActual();
   if (!perfil) return NextResponse.json({ error: "No autenticado." }, { status: 401 });
@@ -59,6 +99,29 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   // Bandera y tope de la emisora, en el servidor (lib/suplemento/acceso.ts).
   const acceso = await accesoAlGenerador(db, rep.tenant_id, { corridaCompleta: true });
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
+
+  // Literales: solo editoriales seleccionados, y solo un adjunto que esa emisora
+  // tenga leído y apto para ese bloque. Uno que no cumpla se rechaza con su
+  // motivo: generar en silencio con el modelo lo que se pidió literal sería
+  // hacer otra cosa que la pedida.
+  let literales: Record<string, string> | null = null;
+  if (pedidoLiterales && typeof pedidoLiterales === "object" && !Array.isArray(pedidoLiterales)) {
+    const entradas = Object.entries(pedidoLiterales as Record<string, unknown>).filter(
+      (e): e is [string, string] => typeof e[1] === "string" && e[1].length > 0
+    );
+    if (entradas.length) {
+      const opciones = await opcionesLiterales(db, rep.tenant_id);
+      for (const [clave, adjunto] of entradas) {
+        if (!editoriales.includes(clave)) {
+          return NextResponse.json({ error: `El bloque «${clave}» no está seleccionado: no puede llevar texto literal.` }, { status: 422 });
+        }
+        if (!(opciones[clave] ?? []).some((o) => o.adjuntoId === adjunto)) {
+          return NextResponse.json({ error: `El archivo elegido para «${clave}» no se puede usar literalmente (no es de su sección, no está leído o es demasiado largo).` }, { status: 422 });
+        }
+      }
+      literales = Object.fromEntries(entradas);
+    }
+  }
 
   const regimen = regimenDe(rep.ejercicio, rep.anio_adopcion);
   if (regimen === "indeterminado") {
@@ -85,6 +148,37 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   let creado = false;
 
   if (ultimo && ultimo.estado !== "aprobado") {
+    // EDICIONES HUMANAS (CLAUDE.md §5, A6). Reabrir el documento deja en cola
+    // todos sus bloques y vacía sus textos; los editados a mano no se pisan sin
+    // que quien genera lo confirme. Nada se pierde: cada texto queda en el
+    // historial de su bloque.
+    if (!confirmarEdiciones) {
+      const ediciones = await edicionesDelDocumento(db, ultimo.id);
+      if (ediciones.length) {
+        return NextResponse.json(
+          {
+            error: `Hay ${ediciones.length} bloque(s) editados a mano: ${ediciones.map((e) => `${e.numero} (${e.autor}, ${fechaLarga(e.fecha)})`).join("; ")}. Se perderán esas ediciones; quedan en el historial.`,
+            ediciones,
+            requiereConfirmacion: true,
+          },
+          { status: 428 }
+        );
+      }
+    }
+    // Reabrir el documento vacía sus bloques: con el cierre de la corrida
+    // anterior en curso, ese cierre leería o escribiría la corrida nueva
+    // (observación P2 de Codex sobre el PR #18). Se espera a que termine; y
+    // mientras se reabre, la reserva es de la reapertura (ver POST). Va DESPUÉS
+    // de las ediciones: un 428 no reabre nada y no debe borrar el resumen del
+    // cierre anterior al soltar la reserva (P2 de Codex sobre el PR #22).
+    const reserva = await reclamarCierre(db, ultimo.id);
+    if (!reserva) {
+      return NextResponse.json(
+        { error: "El cierre de pendientes de la corrida anterior sigue en curso; vuelve a generar cuando termine." },
+        { status: 409 }
+      );
+    }
+    reapertura.r = { documento: ultimo.id, reserva };
     documentoId = ultimo.id;
     version = ultimo.version;
     // REFRESCAR EL RÉGIMEN CONGELADO. Congelar significa "esto es lo que regía
@@ -95,7 +189,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     // congelada era la única que mentía.
     await db
       .from("documentos_generados")
-      .update({ regimen, alivios: rep.alivios ?? {} })
+      .update({ regimen, alivios: rep.alivios ?? {}, editoriales_incluidos: editoriales, textos_literales: literales })
       .eq("id", documentoId);
   } else {
     version = (ultimo?.version ?? 0) + 1;
@@ -110,6 +204,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
         estado: "borrador",
         regimen,
         alivios: rep.alivios ?? {},
+        editoriales_incluidos: editoriales,
+        textos_literales: literales,
         generado_por: perfil.id,
       })
       .select("id")
@@ -128,7 +224,23 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   }
   const porClave = new Map(comp.bloques.map((b) => [b.clave, b]));
 
-  const filas = BLOQUES.map((b) => {
+  // Un editorial que el documento no lleva queda `no_seleccionado`, con su fila
+  // y SIN tocar su texto: apagarlo en esta tanda no borra lo que ya se escribió.
+  // Va en su propio upsert, sin `texto`, para no pisarlo.
+  const noSeleccionados = BLOQUES.filter((b) => !bloqueSeleccionado(b, editoriales)).map((b) => ({
+    documento_id: documentoId,
+    numero: b.numero,
+    clave: b.clave,
+    titulo: b.titulo,
+    seccion: b.seccion,
+    idioma: "es",
+    estado: "no_seleccionado",
+    reclamado_en: null,
+    pendientes: [],
+    updated_at: new Date().toISOString(),
+  }));
+
+  const filas = BLOQUES.filter((b) => bloqueSeleccionado(b, editoriales)).map((b) => {
     const ev = porClave.get(b.clave);
     const noAplica = ev?.estado === "no_aplica";
     return {
@@ -144,6 +256,13 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
       // cuarenta vencían esperando turno.
       estado: noAplica ? "no_aplica" : "en_cola",
       texto: null,
+      // El texto que había —editado o no— queda en el historial; el bloque
+      // vuelve a empezar sin marca de edición ni de restauración.
+      texto_del_emisor: false,
+      origen_texto: null,
+      restaurada_de: null,
+      editado_por: null,
+      editado_en: null,
       fuentes: [],
       reclamado_en: null,
       // Encolar es empezar de cero: los cortes por tiempo de una tanda anterior
@@ -163,6 +282,14 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
   if (errBloques) {
     return NextResponse.json({ error: `No se pudieron crear los bloques: ${errBloques.message}` }, { status: 500 });
   }
+  if (noSeleccionados.length) {
+    const { error: errNo } = await db
+      .from("documentos_bloques")
+      .upsert(noSeleccionados, { onConflict: "documento_id,numero" });
+    if (errNo) {
+      return NextResponse.json({ error: `No se pudieron marcar los editoriales no seleccionados: ${errNo.message}` }, { status: 500 });
+    }
+  }
 
   const porGenerar = filas.filter((f) => f.estado === "en_cola").map((f) => f.numero);
 
@@ -172,7 +299,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     accion: "suplemento_documento_abierto",
     entidad: "documentos_generados",
     entidadId: documentoId,
-    detalle: { version, creado, regimen, por_generar: porGenerar.length, no_aplican: 40 - porGenerar.length },
+    detalle: {
+      version,
+      creado,
+      regimen,
+      por_generar: porGenerar.length,
+      no_aplican: filas.length - porGenerar.length,
+      editoriales,
+      textos_literales: literales ? Object.keys(literales) : [],
+      no_seleccionados: noSeleccionados.length,
+    },
   });
 
   return NextResponse.json({
@@ -185,5 +321,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ destino: stri
     primero: porGenerar.includes(29) ? 29 : porGenerar[0],
     porGenerar,
     noAplican: filas.filter((f) => f.estado === "no_aplica").map((f) => f.numero),
+    noSeleccionados: noSeleccionados.map((f) => f.numero),
+    editoriales,
+    literales: literales ? Object.keys(literales) : [],
   });
 }

@@ -90,6 +90,11 @@ export type AccionEvento =
   | "suplemento_bloque_generado"
   | "suplemento_documento_abierto"
   | "suplemento_documento_estado"
+  // Pasada de coherencia del documento (una llamada al modelo; suplemento-calidad, Paso 3).
+  | "suplemento_coherencia"
+  | "suplemento_cierre_pendientes"
+  // Restauración de una versión anterior de un bloque (historial, Paso 4).
+  | "suplemento_bloque_restaurado"
   // Descarga del Suplemento de vitrina del tenant de demostración.
   | "suplemento_demo_descargado"
   | "tenant_creado"

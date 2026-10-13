@@ -1,0 +1,429 @@
+import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
+import { BLOQUES } from "@/lib/suplemento/bloques";
+import { PLANTILLAS } from "@/lib/suplemento/plantillas";
+import { numerosDe } from "@/lib/evidencias/fuente";
+import { leerGlosario } from "@/lib/suplemento/glosario";
+import { clausulas, FIN_ORACION, remisionesSinDueno } from "./remisiones";
+import { esCambioDelEjercicio, SIN_CAMBIOS } from "./validadores";
+
+// =============================================================================
+// VALIDADOR CRUZADO SOBRE EL LIBRO (Paso 5b, segunda revisión externa, punto 1).
+//
+// «Una sección dice que el Comité fue creado el 27 de febrero y otra dice que no
+// se sabe si existe.» Cada bloque razona sobre sus hechos sin ver lo que
+// afirman los demás; aquí, después de generar el documento y sin modelo, se
+// comprueba con las anclas de cada bloque (qué hecho sostiene cada oración):
+//
+//   · pendiente_de_afirmado: un bloque deja pendiente algo que otro bloque
+//     afirma con un hecho vigente del libro;
+//   · otro_valor: dos bloques afirman hechos de la misma clave con cifras
+//     distintas;
+//   · afirma_excluyente: un bloque afirma un hecho que el libro dejó en
+//     contradicción excluyente (debió ir como pendiente);
+//   · remision_a_plantilla: un bloque remite a un bloque de plantilla (2, 3, 5,
+//     14), que no desarrolla nada y no recibe remisiones (punto 12);
+//   · remision_sin_dueno: un bloque remite a otro que no es dueño del hecho
+//     remitido, que no lo afirma, que lo deja pendiente o que no está en el
+//     documento (corrección aprobada al cerrar el 5b; remisiones.ts).
+//
+// Cada discrepancia trae la corrección sugerida. Desde el cierre del 5b NO se
+// reintenta el bloque (los reintentos no convergían y costaban ~$2.60 por
+// documento): las discrepancias van a la coherencia, destacadas y con enlace a
+// los dos bloques. `opciones.correccion` sigue disponible para regenerar a mano.
+// =============================================================================
+
+type Db = SupabaseClient<Database>;
+
+export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "remision_sin_ancla" | "repite_contenido" | "cambios_negados" | "duplicacion";
+
+export type Discrepancia = {
+  bloque: number;
+  tipo: TipoDiscrepancia;
+  /** Bloque que afirma lo que aquí falta o difiere, si lo hay. */
+  otroBloque: number | null;
+  cita: string;
+  detalle: string;
+  /** La corrección sugerida (para regenerar a mano). */
+  correccion: string;
+  /** pendiente_de_afirmado: el marcador completo y si el otro bloque es DUEÑO del hecho que lo afirma. */
+  marcador?: string;
+  duenoAfirma?: boolean;
+  /** pendiente_de_afirmado: palabras del «qué falta» que comparte con lo afirmado, y su proporción. */
+  comunes?: number;
+  proporcion?: number;
+  /** pendiente_de_afirmado: la oración del otro bloque que parece responderlo. */
+  oracionDueno?: string;
+  /** duplicacion: la oración repetida en el bloque que NO es dueño, tal como está en su texto. */
+  oracionRepetida?: string;
+};
+
+type AnclaGuardada = { oracion: string; hechos: { id: string; hecho: string | null; fuente: string }[] };
+
+const VACIAS = new Set(
+  "para como sobre entre desde hasta este esta estos estas cada otro otra otros otras donde cual cuales cuando sean sido será serán tiene tienen debe deben tanto según mediante durante ante bajo cuyo cuya cuyos cuyas sino también además fecha falta confirmar indicar precisar dato datos información documento documentos solicitud campo perfil emisora compañía entidad".split(" ")
+);
+
+export function palabras(t: string): Set<string> {
+  return new Set(
+    t
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .split(/[^a-z0-9ñ]+/)
+      .filter((w) => w.length >= 4 && !VACIAS.has(w))
+  );
+}
+
+/**
+ * ¿La cita de una nota del validador sigue en el texto ACTUAL del bloque?
+ * (Observación P2 de Codex sobre el PR #23, decisión de Esteban del 13 de
+ * octubre de 2026.) La nota se guarda al generar; si un revisor quita el pasaje,
+ * o el cierre lo sustituye por una remisión, la observación ya no aplica.
+ *   · texto reescrito: «<frase de ocho palabras normalizada>…»;
+ *   · remisión sin ancla: «<cláusula, recortada a 120 caracteres>» remite al bloque N…
+ * Se comparan las palabras normalizadas (minúsculas, sin acentos) en orden,
+ * dentro de una ventana que tolera los nombres de la emisora que la frase
+ * normalizada omite y la última palabra que el recorte pudo partir. Sin cita
+ * reconocible, la nota se conserva.
+ */
+export function citaVigente(motivo: string, etiqueta: string | undefined, texto: string): boolean {
+  const m = etiqueta === "texto_reescrito" ? /«(.+?)…»/.exec(motivo) : /^«(.+)» remite al bloque/.exec(motivo);
+  if (!m) return true;
+  const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\[pendiente:[^\]]*\]/g, " ").replace(/[^a-z0-9ñ]+/g, " ").split(/\s+/).filter(Boolean);
+  let cita = norm(m[1]);
+  if (etiqueta !== "texto_reescrito" && cita.length > 3) cita = cita.slice(0, -1);
+  if (cita.length < 3) return true;
+  const w = norm(texto);
+  const ventana = Math.ceil(cita.length * 1.5) + 4;
+  for (let i = 0; i < w.length; i++) {
+    if (w[i] !== cita[0]) continue;
+    let k = 1;
+    for (let j = i + 1; j < Math.min(w.length, i + ventana) && k < cita.length; j++) if (w[j] === cita[k]) k++;
+    if (k === cita.length) return true;
+  }
+  return false;
+}
+
+/** El bloque va en el documento (Word, aprobación): tiene texto y no es «no aplica» ni un editorial quitado. */
+export function enElDocumento(b: { texto: string | null; estado: string }): boolean {
+  return !!(b.texto ?? "").trim() && b.estado !== "no_aplica" && b.estado !== "no_seleccionado";
+}
+
+const RE_MARCADOR = /\[Pendiente:\s*([^\]—]+?)\s*(?:—[^\]]*)?\]/g;
+const RE_REMISION = /(?:como se (?:describe|indica|detalla|señala|explica|presenta)|v[ée]ase|ver la secci[oó]n|en la secci[oó]n|en el apartado)[^.]{0,100}/gi;
+
+export async function validarCruzado(db: Db, documentoId: string): Promise<Discrepancia[]> {
+  const { data: filas } = await db
+    .from("documentos_bloques")
+    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, pendientes, documento:documentos_generados(tenant_id, reporte_id)")
+    .eq("documento_id", documentoId)
+    .order("numero");
+  // Solo los bloques que van en el Word: un editorial quitado («no_seleccionado»)
+  // conserva su texto viejo y no debe afirmar, duplicar ni recibir remisiones
+  // (observación P1 de Codex sobre el PR #17). Mismo filtro que la ruta del Word.
+  const bloques = (filas ?? []).filter((b) => enElDocumento(b) && !b.texto_del_emisor);
+  // Los hechos de TODOS los libros de los bloques: un bloque regenerado con un
+  // libro más nuevo convive con los demás hasta la siguiente corrida completa.
+  const libros = [...new Set(bloques.map((b) => b.libro_id).filter((x): x is string => !!x))];
+  if (!libros.length) return [];
+  const { data: hs } = await db
+    .from("hechos")
+    .select("id, clave, enunciado, extracto, periodo, valor, unidad, estado, veredicto, grupo_conflicto, bloque_dueno, rango_fuente")
+    .in("libro_id", libros);
+  const hecho = new Map((hs ?? []).map((h) => [h.id, h]));
+  const anclas = (b: (typeof bloques)[number]) => ((b.anclas ?? []) as unknown as AnclaGuardada[]);
+
+  const out: Discrepancia[] = [];
+  const plantillas = new Set(Object.keys(PLANTILLAS).map(Number));
+  const tituloDe = (n: number) => BLOQUES.find((b) => b.numero === n)?.titulo ?? `bloque ${n}`;
+
+  // Lo que cada bloque afirma: oración anclada → hechos del libro.
+  const afirmado = bloques.flatMap((b) =>
+    anclas(b).flatMap((a) =>
+      a.hechos.filter((x) => x.hecho && hecho.has(x.hecho)).map((x) => ({ bloque: b.numero, oracion: a.oracion, h: hecho.get(x.hecho!)! }))
+    )
+  );
+
+  for (const b of bloques) {
+    // --- 1. Pendiente de lo que otro bloque afirma --------------------------
+    for (const m of (b.texto ?? "").matchAll(RE_MARCADOR)) {
+      // Solo el «qué falta»: la sugerencia de documento diluye la coincidencia.
+      const que = palabras(m[1].replace(/\(documento sugerido[^)]*\)?/gi, " "));
+      if (que.size < 2) continue;
+      // Un pendiente que corresponde a una contradicción excluyente del propio
+      // bloque es el pendiente correcto, no uno que otro bloque resuelva.
+      const propioEnConflicto = Math.max(
+        0,
+        ...(hs ?? [])
+          .filter((h) => h.estado === "en_conflicto" && afirmado.some((a) => a.bloque === b.numero && a.h.grupo_conflicto === h.grupo_conflicto))
+          .map((h) => [...que].filter((w) => palabras(h.enunciado).has(w)).length)
+      );
+      let mejor: { a: (typeof afirmado)[number]; comunes: number } | null = null;
+      for (const a of afirmado) {
+        if (a.bloque === b.numero || a.h.estado !== "vigente") continue;
+        const de = palabras(`${a.h.enunciado} ${a.oracion}`);
+        const comunes = [...que].filter((w) => de.has(w)).length;
+        if (comunes >= 3 && comunes / que.size >= 0.5 && (!mejor || comunes > mejor.comunes)) mejor = { a, comunes };
+      }
+      if (mejor && mejor.comunes > propioEnConflicto) {
+        out.push({
+          bloque: b.numero,
+          tipo: "pendiente_de_afirmado",
+          otroBloque: mejor.a.bloque,
+          cita: m[0].slice(0, 200),
+          detalle: `El bloque ${mejor.a.bloque} afirma «${mejor.a.oracion.slice(0, 200)}» con un hecho vigente del libro.`,
+          marcador: m[0],
+          duenoAfirma: mejor.a.h.bloque_dueno === mejor.a.bloque,
+          comunes: mejor.comunes,
+          proporcion: mejor.comunes / que.size,
+          oracionDueno: mejor.a.oracion,
+          correccion: `Dejaste pendiente «${m[1].trim()}», pero el bloque ${mejor.a.bloque} («${tituloDe(mejor.a.bloque)}») lo afirma con un hecho vigente del libro: «${mejor.a.h.enunciado}». No lo dejes pendiente: si tienes ese hecho entre los tuyos, afírmalo; si no, remite en una frase a esa sección.`,
+        });
+      }
+    }
+
+    // --- 3. Afirma lo que el libro dejó en contradicción excluyente -------------
+    for (const a of afirmado.filter((x) => x.bloque === b.numero && x.h.estado === "en_conflicto")) {
+      out.push({
+        bloque: b.numero,
+        tipo: "afirma_excluyente",
+        otroBloque: null,
+        cita: a.oracion.slice(0, 200),
+        detalle: `Afirma un hecho que el libro dejó en contradicción excluyente: «${a.h.enunciado.slice(0, 160)}».`,
+        correccion: `La oración «${a.oracion.slice(0, 200)}» afirma un hecho cuyo veredicto es «excluyente». No elijas versión: en su lugar va un marcador de pendiente y la nota de contradicción.`,
+      });
+    }
+
+    // --- 3b. Colocación aceptada en el reintento ---------------------------------
+    // El generador ya no deja el bloque en error por esto (fix/pre-v40-b y -c): lo
+    // guarda como nota del validador y aquí se vuelve observación. Remisión sin
+    // ancla o texto que repite el contenido de otro bloque (etiqueta de la nota).
+    for (const n of ((b.pendientes ?? []) as unknown as { campo?: string; cubeta?: string; etiqueta?: string; motivo?: string }[]).filter((x) => x.campo === "nota_revision" && x.cubeta === "validador")) {
+      // Vigente: si su cita ya no está en el texto actual, la observación no aplica.
+      if (!citaVigente(n.motivo ?? "", n.etiqueta, b.texto ?? "")) continue;
+      const repite = n.etiqueta === "texto_reescrito";
+      const otro = Number((repite ? /bloque (\d+)/ : /remite al bloque (\d+)/).exec(n.motivo ?? "")?.[1]) || null;
+      out.push({
+        bloque: b.numero,
+        tipo: repite ? "repite_contenido" : "remision_sin_ancla",
+        otroBloque: otro,
+        cita: (n.motivo ?? "").slice(0, 200),
+        detalle: repite
+          ? `Repite contenido del bloque ${otro ?? "?"}: ${(n.motivo ?? "").slice(0, 200)}`
+          : `Remisión aceptada en el reintento sin el ancla del hecho al que remite: ${(n.motivo ?? "").slice(0, 200)}`,
+        correccion: (n.motivo ?? "").slice(0, 400),
+      });
+    }
+
+    // --- 4. Remisiones a bloques de plantilla --------------------------------
+    const cobertura = (b.cobertura ?? []) as unknown as { codigo: string; estado: string; bloque: number | null }[];
+    for (const c of cobertura.filter((x) => x.estado === "asignado" && x.bloque != null && plantillas.has(x.bloque))) {
+      out.push({
+        bloque: b.numero,
+        tipo: "remision_a_plantilla",
+        otroBloque: c.bloque,
+        cita: c.codigo,
+        detalle: `Asigna ${c.codigo} al bloque de plantilla ${c.bloque}.`,
+        correccion: `Asignaste ${c.codigo} al bloque ${c.bloque} («${tituloDe(c.bloque!)}»), que es una plantilla fija y no desarrolla ese requisito. Respóndelo aquí o márcalo pendiente.`,
+      });
+    }
+    if (!plantillas.has(b.numero)) {
+      for (const m of (b.texto ?? "").matchAll(RE_REMISION)) {
+        const n = [...plantillas].find((p) => m[0].toLowerCase().includes(tituloDe(p).toLowerCase()));
+        if (n == null) continue;
+        out.push({
+          bloque: b.numero,
+          tipo: "remision_a_plantilla",
+          otroBloque: n,
+          cita: m[0].slice(0, 200),
+          detalle: `Remite al bloque de plantilla ${n} («${tituloDe(n)}»).`,
+          correccion: `«${m[0].slice(0, 160)}» remite a «${tituloDe(n)}», una plantilla fija que no desarrolla ese contenido. Quita la remisión: di lo que corresponda con tus hechos o deja el pendiente.`,
+        });
+      }
+    }
+  }
+
+  // --- 2. Misma clave, otra cifra, en bloques distintos -----------------------
+  const porClave = new Map<string, (typeof afirmado)[number][]>();
+  for (const a of afirmado) if (a.h.valor != null) porClave.set(a.h.clave, [...(porClave.get(a.h.clave) ?? []), a]);
+  for (const [clave, as] of porClave) {
+    const bloquesDistintos = new Set(as.map((a) => a.bloque));
+    if (bloquesDistintos.size < 2) continue;
+    const valores = new Set(as.map((a) => Number(a.h.valor)));
+    if (valores.size < 2) continue;
+    // Si ya las decidió el libro (mismo grupo, compatible o secuencia), no es discrepancia.
+    const grupos = new Set(as.map((a) => a.h.grupo_conflicto));
+    if (grupos.size === 1 && as[0].h.grupo_conflicto && as.every((a) => a.h.veredicto && a.h.veredicto !== "excluyente")) continue;
+    const [primero, ...resto] = [...as].sort((x, y) => x.bloque - y.bloque);
+    for (const a of resto.filter((x) => x.bloque !== primero.bloque && Number(x.h.valor) !== Number(primero.h.valor))) {
+      const enOracion = numerosDe(a.oracion);
+      out.push({
+        bloque: a.bloque,
+        tipo: "otro_valor",
+        otroBloque: primero.bloque,
+        cita: a.oracion.slice(0, 200),
+        detalle: `«${clave}»: ${a.h.valor} aquí, ${primero.h.valor} en el bloque ${primero.bloque}${enOracion.length ? "" : " (la cifra no aparece en la oración)"}.`,
+        correccion: `Afirmas ${a.h.valor}${a.h.unidad ? ` ${a.h.unidad}` : ""} para «${a.h.enunciado.slice(0, 120)}», y el bloque ${primero.bloque} afirma ${primero.h.valor}${primero.h.unidad ? ` ${primero.h.unidad}` : ""} para el mismo dato. Remite a esa sección en lugar de dar la cifra, o márcalo pendiente si tu fuente la contradice.`,
+      });
+    }
+  }
+
+  const tenantId = (bloques[0]?.documento as unknown as { tenant_id: string } | null)?.tenant_id;
+  const { data: perfil } = tenantId
+    ? await db.from("perfil_emisor").select("denominacion_formal, forma_de_referencia, glosario").eq("tenant_id", tenantId).maybeSingle()
+    : { data: null };
+
+  // --- 7. Duplicación literal entre bloques (rúbrica del 5c, 4/31) -------------
+  // Dos oraciones de bloques distintos que comparten 12 palabras seguidas. El
+  // dueño es el bloque dueño del hecho que ancla cualquiera de las dos; el otro
+  // remite (lo corrige el cierre automático).
+  {
+    // Sin el nombre de la emisora: la denominación completa infla las coincidencias.
+    const nombresEmisora = new Set(
+      [perfil?.denominacion_formal ?? "", perfil?.forma_de_referencia ?? ""].flatMap((n) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9ñ]+/)).filter(Boolean)
+    );
+    const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9ñ]+/).filter((w) => w && !nombresEmisora.has(w));
+    const gramas = (ws: string[]) => new Set(ws.length >= 12 ? ws.slice(0, ws.length - 11).map((_, i) => ws.slice(i, i + 12).join(" ")) : []);
+    const oraciones = bloques.flatMap((b) =>
+      (b.texto ?? "")
+        .split("\n")
+        .filter((l) => !l.trim().startsWith("|"))
+        .join("\n")
+        .split(FIN_ORACION)
+        .map((o) => o.trim())
+        // Fuera: remisiones (comparten la fórmula), frases sobre la tabla y títulos.
+        .filter((o) => o && !o.startsWith("**") && !/\btabla\b/i.test(o) && !clausulas(o).length)
+        .map((o) => ({ bloque: b.numero, oracion: o, g: gramas(norm(o)) }))
+        .filter((x) => x.g.size)
+    );
+    const duenoDeOracion = (bloque: number, oracion: string) => {
+      const a = anclas(bloques.find((b) => b.numero === bloque)!).find((x) => oracion.includes(x.oracion.slice(0, 50)) || x.oracion.includes(oracion.slice(0, 50)));
+      return (a?.hechos ?? []).map((x) => (x.hecho ? hecho.get(x.hecho)?.bloque_dueno : null)).find((n) => n != null) ?? null;
+    };
+    const vistos = new Set<string>();
+    for (let i = 0; i < oraciones.length; i++)
+      for (let j = i + 1; j < oraciones.length; j++) {
+        const a = oraciones[i], b = oraciones[j];
+        if (a.bloque === b.bloque || ![...a.g].some((x) => b.g.has(x))) continue;
+        const da = duenoDeOracion(a.bloque, a.oracion), db2 = duenoDeOracion(b.bloque, b.oracion);
+        const dueno = [da, db2].find((n) => n === a.bloque || n === b.bloque) ?? null;
+        // Sin dueño identificable por las anclas no se sabe quién remite: no se juzga.
+        if (dueno == null) continue;
+        const repetida = dueno === a.bloque ? b : a;
+        const clave = `${Math.min(a.bloque, b.bloque)}-${Math.max(a.bloque, b.bloque)}-${a.oracion.slice(0, 30)}`;
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        out.push({
+          bloque: repetida.bloque,
+          tipo: "duplicacion",
+          otroBloque: dueno,
+          cita: repetida.oracion.slice(0, 200),
+          detalle: `La misma oración está en los bloques ${a.bloque} y ${b.bloque}; el dueño del hecho es el ${dueno}.`,
+          correccion: `Quita la oración repetida y remite en una línea al bloque ${dueno} («${tituloDe(dueno)}»).`,
+          oracionRepetida: repetida.oracion,
+        });
+      }
+  }
+
+  // --- 6. Cambios de proceso negados a nivel documento (Paso 5c, caso 1) -------
+  // «Sin cambios» en un bloque frente a hechos de CUALQUIER bloque con verbo de
+  // cambio y fecha del ejercicio.
+  const reporteId = (bloques[0]?.documento as unknown as { reporte_id: string } | null)?.reporte_id;
+  const { data: rep } = reporteId ? await db.from("reportes").select("ejercicio").eq("id", reporteId).maybeSingle() : { data: null };
+  if (rep?.ejercicio) {
+    const cambios = (hs ?? []).filter((h) => h.estado === "vigente" && esCambioDelEjercicio({ enunciado: h.enunciado, extracto: h.extracto, periodo: h.periodo }, rep.ejercicio));
+    // El bloque que responde «¿cambiaron los procesos?» (25(a)(vi)) no puede
+    // omitir un cambio del ejercicio que otro bloque publica: «el cambio fue X»
+    // niega los demás sin decirlo (caso 1 de la tercera revisión).
+    for (const b of bloques.filter((x) => BLOQUES.find((y) => y.numero === x.numero)?.datapoints.some((c) => /\(a\)\(vi\)/.test(c)))) {
+      const texto = palabras((b.texto ?? "").replace(/\[Pendiente:[^\]]*\]/g, " "));
+      // Mencionado: el texto comparte al menos el 60 % de las palabras del hecho.
+      const omitidos = cambios.filter((h) => {
+        const w = palabras(h.enunciado);
+        return h.bloque_dueno !== b.numero && [...w].filter((x) => texto.has(x)).length < Math.ceil(w.size * 0.6);
+      });
+      if (!omitidos.length) continue;
+      const lista = omitidos.slice(0, 6).map((h) => `${h.enunciado.slice(0, 110)} (bloque ${h.bloque_dueno})`);
+      out.push({
+        bloque: b.numero,
+        tipo: "cambios_negados",
+        otroBloque: omitidos[0].bloque_dueno,
+        cita: "Cambios en los procesos respecto del periodo anterior",
+        detalle: `Responde si los procesos cambiaron, pero omite ${omitidos.length} cambio(s) del ejercicio que otros bloques publican: ${lista.join("; ")}.`,
+        correccion: `Al responder si cambiaron los procesos, incluye estos cambios de ${rep.ejercicio} o remite a donde se describen: ${lista.join("; ")}.`,
+      });
+    }
+    for (const b of bloques) {
+      // Solo una oración que hable de PROCESOS: «el método de medición no cambió»
+      // (bloque 30) es cierto y no niega cambios de proceso.
+      const oracion = (b.texto ?? "").replace(/\[Pendiente:[^\]]*\]/g, " ").split(/(?<=\.)\s+/).find((o) => SIN_CAMBIOS.test(o) && /proceso/i.test(o));
+      const m = oracion?.match(SIN_CAMBIOS);
+      if (!m) continue;
+      const ajenos = cambios.filter((h) => h.bloque_dueno !== b.numero);
+      if (!ajenos.length) continue;
+      const lista = ajenos.slice(0, 6).map((h) => `${h.enunciado.slice(0, 110)} (bloque ${h.bloque_dueno})`);
+      const i = (b.texto ?? "").indexOf(m[0]);
+      out.push({
+        bloque: b.numero,
+        tipo: "cambios_negados",
+        otroBloque: ajenos[0].bloque_dueno,
+        cita: (b.texto ?? "").slice(Math.max(0, i - 80), i + m[0].length + 40),
+        detalle: `Dice «${m[0]}», pero el libro tiene ${ajenos.length} cambio(s) del ejercicio en otros bloques: ${lista.join("; ")}.`,
+        correccion: `El texto niega cambios de proceso en el ejercicio, pero estos hechos describen cambios de ${rep.ejercicio}: ${lista.join("; ")}. Revela los cambios o remite a donde se describen.`,
+      });
+    }
+  }
+
+  // --- 5. Remisiones: solo al dueño del hecho, y si lo afirma -----------------
+  const nombres = [
+    perfil?.denominacion_formal ?? "",
+    perfil?.forma_de_referencia ?? "",
+    ...leerGlosario(perfil?.glosario).flatMap((e) => [e.canonico, ...e.variantes]),
+  ].filter(Boolean);
+  const anclados = new Map(bloques.map((b) => [b.numero, new Set(anclas(b).flatMap((a) => a.hechos.map((x) => x.hecho).filter((x): x is string => !!x)))]));
+  const remisiones = remisionesSinDueno(
+    bloques.filter((b) => b.estado === "borrador").map((b) => ({ numero: b.numero, texto: b.texto ?? "" })),
+    BLOQUES,
+    new Set(bloques.filter((b) => b.estado === "borrador").map((b) => b.numero)),
+    (hs ?? []).filter((h) => h.estado !== "descartado").map((h) => ({ id: h.id, dueno: h.bloque_dueno, enunciado: h.enunciado, narrativo: h.rango_fuente === "narrativo" })),
+    anclados,
+    nombres
+  );
+  for (const r of remisiones) {
+    const destino = `al bloque ${r.destino} («${tituloDe(r.destino)}»)`;
+    const que = r.contenido.replace(/^(?:y\s+)?/, "");
+    const correccion =
+      r.motivo === "destino_ausente"
+        ? `Remites «${que}» ${destino}, que no está en este documento. Redáctalo aquí con tus hechos o márcalo pendiente.`
+        : r.motivo === "remite_a_pendiente"
+          ? `Remites «${que}» ${destino}, que lo deja pendiente. No remitas a un pendiente: redáctalo aquí si tienes el hecho o márcalo pendiente.`
+          : r.motivo === "destino_no_lo_afirma" || r.dueno == null
+            ? `Remites «${que}» ${destino}, que no lo desarrolla en su texto. Redáctalo aquí si tienes el hecho o márcalo pendiente.`
+            : r.dueno === r.bloque
+              ? `Remites «${que}» ${destino}, pero el hecho es de este bloque: redáctalo aquí.`
+              : `Remites «${que}» ${destino}, pero el dueño de ese hecho es el bloque ${r.dueno} («${tituloDe(r.dueno!)}»). Remite a ese bloque o redáctalo aquí si tienes el hecho.`;
+    out.push({
+      bloque: r.bloque,
+      tipo: "remision_sin_dueno",
+      otroBloque: r.destino,
+      cita: r.clausula.slice(0, 200),
+      detalle: `Remite a ${r.destino} (${r.motivo.replace(/_/g, " ")}${r.dueno != null ? `; dueño ${r.dueno}` : ""}): «${que.slice(0, 140)}».`,
+      correccion,
+    });
+  }
+  return out;
+}
+
+/**
+ * Correcciones por bloque: lo que va en `opciones.correccion` de cada reintento.
+ * «afirma_excluyente» no dispara reintento: un hecho largo en contradicción se
+ * puede citar por su parte no disputada (corrida completa del 5b: 15, 16 y 21
+ * se reintentaron por eso, $1.79). Queda como observación para el revisor.
+ */
+export function correccionesPorBloque(ds: Discrepancia[]): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const d of ds.filter((x) => x.tipo !== "afirma_excluyente")) out.set(d.bloque, [out.get(d.bloque), `- ${d.correccion}`].filter(Boolean).join("\n"));
+  return out;
+}

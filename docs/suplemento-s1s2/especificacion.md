@@ -1,7 +1,181 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.23** · 6 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.39** · 13 de octubre de 2026.
+
+**Cambios respecto a 0.38** (cierre del Paso 4 de v40):
+- §6, validador cruzado: una observación guardada del validador (remisión sin ancla o texto reescrito) se descarta si
+  su cita ya no está en el texto actual del bloque (`citaVigente`).
+- Anexo A: el cambio del Excel de taxonomía (18 filas de incisos en la plantilla), medido en el ensayo de v40.
+
+**Cambios respecto a 0.37** (decisiones de Esteban del 13 de octubre de 2026, antes de v40):
+- §6, generador: **los validadores de datos fallan; los de colocación degradan.**
+- §6, cierre: la reserva del cierre lleva un identificador y se renueva en cada verificación; la reapertura en `generar`
+  la toma después de revisar las ediciones a mano.
+
+**Cambios respecto a 0.36** (cierre del Paso 5c, decisión de Esteban):
+- §6, rúbrica externa: 3.9 el 9 de octubre y coherencia 4 el 11 de octubre; criterio de cierre cumplido.
+- §6, libro: los hechos con sujeto de gerencia son del bloque 17. `recalcular-duenos.mjs` aplica la regla a un libro
+  existente sin volver a extraer.
+- §6, cierre: cierres dirigidos (un pendiente a varias secciones, verificado; un pendiente duplicado que remite).
+- §6, validador cruzado: un pendiente que es toda la oración ya no pega la oración anterior a la remisión siguiente.
+
+**Cambios respecto a 0.35** (respuestas de Esteban al Paso 5c):
+- §5: catálogo partido en incisos, aplicado en dev (migración `20261007170000`). Migraciones `20261008130000`
+  (tipo «tramite») y `20261008140000` (tipo «declaracion_negativa»).
+- §6, libro (`libro-v16`):
+  - **Trámites de acta**, con lista cerrada: solicitar un informe, designar delegados, aprobar el orden del día o el
+    acta, convocar. Quedan fuera del documento.
+  - **Declaraciones negativas:**
+    - el código las asigna por la expresión de negación;
+    - hechos nuevos: el detalle de cada objetivo, el C5 no adoptado y la ausencia de planes previos en el primer año.
+- §6, bloques (`hechos-v8`):
+  - regla 21 y validador de declaraciones negativas omitidas;
+  - «no aplica» heredado para 36(c) (sin objetivo neto) y 36(e)(i)–(iv) (sin uso previsto de créditos); sin dato,
+    queda «pendiente» con la pregunta.
+- §6, cierre de pendientes: Sonnet 5.5 verifica (responde / parcial / no responde); solo «responde» sustituye, por
+  código.
+- §7: la revisión muestra los incisos bajo su código padre. Las tablas de exposición llevan la unidad que dicen las
+  notas de la emisora.
+
+**Cambios respecto a 0.34** (Paso 5c, tercera revisión externa `revision-externa-2026-10-08.md`):
+- §5: migración `20261008120000`, que agrega el origen «automatica» al historial de bloques.
+- §6, generador (`hechos-v7`, libro `libro-v12`):
+  - **Cierre de pendientes por código.** POST `…/cierre`, antes de la coherencia. Sustituye el marcador por una
+    remisión al bloque dueño que lo afirma. Cada cierre lleva la nota «Confirmar la remisión».
+  - **Cambios de proceso a nivel documento:**
+    - el bloque de 25(a)(vi) recibe todos los cambios del ejercicio;
+    - el validador cruzado señala los «sin cambios» sobre procesos y los cambios omitidos.
+  - **Cifras huérfanas en tablas:** nota «cifra sin explicación».
+  - **Mapa del documento:** número, título exacto y lo que cubre cada bloque; las remisiones se escriben desde ahí.
+  - **Reglas nuevas del prompt:**
+    - 19, sin relleno;
+    - 20, sin calificativos sin sustento;
+    - el documento sugerido no puede ser uno que ya está entre las fuentes.
+  - **Editoriales sin material:** «no aplica» con aviso.
+  - **Hechos de exposición:** el libro lee las notas de cada registro de clima.
+  - **«Por conciliar»:** solo para un excluyente sin unanimidad.
+  - **Glosario:** no sustituye la cola de un nombre canónico tras «de».
+- §7, Word:
+  - sin códigos normativos (se quedan en la cobertura de la revisión);
+  - booleanos como «Sí/No»;
+  - tabla de emisiones solo en CO2e, rotulada por alcance;
+  - títulos de 23 («Esfuerzos indirectos…») y 30 («Método de medición y datos de entrada»).
+- Plantilla del bloque 2 condicional al alivio E4.
+
+**Cambios respecto a 0.33** (decisiones de Esteban sobre la corrida 2 del Paso 5b):
+- §6, validador cruzado: deja de reintentar bloques. Sus discrepancias van a la pasada de coherencia como
+  observaciones de código, destacadas y con enlace a los dos bloques.
+- §6, libro (`libro-v11`): veredicto **«por_conciliar»** (migración `20261007180000`). Un grupo cuyo veredicto no
+  tiene ningún par con los tres votos de acuerdo es inestable: no es excluyente ni compatible, el bloque no marca
+  pendiente ni elige versión, y la nota se lo dice al revisor (prompt `hechos-v5`).
+- Esfuerzo: se queda en high (A/B del 7 de octubre registrado en el encargo).
+- §7, revisión: cada bloque se abre desde un enlace `#bloque-N`.
+
+**Cambios respecto a 0.32** (cierre del Paso 5b, correcciones aprobadas por Esteban):
+- §6, validador cruzado: valida remisiones (`remisiones.ts`). Solo se remite al bloque dueño del hecho y si lo afirma;
+  un destino ausente, un pendiente o el hecho de otro bloque se rechazan. Regla 12 del prompt (`hechos-v4-2026-10-07`).
+- §6, libro (`libro-v10-2026-10-07`):
+  - dueño por taxonomía (la fuente responde a un solo bloque) y, si no, por los requisitos del catálogo cuando la
+    ventaja es clara; el modelo decide lo que queda;
+  - contradicciones con tres votos consolidados por par de hechos;
+  - prueba de estabilidad con dos métricas: conjunto (≤ 2 %) y mismo dueño (≥ 98 %).
+- La ruta del bloque acepta `esfuerzo` para el A/B (solo el equipo de IRStrat); el default sigue en high.
+- Catálogo partido en incisos: rama `feat/catalogo-incisos`, pendiente de la revisión de los códigos. Al desplegarla,
+  **el Excel de taxonomía cambia en filas (+18): es una diferencia esperada**.
 Referencia de resultado esperado: Informe Anual de Sostenibilidad NIIF S1 y S2 2025 de CADU (41 págs.).
+
+**Cambios respecto a 0.31** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5b, segunda revisión
+externa `revision-externa-2026-10-07-b.md`):
+- §5: migraciones `20261007160000` (`hechos.oracion`, `alcance`, `veredicto`, `conciliacion`; rango `narrativo`;
+  `documentos_bloques.anclas`) y `20261007161000` (alcance `entidad`). Las dos llaman a la barrera.
+- §6, libro estable (`libro-v7-2026-10-07`):
+  - **Oraciones partidas por código** (`oraciones.ts`). El modelo solo clasifica; el extracto es la oración.
+  - **Fuentes obligatorias:** en las de rango validado, perfil y narrativo entra toda oración; solo los adjuntos se
+    filtran por pertinencia.
+  - **Alcance por hecho:** clima, entidad, sostenibilidad general o genérico. Lo genérico de un adjunto se descarta;
+    con E5, también la sostenibilidad general.
+  - **Rango `narrativo`** para la Carta de la Dirección: no sostiene una afirmación por sí solo.
+  - **Organigrama como árbol** (nodo, padre, nivel), verificado contra la transcripción de la imagen.
+  - **Contradicciones decididas una vez** en el libro:
+    - «excluyente» (otra cifra; la misma facultad en dos órganos; un hecho sin constancia documental) → marcador;
+    - «secuencia» (un documento registra el paso posterior) y «compatible» → redacción conciliada y nota.
+  - **Los bloques de plantilla no son dueños de hechos.**
+  - **Prueba de estabilidad** (`estabilidad-libro.mjs`): dos corridas, umbral de 2 %; resultado 0.77 %.
+- §6, bloques (`hechos-v3-2026-10-07`):
+  - el bloque recibe veredictos, no hechos crudos en conflicto;
+  - regla «usa solo los hechos que respondan a un requisito»;
+  - anclas `[hN]` por oración, guardadas aparte y quitadas del texto publicable;
+  - validadores de cambios de proceso negados, de incisos inexactos (donde el catálogo agrupa incisos) y de requisito
+    cubierto solo con narrativos;
+  - notas y cobertura compactas; referencias de una línea y contradicciones una vez por grupo.
+- §6, validador cruzado (`cruzado.ts`, GET `…/cruzado`):
+  - qué detecta: un pendiente de lo que otro bloque afirma, otra cifra para la misma clave y remisiones a una
+    plantilla;
+  - un reintento por bloque discrepante, con el veredicto;
+  - lo que queda pasa a la coherencia como observación de código.
+- §7, revisión: la cobertura se rotula «juicio del generador», con el texto del requisito tomado del catálogo, y hay
+  una sección de anclas por oración.
+- Plantillas: la forma de referencia del glosario sustituye a «la Entidad».
+
+**Cambios respecto a 0.30** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, punto 4):
+- §5: migración `20261007150000` (`perfil_emisor.glosario`).
+- §6, modo libro (`hechos-v2-2026-10-07`):
+  - **Glosario del emisor:** va en la capa estable. Se sustituye por código en el texto y en la tabla, y la diferencia
+    queda en una nota.
+  - **Validadores deterministas:**
+    - rangos contra la matriz del Perfil;
+    - hechos de otro bloque reescritos en vez de remitidos (sin contar nombres ni terminología de la norma, y con
+      al menos dos frases de 8 palabras);
+    - misma cifra para el mismo hecho, revisada dentro de la pasada de coherencia como «verificado por código».
+  - **Notas en tres cubetas:** decisiones del emisor (con etiquetas «contradicción» y «por conciliar»), revelación
+    voluntaria y defectos de insumo.
+  - **Caché compartido:** la capa estable es igual para todos los bloques y los requisitos van en la volátil.
+  - **Pre-vuelo del documento:** se muestra en la pantalla del generador, junto al botón del libro, y sus defectos
+    de insumo llegan a cada bloque como «ya reportados».
+- §6, libro v3: en un acta, el acuerdo resuelve su propuesta. Las contradicciones se comparan solo entre documentos
+  distintos y sus explicaciones nombran las fuentes.
+
+**Cambios respecto a 0.29** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, puntos 1 a 3):
+- §5: migraciones `20261007130000` (estado `reutilizado` del libro) y `20261007140000` (`cobertura` y `libro_id` en
+  `documentos_bloques`).
+- §6: libro v2 (extracción completa, segunda pasada de contradicciones por bloque dueño, «fuera del suplemento» y
+  «exentas por alivio»); los bloques generan solo desde el libro, con la cobertura por subrequisito validada.
+
+**Cambios respecto a 0.28** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 5, primera parada;
+revisión externa en `docs/suplemento-s1s2/revision-externa-2026-10-07.md`):
+- §5: migración `20261007120000` (`libros_hechos`, `hechos`).
+- §6: libro de hechos previo a la generación: fuentes, rango, verificación por código, bloque dueño y
+  contradicciones. Los bloques todavía no generan desde él (pasos siguientes).
+- La descripción de una solicitud deja de ser fuente: validado = capturas confirmadas, extractos confirmados y
+  respuestas de cuestionarios (decisión de Esteban, 7 de octubre de 2026).
+
+**Cambios respecto a 0.27** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 4):
+- §5: migración `20261006170000` (historial de versiones por bloque y versiones aprobadas).
+- §6: historial, confirmación antes de regenerar una edición humana, Word aprobado con sus versiones y figura
+  del organigrama.
+- §9: A6 completo, frentes (2) y (3) hechos; queda el anexo de trazabilidad.
+- El suplemento sigue fuera del alcance del auditor (decisión de Esteban, 6 de octubre de 2026).
+
+**Cambios respecto a 0.26** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 3):
+- §3.2: texto del emisor sin reescribir en bloques editoriales (lo que estaba pendiente de (a)).
+- §5: migraciones `20261006160000` (texto del emisor) y `20261006160100` (`observaciones_coherencia`).
+- §6: pasada de coherencia al final de la generación.
+
+**Cambios respecto a 0.25** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Paso 2):
+- §3.2: los adjuntos del Perfil se leen (misma extracción y cola que las evidencias) y entran al generador como
+  contexto citado por archivo y página; lo construido y lo que falta de (a).
+- §4: estado de lectura de cada adjunto en el Perfil.
+- §5: migración `20261006150000` (`perfil_emisor_adjuntos_contenido`).
+- §9: A5b, frente (1), construido salvo la normalización sin resumir de textos ya redactados.
+
+**Cambios respecto a 0.24** (encargo `docs/encargos/2026-10-06-suplemento-calidad.md`, Pasos 0 y 1):
+- Anexo A: clase de cada bloque (normativo, editorial recomendado u opcional) con su párrafo de respaldo; tabla
+  regenerada desde `bloques.ts`, con los códigos corregidos del catálogo (29(b) transición, 29(c) físicos) y sin
+  `NIIF S2 30` en el bloque 34.
+- §5: migración `20261006140000` (selección de editoriales).
+
+**Cambios respecto a 0.23**:
+- §10: registro de v39 (`901eae3`): sistema de alertas por correo.
 
 **Cambios respecto a 0.22** (encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`, Paso 3):
 - §1: a la fecha no hay clientes en producción; Grupo Carso es un tenant de prueba con datos reales y sus banderas siguen
@@ -268,9 +442,9 @@ segundo reporte del tenant demo con datos del ejercicio anterior. Los bloques S1
 
 ### 3.2 Adjuntos como insumo
 
-Cada sección del Perfil del emisor (§4) admite archivos de respaldo: PDF, DOCX, XLSX, PNG y JPG. En Fase A
-(paso A3) **se guardan, se descargan y se quitan; el generador no los abre**. Lo que sigue es cómo se
-convierten en insumo, y bajo qué reglas.
+Cada sección del Perfil del emisor (§4) admite archivos de respaldo: PDF, DOCX, XLSX, PNG y JPG. En A3 solo se
+guardaban, descargaban y quitaban. **Desde el encargo suplemento-calidad (Paso 2) se leen** y el generador los
+usa como contexto citado. Lo que sigue es cómo se convierten en insumo, y bajo qué reglas.
 
 **(a) Alimentan a los bloques T→E en A5.** Un bloque T→E parte de texto que el emisor ya escribió; el adjunto
 es de dónde sale ese texto cuando no está en el formulario. Dos tratamientos, según el archivo:
@@ -283,6 +457,39 @@ es de dónde sale ese texto cuando no está en el formulario. Dos tratamientos, 
 
 En los dos casos rige la regla del generador: **nada que no esté en el archivo**. Un adjunto no autoriza a
 inferir; si el dato no está, el bloque lleva su `[Pendiente: …]` como si no hubiera adjunto.
+
+**Lo construido (Paso 2 de suplemento-calidad).**
+
+- **Lectura.** `perfil_emisor_adjuntos_contenido`, tabla hermana de `evidencias_contenido`: una fila por
+  adjunto, creada `pendiente` por trigger al insertarlo, leída por la MISMA cola y la MISMA extracción
+  (`lib/evidencias/cola.ts`, bucket `documentos`). Bandera y tope son los de la lectura de evidencias
+  (`lectura_evidencias_activa`, `lecturas_mes_max`; un adjunto leído cuenta como una lectura). Límite de 60
+  páginas por documento, avisado en el Perfil («Se leyeron las primeras 60 páginas de 80»). RLS: staff y el
+  administrador del cliente de su emisora leen; nadie escribe con sesión; barrera del auditor.
+- **Selección previa.** Cada documento se corta en unidades citables (página de PDF, tramo de párrafos de Word
+  que abre en cada título, hoja, imagen) y se ordenan por parecido de términos con lo que el bloque cubre (su
+  título, su frontera, sus requisitos y sus campos del Perfil). Entran las mejores hasta 14 000 caracteres por
+  bloque y 8 000 por documento; la mejor unidad de cada documento de una sección propia del bloque entra
+  siempre. Sin llamada al modelo.
+- **Qué bloques.** Los de las secciones del Perfil de sus campos, y además: gobernanza (II) ve «gobierno»;
+  estrategia (III) ve «gobierno», «matriz», «horizontes», «modelo» y «trayectoria»; gestión de riesgos (IV) ve
+  «gobierno» y «matriz».
+- **Cita.** Ids `adj:<adjunto>:p<N>` (página), `:par<A>-<B>` (párrafos), `:tab<N>`, `:h<N>`, `:img`, con su
+  detalle legible; van en `fuentes_usadas` y la vista de revisión los enlaza al Perfil.
+- **Ninguna cifra sale de un adjunto** (regla 10 del prompt). El validador no los cuenta como respaldo: igual
+  que el contenido crudo de una evidencia, el texto lo subió la emisora pero nadie confirmó sus números. Una
+  cifra que solo está en un adjunto se rechaza; el modelo la deja en notas para el revisor.
+- **`pendiente_adjunto`** queda solo para el bloque cuyos campos están vacíos y cuyos documentos todavía no se
+  leen (en cola) o no se pudieron leer; con un documento leído, el bloque se redacta desde él.
+- **Texto del emisor sin reescribir (Paso 3).** En un bloque EDITORIAL, la pantalla del generador ofrece «usar
+  el texto de este archivo sin reescribir» con los adjuntos de las secciones del propio bloque que estén leídos
+  como PDF o Word, sin recortar y con menos de 20 000 caracteres. El documento guarda la elección
+  (`documentos_generados.textos_literales`) y la ruta la valida contra la emisora. El bloque lleva el texto
+  literal, sin modelo ni validadores y con costo 0, citado al archivo (por página en un PDF). Queda marcado
+  `texto_del_emisor`: la revisión lo muestra como «Texto del emisor», una regeneración lo vuelve a copiar y la
+  pasada de coherencia (§6) no propone cambiarlo, solo avisa si choca con el resto. Lo único que se toca es la
+  forma: en un Word, los títulos van como título y las tablas como tabla; en un PDF se rehacen los párrafos
+  que el ancho de página cortó en líneas. Ninguna palabra cambia. La traducción de §3.2 (a) sigue fuera.
 
 **(b) Paso nuevo A10 — pre-carga asistida.** Después de A8. Los emisores llegan con documentos de análisis de
 riesgos y estudios de materialidad cuya estructura **varía por consultor**: cada despacho usa su plantilla, sus
@@ -321,7 +528,8 @@ sugerencia y el generador lo reutilizan. Dos diferencias con (c), decididas en e
   sin texto, es decir, los escaneados, y las imágenes van al modelo con visión. La paginación se conserva igual.
 - **Sin caché.** Lo que se manda al modelo es el contenido ya extraído y recortado (hasta 8 000 caracteres por
   evidencia y 30 000 por bloque), no el archivo; la sugerencia cuesta del orden de $0.007 y no lo amerita.
-- **Los adjuntos del Perfil (a) y la pre-carga A10 (b) siguen sin construir.**
+- **Los adjuntos del Perfil (a) se leen desde el Paso 2 de suplemento-calidad (arriba); la pre-carga A10 (b)
+  sigue sin construir.**
 
 ---
 
@@ -428,8 +636,9 @@ Se captura una vez por emisora y persiste entre ejercicios. Lo que cambia por ej
 **Columnas nuevas en `reportes`**: `anio_adopcion` (int), `alivios` (jsonb: {E4, E5, C3, C4, C5} booleanos).
 
 **Adjuntos por sección** (`perfil_emisor_adjuntos`): cada una de las nueve secciones admite uno o más archivos
-(PDF, DOCX, XLSX, PNG, JPG, hasta 20 MB) en `documentos/{tenant_id}/perfil/{seccion}/`. En Fase A solo se
-guardan y se descargan; su uso como insumo es §3.2.
+(PDF, DOCX, XLSX, PNG, JPG, hasta 20 MB) en `documentos/{tenant_id}/perfil/{seccion}/`. Cada archivo muestra
+el estado de su lectura: «Leído» (con el aviso de páginas si se recortó), «En lectura» o «No se pudo leer». Su uso
+como insumo es §3.2.
 
 **Quién captura**: el admin del cliente desde el portal y el staff de IRStrat desde el panel interno, sobre el
 mismo formulario. Cada guardado registra quién y cuándo. Las listas (hitos, cadena de valor) se editan como
@@ -466,6 +675,14 @@ filas, no como JSON.
 | `tenants.vitrina_habilitada = false` donde `es_demo = false` | La regla «Grupo Carso: vitrina apagada» se verifica por consulta | Migración de datos (`20261005122700`) |
 | Repunte de enlaces de «Riesgos físicos climáticos en instalaciones» de 29(b) a 29(c) | Era la sección 5 de la corrección del catálogo; toca datos de clientes y se aplica en staging solo con aprobación explícita | Migración de datos (`20261005130000`) |
 | `perfiles_usuario.recibe_resumen_diario` (boolean, default true) y `fn_set_resumen_diario(bool)` | Interruptor del resumen diario por usuario; la función toca solo la fila propia y rechaza al auditor | ADD COLUMN con default y función SECURITY DEFINER (`20261006120000`) |
+| `documentos_generados.editoriales_incluidos` (text[], NULL = documento anterior con los 40) y estado `no_seleccionado` en `documentos_bloques` | Selección de bloques editoriales por documento (encargo suplemento-calidad) | ADD COLUMN nullable y CHECK sustituido por uno más amplio (`20261006140000`) |
+| `libros_hechos.estado` + `reutilizado` (CHECK sustituido por uno más amplio) y `.reutiliza_libro` | Corrida del libro que reutiliza uno con la misma huella (Paso 5) | CHECK ampliado y ADD COLUMN nullable (`20261007130000`) |
+| `documentos_bloques.cobertura` (jsonb) y `.libro_id` | Cobertura por subrequisito y libro de origen de cada bloque (Paso 5.3) | ADD COLUMN nullable (`20261007140000`) |
+| `libros_hechos` (una corrida por reporte: estado, huella, tokens, costo, resumen) y `hechos` (enunciado, clave, tipo, valor, rango de fuente, fuente, extracto, verificación, bloque dueño, referencias, contradicción) | Libro de hechos previo a la generación (encargo suplemento-calidad, Paso 5) | CREATE TABLE ×2 con RLS y barrera (`20261007120000`) |
+| `documentos_bloques_versiones` (solo altas, por trigger), `documentos_bloques.origen_texto` y `.restaurada_de`, `documentos_generados.versiones_aprobadas` (jsonb) | Historial de versiones por bloque, restauración y versiones aprobadas (encargo suplemento-calidad, Paso 4; A6) | CREATE TABLE con RLS y barrera, triggers nuevos, ADD COLUMN nullable, relleno de la versión 1 (`20261006170000`) |
+| `documentos_generados.textos_literales` (jsonb, NULL = ninguno) y `documentos_bloques.texto_del_emisor` (boolean, default false) | Texto del emisor sin reescribir en bloques editoriales (encargo suplemento-calidad, Paso 3) | ADD COLUMN nullable y con default (`20261006160000`) |
+| `observaciones_coherencia` (una fila por pasada: estado, observaciones, descartadas, tokens y costo), con índice único parcial de una pasada en curso por documento | Pasada de coherencia del documento (encargo suplemento-calidad, Paso 3) | CREATE TABLE con RLS y barrera (`20261006160100`) |
+| `perfil_emisor_adjuntos_contenido` (una fila por adjunto: estado de lectura, contenido extraído, páginas, costo) con trigger de encolado y relleno de los adjuntos existentes | Lectura de los adjuntos del Perfil para el generador (encargo suplemento-calidad, Paso 2) | CREATE TABLE con RLS, trigger nuevo y barrera (`20261006150000`) |
 | Tabla `correos_retenidos` | Avisos inmediatos que pasan el tope de 20 por emisora y hora; el job de 10 minutos los manda agrupados | CREATE TABLE con RLS (lectura solo staff, sin escritura con sesión) y barrera: 90 políticas (`20261006130000`) |
 | `reportes.anio_adopcion = ejercicio` en los reportes de demostración sin año declarado | La columna nace vacía y sin ella el régimen es «indeterminado»: el generador responde 422. Los clientes reales declaran su año | Migración de datos (`20261005130100`) |
 
@@ -488,6 +705,84 @@ marcas de tiempo.
 **Mapeo bloque → datapoints.** `lib/suplemento/bloques.ts`: por bloque, lista de códigos exactos del catálogo,
 tablas y campos que lo alimentan, tipo, variante por régimen. Se valida en arranque que todo código listado
 exista en `datapoints_taxonomia`; si no, el servidor lo reporta.
+
+**Pasada de coherencia (encargo suplemento-calidad, Paso 3).** Al terminar de generar el documento, la
+pantalla (y `generar-demo.mjs`) dispara `POST /api/suplemento/{documento}/coherencia`, que corre en `after()`
+UNA llamada con el documento completo y salida `json_schema`. Busca terminología inconsistente o fuera de la
+traducción oficial, repeticiones entre bloques, referencias cruzadas que no se sostienen, frases que anuncian
+lo que termina en pendiente y contradicciones entre bloques. Cada observación cita un fragmento literal del
+bloque al que apunta; el código lo comprueba y descarta la que no lo cumpla. Se guarda en
+`observaciones_coherencia` con su costo, una pasada en curso por documento. La revisión la muestra como lista,
+y el staff puede volver a correrla. No edita ningún bloque. Modelo del generador con esfuerzo `medium`
+(`COHERENCIA_ESFUERZO` lo cambia); en el demo cuesta ~$1.3 y tarda ~3.5 min.
+
+**Libro de hechos (Paso 5).** Antes de generar, un libro por reporte con los hechos atómicos de sus fuentes
+(`lib/suplemento/hechos/`, `POST /api/suplemento/{reporte}/hechos`). Las fuentes se reparten en tres rangos:
+- **Validado:** capturas confirmadas, extractos confirmados y respuestas de cuestionarios. La descripción de una
+  solicitud no es fuente: es la pregunta.
+- **Perfil:** campos del Perfil, registros de clima y objetivos que declara la emisora.
+- **Adjunto:** las partes de los adjuntos del Perfil que pasan la división por términos.
+
+Cómo se arma:
+- Lo estructurado entra sin modelo, con su valor como extracto.
+- El texto lo atomiza Sonnet 5.5 en lotes en serie. Cada lote recibe las claves ya usadas, para que el mismo sujeto
+  y atributo tengan la misma clave. Cada hecho trae enunciado, clave `sujeto.atributo`, tipo, valor, extracto
+  literal, bloque dueño y hasta tres bloques que lo refieren.
+- **Verificación por código:** el extracto tiene que estar en su fuente, salvo mayúsculas, espacios, comillas,
+  guiones y cortes de línea; una cifra tiene que estar en su extracto; el dueño tiene que existir. Lo que no pasa
+  se guarda descartado, con su motivo.
+- **Contradicciones:** las cifras distintas para la misma clave se marcan por código; lo demás lo juzga una llamada
+  por todos los grupos. El libro nunca elige: los hechos quedan «en conflicto» con su explicación.
+
+Un libro con la misma huella de insumos se reutiliza: la corrida queda `reutilizado` y apunta al libro que vale. Lo
+leen staff y el administrador del cliente; el auditor no.
+
+**Ajustes del libro v2:**
+- **Extracción completa en lotes de 6 mil caracteres.** Con 14 mil, dos corridas sobre los mismos insumos daban 135 y
+  98 hechos; con lotes chicos, 194 y 193.
+- **Segunda pasada de contradicciones:** compara hechos del mismo bloque dueño aunque tengan clave distinta. Su
+  veredicto es «contradicción» o «por conciliar»; esto último marca la misma función atribuida a dos órganos.
+- **Fuera del libro, con su motivo:**
+  - las capturas de solicitudes que ningún bloque usa («fuera del suplemento»);
+  - las capturas que exime un alivio vigente («exentas por alivio», el Alcance 3 bajo C4).
+
+**Generación desde el libro (Paso 5.3).** Si el reporte tiene libro, cada bloque recibe solo sus hechos:
+- **Qué recibe:** sus hechos con id corto, rango, enunciado, extracto y fuente, y los que están en contradicción con
+  su grupo. Lo que es de otros bloques le llega como referencia de una línea. No recibe evidencias crudas ni adjuntos
+  completos.
+- **Reglas propias del prompt (9 a 13, `hechos-v1-2026-10-07`):**
+  - solo hechos;
+  - jerarquía validado > perfil > adjunto: las cifras salen de hechos validados o del Perfil, o de la tabla;
+  - contradicciones con marcador y nota, sin elegir;
+  - referencias de una línea;
+  - cobertura por subrequisito.
+- **Cobertura:** la salida trae `cobertura` (cubierto, parcial, pendiente o asignado, con sus hechos). El código la
+  valida (un requisito una vez, hechos entregados, asignado a un bloque que responde ese código, marcador si es
+  pendiente) y reintenta con el error si falla.
+- **Qué se guarda:** cada hecho citado, con su fuente original y su extracto; además `cobertura` y `libro_id`.
+- **Revisión:** muestra la cobertura del bloque.
+
+**Historial de versiones por bloque (Paso 4).** `documentos_bloques_versiones` guarda cada texto que tuvo un
+bloque —generación, edición manual, texto literal del emisor y restauración— con texto, autor, fecha, fuentes,
+pendientes y versión del prompt. Lo escribe un trigger sobre `documentos_bloques`, así que ningún camino se lo
+salta; quien escribe marca el origen en `origen_texto`. Es de solo altas: sin escritura para usuarios y un
+trigger que rechaza UPDATE y DELETE salvo el borrado en cascada del documento. La revisión muestra el historial
+de cada bloque con «ver cambios» (diff por palabras contra la actual) y «restaurar». La restauración entra como
+versión nueva y conserva la marca de edición si la versión restaurada la tenía. Lo leen staff y el
+administrador del cliente; **el auditor no**: el suplemento sigue fuera de su alcance.
+
+**Confirmación antes de pisar una edición humana (CLAUDE.md §5).** Regenerar un bloque cuyo texto lleva una
+edición (`editado_en`) responde 428 sin `confirmarEdicion`. La pantalla avisa «se perderá la edición de X del
+día Y; queda en el historial» antes de mandarla. Regenerar el documento entero sobre bloques editados responde
+428 con la lista, sin tocar nada, hasta que se confirma. El 428 no se confunde con el 409 de «otro proceso lo
+tomó».
+
+**Versiones aprobadas y Word.** Al aprobar, `documentos_generados.versiones_aprobadas` fija la versión de cada
+bloque, `{numero: {id, version}}`. El Word de un documento aprobado se arma con esas versiones, aunque la fila
+cambiara después. Todo Word lleva propiedades personalizadas: documento, versión, estado, fecha de aprobación y
+«versiones aprobadas» o «versiones de bloque» (`5:v4 18:v1 …`). Los bloques «T→E + imagen» (el 18) insertan la
+imagen del Perfil (`organigrama_path`) después de su primer párrafo, centrada y con pie «Figura N. Estructura de
+gobierno».
 
 **Aislamiento.** El ensamblado corre en servidor con `service_role`; todas las consultas filtran por
 `reporte_id` y se valida que el reporte pertenezca al tenant de la sesión antes de armar cualquier prompt.
@@ -668,6 +963,56 @@ No se generan en paralelo desde los datos.
 **Dependencias nuevas.** SDK de Anthropic, `docx`. Variable `ANTHROPIC_API_KEY` en Heroku y `.env.local`, una llave
 por ambiente.
 
+**Validadores de datos y de colocación** (decisión de Esteban del 13 de octubre de 2026). Cuando un validador
+rechaza la respuesta del modelo, el bloque tiene un reintento. Después del segundo intento, el resultado depende del
+tipo de validador:
+- **Datos: el bloque queda en «error» y no entra al documento.** Son los validadores que protegen lo que se afirma:
+  - fuentes inventadas;
+  - cifras sin respaldo;
+  - vocabulario de plataforma;
+  - marcadores mal formados;
+  - cobertura inválida;
+  - declaraciones negativas omitidas, cambios negados, incisos inexactos, rangos incoherentes y hechos solo
+    narrativos;
+  - remisiones que mandan al lector a lo que no existe: a un bloque que no va en el documento, a uno que no es dueño
+    de ningún hecho, o con el ancla de un hecho inventado.
+- **Colocación: el bloque queda en borrador.** Son los validadores que solo cuestionan dónde va un contenido
+  verdadero:
+  - una remisión a un bloque del documento con hechos, pero sin el ancla `[Bn.k]` del hecho al que remite;
+  - un texto que reescribe un hecho que desarrolla otro bloque.
+
+  Cada caso se guarda como nota del bloque en la cubeta «validador»: `remision_sin_ancla` o `texto_reescrito`. El
+  validador cruzado la reporta como `remision_sin_ancla` o `repite_contenido` («repite contenido del bloque N»), con
+  gravedad media en la coherencia. La revisión la muestra en «observaciones del validador». No es un pendiente y no
+  bloquea la aprobación.
+- **Vigencia de la observación:** la nota se guarda al generar. Si su cita ya no está en el texto actual del bloque,
+  porque un revisor la quitó o el cierre la sustituyó por una remisión, el validador cruzado no la reporta
+  (`citaVigente`). La nota queda en el bloque.
+- **Implementación:** `aceptaConObservacionesDeColocacion` y `remisionesSinAnclaTipadas`
+  (`lib/suplemento/hechos/remisiones.ts`).
+- **Origen:** el bloque 25 del A8 de v40 quedó en «error» dos veces: primero por una remisión sin ancla y después por
+  un texto reescrito del bloque 40.
+
+**Rúbrica externa y cierre del encargo suplemento-calidad (Paso 5c).** Criterio de cierre: coherencia ≥ 4,
+tablas ≥ 4 y trazabilidad ≥ 4, calificadas por un lector externo sobre el Word del documento demo `98d57a6a`
+en dev.
+
+| Fecha | Word calificado | Resultado |
+|---|---|---|
+| 9 de octubre de 2026 | Última vuelta de la rúbrica, con 17 bloques regenerados | **3.9**: tablas 4, trazabilidad 4, coherencia 3. No cierra. Quedan la remisión 18→16 y tres inconsistencias del demo |
+| 11 de octubre de 2026 | Libro 31c7d5f6 (dueño de los hechos de gerencia en el 17), demo corregido y bloques 1, 6, 16, 17, 18 y 24 regenerados | **Coherencia 4**, con las dos cosas pendientes resueltas. El lector «firmaría con pendientes cerrados». **Criterio de cierre cumplido** |
+
+Lectura del 11 de octubre, en lo que pidió antes del PR (sin regenerar), con los cierres dirigidos de
+`lib/suplemento/hechos/cierre.ts`:
+- **21:** el pendiente de la respuesta al riesgo de precio al carbono se verificó contra 25 y 17 juntos. La verificación
+  de Sonnet 5.5 dio «no responde», así que el pendiente se queda con nota y no se forzó.
+- **16:** el pendiente duplicado «órgano que aprueba la estrategia» queda solo en el 15, y el 16 remite con la oración
+  completa.
+
+Validador cruzado al cerrar: 12 observaciones (`referencia/suplemento-calidad/paso5c-final/`). Una es el 16→15 de la
+decisión anterior: el 15 conserva el pendiente, así que el 16 remite a un pendiente. Las demás quedan como revisión
+humana por documento (encargo, deudas).
+
 ---
 
 ## 7. Flujo de usuario
@@ -710,8 +1055,8 @@ formal; idioma(s); encabezados con o sin referencia de párrafo; firmante de la 
 | ✅ A3 | Formulario del Perfil del emisor (portal y panel) y captura de severidad en registros de clima. Semáforo de completitud, sin IA | A2 | **Completo · 11 sep 2026** |
 | ✅ A4 | SDK, un bloque de extremo a extremo (#29 GEI: tabla + texto) con caché y salida estructurada; comparación de modelos con datos del tenant demo | A3, crédito en Consola | **Completo · 11 sep 2026** |
 | ✅ A5a | Los 40 bloques en régimen primer año por vía (plantilla, perfil, datos) con once tablas armadas por código; `POST /generar` con cola explícita, reclamo atómico, concurrencia 3 y corte por tiempo; vista de revisión con edición en línea, regeneración por bloque y aprobación bloqueada con pendientes; botón del semáforo para staff. Documento demo completo: 39 borradores + 1 no aplica, $7.5579, 27.7 min de cómputo | A4 | **Completo · 15 sep 2026** |
-| A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar—; (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24; (5) **solicitudes con varias capturas confirmadas entregan TODAS al prompt, con su etiqueta**. Hoy `entregaPorSolicitud` colapsa cada solicitud a un solo valor —el último confirmado— y una solicitud que resume la composición de una cartera en siete cifras le entrega al modelo una sola, elegida por el orden de inserción. Las demás viajan de contrabando en la descripción, que es prosa: el modelo las copia bien, pero nada las valida ni las suma. Cada captura lleva su etiqueta en `justificacion` y ese par (etiqueta, valor) es lo que debe llegar. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
-| A6 | Word con estilos, marca de agua y anexo de trazabilidad. **A6 mínimo está hecho** (portada, índice, bloques con su referencia NIIF, tablas, marca de agua mientras no esté aprobado). Falta: (1) el **anexo de trazabilidad**; (2) **versiones por bloque con historial de ediciones humanas** — hoy `documentos_bloques` guarda un solo texto y `editado_por`/`editado_en`; una edición a mano pisa lo generado sin dejar rastro de qué decía antes, y la regeneración pisa la edición sin dejar rastro de que existió. Hace falta una tabla de versiones por bloque, con autor, fecha y origen (modelo o persona), como la que ya tienen las evidencias; (3) **confirmación antes de regenerar un bloque editado**: el botón «Regenerar» no distingue entre un bloque que nadie tocó y uno que un revisor reescribió, y en el segundo caso destruye trabajo humano sin avisar. Pasó el 15 de septiembre de 2026 con el bloque 4; el texto se conservó porque alguien se acordó de copiarlo antes | A5b | Pendiente |
+| A5b | Que los 40 bloques alcancen el nivel de CADU, que hoy no alcanzan por falta de insumo y no de prompt. Cuatro frentes: (1) **adjuntos del perfil como insumo** —lo que hoy se marca `derivable_de_adjunto` se lee y se propone, con revisión antes de insertar— (**construido** en el Paso 2 de suplemento-calidad, §3.2; la revisión es la del borrador del bloque); (2) **evidencias documentales** leídas para resolver los datapoints de los bloques 6, 10, 22, 23, 27 y 28, que no tienen hoja narrativa que los alimente; (3) **ejemplos de estilo y estructura POR BLOQUE desde CADU**, no uno solo para todo: hoy la capa estable lleva un único ejemplo y los bloques de estructura distinta —tabla más párrafo por fila, línea de tiempo, escenarios— no tienen de dónde copiarla; (4) `registros_clima.concentracion`, `.impactos_potenciales` y `.respuesta` (text, nullable), capturables en `/admin/registros`, para que el bloque 21 pase de la tabla resumen al párrafo por riesgo de CADU pp. 23–24; (5) **solicitudes con varias capturas confirmadas entregan TODAS al prompt, con su etiqueta**. Hoy `entregaPorSolicitud` colapsa cada solicitud a un solo valor —el último confirmado— y una solicitud que resume la composición de una cartera en siete cifras le entrega al modelo una sola, elegida por el orden de inserción. Las demás viajan de contrabando en la descripción, que es prosa: el modelo las copia bien, pero nada las valida ni las suma. Cada captura lleva su etiqueta en `justificacion` y ese par (etiqueta, valor) es lo que debe llegar. Al cerrar A5b se regeneran de una sola vez los 40 bloques con el prompt y los datos ya completos | A5a | Pendiente |
+| A6 | Word con estilos, marca de agua y anexo de trazabilidad. **Frentes (2) y (3) hechos en el Paso 4 de suplemento-calidad** (historial con restauración, confirmación antes de regenerar una edición, versiones aprobadas en el Word; §6); queda el (1), anexo de trazabilidad. **A6 mínimo está hecho** (portada, índice, bloques con su referencia NIIF, tablas, marca de agua mientras no esté aprobado). Falta: (1) el **anexo de trazabilidad**; (2) **versiones por bloque con historial de ediciones humanas** — hoy `documentos_bloques` guarda un solo texto y `editado_por`/`editado_en`; una edición a mano pisa lo generado sin dejar rastro de qué decía antes, y la regeneración pisa la edición sin dejar rastro de que existió. Hace falta una tabla de versiones por bloque, con autor, fecha y origen (modelo o persona), como la que ya tienen las evidencias; (3) **confirmación antes de regenerar un bloque editado**: el botón «Regenerar» no distingue entre un bloque que nadie tocó y uno que un revisor reescribió, y en el segundo caso destruye trabajo humano sin avisar. Pasó el 15 de septiembre de 2026 con el bloque 4; el texto se conservó porque alguien se acordó de copiarlo antes | A5b | Pendiente |
 | A7 | Glosario ES↔EN y versión en inglés | A6 | Pendiente |
 | A8 | Límites por tenant, auditoría, prueba de aislamiento con dos tenants, app Heroku de dev para demo a Manuel | A7 | Pendiente |
 | A9 | Régimen años subsecuentes: segundo reporte del tenant demo con ejercicio anterior, comparativos, Alcance 3 | A8 | Pendiente |
@@ -1119,6 +1464,34 @@ Verificación en staging tras el release:
 
 Punto de reversión: `heroku releases:rollback v37 -a traceline-staging`.
 
+### staging · release v39 · 6 de octubre de 2026 · `901eae3`
+
+**Sistema de alertas por correo.** Encargo `docs/encargos/2026-10-06-sistema-de-alertas.md`, por los PR #15 (a `dev`) y #16
+(a `main`, merge commit `901eae3`), revisados con el asesor y aprobados por Esteban. Qué entra: §11. Orden de v33:
+
+1. Merge (Claude Code).
+2. Migraciones (Esteban).
+3. `git push heroku main` (Claude Code).
+
+**Migraciones.** Aplicadas por Esteban con `migrar-remoto.sh staging --aplicar`: 2 de 2, 68 de 68 alineadas, barrera 90.
+- `20261006120000_perfiles_recibe_resumen_diario`.
+- `20261006130000_correos_retenidos`.
+
+Verificación en staging tras el release (solo conteos y booleanos sobre los logs):
+
+| | Resultado |
+|---|---|
+| Release | ✓ v39 · Deploy `901eae36`; `web.1` up; `/login` 200 |
+| Cobertura y «Mi cuenta» (analista) | ✓ 200, sin errores de página |
+| Logs desde el release | ✓ 76 líneas: 0 respuestas 5xx, 0 `Error:`, sin caídas |
+| Job de 10 minutos | ✓ 22:01 UTC: arranque con `node scripts/cron/llamar.mjs evidencias/procesar`, `POST` 200; vacía los retenidos antes de la cola (0 pendientes) |
+| `correos_retenidos` | ✓ El staff la lee (RLS); 0 filas |
+| Comentario del auditor de prueba en Empresa Demo | ✓ Con un auditor de utilería creado por la API de administración (autorizado por Esteban por chat). Aviso del comentario: 1 fila, al admin del cliente, `omitido` (dirección `.example`; la emisora es de demostración, así que no se avisa al staff). Aviso de la respuesta del admin del cliente: 1 fila, al auditor, `omitido`. Ninguna fila guarda una dirección. Después se borraron el comentario con su respuesta, las 5 filas de actividad del auditor y la cuenta. Los conteos de perfiles, `auth.users`, comentarios, actividad, retenidos, solicitudes y evidencias quedaron iguales; la bitácora sumó 2, las dos filas de aviso |
+| Primer resumen diario | Pendiente: 7/10, 13:00 UTC; se verifica por conteo de `resumen_diario` |
+
+Punto de reversión: `heroku releases:rollback v38 -a traceline-staging`. Revierte solo el código; las migraciones son
+aditivas y se quedan. Con el código de v38, el resumen vuelve a ser el digest anterior.
+
 ### Deudas conocidas
 
 Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
@@ -1506,48 +1879,76 @@ código tecleado a mano no empata por igualdad de cadena.
 **Resultado: 63 códigos citados por los 40 bloques, los 63 presentes en el catálogo.**
 Cero faltantes, cero códigos en dos bloques. `validarMapeo()` lo vuelve a comprobar en arranque.
 
-| # | Bloque | Tipo | Régimen | Datapoints | Tablas | Perfil |
-|---|---|---|---|---|---|---|
-| 1 | Carta de la Dirección | T→E | ambos | — | — | `carta_texto`, `carta_firmante`, `carta_cargo` |
-| 2 | Presentación del informe (adopción, CNBV) | Plantilla | ambos | — | `reportes` | `denominacion_formal`, `nombre_corto` |
-| 3 | Bases de preparación: marco y alivios transitorios | Plantilla | **varía** | — | `reportes` | — |
-| 4 | Entidad que informa, periodo y conectividad | Plantilla + T→E | ambos | `NIIF S2 32` | `reportes`, `solicitudes` | `denominacion_formal`, `entidad_que_informa`, `perimetro` |
-| 5 | Conexiones y referencias cruzadas | Plantilla | ambos | — | — | — |
-| 6 | Juicios, supuestos e incertidumbres | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
-| 7 | Materialidad: contexto y proceso | T→E | **varía** | — | — | `proceso_materialidad` |
-| 8 | Horizontes temporales | Tabla | ambos | — | — | `horizontes` |
-| 9 | Evaluación y priorización de riesgos | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
-| 10 | Resumen de efectos financieros actuales y previstos | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
-| 11 | Nuestra historia (línea de tiempo) | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
-| 12 | Modelo de negocio y cadena de valor | T→E | ambos | — | — | `modelo_negocio`, `cadena_valor` |
-| 13 | Efectos sobre el modelo de negocio y la cadena de valor | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |
-| 14 | Introducción a la sección | Plantilla | ambos | — | — | — |
-| 15 | Roles y responsabilidades del órgano de gobierno | D→T | ambos | `NIIF S2 6 (a)`<br>`NIIF S2 6 (a)(i)`<br>`NIIF S2 6 (a)(ii)` | — | — |
-| 16 | Supervisión de la estrategia, objetivos y remuneración | D→T | ambos | `NIIF S2 6 (a)(iii)`<br>`NIIF S2 6 (a)(iv)`<br>`NIIF S2 6 (a)(v)` | — | — |
-| 17 | Papel de la gerencia y controles | D→T | ambos | `NIIF S2 6(b)`<br>`NIIF S2 6(b)(i)`<br>`NIIF S2 6(b)(ii)` | — | — |
-| 18 | Estructura de gobierno corporativo y organigrama | T→E + imagen | ambos | — | — | `gobierno_texto`, `organigrama_path` |
-| 19 | Trayectoria en sostenibilidad y clima | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
-| 20 | Contexto estratégico | D→T | ambos | — | — | `horizontes` |
-| 21 | Riesgos climáticos prioritarios | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)`<br>`NIIF S2 10(d)` | `registros_clima` | `matriz_riesgos` |
-| 22 | Cambios en modelo de negocio y asignación de recursos | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
-| 23 | Esfuerzos directos e indirectos de reducción y adaptación | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
-| 24 | Oportunidades y cómo prevé alcanzar objetivos | D→T | ambos | — | `registros_clima`, `objetivos` | — |
-| 25 | Recursos asignados y progreso de planes | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
-| 26 | Resiliencia de la estrategia y análisis de escenarios | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
-| 27 | Gestión y mitigación de riesgos y oportunidades | D→T | ambos | `NIIF S2 25 (a)(i)a(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
-| 28 | Plan de transición | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
-| 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`, `reportes` | — |
-| 30 | Método de medición, datos de entrada y C5 | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
-| 31 | Razones del enfoque y desagregación | D→T | ambos | `NIIF S2 29 (a)(iv) EI5` | — | — |
-| 32 | Alcance 2 por ubicación e instrumentos contractuales | D→T | ambos | `NIIF S2 29 (a)(v)` | — | — |
-| 33 | Emisiones financiadas | D→T | ambos | `NIIF S2 29 (a)(vi)(1)`<br>`NIIF S2 29 (a)(vi)(1) EI12`<br>`NIIF S2 29 (a)(vi)(2)` | — | — |
-| 34 | Riesgos de transición: concentración, exposición y capital | Tabla + D→T | **varía** | `NIIF S2 30`<br>`NIIF S2 29 (b) B64 y B65 inciso (a)`<br>`NIIF S2 29 (b) B64 y B65 inciso (b)`<br>`NIIF S2 29 (b) B64 y B65 inciso (c)` | `registros_clima_valores` | — |
-| 35 | Riesgos físicos: exposición y gráfica | Tabla + D→T | **varía** | `NIIF S2 29 (c) B64 y B65 inciso (b)`<br>`NIIF S2 29 (c) B64 y B65 inciso (c)` | `registros_clima_valores` | — |
-| 36 | Oportunidades: alineación y capital | Tabla + D→T | **varía** | `NIIF S2 29 (d) B64 y B65 inciso (a)`<br>`NIIF S2 29 (d) B64 y B65 inciso (b)`<br>`NIIF S2 29 (d) B64 y B65 inciso (c)`<br>`NIIF S2 29 (e)` | `registros_clima_valores` | — |
-| 37 | Precio interno del carbono y remuneración vinculada | D→T | ambos | `NIIF S2 29 (f) (i) y (ii)`<br>`NIIF S2 29 (g) (i) y (ii)` | — | — |
-| 38 | Objetivos climáticos (atributos por objetivo) | Tabla | **varía** | `NIIF S2 33` | `objetivos` | — |
-| 39 | Enfoque para establecer y revisar objetivos; resultados | Tabla + D→T | **varía** | `NIIF S2 34`<br>`NIIF S2 35` | `objetivos_detalle` | — |
-| 40 | Objetivo de emisiones GEI | Tabla + D→T | **varía** | `NIIF S2 36 (a)a(d)`<br>`NIIF S2 36 (e)(i)a(iv)` | `objetivos_detalle`, `cuestionarios_respuestas` | — |
+**Catálogo partido en incisos** (migración `20261007170000_catalogo_incisos`, rama `feat/catalogo-incisos`; cierre
+del Paso 5b del encargo `2026-10-06-suplemento-calidad`). Los bloques 27 y 40 citan los incisos en lugar de los
+códigos agrupados: **73 códigos citados**, sobre un catálogo de 112 códigos NIIF (116 filas con las GRI). Los cuatro
+códigos agrupados (`NIIF S2 25 (a)(i)a(v)`, `NIIF S1 44 (a)(i)a(v)`, `NIIF S2 36 (a)a(d)`, `NIIF S2 36 (e)(i)a(iv)`)
+se quedan activos y enlazados a sus solicitudes y celdas del Excel, pero ya ningún bloque los cita. **Hoja de
+taxonomía del Excel:** 18 filas más (383 → 401), una por inciso debajo de su código agrupado. Al desplegar, el
+Excel de taxonomía de staging cambia en filas: es una **diferencia esperada**, no una regresión. Se midió en el ensayo
+de v40 (13 de octubre de 2026): 435 celdas esperadas por emisora en CLEPSA, Banco Base y Grupo Carso, y 0 no esperadas
+(`scripts/ensayo/comparar-excel-v40.mjs`). El código anterior sobre la base migrada da el Excel idéntico: el cambio
+viene de la plantilla, no de los datos.
+
+| # | Bloque | Clase | Respaldo | Tipo | Régimen | Datapoints | Tablas | Perfil |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Carta de la Dirección | Editorial · opcional | Ninguna norma pide la carta de la Dirección. | T→E | ambos | — | — | `carta_texto`<br>`carta_firmante`<br>`carta_cargo` |
+| 2 | Presentación del informe (adopción, CNBV) | Normativo | NIIF S1 72 (declaración de cumplimiento). La mención de la CNBV es regulación local. | Plantilla | ambos | — | `reportes` | `denominacion_formal`<br>`nombre_corto` |
+| 3 | Bases de preparación: marco y alivios transitorios | Normativo | NIIF S1 E5–E6 (alivio «primero clima») y NIIF S2 C3–C5 (alivios del primer año). | Plantilla | **varía** | — | `reportes` | — |
+| 4 | Entidad que informa, periodo y conectividad | Normativo | NIIF S1 20 y 64 (misma entidad y periodo que los estados financieros); NIIF S2 32. | Plantilla + T→E | ambos | `NIIF S2 32` | `reportes`<br>`solicitudes` | `denominacion_formal`<br>`entidad_que_informa`<br>`perimetro` |
+| 5 | Conexiones y referencias cruzadas | Normativo | NIIF S1 21–24 (información conectada) y 63 (referencias cruzadas). | Plantilla | ambos | — | — | — |
+| 6 | Juicios, supuestos e incertidumbres | Normativo | NIIF S1 74–79 (juicios e incertidumbre en la medición). | D→T + Tabla | **varía** | `NIIF S1 74` | `capturas_valor` | — |
+| 7 | Materialidad: contexto y proceso | Editorial · recomendado | Contexto que la emisora suele querer: S1 17–18 pide aplicar la materialidad, no describir el proceso. | T→E | **varía** | — | — | `proceso_materialidad` |
+| 8 | Horizontes temporales | Normativo | NIIF S2 10(d) (horizontes de corto, mediano y largo plazo). | Tabla | ambos | `NIIF S2 10(d)` (desde el 8 de octubre de 2026; antes en el 21) | — | `horizontes` |
+| 9 | Evaluación y priorización de riesgos | Normativo | NIIF S2 25(a)(ii)–(iv) (evaluación y priorización); se solapa con el 27. | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
+| 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
+| 11 | Nuestra historia (línea de tiempo) | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
+| 12 | Modelo de negocio y cadena de valor | Editorial · opcional | La norma pide los efectos sobre el modelo de negocio y la cadena de valor (bloque 13), no describirlos. | T→E | ambos | — | — | `modelo_negocio`<br>`cadena_valor` |
+| 13 | Efectos sobre el modelo de negocio y la cadena de valor | Normativo | NIIF S2 13 (efectos sobre el modelo de negocio y la cadena de valor). | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |
+| 14 | Introducción a la sección | Editorial · opcional | Texto de paso entre secciones. | Plantilla | ambos | — | — | — |
+| 15 | Roles y responsabilidades del órgano de gobierno | Normativo | NIIF S2 6(a), (a)(i)–(ii). | D→T | ambos | `NIIF S2 6 (a)`<br>`NIIF S2 6 (a)(i)`<br>`NIIF S2 6 (a)(ii)` | — | — |
+| 16 | Supervisión de la estrategia, objetivos y remuneración | Normativo | NIIF S2 6(a)(iii)–(v). | D→T | ambos | `NIIF S2 6 (a)(iii)`<br>`NIIF S2 6 (a)(iv)`<br>`NIIF S2 6 (a)(v)` | — | — |
+| 17 | Papel de la gerencia y controles | Normativo | NIIF S2 6(b). | D→T | ambos | `NIIF S2 6(b)`<br>`NIIF S2 6(b)(i)`<br>`NIIF S2 6(b)(ii)` | — | — |
+| 18 | Estructura de gobierno corporativo y organigrama | Editorial · recomendado | Complementa a 15–17: S2 6 pide identificar al órgano y su papel, no el organigrama. | T→E + imagen | ambos | — | — | `gobierno_texto`<br>`organigrama_path` |
+| 19 | Trayectoria en sostenibilidad y clima | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_sostenibilidad` |
+| 20 | Contexto estratégico | Editorial · opcional | S2 9 es el objetivo de la sección de estrategia, no un requisito de revelación. | D→T | ambos | — | — | `horizontes` |
+| 21 | Riesgos climáticos prioritarios | Normativo | NIIF S2 10. | D→T + Tabla | ambos | `NIIF S2 10(a), (b)y(c)` | `registros_clima` | `matriz_riesgos` |
+| 22 | Cambios en modelo de negocio y asignación de recursos | Normativo | NIIF S2 14(a)(i)–(ii). | D→T | ambos | `NIIF S2 14(a)(i)`<br>`NIIF S2 14(a)(ii)` | — | — |
+| 23 | Esfuerzos directos e indirectos de reducción y adaptación | Normativo | NIIF S2 14(a)(iii). | D→T | ambos | `NIIF S2 14(a)(iii)` | — | — |
+| 24 | Oportunidades y cómo prevé alcanzar objetivos | Normativo | NIIF S2 10(a) y 14(a)(v). Se solapa con 21 y 25: fusión anotada como deuda de estructura. | D→T | ambos | — | `registros_clima`<br>`objetivos` | — |
+| 25 | Recursos asignados y progreso de planes | Normativo | NIIF S2 14(a)(v), 14(b) y 14(c). | D→T | ambos | `NIIF S2 14(a)(v)`<br>`NIIF S2 14(b)`<br>`NIIF S2 14(c)` | — | — |
+| 26 | Resiliencia de la estrategia y análisis de escenarios | Normativo | NIIF S2 22. | D→T | ambos | `NIIF S2 22(a)(i)`<br>`NIIF S2 22(a)(ii)`<br>`NIIF S2 22(a)(iii)`<br>`NIIF S2 22(b)(i)`<br>`NIIF S2 22(b)(ii)`<br>`NIIF S2 22(b)(iii)` | `cuestionarios_respuestas` | — |
+| 27 | Gestión y mitigación de riesgos y oportunidades | Normativo | NIIF S2 25. | D→T | ambos | `NIIF S2 25 (a)(i)`<br>`NIIF S2 25 (a)(ii)`<br>`NIIF S2 25 (a)(iii)`<br>`NIIF S2 25 (a)(iv)`<br>`NIIF S2 25 (a)(v)`<br>`NIIF S2 25 (a)(vi)`<br>`NIIF S2 25 (b)`<br>`NIIF S2 25 (c)` | — | — |
+| 28 | Plan de transición | Normativo | NIIF S2 14(a)(iv). | D→T | ambos | `NIIF S2 14(a)(iv)` | — | — |
+| 29 | Emisiones GEI Alcance 1 y 2 (+ Alcance 3 según régimen) | Normativo | NIIF S2 29(a)(i). | Tabla + D→T | **varía** | `NIIF S2 29 (a)(i)`<br>`NIIF S2 EI14 a E18`<br>`NIIF S2 EI19 a EI24` | `capturas_valor`<br>`reportes` | — |
+| 30 | Método de medición, datos de entrada y C5 | Normativo | NIIF S2 29(a)(ii)–(iii). | D→T | **varía** | `NIIF S2 29 (a)(ii)`<br>`NIIF S2 29 (a)(iii)` | — | — |
+| 31 | Razones del enfoque y desagregación | Normativo | NIIF S2 29(a)(iv). | D→T | ambos | `NIIF S2 29 (a)(iv) EI5` | — | — |
+| 32 | Alcance 2 por ubicación e instrumentos contractuales | Normativo | NIIF S2 29(a)(v). | D→T | ambos | `NIIF S2 29 (a)(v)` | — | — |
+| 33 | Emisiones financiadas | Normativo | NIIF S2 29(a)(vi). | D→T | ambos | `NIIF S2 29 (a)(vi)(1)`<br>`NIIF S2 29 (a)(vi)(1) EI12`<br>`NIIF S2 29 (a)(vi)(2)` | — | — |
+| 34 | Riesgos de transición: concentración, exposición y capital | Normativo | NIIF S2 29(b), B64–B65 (riesgos de transición). | Tabla + D→T | **varía** | `NIIF S2 29 (b)`<br>`NIIF S2 29 (b) · B65 (b)`<br>`NIIF S2 29 (b) · B65 (c)` | `registros_clima_valores` | — |
+| 35 | Riesgos físicos: exposición y gráfica | Normativo | NIIF S2 29(c), B64–B65 (riesgos físicos). | Tabla + D→T | **varía** | `NIIF S2 29 (c)`<br>`NIIF S2 29 (c) · B65 (b)`<br>`NIIF S2 29 (c) · B65 (c)` | `registros_clima_valores` | — |
+| 36 | Oportunidades: alineación y capital | Normativo | NIIF S2 29(d) y (e). | Tabla + D→T | **varía** | `NIIF S2 29 (d)`<br>`NIIF S2 29 (d) · B65 (b)`<br>`NIIF S2 29 (d) · B65 (c)`<br>`NIIF S2 29 (e)` | `registros_clima_valores` | — |
+| 37 | Precio interno del carbono y remuneración vinculada | Normativo | NIIF S2 29(f) y (g). | D→T | ambos | `NIIF S2 29 (f) (i) y (ii)`<br>`NIIF S2 29 (g) (i) y (ii)` | — | — |
+| 38 | Objetivos climáticos (atributos por objetivo) | Normativo | NIIF S2 33. | Tabla | **varía** | `NIIF S2 33` | `objetivos` | — |
+| 39 | Enfoque para establecer y revisar objetivos; resultados | Normativo | NIIF S2 34–35. | Tabla + D→T | **varía** | `NIIF S2 34`<br>`NIIF S2 35` | `objetivos_detalle` | — |
+| 40 | Objetivo de emisiones GEI | Normativo | NIIF S2 36. | Tabla + D→T | **varía** | `NIIF S2 36 (a)`<br>`NIIF S2 36 (b)`<br>`NIIF S2 36 (c)`<br>`NIIF S2 36 (d)`<br>`NIIF S2 36 (e)(i)`<br>`NIIF S2 36 (e)(ii)`<br>`NIIF S2 36 (e)(iii)`<br>`NIIF S2 36 (e)(iv)` | `objetivos_detalle`<br>`cuestionarios_respuestas` | — |
+
+**Clases (encargo `2026-10-06-suplemento-calidad`, aprobada por el asesor el 6/10/2026; Esteban la confirma con
+Manuel).**
+- **Normativo:** 32 bloques. Lo exige un párrafo de NIIF S1 o S2 (columna «Respaldo») y siempre va.
+- **Editorial · recomendado:** 7 y 18. Lo encienden por defecto.
+- **Editorial · opcional:** 1, 11, 12, 14, 19 y 20. Lo apagan por defecto.
+
+La selección se guarda en el documento (`documentos_generados.editoriales_incluidos`). Un editorial no seleccionado
+no se genera, no va en el índice ni en el Word, y no cuenta en el semáforo. La clasificación vive en
+`lib/suplemento/bloques.ts`. Si Manuel cambia los casos 2, 7 o 24, se ajusta ahí sin tocar el mecanismo.
+
+**Deuda de estructura:** el 24 se solapa con el 21 y el 25 y podría fundirse con ellos.
+
+**Códigos corregidos del catálogo:** 29(b) son los riesgos de transición (bloque 34) y 29(c) los físicos (bloque 35).
+`NIIF S2 30` ya no está en el bloque 34: es la exención por costo o esfuerzo para 29(b)–(d), no un requisito de
+revelación. Por eso la declaración del demo «no se acoge a la exención», ligada a S2 30, deja de salir en el
+documento.
 
 ### A.1 · Bloques sin datapoints (14 de 40)
 
@@ -1601,6 +2002,11 @@ bloque en el régimen que la Fase A implementa. Entran en años subsecuentes, cu
   NIIF S1 35(d)
   NIIF S1 41
   NIIF S1 44 (a)(i)a(v)
+  NIIF S1 44 (a)(i)
+  NIIF S1 44 (a)(ii)
+  NIIF S1 44 (a)(iii)
+  NIIF S1 44 (a)(iv)
+  NIIF S1 44 (a)(v)
   NIIF S1 44 (a)(vi)
   NIIF S1 44 (b)
   NIIF S1 44 (c)
@@ -1609,6 +2015,6 @@ bloque en el régimen que la Fase A implementa. Entran en años subsecuentes, cu
   NIIF S1 72
 ```
 
-De NIIF S2 no queda ninguno sin bloque. Dos que la primera pasada había dejado fuera se
+De NIIF S2 queda uno sin bloque desde la clasificación del 6/10/2026: `NIIF S2 30` (la exención por costo o esfuerzo, ver arriba). Dos que la primera pasada había dejado fuera se
 reasignaron al detectarlo: `NIIF S2 30` (cantidad y porcentaje de activos vulnerables a riesgos de
 transición) al bloque 34, y `NIIF S2 32` (tipo de sector en que participa) al bloque 4.

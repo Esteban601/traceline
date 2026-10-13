@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { accesoAlGenerador, tenantDeDestino } from "@/lib/suplemento/acceso";
 import { generarBloque } from "@/lib/suplemento/generar-bloque";
-import { esModeloConocido, MODELO_POR_DEFECTO } from "@/lib/suplemento/modelos";
+import { esModeloConocido, MODELO_POR_DEFECTO, type Esfuerzo } from "@/lib/suplemento/modelos";
 import { regimenDe, leerAlivios } from "@/lib/perfil-emisor";
+import { edicionesDelDocumento, mensajeEdicion } from "@/lib/suplemento/edicion";
 import { logEvento } from "@/lib/bitacora";
 
 export const runtime = "nodejs";
@@ -52,9 +53,19 @@ export async function POST(
   // no cuentan. El orquestador NO manda esta bandera, porque su reintento sí es
   // el segundo intento del mismo bloque.
   let reiniciarIntentos = false;
+  // A6 (Paso 4): regenerar un bloque editado a mano exige confirmarlo.
+  let confirmarEdicion = false;
+  // Paso 5b: veredicto del validador cruzado para el reintento. Solo el equipo
+  // de IRStrat, y acotado: es texto que entra al prompt.
+  let correccion: string | undefined;
+  // A/B de esfuerzo (cierre del 5b): solo el equipo de IRStrat; sin él, el del tipo de bloque.
+  let esfuerzo: Esfuerzo | undefined;
   try {
-    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean } | null;
+    const cuerpo = (await req.json()) as { modelo?: string; reiniciarIntentos?: boolean; confirmarEdicion?: boolean; correccion?: unknown; esfuerzo?: unknown } | null;
+    if (typeof cuerpo?.esfuerzo === "string" && ["low", "medium", "high"].includes(cuerpo.esfuerzo) && esStaff(perfil)) esfuerzo = cuerpo.esfuerzo as Esfuerzo;
     reiniciarIntentos = cuerpo?.reiniciarIntentos === true;
+    confirmarEdicion = cuerpo?.confirmarEdicion === true;
+    if (typeof cuerpo?.correccion === "string" && cuerpo.correccion.trim() && esStaff(perfil)) correccion = cuerpo.correccion.trim().slice(0, 4000);
     if (cuerpo?.modelo) {
       if (!esModeloConocido(cuerpo.modelo)) {
         return NextResponse.json({ error: `Modelo desconocido: ${cuerpo.modelo}.` }, { status: 400 });
@@ -77,6 +88,21 @@ export async function POST(
     return NextResponse.json({ error: resuelto.error }, { status: resuelto.status });
   }
 
+  // --- Edición humana: no se pisa sin confirmación (CLAUDE.md §5, A6) --------
+  // El texto no se pierde —queda en el historial—, pero quien regenera tiene que
+  // saber que está reemplazando el trabajo de una persona.
+  if (!confirmarEdicion) {
+    const [edicion] = await edicionesDelDocumento(db, resuelto.documentoId, numero);
+    if (edicion) {
+      return NextResponse.json(
+        { error: mensajeEdicion(edicion), edicion: { autor: edicion.autor, fecha: edicion.fecha }, requiereConfirmacion: true },
+        // 428 y no 409: el 409 ya quiere decir «otro proceso lo tomó» y el
+        // orquestador lo trata como «sigue consultando».
+        { status: 428 }
+      );
+    }
+  }
+
   // --- La ruta NO espera a la generación ------------------------------------
   // Un bloque tarda entre 20 y 40 segundos y el router de Heroku corta a los 30.
   // Se marca 'generando', se responde de inmediato, y la llamada al modelo corre
@@ -94,10 +120,11 @@ export async function POST(
     // excedido»— no se parece en nada a la causa.
     let r: Awaited<ReturnType<typeof generarBloque>>;
     try {
-      r = await generarBloque(db, resuelto.documentoId, numero, { modelo });
+      r = await generarBloque(db, resuelto.documentoId, numero, { modelo, correccion, esfuerzo });
     } catch (e) {
-      const detalle = e instanceof Error ? `${e.message}` : String(e);
-      console.error(`[suplemento] bloque ${numero} lanzó:`, e);
+      const detalle = motivoSeguro(e instanceof Error ? e.message : String(e));
+      // Solo el mensaje, saneado: el objeto de error puede arrastrar cabeceras.
+      console.error(`[suplemento] bloque ${numero} lanzó: ${detalle}`);
       await db
         .from("documentos_bloques")
         .update({
@@ -164,6 +191,29 @@ export async function POST(
       );
     }
 
+    // CUALQUIER OTRO FALLO SE DICE YA. Un error de la API (llave rechazada, 4xx,
+    // 5xx), un reporte ilegible o una validación que generarBloque no guardó
+    // dejaban el bloque en 'generando' hasta el vencimiento de tres minutos, sin
+    // una línea en el log: el síntoma («tiempo excedido», costo 0) no decía nada
+    // de la causa. Si el bloque sigue en 'generando' después de un fallo, pasa a
+    // 'error' con su motivo, saneado, y queda una línea en el log.
+    if (!r.ok && r.motivo !== "sin_saldo" && r.motivo !== "corte_tiempo") {
+      const motivo = motivoSeguro(`${r.motivo}: ${r.detalle}`);
+      const { data: marcado } = await db
+        .from("documentos_bloques")
+        .update({
+          estado: "error",
+          reclamado_en: null,
+          pendientes: [{ campo: "generacion", motivo }],
+          updated_at: new Date().toISOString(),
+        })
+        .eq("documento_id", resuelto.documentoId)
+        .eq("numero", numero)
+        .eq("estado", "generando")
+        .select("numero");
+      console.error(`[suplemento] bloque ${numero}: fallo ${motivo}${marcado?.length ? " → error" : ""}`);
+    }
+
     await logEvento(db, {
       tenantId: resuelto.tenantId,
       usuarioId: perfil.id,
@@ -180,7 +230,7 @@ export async function POST(
             pendientes: r.pendientes.length,
             notas_revision: r.notasRevision.length,
           }
-        : { bloque: numero, modelo, fallo: r.motivo, detalle: r.detalle },
+        : { bloque: numero, modelo, fallo: r.motivo, detalle: motivoSeguro(r.detalle) },
     });
   });
 
@@ -277,6 +327,18 @@ async function marcarGenerando(
   const ahora = new Date().toISOString();
   const limite = new Date(Date.now() - LIMITE_GENERANDO_MS).toISOString();
 
+  // Un editorial que el documento no lleva no se reclama: quedaría en
+  // 'generando' sin que nadie lo genere (encargo suplemento-calidad).
+  const { data: actual } = await db
+    .from("documentos_bloques")
+    .select("estado")
+    .eq("documento_id", documentoId)
+    .eq("numero", numero)
+    .maybeSingle();
+  if (actual?.estado === "no_seleccionado") {
+    return { ok: false, error: "Ese bloque editorial no está seleccionado en el documento.", status: 422 };
+  }
+
   const { data: tomado, error } = await db
     .from("documentos_bloques")
     .update({
@@ -291,6 +353,7 @@ async function marcarGenerando(
     // como vencido: una fila en 'generando' sin fecha de reclamo es de antes de
     // que existiera la columna, y nadie la está generando.
     .or(`estado.neq.generando,reclamado_en.is.null,reclamado_en.lt.${limite}`)
+    .neq("estado", "no_seleccionado")
     .select("numero");
 
   if (error) return { ok: false, error: `No se pudo reservar el bloque: ${error.message}`, status: 500 };
@@ -382,4 +445,18 @@ async function resolverDocumento(
   }
   void leerAlivios(rep.alivios);
   return { documentoId: creado.id, tenantId: creado.tenant_id };
+}
+
+/**
+ * Motivo de un fallo, apto para la base, la bitácora y el log: sin nada con
+ * forma de llave de API y recortado. El SDK no incluye la llave en sus
+ * mensajes, pero un mensaje no se publica a ciegas.
+ */
+function motivoSeguro(texto: string): string {
+  const limpio = texto
+    .replace(/sk-ant-[A-Za-z0-9_-]+/g, "[llave]")
+    .replace(/(x-api-key|authorization)\s*[:=]\s*\S+/gi, "$1: [oculto]")
+    .replace(/\s+/g, " ")
+    .trim();
+  return limpio.length > 300 ? `${limpio.slice(0, 300)}…` : limpio;
 }
