@@ -39,7 +39,7 @@
   "revision": {
    "archivo": "mapeo-revision.xlsx",
    "porCategoria": {
-    "(sin decisión)": 223,
+    "(sin decisión)": 222,
     "regla fija": 11,
     "subconcepto": 1,
     "Perfil o reporte": 6,
@@ -51,6 +51,7 @@
     "regla": 5,
     "datapoint y bloque": 7,
     "primer año": 8,
+    "corrección de Ref": 1,
     "sector financiero": 4,
     "confirmada (sector financiero)": 3,
     "fuera de alcance": 2
@@ -5612,12 +5613,16 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (c)",
    "confianza": "alta",
-   "bloque": 34,
-   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (b))",
-   "nota": null,
+   "bloque": 35,
+   "regla": "Tabla desde registros de clima u objetivos (NIIF S2 29 (c))",
+   "nota": "corrección de Ref: la fila está en la sección de riesgos físicos; el Ref del formato dice 29(b)",
    "alivioE5": false,
+   "revision": {
+    "origen": "Esteban (13 de octubre de 2026)",
+    "categoria": "corrección de Ref"
+   },
    "estructura": "tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git"
   },
   {

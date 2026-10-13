@@ -309,6 +309,18 @@ if (DECISIONES) {
     x.revision.categoria = "no interpretada";
   };
   for (const x of resultado) { const d = dec.get(x.fila); if (d) aplicar(x, d); }
+  // Ref del formato que contradice su sección (decisión de Esteban, 13 de octubre
+  // de 2026): la fila 370 está en la sección de riesgos físicos y su Ref dice
+  // 29(b); es 29(c). El código se resuelve contra el catálogo por nombre exacto.
+  const CORRECCIONES_DE_REF = [{ fila: 370, codigo: "NIIF S2 29 (c)", motivo: "la fila está en la sección de riesgos físicos; el Ref del formato dice 29(b)" }];
+  for (const k of CORRECCIONES_DE_REF) {
+    const x = porFila.get(k.fila);
+    const c = catalogo.find((y) => y.k === clave(k.codigo));
+    if (!x || !c) { noInterpretadas.push({ fila: k.fila }); continue; }
+    Object.assign(x, { datapoint: c.codigo, bloque: duenoDe.get(c.codigo) ?? null, confianza: "alta", nota: `corrección de Ref: ${k.motivo}` });
+    x.regla = (x.regla ?? "").replace(/NIIF S2 29 \(b\)/g, c.codigo);
+    x.revision = { origen: "Esteban (13 de octubre de 2026)", categoria: "corrección de Ref" };
+  }
   // Las filas sin decisión propia que son subconceptos vuelven a heredar de su padre ya revisado.
   for (const x of resultado) {
     const m = !x.revision && x.clasificacion.match(/^subconcepto de la fila (\d+)/);

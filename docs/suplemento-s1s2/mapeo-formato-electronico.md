@@ -12,7 +12,7 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 - Confianza: — 52 · alta 316 · media 2.
 - Con datapoint propuesto: 262; con bloque dueño: 265.
 
-- Revisión de Esteban (`mapeo-revision.xlsx`): (sin decisión) 223 · regla fija 11 · subconcepto 1 · Perfil o reporte 6 · regla S1→S2 43 · encabezado narrativo 4 · confirmada 6 · tabla 8 · encabezado 39 · regla 5 · datapoint y bloque 7 · primer año 8 · sector financiero 4 · confirmada (sector financiero) 3 · fuera de alcance 2. No interpretadas: ninguna.
+- Revisión de Esteban (`mapeo-revision.xlsx`): (sin decisión) 222 · regla fija 11 · subconcepto 1 · Perfil o reporte 6 · regla S1→S2 43 · encabezado narrativo 4 · confirmada 6 · tabla 8 · encabezado 39 · regla 5 · datapoint y bloque 7 · primer año 8 · corrección de Ref 1 · sector financiero 4 · confirmada (sector financiero) 3 · fuera de alcance 2. No interpretadas: ninguna.
 - Llevan la oración fija del alivio E5: 88.
 
 ## Conceptos
@@ -288,7 +288,7 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 367 | 210000 | text block | encabezado narrativo | — | NIIF S2 29 (c) · B65 (b) | 2 · etiqueta | alta | 35 |  | confirmada (asesor (aceptada por Esteban)) | Párrafo introductorio desde el bloque 35 aprobado |
 | 368 | 210000 | (sin tipo) | subconcepto de la fila 367 | NIIF S2 29 (b) | NIIF S2 29 (c) · B65 (b) | 2 · etiqueta | alta | 35 |  |  | Se responde junto con la fila 367 (text block) |
 | 369 | 210000 | (sin tipo) | subconcepto de la fila 367 | — | NIIF S2 29 (c) · B65 (b) | 2 · etiqueta | alta | 35 |  |  | Se responde junto con la fila 367 (text block) |
-| 370 | 210000 | tabla | concepto | NIIF S2 29 (b); NIIF S2 B64; NIIF S2 B65 (a) | NIIF S2 29 (b) | 1 · fuente | alta | 34 |  |  | Tabla desde registros de clima u objetivos (NIIF S2 29 (b)) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
+| 370 | 210000 | tabla | concepto | NIIF S2 29 (b); NIIF S2 B64; NIIF S2 B65 (a) | NIIF S2 29 (c) | 1 · fuente | alta | 35 |  | corrección de Ref (Esteban (13 de octubre de 2026)) | Tabla desde registros de clima u objetivos (NIIF S2 29 (c)) (corrección de Ref: la fila está en la sección de riesgos físicos; el Ref del formato dice 29(b)) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
 | 371 | 210000 | text block | concepto | NIIF S2 29 (c) | NIIF S2 29 (c) | 1 · fuente | alta | 35 |  |  | Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) |
 | 373 | 210000 | text block | concepto | NIIF S2 29 (e) | NIIF S2 29 (e) | 1 · fuente | alta | 36 |  |  | Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e) |
 | 375 | 210000 | text block | concepto | NIIF S2 29 (c); NIIF S2 B64; NIIF S2 B65 (b) | NIIF S2 29 (c) | 1 · fuente | alta | 35 |  |  | Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) |
