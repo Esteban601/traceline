@@ -1,0 +1,98 @@
+# Encargo: Respuestas narrativas en el Excel de taxonomía y Formato electrónico NIIF S1/S2 (Paso 7 del suplemento)
+
+**Responsable:** Esteban (con Claude Code)
+**Rama:** `feat/excel-respuestas` desde `dev/ajustes-sep26`; PR a `dev`, luego a `main` y despliegue según `CLAUDE.md` (migraciones por Esteban).
+**Fecha de inicio:** 13 de octubre de 2026 · **Aprobado por:** Manuel.
+**Referencia:** encargo de calidad del suplemento (Paso 7 anotado), especificación §3.3 y §6 (libro de hechos, cobertura por subrequisito, validadores), `lib/reporte/ensamblar.ts`, `assets/taxonomia-base.xlsx`, v40 en producción. **Formato de referencia:** `referencia/formato-electronico/Estructura_Formato_NIIF_S1_S2_Autlan.xlsx` (el formato electrónico de la BMV/CNBV tal como IRStrat lo entregó para Autlán, ejercicio 2025, con 93 respuestas llenas; fuera de git).
+
+## 1. Objetivo
+
+Que la plataforma entregue, además del Word del suplemento, los dos Excel que hoy IRStrat llena a mano para cada emisora, desde los mismos hechos y bloques aprobados:
+
+1. **El Excel de taxonomía con respuestas**: por cada datapoint, además del valor, una respuesta breve redactada desde el bloque dueño del suplemento, con remisión a la sección.
+2. **El Formato electrónico NIIF S1/S2** que la emisora presenta: la estructura del formato de referencia (secciones `[100000]`, `[200000]`, `[210000]`, `[211100]`–`[211300]`, `[901000]`), con la columna Respuesta llena según el tipo de cada campo, más la hoja "Tabla NIIF" de riesgos y oportunidades.
+
+Una sola fuente de verdad: Word, Excel de taxonomía y Formato electrónico salen del mismo libro de hechos y de los mismos bloques aprobados, y no pueden contradecirse.
+
+## 2. Alcance
+
+### 2.1 Excel de taxonomía con respuestas
+- Columna "Respuesta" en la hoja Taxonomía, por datapoint:
+  - narrativos: dos a cuatro oraciones derivadas del bloque dueño y de los hechos de la cobertura de ese inciso; cifras idénticas a las capturas; cierra con "Ver sección N · <título>";
+  - numéricos: el valor con unidad y periodo más una oración de contexto si el bloque la tiene;
+  - sin hechos: "Pendiente: <qué falta>", el mismo marcador del Word;
+  - "No aplica" cuando el inciso lo hereda del catálogo o del régimen (C4, E5, 36(c)/36(e)).
+- Incisos hijos agrupados bajo su código padre, con la respuesta del padre como encabezado.
+
+### 2.2 Formato electrónico NIIF S1/S2
+- **Estructura**: se reproduce la del formato de referencia (hoja "Estructura Formato Electronico"): Ref, concepto, lista, tipo de formato, fuente, consideraciones para el llenado, consideraciones de estructura, Respuesta. Los textos de "Consideraciones para el llenado" reproducen la norma y viven en el archivo de referencia; la plataforma los **copia del asset** (no se versionan en el repo, `CLAUDE.md` §4), igual que la plantilla de taxonomía.
+- **Mapeo concepto ↔ datapoint**: se construye una vez, por el párrafo de la columna "Fuente" (`NIIF S2 6`, `NIIF S1 31`, `NIIF S2 29(g)(i)`…) cruzado con los códigos del catálogo y con los bloques dueños. Archivo versionado en el repo (`docs/suplemento-s1s2/mapeo-formato-electronico.md` y su JSON), una fila por concepto: concepto, fuente, tipo de campo, datapoint(s), bloque dueño, regla de llenado, y "sin mapeo" donde el concepto no tiene datapoint en nuestro catálogo. Esteban lo revisa como revisión de IRStrat.
+- **Llenado por tipo de campo**:
+  - `text block` y `text`: respuesta de dos a cuatro oraciones desde el bloque dueño (misma generación que 2.1, reutilizada cuando el datapoint coincide);
+  - `booleano`: Sí/No desde un hecho o una declaración negativa; sin hecho, "Pendiente";
+  - `enumeración` (único o múltiple): el valor desde el catálogo o el Perfil (tipo de instrumento, horizontes, régimen); sin dato, "Pendiente";
+  - `porcentaje` y cifras: desde las capturas confirmadas con unidad;
+  - `tabla`: la tabla del bloque dueño (riesgos, oportunidades, GEI por alcance, objetivos), con las columnas del formato;
+  - `abstract`: sin respuesta (es encabezado).
+- **Sección `[100000]`** (identificación: clave de cotización, razón social, año, logotipo, tipo de instrumento): desde el Perfil del emisor; los campos que el Perfil no tiene hoy (clave de cotización, tipo de instrumento, fiduciario) se añaden al Perfil en este encargo.
+- **Secciones `[2111xx]`** (emisiones financiadas: gestión de activos, bancos, seguros): se llenan solo si el sector del emisor lo pide (Perfil) y hay hechos; si no, "No aplica" con la justificación.
+- **Secciones `[8xxxxx]`** (métricas por industria SASB): **fuera de alcance** hasta que exista el catálogo SASB (Fase C). Se dejan vacías con la nota "métricas por industria: pendiente de catálogo SASB".
+- **Hoja "Tabla NIIF"**: riesgos y oportunidades con las columnas del formato (riesgo, descripción, relacionado con el clima, tipo, horizonte, efecto sobre el modelo de negocio y la cadena de valor, ubicación), desde los registros de clima y los bloques 21 y 24.
+- **Hoja "Métricas SASB"**: fuera de alcance (Fase C); se deja la hoja con el encabezado.
+
+### 2.3 Reglas comunes
+- **Procedencia y versión**: cada respuesta se liga a la versión aprobada del bloque del que salió; se regenera solo cuando ese bloque cambia; el historial del bloque cubre a la celda. Las respuestas se guardan en una tabla aditiva (`respuestas_datapoint`: documento, versión aprobada, datapoint o concepto, texto, hechos citados, bloque, versión del bloque, modelo, costo), con RLS del tenant y barrera del auditor; los dos Excel las leen de ahí.
+- **Regla de publicación**: las respuestas entran a los Excel solo desde un **documento aprobado**. Con el suplemento en borrador, la columna dice "En preparación" y el Formato electrónico muestra estructura y fuentes sin respuestas. Motivo: el auditor descarga el Excel de taxonomía y no debe leer borradores. El Formato electrónico lo descargan staff y admin del cliente; el auditor, no.
+- **Validadores**: ninguna cifra fuera de las capturas confirmadas; cada booleano y enumeración respaldado por un hecho; la remisión apunta a un bloque del documento aprobado dueño del hecho; longitud máxima por tipo; sin vocabulario de plataforma; glosario del emisor aplicado; las declaraciones negativas del bloque aparecen cuando el concepto las pide.
+- **Costo**: una llamada corta por respuesta narrativa con Sonnet 5.5, con caché del contexto compartido; estimado < $1 por emisora para los dos Excel (las respuestas se comparten entre taxonomía y formato cuando el datapoint coincide).
+- **Pantalla**: en Cobertura, dos botones: "Excel de taxonomía" (como hoy, con o sin respuestas según estado) y "Formato electrónico NIIF" (solo con documento aprobado; si no, deshabilitado con el motivo). Al aprobar un documento, aviso de que los Excel incorporarán las respuestas.
+- **Bandera**: `generador_activo` del tenant; sin generador, el Excel de taxonomía sale como hoy y el Formato electrónico no se ofrece.
+
+No incluye:
+- Cambios al generador del Word ni al libro de hechos (las deudas del Paso 5c siguen aparte).
+- Métricas por industria SASB ni respuestas GRI (Fase C).
+- Inglés.
+- La hoja "Consideraciones" del formato (texto fijo de IRStrat): se copia tal cual desde el asset.
+
+## 3. Decisiones de diseño
+
+- La respuesta narrativa no se redacta desde cero: el prompt recibe el texto aprobado del bloque dueño y los hechos del inciso o concepto, y devuelve un resumen fiel con la cita de los hechos usados; el validador comprueba que cada cifra y cada hecho citado existan.
+- El mapeo concepto ↔ datapoint es la pieza de fondo: donde el formato pide algo que el catálogo no tiene como datapoint, se registra como "sin mapeo" y se propone el datapoint nuevo para el catálogo en una lista aparte (no se crean en este encargo).
+- El Excel de taxonomía conserva su estructura (hojas, columnas, mapeo_export); "Respuesta" se añade como columna. El Formato electrónico es un archivo aparte, generado desde el asset de referencia (estructura, tipos, fuentes y consideraciones) más las respuestas; se descarga como `Formato_electronico_NIIF_<emisora>_<ejercicio>.xlsx`.
+- Un documento aprobado nuevo reemplaza las respuestas del anterior; los Excel reflejan siempre el último aprobado.
+- Los textos de la norma que el formato trae en "Consideraciones para el llenado" viven en el asset (fuera de git); el repo solo lleva el mapeo y los códigos, conforme a `CLAUDE.md` §4.
+
+## 4. Definición de terminado
+
+- Migraciones aditivas con barrera (tabla de respuestas; campos nuevos del Perfil); aplicadas dos veces en local y en dev.
+- Mapeo concepto ↔ datapoint completo para las secciones en alcance, revisado por Esteban; lista de conceptos "sin mapeo" entregada.
+- Excel de taxonomía del demo con documento aprobado: todos los datapoints con respuesta, pendiente o no aplica; cero cifras fuera de las capturas; remisiones válidas; comparado con el Word por Esteban: ninguna respuesta contradice su sección.
+- Formato electrónico del demo con documento aprobado: todos los conceptos en alcance con respuesta por tipo, pendiente o no aplica; `[100000]` completo desde el Perfil; Tabla NIIF con los riesgos y oportunidades del demo; secciones `[8xxxxx]` con la nota de Fase C. Comparado por Esteban, como consultor, contra el formato de Autlán: misma estructura, mismo tipo de respuesta por campo.
+- Con el documento en borrador: "En preparación"; el auditor descarga el Excel de taxonomía sin texto de borrador y no puede descargar el Formato electrónico (e2e).
+- Regeneración: al cambiar y reaprobar un bloque, solo cambian las respuestas de sus datapoints y conceptos (e2e).
+- Costo medido por emisora; `tsc`, `eslint`, `verify:export` (actualizado), build.
+- Especificación: sección "Excel de taxonomía con respuestas y Formato electrónico" y nota en §10 para el despliegue (diferencias esperadas en el Excel de taxonomía; archivo nuevo).
+
+## 5. Pasos y paradas
+
+0. Resumen de una página: lectura del formato de referencia (secciones, conceptos por tipo, cuántos tienen fuente, cuántos llena Autlán); cómo arma hoy el Excel el ensamblador; cómo se liga datapoint → bloque dueño → hechos → versión aprobada; propuesta del mapeo (método por párrafo de fuente) con una estimación de cuántos conceptos quedan sin mapeo; propuesta de tabla y de prompt; costo. Parada.
+1. Mapeo concepto ↔ datapoint completo, en `docs/suplemento-s1s2/mapeo-formato-electronico.md` + JSON, con la lista "sin mapeo". Parada: revisión de Esteban (revisión de IRStrat).
+2. Tabla de respuestas, generación al aprobar, validadores; respuestas del demo en tabla legible. Parada.
+3. Excel de taxonomía con columna "Respuesta", incisos bajo su padre, regla de publicación, e2e del auditor. Parada: Excel del demo aprobado y en borrador.
+4. Formato electrónico: asset de referencia cargado, generación por tipo de campo, `[100000]` desde el Perfil (campos nuevos), Tabla NIIF, secciones fuera de alcance con nota. Parada: revisión de Esteban contra el formato de Autlán.
+5. Regeneración por cambio de bloque, pantalla, especificación, `verify:export`. PR a `dev`.
+6. PR a `main` y despliegue (migraciones por Esteban; comparador con las diferencias esperadas).
+
+## 6. Riesgos
+
+- El formato de referencia tiene conceptos sin fuente o con fuentes agrupadas ("NIIF S1 32 / NIIF S2 13 / NIIF S2 23"): el mapeo tendrá ambigüedades que se resuelven con Esteban en el Paso 1, no con el modelo.
+- Conceptos del formato sin datapoint en el catálogo: se esperan varios en `[100000]` (identificación) y en `[2111xx]`; se listan, no se inventan.
+- El formato puede cambiar de versión (el de referencia es el de 2025): el asset lleva fecha de versión y el mapeo también; un formato nuevo es un mapeo nuevo.
+- Respuestas que resumen bien pero omiten el matiz del bloque (alivios, exclusiones): el validador exige las declaraciones negativas cuando el concepto las pide.
+- Volumen: 434 conceptos, de los que unos 180 están en alcance; cuidar ancho de columna y ajuste de texto.
+
+## 7. Registro
+
+| Fecha | Qué pasó | Decisión |
+|---|---|---|
+| 2026-10-13 | Manuel aprueba el Paso 7; Esteban entrega el formato electrónico de Autlán como referencia | El entregable es el Formato electrónico NIIF S1/S2 de la BMV lleno por tipo de campo, más el Excel de taxonomía con respuestas; métricas por industria fuera hasta la Fase C; respuestas solo desde documento aprobado |
