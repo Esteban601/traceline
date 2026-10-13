@@ -8,6 +8,7 @@ import { registrarActividadAuditor } from "@/lib/auditoria";
 import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
 import { fmtFecha } from "@/lib/fechas";
+import { PADRE_DE } from "@/lib/suplemento/catalogo-incisos";
 import {
   ensamblarReporte,
   type CuestRow,
@@ -87,6 +88,64 @@ function escribirRequisitos(
 
   return { escritas, sinCatalogo };
 }
+/**
+ * COLUMNA «RESPUESTA» (encargo 2026-10-13-excel-respuestas-narrativas, Paso 3).
+ *
+ * Las respuestas salen de `respuestas_datapoint`, que solo tiene filas del ÚLTIMO
+ * DOCUMENTO APROBADO del reporte. Sin ellas —el suplemento sigue en borrador, o
+ * la generación no ha terminado— la columna dice «En preparación»: el auditor
+ * descarga este libro y no debe leer un borrador. Con el generador apagado para
+ * la emisora, la columna no se agrega y el libro sale como antes.
+ *
+ * Como la columna D, solo en la PRIMERA fila de cada código. Los incisos hijos
+ * (25(a)(i)…(v), 36(a)…(d), 36(e)(i)…(iv), S1 44(a)(i)…(v)) quedan agrupados
+ * bajo su padre: un nivel de esquema y sangría, con la respuesta del padre como
+ * encabezado del grupo.
+ */
+const EN_PREPARACION = "En preparación";
+
+function escribirRespuestas(
+  ws: ExcelJS.Worksheet,
+  respuestas: Map<string, string> | null
+): { escritas: number; enPreparacion: number; hijos: number } {
+  const norm = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object" && v !== null && "richText" in v) {
+      return (v as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("").replace(/\s+/g, " ").trim();
+    }
+    return String(v).replace(/\s+/g, " ").trim();
+  };
+  const encabezado = ws.getCell("E1");
+  const modelo = ws.getCell("D1");
+  encabezado.value = "Respuesta";
+  encabezado.style = { ...modelo.style };
+  ws.getColumn(5).width = 90;
+  ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false };
+
+  const vistos = new Set<string>();
+  let escritas = 0;
+  let enPreparacion = 0;
+  let hijos = 0;
+  ws.eachRow((fila, nf) => {
+    if (nf === 1) return;
+    const codigo = norm(ws.getCell(`B${nf}`).value);
+    if (!codigo || vistos.has(codigo)) return;
+    vistos.add(codigo);
+    const esHijo = Object.hasOwn(PADRE_DE, codigo);
+    const celda = ws.getCell(`E${nf}`);
+    const texto = respuestas ? respuestas.get(codigo) ?? null : EN_PREPARACION;
+    celda.value = texto ?? EN_PREPARACION;
+    if (texto === null || texto === EN_PREPARACION) enPreparacion++;
+    else escritas++;
+    celda.alignment = { vertical: "top", wrapText: true, indent: esHijo ? 2 : 0 };
+    if (esHijo) {
+      fila.outlineLevel = 1;
+      hijos++;
+    }
+  });
+  return { escritas, enPreparacion, hijos };
+}
+
 const TIPO_LABEL: Record<string, string> = {
   riesgo_fisico: "Físico",
   riesgo_transicion: "Transición",
@@ -657,6 +716,25 @@ export async function GET(request: Request) {
     );
   }
 
+  // Columna «Respuesta»: solo con el generador encendido para la emisora; las
+  // respuestas, solo del último documento aprobado (las filas de la tabla).
+  const { data: repTenant } = await supabase
+    .from("reportes")
+    .select("tenant:tenants!reportes_tenant_id_fkey(generador_activo)")
+    .eq("id", reporteId)
+    .maybeSingle();
+  const generadorActivo = (repTenant?.tenant as unknown as { generador_activo: boolean } | null)?.generador_activo === true;
+  let respuestasEscritas: { escritas: number; enPreparacion: number; hijos: number } | null = null;
+  if (hojaIndice && generadorActivo) {
+    const { data: filasResp } = await supabase
+      .from("respuestas_datapoint")
+      .select("clave, texto")
+      .eq("reporte_id", reporteId)
+      .eq("destino", "taxonomia");
+    const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
+    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas);
+  }
+
   const registrosEscritos = escribirRegistros(
     wb,
     ens.registros,
@@ -715,7 +793,9 @@ export async function GET(request: Request) {
       `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
       `cuestionarios=${cuestionariosEscritos} requisitos=${requisitos.escritas} ` +
-      `requisitos_sin_catalogo=${requisitos.sinCatalogo.length} archivo=${filename}`
+      `requisitos_sin_catalogo=${requisitos.sinCatalogo.length} ` +
+      `respuestas=${respuestasEscritas ? `${respuestasEscritas.escritas}/${respuestasEscritas.enPreparacion} en preparación` : "sin generador"} ` +
+      `archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {
