@@ -36,7 +36,7 @@ import { esCambioDelEjercicio, SIN_CAMBIOS } from "./validadores";
 
 type Db = SupabaseClient<Database>;
 
-export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "cambios_negados" | "duplicacion";
+export type TipoDiscrepancia = "pendiente_de_afirmado" | "otro_valor" | "afirma_excluyente" | "remision_a_plantilla" | "remision_sin_dueno" | "remision_sin_ancla" | "cambios_negados" | "duplicacion";
 
 export type Discrepancia = {
   bloque: number;
@@ -87,7 +87,7 @@ const RE_REMISION = /(?:como se (?:describe|indica|detalla|señala|explica|prese
 export async function validarCruzado(db: Db, documentoId: string): Promise<Discrepancia[]> {
   const { data: filas } = await db
     .from("documentos_bloques")
-    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, documento:documentos_generados(tenant_id, reporte_id)")
+    .select("numero, texto, anclas, cobertura, libro_id, texto_del_emisor, estado, pendientes, documento:documentos_generados(tenant_id, reporte_id)")
     .eq("documento_id", documentoId)
     .order("numero");
   // Solo los bloques que van en el Word: un editorial quitado («no_seleccionado»)
@@ -163,6 +163,20 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
         cita: a.oracion.slice(0, 200),
         detalle: `Afirma un hecho que el libro dejó en contradicción excluyente: «${a.h.enunciado.slice(0, 160)}».`,
         correccion: `La oración «${a.oracion.slice(0, 200)}» afirma un hecho cuyo veredicto es «excluyente». No elijas versión: en su lugar va un marcador de pendiente y la nota de contradicción.`,
+      });
+    }
+
+    // --- 3b. Remisiones sin ancla aceptadas en el reintento --------------------
+    // El generador ya no deja el bloque en error por esto (fix/pre-v40-b): las
+    // guarda como nota del validador y aquí se vuelven observación.
+    for (const n of ((b.pendientes ?? []) as unknown as { campo?: string; cubeta?: string; motivo?: string }[]).filter((x) => x.campo === "nota_revision" && x.cubeta === "validador")) {
+      out.push({
+        bloque: b.numero,
+        tipo: "remision_sin_ancla",
+        otroBloque: Number(/remite al bloque (\d+)/.exec(n.motivo ?? "")?.[1]) || null,
+        cita: (n.motivo ?? "").slice(0, 200),
+        detalle: `Remisión aceptada en el reintento sin el ancla del hecho al que remite: ${(n.motivo ?? "").slice(0, 200)}`,
+        correccion: (n.motivo ?? "").slice(0, 400),
       });
     }
 

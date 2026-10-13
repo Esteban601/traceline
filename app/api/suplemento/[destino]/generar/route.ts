@@ -6,7 +6,7 @@ import { evaluarCompletitud } from "@/lib/suplemento/completitud";
 import { regimenDe } from "@/lib/perfil-emisor";
 import { logEvento } from "@/lib/bitacora";
 import { accesoAlGenerador } from "@/lib/suplemento/acceso";
-import { cierreEnCurso } from "@/lib/suplemento/hechos/cierre";
+import { liberarCierre, reclamarCierre } from "@/lib/suplemento/hechos/cierre";
 import { opcionesLiterales } from "@/lib/suplemento/texto-del-emisor";
 import { edicionesDelDocumento, fechaLarga } from "@/lib/suplemento/edicion";
 
@@ -38,7 +38,24 @@ export const runtime = "nodejs";
 // resto con concurrencia 3.
 // =============================================================================
 
+/**
+ * La reapertura de un documento toma la reserva del cierre en el mismo paso
+ * atómico con que comprueba que no hay uno en curso (observación P1 de Codex
+ * sobre el PR #20): mientras se reabre, un POST …/cierre recibe 409. La reserva
+ * se suelta al salir, por la vía que sea; la toma el cierre del final de la corrida.
+ */
+type Reapertura = { r: { documento: string; reserva: string } | null };
+
 export async function POST(req: Request, ctx: { params: Promise<{ destino: string }> }) {
+  const reapertura: Reapertura = { r: null };
+  try {
+    return await generar(req, ctx, reapertura);
+  } finally {
+    if (reapertura.r) await liberarCierre(await createClient(), reapertura.r.documento, reapertura.r.reserva);
+  }
+}
+
+async function generar(req: Request, ctx: { params: Promise<{ destino: string }> }, reapertura: Reapertura) {
   const { destino: reporteId } = await ctx.params;
   // SELECCIÓN DE EDITORIALES (encargo suplemento-calidad): las claves de los
   // bloques editoriales que lleva el documento. Sin cuerpo, los recomendados.
@@ -133,13 +150,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   if (ultimo && ultimo.estado !== "aprobado") {
     // Reabrir el documento vacía sus bloques: con el cierre de la corrida
     // anterior en curso, ese cierre leería o escribiría la corrida nueva
-    // (observación P2 de Codex sobre el PR #18). Se espera a que termine.
-    if (await cierreEnCurso(db, ultimo.id)) {
+    // (observación P2 de Codex sobre el PR #18). Se espera a que termine; y
+    // mientras se reabre, la reserva es de la reapertura (ver POST).
+    const reserva = await reclamarCierre(db, ultimo.id);
+    if (!reserva) {
       return NextResponse.json(
         { error: "El cierre de pendientes de la corrida anterior sigue en curso; vuelve a generar cuando termine." },
         { status: 409 }
       );
     }
+    reapertura.r = { documento: ultimo.id, reserva };
     // EDICIONES HUMANAS (CLAUDE.md §5, A6). Reabrir el documento deja en cola
     // todos sus bloques y vacía sus textos; los editados a mano no se pisan sin
     // que quien genera lo confirme. Nada se pierde: cada texto queda en el

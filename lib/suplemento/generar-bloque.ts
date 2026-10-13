@@ -44,7 +44,7 @@ import { libroVigente } from "@/lib/suplemento/hechos/libro";
 import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
 import { cambiosNegados, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
 import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
-import { clausulas, FIN_ORACION, mapaDeDuenos, remisionesSinAncla } from "@/lib/suplemento/hechos/remisiones";
+import { aceptaConRemisionesSinAncla, clausulas, FIN_ORACION, mapaDeDuenos, remisionesSinAncla } from "@/lib/suplemento/hechos/remisiones";
 import { noAplicaHeredado } from "@/lib/suplemento/catalogo-incisos";
 import { aplicarGlosario, leerGlosario } from "@/lib/suplemento/glosario";
 import { defectosDeInsumo } from "@/lib/suplemento/prevuelo";
@@ -524,6 +524,8 @@ export async function generarBloque(
   let uso: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
   let salida: SalidaModelo | null = null;
   let ultimoError = "";
+  /** Remisiones sin ancla aceptadas en el reintento: van como observación del validador. */
+  let remisionesDegradadas: string[] = [];
 
   for (let intento = 1; intento <= 2; intento++) {
     let respuesta: Anthropic.Message;
@@ -703,6 +705,23 @@ export async function generarBloque(
       anclasFinales = insumo ? anclas : null;
       break;
     }
+    // EL VALIDADOR DE REMISIONES DEGRADA EN EL REINTENTO (decisión de Esteban del
+    // 13 de octubre de 2026; el 25 del A8 de v40 quedó en «error» por esto). Si lo
+    // único que queda en el segundo intento son remisiones sin ancla, el bloque se
+    // acepta en borrador: cada remisión va como observación del validador y el
+    // validador cruzado la señala. Un bloque en error no llega al documento; una
+    // remisión mal anclada es revisable.
+    const degrada = aceptaConRemisionesSinAncla(intento, {
+      remisiones: remisionesMal.length, deterministas: deterministas.length, inventadas: inventadas.length,
+      prohibidas: prohibidas.length, marcadores: marcadores.length, sinRespaldo: sinRespaldo.length, cobertura: cobertura.length,
+    });
+    if (degrada) {
+      salida = parseada;
+      anclasFinales = insumo ? anclas : null;
+      remisionesDegradadas = remisionesMal;
+      console.info(`[suplemento] bloque ${bloque.numero}: aceptado en el reintento con ${remisionesMal.length} remisión(es) sin ancla como observación del validador`);
+      break;
+    }
 
     const reproches: string[] = [];
     if (inventadas.length) {
@@ -843,6 +862,9 @@ export async function generarBloque(
         });
       }
     }
+    for (const r of remisionesDegradadas) {
+      (salida.notas_clasificadas ??= []).push({ cubeta: "validador", etiqueta: "remision_sin_ancla", texto: r });
+    }
     for (const c of g.cambios) {
       (salida.notas_clasificadas ??= []).push({
         cubeta: "defecto_insumo",
@@ -945,7 +967,8 @@ type SalidaModelo = {
   notas_clasificadas?: NotaClasificada[];
 };
 
-type NotaClasificada = { cubeta: "decision_emisor" | "revelacion_voluntaria" | "defecto_insumo"; etiqueta: "contradiccion" | "por_conciliar" | null; texto: string };
+// «validador» y «remision_sin_ancla» los pone el código, no el modelo (su esquema solo ofrece las otras).
+type NotaClasificada = { cubeta: "decision_emisor" | "revelacion_voluntaria" | "defecto_insumo" | "validador"; etiqueta: "contradiccion" | "por_conciliar" | "remision_sin_ancla" | null; texto: string };
 
 function resolverBloque(id: number | string): Bloque | null {
   const n = typeof id === "number" ? id : Number(id);

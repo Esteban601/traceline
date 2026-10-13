@@ -51,11 +51,13 @@ export type BloqueRevision = {
   anclas: { oracion: string; hechos: { id: string; fuente: string }[] }[] | null;
 };
 
-/** Las tres cubetas de notas (Paso 5.4); las notas de antes, sin cubeta, al final. */
+/** Las cubetas de notas (Paso 5.4, y la del validador); las notas de antes, sin cubeta, al final. */
 const CUBETAS: { clave: string | null; titulo: string }[] = [
   { clave: "decision_emisor", titulo: "decisiones del emisor" },
   { clave: "revelacion_voluntaria", titulo: "revelación voluntaria" },
   { clave: "defecto_insumo", titulo: "defectos de insumo" },
+  // Remisiones que el validador aceptó en el reintento sin su ancla (fix/pre-v40-b).
+  { clave: "validador", titulo: "observaciones del validador" },
   { clave: null, titulo: "para el revisor" },
 ];
 

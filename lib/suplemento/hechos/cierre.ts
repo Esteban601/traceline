@@ -383,3 +383,15 @@ export async function completarCierre(db: Db, documentoId: string, reserva: stri
     return null;
   }
 }
+
+/**
+ * Suelta una reserva sin cierre detrás (la que toma la reapertura en «generar»):
+ * el documento vuelve a no tener cierre. Solo si la reserva sigue siendo esa.
+ */
+export async function liberarCierre(db: Db, documentoId: string, reserva: string): Promise<void> {
+  await db
+    .from("documentos_generados")
+    .update({ cierre_estado: null, cierre_resultado: null, cierre_actualizado_en: new Date().toISOString() })
+    .eq("id", documentoId)
+    .eq("cierre_resultado->>reserva", reserva);
+}
