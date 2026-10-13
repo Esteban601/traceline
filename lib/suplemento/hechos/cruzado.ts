@@ -76,6 +76,36 @@ export function palabras(t: string): Set<string> {
   );
 }
 
+/**
+ * ¿La cita de una nota del validador sigue en el texto ACTUAL del bloque?
+ * (Observación P2 de Codex sobre el PR #23, decisión de Esteban del 13 de
+ * octubre de 2026.) La nota se guarda al generar; si un revisor quita el pasaje,
+ * o el cierre lo sustituye por una remisión, la observación ya no aplica.
+ *   · texto reescrito: «<frase de ocho palabras normalizada>…»;
+ *   · remisión sin ancla: «<cláusula, recortada a 120 caracteres>» remite al bloque N…
+ * Se comparan las palabras normalizadas (minúsculas, sin acentos) en orden,
+ * dentro de una ventana que tolera los nombres de la emisora que la frase
+ * normalizada omite y la última palabra que el recorte pudo partir. Sin cita
+ * reconocible, la nota se conserva.
+ */
+export function citaVigente(motivo: string, etiqueta: string | undefined, texto: string): boolean {
+  const m = etiqueta === "texto_reescrito" ? /«(.+?)…»/.exec(motivo) : /^«(.+)» remite al bloque/.exec(motivo);
+  if (!m) return true;
+  const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\[pendiente:[^\]]*\]/g, " ").replace(/[^a-z0-9ñ]+/g, " ").split(/\s+/).filter(Boolean);
+  let cita = norm(m[1]);
+  if (etiqueta !== "texto_reescrito" && cita.length > 3) cita = cita.slice(0, -1);
+  if (cita.length < 3) return true;
+  const w = norm(texto);
+  const ventana = Math.ceil(cita.length * 1.5) + 4;
+  for (let i = 0; i < w.length; i++) {
+    if (w[i] !== cita[0]) continue;
+    let k = 1;
+    for (let j = i + 1; j < Math.min(w.length, i + ventana) && k < cita.length; j++) if (w[j] === cita[k]) k++;
+    if (k === cita.length) return true;
+  }
+  return false;
+}
+
 /** El bloque va en el documento (Word, aprobación): tiene texto y no es «no aplica» ni un editorial quitado. */
 export function enElDocumento(b: { texto: string | null; estado: string }): boolean {
   return !!(b.texto ?? "").trim() && b.estado !== "no_aplica" && b.estado !== "no_seleccionado";
@@ -171,6 +201,8 @@ export async function validarCruzado(db: Db, documentoId: string): Promise<Discr
     // guarda como nota del validador y aquí se vuelve observación. Remisión sin
     // ancla o texto que repite el contenido de otro bloque (etiqueta de la nota).
     for (const n of ((b.pendientes ?? []) as unknown as { campo?: string; cubeta?: string; etiqueta?: string; motivo?: string }[]).filter((x) => x.campo === "nota_revision" && x.cubeta === "validador")) {
+      // Vigente: si su cita ya no está en el texto actual, la observación no aplica.
+      if (!citaVigente(n.motivo ?? "", n.etiqueta, b.texto ?? "")) continue;
       const repite = n.etiqueta === "texto_reescrito";
       const otro = Number((repite ? /bloque (\d+)/ : /remite al bloque (\d+)/).exec(n.motivo ?? "")?.[1]) || null;
       out.push({

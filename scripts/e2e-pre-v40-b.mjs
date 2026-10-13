@@ -73,7 +73,7 @@ const VERSION_DOC = Number(psql(`select coalesce(max(version), 0) + 1 from docum
 const DOC = psql(`insert into documentos_generados (tenant_id, reporte_id, version, estado, editoriales_incluidos) values (${lit(TENANT)}, ${lit(REPORTE)}, ${VERSION_DOC}, 'borrador', '{}') returning id`).split("\n")[0];
 const NOTA = "«los esfuerzos indirectos se describen en la sección «Esfuerzos indirectos de reducción y adaptación»» remite al bloque 23 sin el ancla [B23.k] del hecho del mapa al que remite: ánclalo, o si ninguno de sus hechos es lo que remites, no remitas ahí.";
 const PEND = JSON.stringify([{ campo: "nota_revision", motivo: NOTA, cubeta: "validador", etiqueta: "remision_sin_ancla" }]);
-psql(`insert into documentos_bloques (documento_id, numero, clave, titulo, seccion, idioma, estado, texto, origen_texto, fuentes, pendientes, generado_en, libro_id) values (${lit(DOC)}, 25, 'recursos_progreso', 'Recursos asignados y progreso de planes', 'III · Nuestra estrategia', 'es', 'borrador', 'Texto del bloque veinticinco aceptado en el reintento.', 'generacion', '[]', ${lit(PEND)}::jsonb, now(), ${lit(LIBRO)})`);
+psql(`insert into documentos_bloques (documento_id, numero, clave, titulo, seccion, idioma, estado, texto, origen_texto, fuentes, pendientes, generado_en, libro_id) values (${lit(DOC)}, 25, 'recursos_progreso', 'Recursos asignados y progreso de planes', 'III · Nuestra estrategia', 'es', 'borrador', 'Texto del bloque veinticinco aceptado en el reintento. Los esfuerzos indirectos se describen en la sección «Esfuerzos indirectos de reducción y adaptación».', 'generacion', '[]', ${lit(PEND)}::jsonb, now(), ${lit(LIBRO)})`);
 
 const nav = await chromium.launch();
 try {
