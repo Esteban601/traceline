@@ -23,7 +23,6 @@
 //      suplemento». La red se simula en el navegador (sin corrida ni modelo).
 // =============================================================================
 import { execFileSync } from "node:child_process";
-import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { chromium } from "playwright";
 import { cerrarPendientes, completarCierre, reclamarCierre, ReservaPerdida } from "../lib/suplemento/hechos/cierre.ts";
@@ -31,9 +30,8 @@ import { validarCruzado } from "../lib/suplemento/hechos/cruzado.ts";
 
 const BASE = process.argv[2] || "http://localhost:3016";
 const URL_SB = "http://127.0.0.1:54321";
-// Llaves PÚBLICAS de demostración del stack local de Supabase (las mismas de `dev:local`).
+// Llave PÚBLICA de demostración del stack local de Supabase (la misma de `dev:local`).
 const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
-const SERVICIO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 const CLAVE = "Demo2025!";
 const TENANT = "10000000-0000-0000-0000-000000000001";
 const REPORTE = "20000000-0000-0000-0000-000000000001";
@@ -50,7 +48,13 @@ const psql = (sql, replica = false) =>
 const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
 const fallas = [];
 const ok = (c, m) => { if (!c) fallas.push(m); console.log(`${c ? "  ✓" : "  ✗"} ${m}`); };
-const db = createClient(URL_SB, SERVICIO, { auth: { persistSession: false } });
+// Las funciones del cierre corren con la sesión del staff, como en la ruta: en el
+// stack local `service_role` no escribe en documentos_generados (deuda de §10).
+const jar = new Map();
+const db = createServerClient(URL_SB, ANON, { cookies: { getAll: () => [...jar].map(([name, value]) => ({ name, value })), setAll: (a) => a.forEach(({ name, value }) => jar.set(name, value)) } });
+const { error: eLogin } = await db.auth.signInWithPassword({ email: "admin@irstrat.example", password: CLAVE });
+if (eLogin) throw new Error("login staff");
+const cookie = () => [...jar].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
 const estado = () => JSON.parse(psql(`select json_build_object('estado', cierre_estado, 'reserva', cierre_resultado->>'reserva')::text from documentos_generados where id=${lit(DOC)}`));
 
 // --- Preparación: el 15 deja pendiente lo que el 17 afirma con un hecho suyo ---
@@ -95,11 +99,6 @@ try {
   await completarCierre(db, DOC, otra);
 
   console.log("\n4. Generar con un cierre en curso");
-  const jar = new Map();
-  const sb = createServerClient(URL_SB, ANON, { cookies: { getAll: () => [...jar].map(([name, value]) => ({ name, value })), setAll: (a) => a.forEach(({ name, value }) => jar.set(name, value)) } });
-  const { error: eLogin } = await sb.auth.signInWithPassword({ email: "admin@irstrat.example", password: CLAVE });
-  if (eLogin) throw new Error("login staff");
-  const cookie = () => [...jar].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
   psql(`update documentos_generados set cierre_estado = 'ejecutando', cierre_actualizado_en = now() where id=${lit(DOC)}`);
   const g = await fetch(`${BASE}/api/suplemento/${REPORTE}/generar`, { method: "POST", headers: { cookie: cookie(), "content-type": "application/json" }, body: "{}" });
   const cuerpo = await g.json().catch(() => ({}));
