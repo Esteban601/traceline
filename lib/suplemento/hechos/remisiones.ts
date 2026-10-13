@@ -218,18 +218,28 @@ export function mapaDeDuenos(duenos: { dueno: number; enunciado: string }[], por
 }
 
 /**
+ * Tipo de cada rechazo de remisión (fix/pre-v40-c, observación P1 de Codex sobre
+ * el PR #22). Solo «sin_ancla» es un problema de COLOCACIÓN que degrada en el
+ * reintento: la remisión va a un bloque del documento que es dueño de hechos,
+ * pero no dice a cuál. Los otros tres son FALLOS: remitir a un bloque que no va
+ * en el documento, a uno que no es dueño de nada, o anclar un hecho inventado
+ * mandaría al lector a una sección que no tiene lo que se le promete.
+ */
+export type RemisionRechazada = { tipo: "sin_ancla" | "ausente" | "sin_dueno" | "inventada"; destino: number; mensaje: string };
+
+/**
  * Remisiones del bloque validadas contra las anclas del mapa: cada oración que
  * remite a un bloque lleva el ancla [Bn.k] de un hecho de ESE bloque.
  */
-export function remisionesSinAncla(
+export function remisionesSinAnclaTipadas(
   anclas: { oracion: string; ids: string[] }[],
   textoLimpio: string,
   propio: number,
   bloques: BloqueTitulo[],
   presentes: Set<number>,
   mapa: Map<number, { id: string }[]>
-): string[] {
-  const errores: string[] = [];
+): RemisionRechazada[] {
+  const errores: RemisionRechazada[] = [];
   const idsMapa = new Set([...mapa.values()].flat().map((h) => h.id));
   const ancladas = new Map(anclas.map((a) => [a.oracion.replace(/\s+/g, " ").trim(), a.ids.filter((i) => i.startsWith("B"))]));
   for (const o of textoLimpio.replace(/\[Pendiente:[^\]]*\]/g, " ").split(FIN_ORACION)) {
@@ -237,19 +247,19 @@ export function remisionesSinAncla(
       const destino = destinoDe(c.destino, bloques, propio);
       if (destino == null) continue;
       if (!presentes.has(destino)) {
-        errores.push(`«${c.clausula.slice(0, 120)}» remite al bloque ${destino}, que no va en este documento: redáctalo aquí o déjalo pendiente.`);
+        errores.push({ tipo: "ausente", destino, mensaje: `«${c.clausula.slice(0, 120)}» remite al bloque ${destino}, que no va en este documento: redáctalo aquí o déjalo pendiente.` });
         continue;
       }
       const clave = o.replace(/\s+/g, " ").trim();
       const ids = [...ancladas.entries()].find(([k]) => k.includes(clave.slice(0, 60)) || clave.includes(k.slice(0, 60)))?.[1] ?? [];
       const inventados = ids.filter((i) => !idsMapa.has(i));
-      if (inventados.length) errores.push(`«${c.clausula.slice(0, 120)}» ancla ${inventados.join(", ")}, que no están en el mapa del documento.`);
+      if (inventados.length) errores.push({ tipo: "inventada", destino, mensaje: `«${c.clausula.slice(0, 120)}» ancla ${inventados.join(", ")}, que no están en el mapa del documento.` });
       else if (!ids.some((i) => i.startsWith(`B${destino}.`))) {
         const delDestino = (mapa.get(destino) ?? []).length;
         errores.push(
           delDestino
-            ? `«${c.clausula.slice(0, 120)}» remite al bloque ${destino} sin el ancla [B${destino}.k] del hecho del mapa al que remite: ánclalo, o si ninguno de sus hechos es lo que remites, no remitas ahí.`
-            : `«${c.clausula.slice(0, 120)}» remite al bloque ${destino}, que no es dueño de ningún hecho del mapa: redáctalo aquí o déjalo pendiente.`
+            ? { tipo: "sin_ancla", destino, mensaje: `«${c.clausula.slice(0, 120)}» remite al bloque ${destino} sin el ancla [B${destino}.k] del hecho del mapa al que remite: ánclalo, o si ninguno de sus hechos es lo que remites, no remitas ahí.` }
+            : { tipo: "sin_dueno", destino, mensaje: `«${c.clausula.slice(0, 120)}» remite al bloque ${destino}, que no es dueño de ningún hecho del mapa: redáctalo aquí o déjalo pendiente.` }
         );
       }
     }
@@ -257,21 +267,38 @@ export function remisionesSinAncla(
   return errores;
 }
 
+/** Los mismos rechazos, como texto (los usan la prueba sin modelo y los mensajes al modelo). */
+export function remisionesSinAncla(...args: Parameters<typeof remisionesSinAnclaTipadas>): string[] {
+  return remisionesSinAnclaTipadas(...args).map((e) => e.mensaje);
+}
+
 /**
- * Regla de degradación del validador de remisiones (fix/pre-v40-b, decisión de
- * Esteban del 13 de octubre de 2026): en el SEGUNDO intento, si lo único que se
- * rechaza son remisiones sin ancla, el bloque se acepta y cada remisión va como
- * observación del validador. Cualquier otro rechazo (cifras, fuentes, voz,
- * marcadores, cobertura u otro validador) sigue dejando el bloque en error.
+ * VALIDADORES DE DATOS FALLAN; VALIDADORES DE COLOCACIÓN DEGRADAN (decisión de
+ * Esteban del 13 de octubre de 2026; especificación §6). En el SEGUNDO intento,
+ * si lo único que se rechaza son problemas de colocación —una remisión sin ancla
+ * (tipo «sin_ancla») o un texto que reescribe un hecho de otro bloque—, el bloque
+ * se acepta y cada uno va como observación del validador. Cualquier rechazo de
+ * datos (cifras, fuentes, voz, marcadores, cobertura, otros validadores, o una
+ * remisión a un bloque ausente, sin dueño o con ancla inventada) sigue dejando el
+ * bloque en error.
  */
+export function aceptaConObservacionesDeColocacion(
+  intento: number,
+  f: { colocacion: number; deterministas: number; inventadas: number; prohibidas: number; marcadores: number; sinRespaldo: number; cobertura: number }
+): boolean {
+  return (
+    intento === 2 &&
+    f.colocacion > 0 &&
+    f.deterministas === f.colocacion &&
+    f.inventadas + f.prohibidas + f.marcadores + f.sinRespaldo + f.cobertura === 0
+  );
+}
+
+/** Nombre del PR #22; `remisiones` cuenta como colocación. */
 export function aceptaConRemisionesSinAncla(
   intento: number,
   f: { remisiones: number; deterministas: number; inventadas: number; prohibidas: number; marcadores: number; sinRespaldo: number; cobertura: number }
 ): boolean {
-  return (
-    intento === 2 &&
-    f.remisiones > 0 &&
-    f.deterministas === f.remisiones &&
-    f.inventadas + f.prohibidas + f.marcadores + f.sinRespaldo + f.cobertura === 0
-  );
+  const { remisiones, ...resto } = f;
+  return aceptaConObservacionesDeColocacion(intento, { colocacion: remisiones, ...resto });
 }
