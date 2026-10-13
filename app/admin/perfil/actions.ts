@@ -178,6 +178,12 @@ export async function guardarIdentidad(_p: PerfilState, fd: FormData): Promise<P
     forma_de_referencia: texto(fd, "forma_de_referencia"),
     entidad_que_informa: texto(fd, "entidad_que_informa"),
     perimetro: texto(fd, "perimetro"),
+    // Formato electrónico NIIF S1/S2, sección [100000] (encargo 2026-10-13, Paso 4).
+    clave_cotizacion: texto(fd, "clave_cotizacion"),
+    tipo_instrumento: texto(fd, "tipo_instrumento"),
+    fiduciario: texto(fd, "fiduciario"),
+    numero_fideicomiso: texto(fd, "numero_fideicomiso"),
+    hechos_posteriores: texto(fd, "hechos_posteriores"),
   });
 }
 

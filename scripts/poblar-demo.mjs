@@ -191,6 +191,13 @@ const PERFIL = {
   ],
   denominacion_formal: "Empresa Demo, S.A.B. de C.V.",
   nombre_corto: "Empresa Demo",
+  // Formato electrónico, [100000] (encargo 2026-10-13, Paso 4). Ficticios: la
+  // clave no corresponde a ninguna emisora listada.
+  clave_cotizacion: "EDEMO",
+  tipo_instrumento: "Acciones",
+  fiduciario: null,
+  numero_fideicomiso: null,
+  hechos_posteriores: "No se identificaron hechos posteriores al cierre del ejercicio que afecten la información de sostenibilidad y clima.",
   forma_de_referencia: "la Compañía",
   entidad_que_informa:
     "Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V.",

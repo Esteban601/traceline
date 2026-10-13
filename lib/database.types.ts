@@ -1578,12 +1578,15 @@ export type Database = {
           carta_cargo: string | null
           carta_firmante: string | null
           carta_texto: string | null
+          clave_cotizacion: string | null
           created_at: string
           denominacion_formal: string | null
           entidad_que_informa: string | null
+          fiduciario: string | null
           forma_de_referencia: string | null
           glosario: Json
           gobierno_texto: string | null
+          hechos_posteriores: string | null
           hitos_corporativos: Json
           hitos_sostenibilidad: Json
           horizontes: Json
@@ -1591,10 +1594,12 @@ export type Database = {
           matriz_riesgos: Json
           modelo_negocio: string | null
           nombre_corto: string | null
+          numero_fideicomiso: string | null
           organigrama_path: string | null
           perimetro: string | null
           proceso_materialidad: string | null
           tenant_id: string
+          tipo_instrumento: string | null
           updated_at: string
         }
         Insert: {
@@ -1604,12 +1609,15 @@ export type Database = {
           carta_cargo?: string | null
           carta_firmante?: string | null
           carta_texto?: string | null
+          clave_cotizacion?: string | null
           created_at?: string
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
+          fiduciario?: string | null
           forma_de_referencia?: string | null
           glosario?: Json
           gobierno_texto?: string | null
+          hechos_posteriores?: string | null
           hitos_corporativos?: Json
           hitos_sostenibilidad?: Json
           horizontes?: Json
@@ -1617,10 +1625,12 @@ export type Database = {
           matriz_riesgos?: Json
           modelo_negocio?: string | null
           nombre_corto?: string | null
+          numero_fideicomiso?: string | null
           organigrama_path?: string | null
           perimetro?: string | null
           proceso_materialidad?: string | null
           tenant_id: string
+          tipo_instrumento?: string | null
           updated_at?: string
         }
         Update: {
@@ -1630,12 +1640,15 @@ export type Database = {
           carta_cargo?: string | null
           carta_firmante?: string | null
           carta_texto?: string | null
+          clave_cotizacion?: string | null
           created_at?: string
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
+          fiduciario?: string | null
           forma_de_referencia?: string | null
           glosario?: Json
           gobierno_texto?: string | null
+          hechos_posteriores?: string | null
           hitos_corporativos?: Json
           hitos_sostenibilidad?: Json
           horizontes?: Json
@@ -1643,10 +1656,12 @@ export type Database = {
           matriz_riesgos?: Json
           modelo_negocio?: string | null
           nombre_corto?: string | null
+          numero_fideicomiso?: string | null
           organigrama_path?: string | null
           perimetro?: string | null
           proceso_materialidad?: string | null
           tenant_id?: string
+          tipo_instrumento?: string | null
           updated_at?: string
         }
         Relationships: [

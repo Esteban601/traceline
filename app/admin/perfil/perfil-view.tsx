@@ -74,6 +74,11 @@ export type PerfilData = {
   forma_de_referencia: string | null;
   entidad_que_informa: string | null;
   perimetro: string | null;
+  clave_cotizacion: string | null;
+  tipo_instrumento: string | null;
+  fiduciario: string | null;
+  numero_fideicomiso: string | null;
+  hechos_posteriores: string | null;
   carta_texto: string | null;
   carta_firmante: string | null;
   carta_cargo: string | null;
@@ -417,6 +422,47 @@ export function PerfilView({
                 excluyen. Ejemplo: los desarrollos en coinversión se excluyen de las métricas
                 de exposición.
               </p>
+            </div>
+            {/* Formato electrónico NIIF S1/S2, sección [100000] (encargo 2026-10-13, Paso 4). */}
+            <p className="mt-6 text-xs font-medium uppercase tracking-wide text-muted">Para el Formato electrónico de la BMV</p>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-cc`}>
+                  Clave de cotización
+                </label>
+                <input id={`${uid}-cc`} name="clave_cotizacion" defaultValue={p?.clave_cotizacion ?? ""} placeholder="Clave de pizarra en la BMV" className={cn(INPUT, "mt-2")} />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-ti`}>
+                  Tipo de instrumento
+                </label>
+                <input id={`${uid}-ti`} name="tipo_instrumento" list={`${uid}-ti-opciones`} defaultValue={p?.tipo_instrumento ?? ""} placeholder="Acciones, deuda o fideicomiso" className={cn(INPUT, "mt-2")} />
+                <datalist id={`${uid}-ti-opciones`}>
+                  <option value="Acciones" />
+                  <option value="Deuda" />
+                  <option value="Fideicomiso" />
+                </datalist>
+                <p className="mt-1.5 text-xs text-muted">Como lo pide el Formato electrónico en su sección de identificación.</p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-fi`}>
+                  Fiduciario
+                </label>
+                <input id={`${uid}-fi`} name="fiduciario" defaultValue={p?.fiduciario ?? ""} placeholder="Solo si la emisora es un fideicomiso" className={cn(INPUT, "mt-2")} />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-nf`}>
+                  Número de fideicomiso
+                </label>
+                <input id={`${uid}-nf`} name="numero_fideicomiso" defaultValue={p?.numero_fideicomiso ?? ""} placeholder="Solo si la emisora es un fideicomiso" className={cn(INPUT, "mt-2")} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor={`${uid}-hp`}>
+                Hechos posteriores al cierre
+              </label>
+              <textarea id={`${uid}-hp`} name="hechos_posteriores" rows={3} defaultValue={p?.hechos_posteriores ?? ""} placeholder="Hechos ocurridos después del cierre del ejercicio que afectan la información de sostenibilidad." className={cn(AREA, "mt-2")} />
+              <p className="mt-1.5 text-xs text-muted">Si no hubo ninguno, dígalo: «No se identificaron hechos posteriores relevantes».</p>
             </div>
             {guardar()}
             <Aviso state={sIdent} seccion="identidad" />
