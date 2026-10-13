@@ -109,6 +109,13 @@ barrera 90).
 - **Dependencias:** sin cambios en `dependencies` ni en `pnpm-lock.yaml`.
 - **Config vars:** no falta ninguna obligatoria en `traceline-staging`. Opcionales: `COHERENCIA_ESFUERZO` (`medium`
   por defecto). `SUPLEMENTO_PRUEBA` es solo para `traceline-dev`.
+- **Excel de taxonomía de todas las emisoras (corrección del 13 de octubre de 2026):** la plantilla
+  `assets/taxonomia-base.xlsx` lleva **18 filas más** en la hoja «Taxonomía NIIF S1 S2», una por inciso, desde el commit
+  `d2bc8af`. Esas filas desplazan el resto de la hoja. Es una diferencia esperada. El Anexo A de la especificación ya lo
+  decía, pero la descripción del PR #17 y el inventario del Paso 0 afirmaron que la exportación no cambiaba: solo se
+  había revisado la ruta y `ensamblar.ts`, no la plantilla. Se midió en el ensayo: **435 celdas esperadas por emisora y
+  0 no esperadas** con `comparar-excel-v40.mjs`. El código de `main` sobre la base migrada da el Excel idéntico, así
+  que el cambio es de código, no de datos.
 - **Scripts de v40** (rama `chore/despliegue-v40`):
   - `migrar-remoto.sh`: las 18 `ESPERADAS` y barrera 105. «ensayo» falla hasta que exista el ref de v40.
   - `comprobar-v40.mjs`:
@@ -205,15 +212,117 @@ Igual que §5.1 del encargo de v33, con estos cambios:
 
 ### 5.2 Guion v40 · despliegue a staging
 
-Se escribe en el Paso 5 con el orden de v33 y v39:
-1. merge del PR a `main` (Claude Code);
-2. migraciones contra staging (Esteban, `migrar-remoto.sh staging`, revisión y después `--aplicar`);
-3. `git push heroku main` (Claude Code);
-4. comprobaciones de solo lectura y descargas (Claude Code);
-5. registro.
+Release de Heroku esperado: **v40**. Staging está en v39 y no se pone ninguna config var antes del push; si se
+pusiera una, el `Deploy` correría un número. Ningún comando imprime una URL, una llave ni una contraseña.
+- Los comandos de staging se corren desde la copia `~/Repositorios/vert-evidencia`, que tiene `.env.staging.local` y
+  `.credenciales-demo/`.
+- Tras el merge, los scripts de v40 están en `main` y se corren desde esa misma copia.
+- `D=referencia/lineas-base/v40`.
 
-El rollback lo ejecuta Esteban. El número del release de Heroku se confirma en el paso 0 del guion, porque una
-config var puesta antes del push lo corre.
+**Orden y por qué.** Es el de v33 y v39: la base se migra antes de que llegue el código.
+- El código de `dev` necesita las columnas nuevas.
+- El código actual de `main` corre sobre la base migrada. En el ensayo (Paso 4) dio el Excel idéntico celda por celda
+  en las tres emisoras, y `verificar-main` 26 de 26.
+- `migrar-remoto.sh staging` exige `HEAD = origin/main`. Por eso el PR se mezcla primero, cosa que no despliega nada;
+  después Esteban migra desde `main`, y al final va el push.
+
+**0. Antes (Claude Code, solo lectura).** La línea base se vuelve a tomar el día del despliegue, porque Grupo Carso
+pudo trabajar desde el 13/10.
+```sh
+cd ~/Repositorios/vert-evidencia
+C=.credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json; APP=https://traceline-staging-70ce5b369e7c.herokuapp.com; D=referencia/lineas-base/v40
+heroku releases -a traceline-staging -n 1                # v39 · Deploy 901eae36
+heroku config -a traceline-staging --json | python3 -c "import json,sys; print(sorted(json.load(sys.stdin).keys()))"   # 11 nombres, sin cambios
+(set -a; source .env.staging.local; set +a
+ BASE_URL=$APP node ../vert-evidencia-dev/scripts/ensayo/descargar-excel.mjs --credenciales $C $D/antes clepsa banco-base gcarso
+ node ../vert-evidencia-dev/scripts/despliegue/comprobar-v40.mjs --antes $D/antes --credenciales $C)   # banderas → antes/banderas.json
+```
+Esteban, además, toma la instantánea de Carso «antes» con `scripts/ensayo/instantanea-v40.sql` en
+`$D/antes/instantanea-v40.txt` (24 líneas), con el mismo comando del Paso 4.
+
+**1. Merge del PR (Claude Code, con la autorización de Esteban por chat, CLAUDE.md §9).**
+```sh
+gh pr merge <n> --merge                          # merge commit, con el comentario de revisión
+cd ~/Repositorios/vert-evidencia && git fetch origin && git merge --ff-only origin/main
+git rev-parse --short HEAD origin/main           # iguales
+nvm use 22 && pnpm install --frozen-lockfile
+```
+
+**2. Migraciones contra staging (Esteban, en su terminal).** Si el host directo de Supabase no resuelve en la red, se
+usa la URL del **session pooler**, con usuario `postgres.<ref>`. El script la acepta porque lleva el ref, igual que en
+el ensayo.
+```sh
+cd ~/Repositorios/vert-evidencia && git status --short && git rev-parse --short HEAD   # limpio, = origin/main
+read -rs STAGING_DB_URL && export STAGING_DB_URL       # se pega sin eco
+bash scripts/despliegue/migrar-remoto.sh staging                # revisión: 18 pendientes == ESPERADAS
+bash scripts/despliegue/migrar-remoto.sh staging --aplicar      # pide el ref; al final: nada pendiente, 86 de 86, barrera 105
+/opt/homebrew/opt/postgresql@17/bin/psql "$STAGING_DB_URL" -X -A -t -v ON_ERROR_STOP=1 \
+  -f scripts/ensayo/instantanea-v40.sql > referencia/lineas-base/v40/despues/instantanea-v40.txt
+unset STAGING_DB_URL
+diff referencia/lineas-base/v40/antes/instantanea-v40.txt referencia/lineas-base/v40/despues/instantanea-v40.txt   # sin salida
+```
+- **Carso, resultado esperado:** instantánea **idéntica en las 24 líneas**, con `mapeo_solicitud_datapoint:incisos|0`.
+  Así salió en el ensayo: staging y la copia migrada, idénticas.
+- Una línea distinta se revisa por `created_at` (actividad de Carso entre las dos tomas) antes de seguir. Si no se
+  explica así, se detiene el despliegue: el código no ha salido y no hay nada que revertir en Heroku.
+- **La CLI de Supabase imprime un aviso de `pg-delta`** con una pila al aplicar. `migrar-remoto.sh` lo filtra y no
+  depende de él: verifica con `--dry-run`, `migration list` y la barrera.
+
+**3. Despliegue (Claude Code, con la autorización de Esteban por chat).**
+```sh
+cd ~/Repositorios/vert-evidencia && git rev-parse --short HEAD origin/main      # iguales
+git push heroku main
+heroku releases -a traceline-staging -n 2        # v40 · Deploy <sha de main>
+heroku ps -a traceline-staging                   # web.1: up
+```
+
+**4. Comprobaciones (Claude Code; solo lectura y descargas, salvo lo marcado).**
+```sh
+cd ~/Repositorios/vert-evidencia
+C=.credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json; APP=https://traceline-staging-70ce5b369e7c.herokuapp.com; D=referencia/lineas-base/v40
+
+# a) Logs: solo conteos.
+curl -s -o /dev/null -w "%{http_code}\n" $APP/login                                     # 200
+heroku logs -a traceline-staging -n 1500 | grep -c -E 'status=5[0-9]{2}'                # 0
+heroku logs -a traceline-staging -n 1500 | grep -c -E 'Error:|Unhandled'                # 0
+
+# b) Banderas iguales a las de antes, 18 incisos, Carso sin libro/hechos/coherencia/historial y adjuntos en
+#    «omitido», y la ruta nueva del cierre (GET → 200).
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/despliegue/comprobar-v40.mjs --despues $D/despues --credenciales $C)
+
+# c) Excel de las tres emisoras contra la línea base: solo diferencias esperadas.
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/ensayo/descargar-excel.mjs --credenciales $C $D/despues/excel clepsa banco-base gcarso)
+git show 901eae3:assets/taxonomia-base.xlsx > $D/despues/plantilla-v39.xlsx
+git show origin/main:assets/taxonomia-base.xlsx > $D/despues/plantilla-v40.xlsx
+for s in clepsa banco-base gcarso; do
+  node scripts/ensayo/comparar-excel-v40.mjs $D/antes/$s.xlsx $D/despues/excel/$s.xlsx \
+    --plantilla-antes $D/despues/plantilla-v39.xlsx --plantilla-despues $D/despues/plantilla-v40.xlsx --catalogo $D/despues/catalogo.json
+done                                                       # cada uno: 0 no esperadas (en ensayo: 435 esperadas)
+
+# d) Vitrina de Banco Base (escribe dos filas de bitácora del mockup, a propósito).
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/despliegue/comprobar-vitrina.mjs $D/despues/vitrina banco-base --credenciales $C)
+
+# e) Generador de Empresa Demo (ESCRIBE: abre el documento con sus bloques en cola, sin modelo; cuenta 1 corrida).
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/despliegue/comprobar-v40.mjs --generar --credenciales $C)   # POST generar → 200
+```
+- **Scheduler:** v40 no agrega jobs. Se cuentan los dos de staging (cola y recordatorios), y en la siguiente corrida de
+  la cola se busca `evidencias/procesar.*status=200` por conteo, sin imprimir líneas.
+
+**5. Registro.** Claude Code escribe la entrada de v40 en la especificación §10: release, sha, migraciones y
+resultados de 2 y 4. También anota el despliegue en §7 de este encargo y hace push a `origin`.
+
+**Rollback (lo ejecuta Esteban).** Solo de código:
+```sh
+heroku releases:rollback v39 -a traceline-staging
+```
+- Si el número del `Deploy` cambia porque se puso una config var antes, el destino es el release inmediatamente
+  anterior al `Deploy`.
+- Las migraciones se quedan: son aditivas, y `main` corre sobre la base migrada (ensayo, Paso 4).
+- Si el problema es del generador, antes que el rollback está la bandera: se apaga `generador_activo` por emisora en
+  `/admin/clientes`.
+
+**Limpieza (Esteban).** Borrar el proyecto de ensayo `vdubzcjtujxayefzhhco`, y con él `.env.ensayo.local`,
+`.env.ensayo-app.local` y la línea `ENSAYO_REF` de `.env.local`.
 
 ## 6. Riesgos y dudas conocidas
 
@@ -243,3 +352,4 @@ config var puesta antes del push lo corre.
 | 2026-10-13 | PR #19 mezclado (`0c938b7`); `fix/cierre-reserva` en el PR #20, con las observaciones de Codex sobre los #18 y #19. **Paso 2 · verificaciones previas sobre staging, de solo lectura** (`scripts/despliegue/verificar-previas-v40.mjs`, con `.env.staging.local` en subshell y solo la sesión del analista). Staging: 21 emisoras (20 de demostración y Grupo Carso), 21 reportes. **(a) Catálogo:** 40 enlaces a los códigos agrupados, 2 por emisora de demostración (20 de 20), que pasan a **180 enlaces nuevos** a incisos (9 por emisora); la plantilla global, 2 filas y 9 ids. **Grupo Carso: 0.** Sus 134 solicitudes enlazan a 7 códigos (GRI 2-7 / 401-1, GRI 303-5, GRI 306-3, GRI 404-1, NIIF S1 44 (b), NIIF S1 46 a 50, NIIF S2 29 (a)(i)), ninguno agrupado; el cero se comprobó por conteo, el analista ve sus solicitudes. **(b) Restricciones:** los 4 códigos agrupados existen (taxonomía 2025) y ninguno de los 18 incisos; 40 bloques, ninguno fuera del CHECK nuevo de estados; 0 adjuntos del Perfil en staging; las columnas nuevas sobre tablas existentes son nullable o con default. **(c) Banderas:** las 20 de demostración con generador y lectura encendidos (10 y 500 por mes; vitrina apagada solo en AINDA); Grupo Carso con todo apagado; ninguna emisora real encendida. **(d) Rellenos:** 0 adjuntos a la cola y 0 versiones de bloques (los 40 bloques de Empresa Demo no tienen texto). **Config vars de `traceline-staging`** (11, por nombre): no falta ninguna obligatoria; `COHERENCIA_ESFUERZO`, `EMAIL_ARCHIVO`, `EMAIL_TRANSPORTE`, `NODE_ENV` y `SUPLEMENTO_PRUEBA` son opcionales o a propósito. **Error propio:** conteos de e2e inflados en uno en el PR #18 (el `grep` contaba la línea final «✓ todo en orden»): eran 24, 34, 11 y 32, no 26, 35, 12 y 33 | **Instantánea de Carso:** con 0 enlaces nuevos, `mapeo_solicitud_datapoint:incisos` debe seguir en 0 después de migrar, y todas las demás líneas idénticas. Pendiente de Esteban: decisión sobre Carso (no hay nada que decidir si se acepta el cero) y aprobación del PR #20 |
 | 2026-10-13 | PR #20 mezclado (`a840d86`). **Paso 3 · A8 en `traceline-dev`.** Despliegue de `dev/ajustes-sep26` a `traceline-dev` (Claude Code, autorizado): release **v16**, `Deploy a840d86c`. Slug de 183 MB (staging, 182 MB), `/login` 200, 0 respuestas 5xx y 0 `Error:` tras el release. **Generación completa del demo desde Heroku** (`generar-demo.mjs todos`, sobre el documento `98d57a6a`; antes se guardaron las versiones vigentes de sus bloques en `referencia/suplemento-calidad/a8-v40/antes-versiones.json`): 20.3 min; 37 bloques en borrador, 2 «no aplica» y **1 en «error», el 25**. Tiempo de servidor por bloque: mediana 43.3 s, p90 80.7 s, máximo 150.9 s. 28 páginas, Word con `verify:word` en verde. **Costo: $12.38** (bloques $11.18, coherencia $1.20, cierre $0.008; libro reutilizado, $0). **Cierre y coherencia por `after()` bajo dyno real:** `POST …/cierre` → 202 en 372 ms; cierre «listo», 4 cerrados de 6 verificados; la coherencia (origen «fin_de_generacion») se abrió 0.3 s después del cierre y terminó «lista» en 186 s, con 35 observaciones; validador cruzado, 17. **Ninguna petición pasó de 30 s**, medido en el cliente (758 peticiones, máxima 12.8 s) y en el router (773 líneas, `service` máximo 11.6 s, sin códigos H). Lo más lento fue un `GET …/coherencia` (11.6 s); el resto queda por debajo de 2 s. El job de la cola del Scheduler respondió 200 en sus 14 corridas | **El bloque 25 no es un fallo del dyno:** el validador de remisiones rechazó la respuesta en el intento y en el reintento, porque remitía a los bloques 23 y 36 sin el ancla `[Bn.k]` ($0.45). No se regeneró. **Los e2e no corren contra Heroku:** los del suplemento solo corren en local, y los demás piden `supabase db reset`. Los del auditor necesitan una cuenta de auditor que el dev de Esteban no tiene, y crearla no está autorizado; corren en el ensayo del Paso 4, como en v33. El aislamiento entre emisoras tampoco se puede probar en dev, que tiene una sola emisora; va al ensayo. **Observaciones de Codex sobre el PR #20, abiertas:** (P1) carrera entre la comprobación de `generar` y un `POST …/cierre` concurrente; (P2) pasados 20 min, la pantalla da el cierre por terminado aunque siga en curso |
 | 2026-10-13 | PR #21 (`167219f`) y PR #22 (`b1b478c`) mezclados; `traceline-dev` en v17. **Bloque 25 regenerado con la regla del #22:** de nuevo en «error» ($0.69), esta vez porque el texto reescribe un hecho del bloque 40; ese validador no degradaba. Codex sobre el #22: la degradación también abarcaba remisiones a bloques ausentes o sin dueño (P1), y `generar` reservaba antes de revisar las ediciones (P2). **PR #23 (`fix/pre-v40-c`):** los validadores de datos fallan y los de colocación degradan (remisión sin ancla y texto reescrito de otro bloque; especificación v0.38, §6). **Paso 4, preparación:** ref del ensayo **`vdubzcjtujxayefzhhco`** (Postgres 17, creado por Esteban). Actualizado en `copiar-staging.sh`, `migrar-ensayo.sh`, `a8-heroku.mjs`, `crear-utileria.mjs`, `verificar-main.mjs` y `rotar-cuentas-seed.mjs`, y como rechazo en `poblar-demo.mjs` y `crear-demo-prospecto.mjs`; también en `migrar-remoto.sh` (antes con marcador) y en `comprobar-v40.mjs`. No entra en `DEV_REFS_AUTORIZADOS`. `ENSAYO_REF` va en `.env.local` de la copia principal. `.env.ensayo.local` se creó con el marcador `PEGAR_` (permisos 600); los dos están enlazados desde `../vert-evidencia-dev` y git los ignora. Con el marcador puesto, `migrar-remoto.sh ensayo` y `migrar-ensayo.sh` se niegan a correr | Esteban: pegar la URL del ensayo en `.env.ensayo.local` con el editor y correr la copia en su terminal (comandos en el chat). La aplicación de las 18 migraciones en ensayo la hace Esteban, y Claude Code puede correr la revisión |
+| 2026-10-13 | PR #23 mezclado (`21814d5`); `traceline-dev` en v18. **Bloque 25 regenerado: borrador** ($0.75, 84 s): aceptado en el reintento con una observación del validador (remisión sin ancla al 23); validador cruzado de 17 a 15. **Paso 4 · ensayo completo** en `vdubzcjtujxayefzhhco`, copia de staging: 36 tablas idénticas; 18 migraciones en 23 s; 86 de 86; barrera 105 (Esteban, con la URL del session pooler porque el host directo no resolvía). Las llaves de la API salieron de la CLI a `.env.ensayo-app.local` (permisos 600, sin imprimirse), con autorización de Esteban. Línea base de staging en `referencia/lineas-base/v40/antes/`: Excel de CLEPSA, Banco Base y Grupo Carso, banderas y la instantánea de Carso, tomada por Esteban. Apps locales contra el ensayo, `dev` (`21814d5`) y `main` (`901eae3`). **Resultados:** (a) `comprobar-v40 --despues` en verde (banderas idénticas, 18 incisos, Carso sin libro, hechos, coherencia ni historial). (b) **`main` sobre la base migrada:** Excel idéntico celda por celda en las tres emisoras; `verificar-main` 26 de 26; conteos iguales tras la limpieza. (c) **`dev` sobre la base migrada:** 0 diferencias no esperadas y 435 esperadas en cada emisora (`comparar-excel-v40.mjs`); la prueba negativa (3 celdas alteradas) da 3. (d) **E2E con utilería sobre Empresa Demo:** `e2e:auditor` 58 de 58 y `e2e:auditor:rutas` 92 de 92; la utilería se borró y los conteos quedaron iguales, salvo +2 filas de bitácora (avisos de v39 del comentario del auditor y su respuesta), igual que en la prueba de v39. (e) **Carso:** instantánea de staging y del ensayo migrado **idénticas en las 24 líneas** (`incisos|0`), y sin cambios tras los e2e y la generación. (f) **Generación completa del demo en la copia:** libro $0.14 (66 hechos); 33 en borrador, 7 «no aplica», **0 fallos**; 24 páginas; Word en verde; 14.6 min; bloque: mediana 54.7 s, p90 72.2 s, máximo 92 s; 507 peticiones, máxima 4.7 s y ninguna de más de 30 s; cierre 1 de 6; coherencia 28 observaciones en 130 s; validador cruzado 12; **$9.43** | **Errores propios:** (1) la exportación del Excel sí cambia, por la plantilla (§2.1); el PR #17 y el inventario del Paso 0 decían lo contrario. (2) `comparar-excel-v33.mjs` no servía tal cual (renombres fijos de v33, catálogo solo del lado «después»): se hizo `comparar-excel-v40.mjs`. **Decisión de Esteban:** antes del PR a `main`, el validador cruzado descarta una observación guardada si su cita ya no está en el texto (rama `fix/pre-v40-d`, con el guion v40 en §5.2) |

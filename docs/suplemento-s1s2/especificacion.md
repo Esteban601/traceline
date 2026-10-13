@@ -1,6 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.38** · 13 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.39** · 13 de octubre de 2026.
+
+**Cambios respecto a 0.38** (cierre del Paso 4 de v40):
+- §6, validador cruzado: una observación guardada del validador (remisión sin ancla o texto reescrito) se descarta si
+  su cita ya no está en el texto actual del bloque (`citaVigente`).
+- Anexo A: el cambio del Excel de taxonomía (18 filas de incisos en la plantilla), medido en el ensayo de v40.
 
 **Cambios respecto a 0.37** (decisiones de Esteban del 13 de octubre de 2026, antes de v40):
 - §6, generador: **los validadores de datos fallan; los de colocación degradan.**
@@ -980,6 +985,9 @@ tipo de validador:
   validador cruzado la reporta como `remision_sin_ancla` o `repite_contenido` («repite contenido del bloque N»), con
   gravedad media en la coherencia. La revisión la muestra en «observaciones del validador». No es un pendiente y no
   bloquea la aprobación.
+- **Vigencia de la observación:** la nota se guarda al generar. Si su cita ya no está en el texto actual del bloque,
+  porque un revisor la quitó o el cierre la sustituyó por una remisión, el validador cruzado no la reporta
+  (`citaVigente`). La nota queda en el bloque.
 - **Implementación:** `aceptaConObservacionesDeColocacion` y `remisionesSinAnclaTipadas`
   (`lib/suplemento/hechos/remisiones.ts`).
 - **Origen:** el bloque 25 del A8 de v40 quedó en «error» dos veces: primero por una remisión sin ancla y después por
@@ -1877,7 +1885,10 @@ códigos agrupados: **73 códigos citados**, sobre un catálogo de 112 códigos 
 códigos agrupados (`NIIF S2 25 (a)(i)a(v)`, `NIIF S1 44 (a)(i)a(v)`, `NIIF S2 36 (a)a(d)`, `NIIF S2 36 (e)(i)a(iv)`)
 se quedan activos y enlazados a sus solicitudes y celdas del Excel, pero ya ningún bloque los cita. **Hoja de
 taxonomía del Excel:** 18 filas más (383 → 401), una por inciso debajo de su código agrupado. Al desplegar, el
-Excel de taxonomía de staging cambia en filas: es una **diferencia esperada**, no una regresión.
+Excel de taxonomía de staging cambia en filas: es una **diferencia esperada**, no una regresión. Se midió en el ensayo
+de v40 (13 de octubre de 2026): 435 celdas esperadas por emisora en CLEPSA, Banco Base y Grupo Carso, y 0 no esperadas
+(`scripts/ensayo/comparar-excel-v40.mjs`). El código anterior sobre la base migrada da el Excel idéntico: el cambio
+viene de la plantilla, no de los datos.
 
 | # | Bloque | Clase | Respaldo | Tipo | Régimen | Datapoints | Tablas | Perfil |
 |---|---|---|---|---|---|---|---|---|
