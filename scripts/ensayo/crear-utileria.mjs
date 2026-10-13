@@ -20,7 +20,7 @@ const ID = "a0000000-0000-0000-0000-000000000007";
 const EMAIL = "auditor.externo@despacho.example";
 const TENANT_DEMO = "10000000-0000-0000-0000-000000000001";
 
-if (!URL_SB?.includes("vdubzcjtujxayefzhhco") || !SERVICE || !PASSWORD) {
+if (!URL_SB?.includes("PENDIENTE_REF_ENSAYO") || !SERVICE || !PASSWORD) {
   console.error("✗ Solo contra ensayo, con SUPABASE_SERVICE_ROLE_KEY y E2E_PASSWORD_AUDITOR en el entorno.");
   process.exit(2);
 }

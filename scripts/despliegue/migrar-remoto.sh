@@ -23,9 +23,10 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-# Ensayo de v40 (creado por Esteban el 13/10/2026, Postgres 17). El de v33
-# (sqpxcxewoznhpwvhxamy) se borró el 5/10.
-REF_ENSAYO="vdubzcjtujxayefzhhco"
+# Sin proyecto de ensayo vivo: el de v40 (vdubzcjtujxayefzhhco) se borró al
+# cerrar el despliegue (13/10/2026), y el de v33 (sqpxcxewoznhpwvhxamy), el 5/10.
+# Con el marcador, «ensayo» falla.
+REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
 # v40 (encargo 2026-10-11-suplemento-a-produccion): las 16 del encargo
 # suplemento-calidad (PR #17) y las 2 de fix/pre-v40 (PR #18).
@@ -77,7 +78,7 @@ PSQL="${PSQL:-/opt/homebrew/opt/postgresql@17/bin/psql}"
 
 cd "$RAIZ"
 if [[ "$DESTINO" == "ensayo" ]]; then
-  [[ "$REF_ENSAYO" != PENDIENTE_* ]] || falla "Falta el ref del proyecto de ensayo de v40 en REF_ENSAYO (Paso 4)."
+  [[ "$REF_ENSAYO" != PENDIENTE_* ]] || falla "No hay proyecto de ensayo: escribe su ref en REF_ENSAYO (y en los scripts de scripts/ensayo/) al crearlo."
   REF="$REF_ENSAYO"; OTRO="$REF_STAGING"
   DB_URL="$(grep -E '^ENSAYO_DB_URL=' .env.ensayo.local 2>/dev/null | tail -n1 | cut -d= -f2- | sed -E "s/^[\"']|[\"']$//g")"
 else
