@@ -353,7 +353,7 @@ const REGISTROS = [
     impactos_potenciales:
       "Deterioro de calificación de acreditados, mayores reservas, activos varados como colateral.",
     respuesta:
-      "Clasificación sectorial de la cartera por intensidad de carbono, límites de concentración en sectores intensivos aprobados por el Comité de Riesgos, acompañamiento de acreditados en planes de transición.",
+      "Clasificación sectorial de la cartera por intensidad de carbono, límites de concentración en sectores intensivos aprobados por el Consejo de Administración a propuesta del Comité de Riesgos, acompañamiento de acreditados en planes de transición.",
     valores: {
       cantidad_activos: 8090,
       porcentaje: 9.4,
@@ -538,7 +538,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S1 27(a)(ii)", "NIIF S2 6 (a)(ii)"],
     area: "Dirección General",
     texto:
-      "El Consejo evalúa anualmente la suficiencia de competencias en materia climática. En 2025 incorporó a una consejera independiente con experiencia en finanzas sostenibles y contrató capacitación especializada para el Consejo y el Comité de Dirección (16 horas) sobre riesgos climáticos en instituciones financieras, impartida por una firma externa.",
+      "El Consejo evalúa anualmente la suficiencia de competencias en materia climática. En 2025 incorporó a una consejera independiente con experiencia en finanzas sostenibles y, a recomendación del Comité de Sostenibilidad y Riesgos Climáticos, aprobó un programa de capacitación especializada para el Consejo y el Comité de Dirección (16 horas) sobre riesgos climáticos en instituciones financieras, que una firma externa impartió durante 2025.",
   },
   {
     titulo: "Riesgos físicos climáticos en instalaciones",
@@ -566,7 +566,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 14(a)(iv)", "NIIF S2 36 (a)a(d)", "NIIF S2 36 (a)", "NIIF S2 36 (b)", "NIIF S2 36 (c)", "NIIF S2 36 (d)", "NIIF S2 33"],
     area: "Sostenibilidad",
     texto:
-      "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; se fijó con el método de contracción absoluta (6% anual), sin evaluación formal de su alineación con el Acuerdo de París ni validación de SBTi. El de cartera sostenible es relativo, con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, alineado con la Taxonomía Sostenible de México.",
+      "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. El plan depende de la disponibilidad de fondeo verde de la banca de desarrollo, de la regulación de la CNBV sobre taxonomía sustentable y de la descarbonización de la red eléctrica nacional. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; se fijó con el método de contracción absoluta (6% anual), sin evaluación formal de su alineación con el Acuerdo de París ni validación de SBTi. El de cartera sostenible es relativo, con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, alineado con la Taxonomía Sostenible de México.",
   },
   {
     titulo: "Precio interno del carbono aplicado en decisiones de inversión",
@@ -581,7 +581,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 6 (a)(i)"],
     area: "Dirección General",
     texto:
-      "La supervisión de los riesgos y oportunidades relacionados con el clima recae en el Consejo de Administración, que delegó el seguimiento en el Comité de Sostenibilidad y Riesgos Climáticos, creado en febrero de 2025. Sus términos de referencia establecen la revisión trimestral del mapa de riesgos climáticos, la aprobación de la estrategia climática y la supervisión de los objetivos, y la validación del informe anual de sostenibilidad antes de su presentación al Consejo.",
+      "La supervisión de los riesgos y oportunidades relacionados con el clima recae en el Consejo de Administración, que delegó el seguimiento en el Comité de Sostenibilidad y Riesgos Climáticos, creado en febrero de 2025. Sus términos de referencia establecen la revisión trimestral del mapa de riesgos climáticos, la revisión de la estrategia climática y su propuesta al Consejo, que la aprueba con la opinión previa del Comité, la supervisión de los objetivos, y la validación del informe anual de sostenibilidad antes de su presentación al Consejo.",
   },
   {
     titulo: "Frecuencia de información al Consejo sobre riesgos climáticos",
@@ -595,7 +595,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 6 (a)(iv)"],
     area: "Dirección General",
     texto:
-      "El Consejo considera los riesgos climáticos en la aprobación del plan estratégico, del presupuesto anual, de los límites de concentración sectorial de la cartera y de las emisiones de deuda. Desde 2025, toda propuesta de crédito superior a 150 millones de pesos en sectores intensivos en carbono incluye una evaluación de riesgo de transición. Al aprobar los límites de concentración en sectores intensivos y la línea de financiamiento para riego tecnificado, el Consejo consideró explícitamente las compensaciones entre el menor crecimiento de corto plazo en esos sectores y la reducción del riesgo de crédito y de transición en el mediano plazo; en ambos casos privilegió la resiliencia de la cartera sobre el volumen inmediato, con seguimiento semestral del efecto en margen.",
+      "El Consejo considera los riesgos climáticos en la aprobación del plan estratégico, del presupuesto anual, de los límites de concentración sectorial de la cartera y de las emisiones de deuda. Desde 2025, toda propuesta de crédito superior a 150 millones de pesos en sectores intensivos en carbono incluye una evaluación de riesgo de transición. Al aprobar, a propuesta del Comité de Riesgos, los límites de concentración en sectores intensivos y la línea de financiamiento para riego tecnificado, el Consejo consideró explícitamente las compensaciones entre el menor crecimiento de corto plazo en esos sectores y la reducción del riesgo de crédito y de transición en el mediano plazo; en ambos casos privilegió la resiliencia de la cartera sobre el volumen inmediato, con seguimiento semestral del efecto en margen.",
   },
   {
     titulo: "Supervisión de objetivos climáticos y su vínculo con la remuneración",
@@ -651,7 +651,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 22(a)(iii)"],
     area: "Riesgos",
     texto:
-      "La Compañía cuenta con un índice de capitalización (ICAP) de 15.8% al cierre de 2025, por encima del mínimo regulatorio de 10.5%, liquidez suficiente y una cartera de vida promedio corta en el segmento empresarial (2.8 años), lo que permite reorientar la originación en horizontes de mediano plazo. Las inversiones planeadas en eficiencia y en productos sostenibles refuerzan esa capacidad.",
+      "La Compañía cuenta con un índice de capitalización (ICAP) de 15.8% al cierre de 2025, por encima del mínimo regulatorio de 10.5%, liquidez suficiente y una cartera de vida promedio corta en el segmento empresarial (2.8 años), lo que permite reorientar la originación en horizontes de mediano plazo. Respecto de sus activos, la Compañía prevé reubicar hasta 2028 seis sucursales ubicadas en zonas de inundación, y la vida promedio corta de la cartera empresarial permite reorientarla en cada renovación hacia sectores y activos de menor exposición. Las inversiones planeadas en eficiencia y en productos sostenibles refuerzan esa capacidad.",
   },
   {
     titulo: "Supuestos y periodo del análisis de escenarios climáticos",
@@ -675,7 +675,7 @@ const NARRATIVAS = [
     ],
     area: "Riesgos",
     texto:
-      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 1-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El monitoreo es trimestral. Respecto del periodo anterior, en 2025 los procesos incorporaron el análisis de exposición física de colaterales, los criterios de disponibilidad hídrica en la evaluación del crédito agropecuario y la evaluación de riesgo de transición en las propuestas de crédito de más de 150 millones de pesos en sectores intensivos en carbono. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios.",
+      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 1-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El análisis de escenarios fundamenta la identificación de riesgos: los dos escenarios, transición ordenada (NGFS Net Zero 2050) y altas emisiones, definen los sectores de la cartera y las zonas geográficas que entran a la matriz de riesgos. El monitoreo es trimestral. Respecto del periodo anterior, en 2025 los procesos incorporaron el análisis de exposición física de colaterales, los criterios de disponibilidad hídrica en la evaluación del crédito agropecuario y la evaluación de riesgo de transición en las propuestas de crédito de más de 150 millones de pesos en sectores intensivos en carbono. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios.",
   },
   {
     titulo: "Enfoque de medición de emisiones y datos de entrada",
@@ -738,7 +738,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 16(c)(i)(ii)"],
     area: "Finanzas",
     texto:
-      "La Compañía prevé que la reconfiguración gradual de la cartera hacia sectores y activos de menor exposición climática, junto con el crecimiento de la cartera sostenible, modifique la composición de sus activos en el mediano plazo sin efectos materiales sobre el capital regulatorio. En el largo plazo, la materialización de riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria podría requerir reservas adicionales; con la información disponible al cierre de 2025 no se identificó la necesidad de reconocer ajustes.",
+      "La Compañía prevé que la reconfiguración gradual de la cartera hacia sectores y activos de menor exposición climática, junto con el crecimiento de la cartera sostenible, modifique la composición de sus activos en el mediano plazo sin efectos materiales sobre el capital regulatorio. En el largo plazo, la materialización de riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria podría requerir reservas adicionales; con la información disponible al cierre de 2025 no se identificó la necesidad de reconocer ajustes. La estrategia climática se financia con recursos propios y con el bono verde vigente de 2,000 millones de pesos. Los planes de inversión no comprometidos contractualmente son los 61 millones de pesos que el plan 2026-2027 asigna al programa de eficiencia energética de la red, con los que se completan los 92 millones del programa. No hay planes de disposición de activos distintos de la reubicación de seis sucursales ubicadas en zonas de inundación, prevista hasta 2028.",
   },
   {
     titulo: "Cambios previstos en el rendimiento financiero y los flujos de efectivo",
