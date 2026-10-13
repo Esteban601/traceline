@@ -146,7 +146,16 @@ export async function verificarCierre(
   return { ...r, uso };
 }
 
-export async function cerrarPendientes(db: Db, documentoId: string): Promise<ResultadoCierre> {
+/**
+ * `latido`: lo pasa completarCierre. Renueva la reserva del documento y dice si
+ * sigue siendo de esta corrida; se llama antes de cada verificación y antes de
+ * escribir cada bloque. Si la reserva se perdió, se lanza ReservaPerdida y no se
+ * escribe nada más.
+ */
+export async function cerrarPendientes(db: Db, documentoId: string, latido?: () => Promise<boolean>): Promise<ResultadoCierre> {
+  const sigue = async () => {
+    if (latido && !(await latido())) throw new ReservaPerdida();
+  };
   const vacio: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { cierres: [], uso: vacio, costo: 0 };
@@ -171,6 +180,7 @@ export async function cerrarPendientes(db: Db, documentoId: string): Promise<Res
       if (!texto.includes(d.marcador!)) continue;
       const titulo = tituloDe(d.otroBloque!);
       let v: Awaited<ReturnType<typeof verificarCierre>>;
+      await sigue();
       try {
         v = await verificarCierre(d.marcador!, titulo, textoDe.get(d.otroBloque!) ?? "", apiKey);
       } catch {
@@ -212,6 +222,7 @@ export async function cerrarPendientes(db: Db, documentoId: string): Promise<Res
     const pendientes = ((fila.pendientes ?? []) as { campo: string; motivo: string }[]).filter(
       (p) => p.campo !== "bloque" || !cerrados.some((m) => normal(m).includes(normal(p.motivo).replace(/^\[?pendiente:\s*/, "").slice(0, 60)))
     );
+    await sigue();
     await db
       .from("documentos_bloques")
       .update({ texto, pendientes: [...pendientes, ...notas] as never, origen_texto: "automatica", updated_at: new Date().toISOString() })
@@ -311,16 +322,30 @@ export async function remitirPendienteDuplicado(
 export const CIERRE_ABANDONADO_MS = 15 * 60 * 1000;
 export type EstadoCierre = "en_cola" | "ejecutando" | "listo" | "error";
 
-/** Reserva el cierre del documento. false si ya hay uno vivo. */
-export async function reclamarCierre(db: Db, documentoId: string): Promise<boolean> {
+/** La reserva de este cierre ya no es suya (se dio por abandonada y otro la tomó). */
+export class ReservaPerdida extends Error {
+  constructor() {
+    super("La reserva del cierre pasó a otra corrida.");
+  }
+}
+
+/**
+ * Reserva el cierre del documento y devuelve el identificador de la reserva, o
+ * null si ya hay uno vivo. El identificador va en `cierre_resultado.reserva` y
+ * todo cambio de estado posterior lo exige (observación P1 de Codex sobre el
+ * PR #18): si la reserva se dio por abandonada y otra corrida la tomó, la
+ * primera ya no puede escribir.
+ */
+export async function reclamarCierre(db: Db, documentoId: string): Promise<string | null> {
   const corte = new Date(Date.now() - CIERRE_ABANDONADO_MS).toISOString();
+  const reserva = crypto.randomUUID();
   const { data } = await db
     .from("documentos_generados")
-    .update({ cierre_estado: "en_cola", cierre_resultado: null, cierre_actualizado_en: new Date().toISOString() })
+    .update({ cierre_estado: "en_cola", cierre_resultado: { reserva }, cierre_actualizado_en: new Date().toISOString() })
     .eq("id", documentoId)
     .or(`cierre_estado.is.null,cierre_estado.in.(listo,error),cierre_actualizado_en.lt.${corte}`)
     .select("id");
-  return !!data?.length;
+  return data?.length ? reserva : null;
 }
 
 /** El cierre del documento está reservado o corriendo (y no abandonado). */
@@ -330,19 +355,30 @@ export async function cierreEnCurso(db: Db, documentoId: string): Promise<boolea
   return Date.now() - new Date(data.cierre_actualizado_en ?? 0).getTime() < CIERRE_ABANDONADO_MS;
 }
 
-/** Corre un cierre reservado y deja su estado. No lanza: un fallo queda en «error». */
-export async function completarCierre(db: Db, documentoId: string): Promise<ResultadoCierre | null> {
-  const marcar = (cierre_estado: EstadoCierre, cierre_resultado: unknown = null) =>
-    db
+/**
+ * Corre un cierre reservado y deja su estado. No lanza: un fallo queda en
+ * «error». Cada cambio de estado exige la reserva, y el latido la renueva antes
+ * de cada verificación (cada una puede tardar hasta 120 s más un reintento), así
+ * que un cierre sano nunca pasa CIERRE_ABANDONADO_MS sin dar señal. Si la reserva
+ * se perdió, devuelve null sin tocar nada.
+ */
+export async function completarCierre(db: Db, documentoId: string, reserva: string): Promise<ResultadoCierre | null> {
+  const marcar = async (cierre_estado: EstadoCierre, resultado: Record<string, unknown> = {}) => {
+    const { data } = await db
       .from("documentos_generados")
-      .update({ cierre_estado, cierre_resultado: cierre_resultado as never, cierre_actualizado_en: new Date().toISOString() })
-      .eq("id", documentoId);
-  await marcar("ejecutando");
+      .update({ cierre_estado, cierre_resultado: { ...resultado, reserva } as never, cierre_actualizado_en: new Date().toISOString() })
+      .eq("id", documentoId)
+      .eq("cierre_resultado->>reserva", reserva)
+      .select("id");
+    return !!data?.length;
+  };
+  if (!(await marcar("ejecutando"))) return null;
   try {
-    const r = await cerrarPendientes(db, documentoId);
+    const r = await cerrarPendientes(db, documentoId, () => marcar("ejecutando"));
     await marcar("listo", { cierres: r.cierres.map((c) => ({ bloque: c.bloque, dueno: c.dueno, veredicto: c.veredicto })), costo_usd: r.costo });
     return r;
   } catch (e) {
+    if (e instanceof ReservaPerdida) return null;
     await marcar("error", { error: (e instanceof Error ? e.message : String(e)).slice(0, 300) });
     return null;
   }

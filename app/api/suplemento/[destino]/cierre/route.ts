@@ -42,12 +42,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
   if (!doc) return NextResponse.json({ error: "Ese documento no existe o no es visible." }, { status: 404 });
   const acceso = await accesoAlGenerador(db, doc.tenant_id);
   if (!acceso.ok) return NextResponse.json({ error: acceso.error }, { status: acceso.status });
-  if (!(await reclamarCierre(db, documentoId))) {
+  const reserva = await reclamarCierre(db, documentoId);
+  if (!reserva) {
     return NextResponse.json({ error: "Ya hay un cierre de pendientes en curso para este documento." }, { status: 409 });
   }
 
   after(async () => {
-    const r = await completarCierre(db, documentoId);
+    const r = await completarCierre(db, documentoId, reserva);
     if (r?.cierres.length) {
       await logEvento(db, {
         tenantId: doc.tenant_id,
@@ -59,6 +60,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ destino: strin
       });
     }
     if (!coherencia) return;
+    // Si la reserva pasó a otra corrida, la coherencia la encadena esa corrida.
+    const { data: actual } = await db.from("documentos_generados").select("cierre_resultado").eq("id", documentoId).maybeSingle();
+    if ((actual?.cierre_resultado as { reserva?: string } | null)?.reserva !== reserva) return;
     // Aunque el cierre falle, la coherencia revisa el documento tal como quedó
     // (antes del cierre o con los bloques que alcanzó a cerrar): lo que no se
     // cerró lo vuelve a señalar el validador cruzado.

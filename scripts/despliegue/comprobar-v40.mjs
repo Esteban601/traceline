@@ -136,9 +136,14 @@ if (carpetaDespues) {
     ok((await deCarso("hechos", carso.id)) === 0, "sin hechos");
     ok((await deCarso("observaciones_coherencia", carso.id)) === 0, "sin pasadas de coherencia");
     ok((await deCarso("documentos_bloques_versiones", carso.id)) === 0, "sin historial de bloques");
-    const adjuntos = await deCarso("perfil_emisor_adjuntos_contenido", carso.id);
+    // El relleno de la migración deja una fila de lectura por adjunto: se cuenta
+    // contra los adjuntos, para que un relleno incompleto no pase como «0 de 0»
+    // (observación P2 de Codex sobre el PR #19).
+    const adjuntos = await deCarso("perfil_emisor_adjuntos", carso.id);
+    const lecturas = await deCarso("perfil_emisor_adjuntos_contenido", carso.id);
     const noOmitidos = await deCarso("perfil_emisor_adjuntos_contenido", carso.id, (q) => q.neq("estado", "omitido"));
-    ok(noOmitidos === 0, `adjuntos del Perfil: ${adjuntos}, todos en «omitido» (${noOmitidos} en otro estado)`);
+    ok(lecturas === adjuntos, `adjuntos del Perfil: ${adjuntos}; filas de lectura: ${lecturas}`);
+    ok(noOmitidos === 0, `todas las filas de lectura en «omitido» (${noOmitidos} en otro estado)`);
   }
 
   if (BASE) {

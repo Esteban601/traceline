@@ -36,7 +36,7 @@ const CONCURRENCIA = 3;
 const INTERVALO_MS = 2000;
 const LIMITE_MS = 3 * 60 * 1000;
 
-type Estado = "listo" | "abriendo" | "generando" | "hecho" | "error";
+type Estado = "listo" | "abriendo" | "generando" | "cerrando" | "hecho" | "error";
 
 export function GenerarDocumento({
   reporteId,
@@ -167,14 +167,24 @@ export function GenerarDocumento({
       // servidor, en ese orden y fuera de esta petición (fix/pre-v40): la ruta
       // responde 202 enseguida y la revisión muestra su estado. Si el documento
       // quedó con fallos se corren igual: revisan lo que sí salió.
+      // «Generar» no se vuelve a ofrecer hasta que el cierre termine: reabrir el
+      // documento con el cierre en curso le cambiaría los bloques por debajo (la
+      // ruta de generar también lo rechaza con 409; fix/cierre-reserva).
       if (!cancelado.current) {
-        await fetch(`/api/suplemento/${docId}/cierre`, {
+        const c = await fetch(`/api/suplemento/${docId}/cierre`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ coherencia: true }),
-        }).catch(() => {
-          /* la revisión ofrece correr la coherencia a mano */
-        });
+        }).catch(() => null);
+        if (c?.status === 202) {
+          setEstado("cerrando");
+          const hasta = Date.now() + 20 * 60 * 1000;
+          while (Date.now() < hasta && !cancelado.current) {
+            await new Promise((r) => setTimeout(r, 4000));
+            const e = await fetch(`/api/suplemento/${docId}/cierre`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+            if (e?.estado === "listo" || e?.estado === "error") break;
+          }
+        }
       }
 
       setFallidos(quedan);
@@ -210,8 +220,12 @@ export function GenerarDocumento({
           ))}
         </ul>
       </ConfirmDialog>
-      <Button onClick={() => generar()} loading={estado === "abriendo" || estado === "generando"} disabled={estado === "generando"}>
-        {estado === "generando" ? `Generando ${hechos}/${total}…` : "Generar suplemento"}
+      <Button
+        onClick={() => generar()}
+        loading={estado === "abriendo" || estado === "generando" || estado === "cerrando"}
+        disabled={estado === "generando" || estado === "cerrando"}
+      >
+        {estado === "generando" ? `Generando ${hechos}/${total}…` : estado === "cerrando" ? "Cerrando pendientes…" : "Generar suplemento"}
       </Button>
 
       {estado === "generando" && (
@@ -225,7 +239,7 @@ export function GenerarDocumento({
         </>
       )}
 
-      {documentoId && estado !== "generando" && (
+      {documentoId && estado !== "generando" && estado !== "cerrando" && (
         <a
           href={`/admin/cobertura/suplemento/${documentoId}`}
           className={cn("text-sm font-medium text-teal hover:underline")}
