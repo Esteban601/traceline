@@ -225,6 +225,7 @@ type Ancla = { oracion: string; hechos: { id: string; hecho: string | null }[] }
 type VersionAprobada = { numero: number; version: number; texto: string; cobertura: Cobertura[]; anclas: Ancla[]; libro_id: string | null };
 type HechoLibro = { id: string; tipo: string; enunciado: string; extracto: string; valor: number | null; unidad: string | null; estado: string };
 type Previa = {
+  documento_id: string;
   destino: Destino; clave: string; texto: string | null; bloque: number | null; bloque_version: number | null; prompt_version: string | null;
   hechos: string[]; notas: string[]; costo_usd: number; tokens_entrada: number; tokens_cache_escritura: number; tokens_cache_lectura: number; tokens_salida: number;
 };
@@ -253,10 +254,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
 
   const [{ data: versiones }, { data: previas }, { data: catalogo }, { data: perfil }, { data: enlaces }] = await Promise.all([
     db.from("documentos_bloques_versiones").select("id, numero, version, texto, respaldo, libro_id").in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
-    // Respuestas del modelo ya generadas para este documento: si su bloque sigue
-    // en la misma versión aprobada y con la misma versión de prompt, se reutilizan
-    // (sin llamada) — solo cambia lo que el código añade, como la remisión.
-    db.from("respuestas_datapoint").select("destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("documento_id", documentoId).eq("origen", "modelo"),
+    // REGENERACIÓN POR CAMBIO DE BLOQUE (Paso 5): las respuestas del modelo de
+    // este documento o del último aprobado del reporte se reutilizan (sin llamada)
+    // si su bloque tiene el MISMO texto aprobado y la misma versión de prompt;
+    // solo cambia lo que el código añade, como la remisión. Al reaprobar con un
+    // bloque cambiado, solo se regeneran las respuestas de ese bloque.
+    db.from("respuestas_datapoint").select("documento_id, destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("reporte_id", doc.reporte_id).eq("origen", "modelo"),
     db.from("datapoints_taxonomia").select("id, codigo, descripcion").eq("activo", true),
     db.from("perfil_emisor").select("glosario").eq("tenant_id", doc.tenant_id).maybeSingle(),
     db.from("mapeo_solicitud_datapoint").select("datapoint_id, solicitud:solicitudes!inner(id, reporte_id, titulo)").eq("solicitud.reporte_id", doc.reporte_id),
@@ -268,7 +271,22 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     porBloque.set(v.numero, { numero: v.numero, version: v.version, texto: v.texto, cobertura: r.cobertura ?? [], anclas: r.anclas ?? [], libro_id: v.libro_id });
   }
   const numeracion = numeracionConsecutiva(porBloque.keys());
-  const previaDe = new Map(((previas ?? []) as Previa[]).map((p) => [`${p.destino}|${p.clave}`, p]));
+  // Una respuesta previa vale si su bloque tiene hoy el mismo texto aprobado que cuando se generó.
+  const deOtros = ((previas ?? []) as Previa[]).filter((p) => p.documento_id !== documentoId && p.bloque != null && p.bloque_version != null);
+  const textoPrevio = new Map<string, string>();
+  for (const docId of [...new Set(deOtros.map((p) => p.documento_id))]) {
+    const { data: vs } = await db.from("documentos_bloques_versiones").select("numero, version, texto").eq("documento_id", docId).in("numero", [...new Set(deOtros.filter((p) => p.documento_id === docId).map((p) => p.bloque!))]);
+    for (const x of vs ?? []) textoPrevio.set(`${docId}|${x.numero}|${x.version}`, x.texto);
+  }
+  const vigente = (p: Previa) => {
+    const v = p.bloque != null ? porBloque.get(p.bloque) : null;
+    if (!v) return false;
+    if (p.documento_id === documentoId) return p.bloque_version === v.version;
+    return textoPrevio.get(`${p.documento_id}|${p.bloque}|${p.bloque_version}`) === v.texto;
+  };
+  // Las del propio documento mandan sobre las del aprobado anterior.
+  const previaDe = new Map<string, Previa>();
+  for (const p of ((previas ?? []) as Previa[]).filter(vigente).sort((a, b) => Number(a.documento_id === documentoId) - Number(b.documento_id === documentoId))) previaDe.set(`${p.destino}|${p.clave}`, p);
   const libros = [...new Set([...porBloque.values()].map((v) => v.libro_id).filter((x): x is string => !!x))];
   const hechos = new Map<string, HechoLibro>();
   for (const l of libros) {
@@ -508,7 +526,8 @@ async function responderBloque(
   const reutilizadas = new Map<string, Previa>();
   for (const p of pedidos) {
     const prev = ctx.previaDe?.get(clave(p));
-    if (prev?.texto && prev.bloque === v.numero && prev.bloque_version === v.version && prev.prompt_version === PROMPT_RESPUESTAS) reutilizadas.set(clave(p), prev);
+    // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe.
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === PROMPT_RESPUESTAS) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;
