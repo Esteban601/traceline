@@ -1758,6 +1758,11 @@ Dirección. Cada prospecto organiza el trabajo a su manera, así que la config t
   y no como una decisión. Ejemplo: en una financiera la categoría material de
   Alcance 3 es la cartera (Categoría 15-Inversiones → Riesgos); en una inmobiliaria,
   el uso de los productos vendidos → Comercialización.
+- `cifrasEscena` (opcional) — sobreescribe la cifra de una entrada del estado
+  escénico, identificada por su mismo patrón (Portafolio Durango: Alcance 1, 2 y 3 en
+  200 / 2,000 / 20,000 tCO2e, porque un portafolio fotovoltaico emite poco). Sin ella,
+  la cifra es la común. Un patrón que no está en la escena detiene el script antes de
+  conectarse.
 
 ### El estado escénico
 
@@ -1844,6 +1849,35 @@ terceros, no activos del producto). Dos detalles del manejo:
   decisión, no un detalle de operación.
 - **Exige el rol `admin`** de IRStrat: marcar una emisora como de demostración lo
   gatea `trg_tenant_es_demo`.
+
+### Corrida contra staging
+
+Se corre desde `~/Repositorios/vert-evidencia`, que tiene `.env.staging.local`,
+`.credenciales-demo/` y `logos-demo/`. El script se usa desde la rama que lo trae, por
+ejemplo `../vert-evidencia-dev/scripts/`. Todo va en un subshell:
+
+```bash
+cd ~/Repositorios/vert-evidencia
+LOG=.credenciales-demo/corrida-<slug>.log; umask 077
+(set -a; source .env.staging.local; set +a
+ [[ "$NEXT_PUBLIC_SUPABASE_URL" == *ewgnvjtjhvdltvkopptn* ]] || exit 2      # barrera de ref
+ ADMIN_PASSWORD="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json","utf8"))["admin@irstrat.example"].password)')"
+ export ADMIN_PASSWORD DEMO_TARGET_OK=1                                      # DEMO_TARGET_OK: solo con autorización por chat
+ node ../vert-evidencia-dev/scripts/crear-demo-prospecto.mjs --solo <slug> > $LOG 2>&1)
+node ../vert-evidencia-dev/scripts/resumir-credenciales.mjs --log $LOG --slug <slug>   # cuentas, sin contraseñas
+```
+
+- **Contraseña del staff:** `ADMIN_PASSWORD` se lee del JSON del staff dentro del
+  subshell y no se imprime.
+- **`DEMO_TARGET_OK=1`:** va dentro del subshell y **solo se pone con autorización por
+  chat para esa corrida**. Una autorización anterior no cuenta.
+- **Barreras:** si una barrera del script detiene una corrida y las instrucciones no
+  la mencionan, la corrida se detiene y se reporta. No se pasa aunque la corrida esté
+  autorizada.
+- **El log:** queda en un archivo 600 de `.credenciales-demo/` (ignorado por git) y se
+  lee solo con el extractor de lista blanca. Al terminar se sobrescribe y se borra.
+- **Antes y después** se compara el SHA-256 de las cuentas previas del JSON: no debe
+  cambiar.
 
 ```bash
 pnpm e2e:demo-prospectos

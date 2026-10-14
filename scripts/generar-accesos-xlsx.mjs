@@ -9,6 +9,9 @@
 //                                     se registra en el JSON (600) y en la bitácora (fn_log_evento).
 //   --ligas [--url <base>]            hoja «Ligas» al frente: por mockup, liga de entrada, liga al
 //                                     panel, cuenta para presentar, número de cuentas y vínculo a su hoja.
+//                                     Si la base ya la trae, no se crea: en cualquier corrida se le
+//                                     agregan al final las filas de las emisoras del JSON que falten,
+//                                     con el formato de la última fila y sin tocar las existentes.
 //
 // Uso: node scripts/generar-accesos-xlsx.mjs --base <vN.xlsx> --salida <vN+1.xlsx> [opciones]
 // Roles y áreas salen de la base (perfiles_usuario); contraseñas del JSON de credenciales; nada se
@@ -121,7 +124,8 @@ const wb = new ExcelJS.Workbook();
 await wb.xlsx.readFile(BASE);
 const hojasBase = wb.worksheets.map((w) => w.name);
 if (SLUG && hojasBase.includes(HOJA)) abortar(`La base ya tiene una hoja "${HOJA}".`);
-if (LIGAS && hojasBase.includes(HOJA_LIGAS)) abortar(`La base ya tiene una hoja "${HOJA_LIGAS}".`);
+// Con «Ligas» en la base, --ligas no la vuelve a crear: se completa (sección 3b), igual que sin la bandera.
+const LIGAS_EN_BASE = hojasBase.includes(HOJA_LIGAS);
 
 // La primera hoja es la de formato canónico (las editadas a mano en Excel
 // pueden traer hipervínculos y fuentes que no son el formato del libro).
@@ -239,8 +243,52 @@ if (SLUG) {
   resumen.hojaNueva = { nombre: HOJA, cuentas: cuentas.length, slug: SLUG };
 }
 
+// --- 3b. «Ligas» de la base: siempre con todas las emisoras del JSON ------------
+// Agrega al final una fila por cada hoja de mockup que aún no la tiene, en el
+// orden de las hojas, con el formato de la última fila existente y el host de sus
+// vínculos. Las filas que ya están no se tocan.
+const ligasAgregadas = [];
+if (LIGAS_EN_BASE) {
+  const wl = wb.getWorksheet(HOJA_LIGAS);
+  const filasLigas = [];
+  for (let r = 3; r <= wl.rowCount; r++) if (textoCelda(wl.getRow(r).getCell(1).value)) filasLigas.push(r);
+  if (!filasLigas.length) abortar(`«${HOJA_LIGAS}» de la base no trae filas de emisora: no hay formato que copiar.`);
+  const ultima = filasLigas.at(-1);
+  const enLigas = new Set(filasLigas.map((r) => String(textoCelda(wl.getRow(r).getCell(1).value)).trim()));
+  const host = URL_APP || (/^https:\/\/[^\s/]+/.exec(wl.getRow(ultima).getCell(2).value?.hyperlink ?? "") ?? [""])[0];
+  if (!/^https:\/\/[^\s/]+$/.test(host)) abortar(`No se pudo leer el host de los vínculos de «${HOJA_LIGAS}»; pásalo con --url.`);
+  const estiloLigas = (c) => JSON.parse(JSON.stringify(wl.getRow(ultima).getCell(c).style ?? {}));
+  let fila = wl.rowCount;
+  for (const w of wb.worksheets.filter((x) => x !== wl && !enLigas.has(x.name))) {
+    const emails = emailsDe(w);
+    const slug = emails.map((e) => credenciales[e]?.slug).find(Boolean);
+    if (!slug) continue;
+    const { cuentas } = await cuentasDe(slug);
+    const admin = cuentas.find((c) => c.rol === "admin_cliente");
+    fila++;
+    const valores = [
+      w.name,
+      { text: "Entrar", hyperlink: `${host}/login` },
+      { text: "Panel", hyperlink: `${host}/admin` },
+      admin?.email ?? "—",
+      emails.length,
+      { text: `Ir a «${w.name}»`, hyperlink: `#'${w.name.replace(/'/g, "''")}'!A1` },
+    ];
+    const r = wl.getRow(fila);
+    if (wl.getRow(ultima).height) r.height = wl.getRow(ultima).height;
+    valores.forEach((v, j) => {
+      r.getCell(j + 1).value = v;
+      r.getCell(j + 1).style = estiloLigas(j + 1);
+    });
+    r.commit();
+    // Para la verificación: columnas A, C y D en texto (la C es un vínculo).
+    esperado.set(HOJA_LIGAS, [...(esperado.get(HOJA_LIGAS) ?? []), { fila, valores: [w.name, "Entrar", "Panel", admin?.email ?? "—"] }]);
+    ligasAgregadas.push(w.name);
+  }
+}
+
 // --- 3. Hoja «Ligas» al frente -------------------------------------------------
-if (LIGAS) {
+if (LIGAS && !LIGAS_EN_BASE) {
   const ws = wb.addWorksheet(HOJA_LIGAS, { views: [{ state: "normal", activeCell: "A3" }] });
   // Al frente: exceljs ordena las hojas por orderNo al escribir.
   const minimo = Math.min(...wb.worksheets.filter((w) => w !== ws).map((w) => w.orderNo));
@@ -329,7 +377,7 @@ for (const wBase of base.worksheets) {
     if (vals[0] !== e.valores[0] || vals[2] !== e.valores[2] || vals[3] !== e.valores[3]) fallas.push(`${wBase.name}!A${e.fila}: fila agregada distinta de lo esperado`);
   }
 }
-const extra = (SLUG ? 1 : 0) + (LIGAS ? 1 : 0);
+const extra = (SLUG ? 1 : 0) + (LIGAS && !LIGAS_EN_BASE ? 1 : 0);
 if (nuevo.worksheets.length !== base.worksheets.length + extra) fallas.push(`hojas: ${nuevo.worksheets.length}, se esperaban ${base.worksheets.length + extra}`);
 if (SLUG && nombresNuevo.at(-1) !== HOJA) fallas.push(`la última hoja no es "${HOJA}"`);
 if (LIGAS && nombresNuevo[0] !== HOJA_LIGAS) fallas.push(`la primera hoja no es "${HOJA_LIGAS}"`);
@@ -359,12 +407,22 @@ for (const w of nuevo.worksheets) {
 }
 const sinHoja = Object.keys(credenciales).filter((e) => !vistas.has(e));
 if (sinHoja.length && (COMPLETAR || SLUG)) fallas.push(`cuentas del JSON sin hoja: ${sinHoja.join(", ")}`);
-if (LIGAS) {
+if (nuevo.getWorksheet(HOJA_LIGAS)) {
   const wl = nuevo.getWorksheet(HOJA_LIGAS);
   const vinculos = [];
-  for (let r = 3; r <= wl.rowCount; r++) vinculos.push(wl.getRow(r).getCell(6).value?.hyperlink ?? "");
+  const emisoras = new Set();
+  for (let r = 3; r <= wl.rowCount; r++) {
+    vinculos.push(wl.getRow(r).getCell(6).value?.hyperlink ?? "");
+    emisoras.add(String(textoCelda(wl.getRow(r).getCell(1).value) ?? "").trim());
+  }
   const rotos = vinculos.filter((h) => !nombresNuevo.some((n) => h === `#'${n.replace(/'/g, "''")}'!A1`));
   if (rotos.length) fallas.push(`Ligas: ${rotos.length} vínculo(s) a hojas que no existen`);
+  // Toda emisora del JSON tiene su fila: la de la hoja donde están sus cuentas.
+  const slugsJson = new Set(Object.values(credenciales).map((c) => c.slug).filter(Boolean));
+  const hojaDeSlug = new Map();
+  for (const w of nuevo.worksheets) for (const e of emailsDe(w)) if (credenciales[e]?.slug) hojaDeSlug.set(credenciales[e].slug, w.name);
+  const sinFila = [...slugsJson].filter((s) => !emisoras.has(hojaDeSlug.get(s)));
+  if (sinFila.length) fallas.push(`Ligas: emisoras del JSON sin fila: ${sinFila.join(", ")}`);
 }
 
 // -----------------------------------------------------------------------------
@@ -377,7 +435,8 @@ if (COMPLETAR) {
   for (const a of resumen.agregadas) console.log(`  ${a}`);
   console.log(`contraseñas nuevas (API de administración, JSON y bitácora): ${resumen.nuevas.length}${resumen.nuevas.length ? ` · ${resumen.nuevas.join(", ")}` : ""}`);
 }
-if (LIGAS) console.log(`hoja «${HOJA_LIGAS}» al frente: ${resumen.ligas} mockups · ${URL_APP}`);
+if (LIGAS && !LIGAS_EN_BASE) console.log(`hoja «${HOJA_LIGAS}» al frente: ${resumen.ligas} mockups · ${URL_APP}`);
+if (LIGAS_EN_BASE) console.log(`«${HOJA_LIGAS}» de la base completada: ${ligasAgregadas.length} fila(s) agregada(s)${ligasAgregadas.length ? ` · ${ligasAgregadas.join(", ")}` : ""}`);
 console.log(`hojas: base ${base.worksheets.length} → salida ${nuevo.worksheets.length}`);
 console.log(`celdas de la base comparadas: ${celdasComparadas} · cubiertas por combinación con estilo por defecto vaciado: ${esclavasEquivalentes}`);
 console.log(`contraseñas comparadas carácter por carácter: ${contrasenas} · iguales: ${iguales} · JSON: ${Object.keys(credenciales).length}`);
