@@ -23,10 +23,10 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-# Ensayo de v41 (traceline-ensayo-v41, creado por Esteban el 14/10/2026). Los de
-# v40 (vdubzcjtujxayefzhhco) y v33 (sqpxcxewoznhpwvhxamy) ya se borraron. Al
-# borrarlo, el ref vuelve al marcador PENDIENTE_REF_ENSAYO y «ensayo» falla.
-REF_ENSAYO="wbvqrjqlfmlnbtpejvnm"
+# Sin proyecto de ensayo vivo: el de v41 (wbvqrjqlfmlnbtpejvnm) se borró al
+# cerrar el despliegue (14/10/2026); el de v40 (vdubzcjtujxayefzhhco), el 13/10, y
+# el de v33 (sqpxcxewoznhpwvhxamy), el 5/10. Con el marcador, «ensayo» falla.
+REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
 # v41 (encargo 2026-10-14-excel-formato-a-produccion): las 5 del encargo
 # excel-respuestas-narrativas (PR #27), aditivas y sin relleno.

@@ -28,7 +28,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
-const REFS = { staging: "ewgnvjtjhvdltvkopptn", ensayo: "wbvqrjqlfmlnbtpejvnm" };
+const REFS = { staging: "ewgnvjtjhvdltvkopptn", ensayo: "PENDIENTE_REF_ENSAYO" };
 const PASSWORD_SEED = "Demo2025!";
 // Las cuentas de supabase/seed.sql. Las que no existan en el destino se saltan.
 const CUENTAS_SEED = [

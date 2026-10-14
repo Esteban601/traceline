@@ -57,8 +57,8 @@ import { HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, RUTA_PLANTILLA_FORMATO } from "../.
 import { celdasConCorchete, opcionesDeListas, validarImagenesEnCelda } from "../../lib/formato/xlsx-xml.ts";
 import { rutaDeHoja } from "../../lib/formato/zip.ts";
 
-// Ensayo de v41 (traceline-ensayo-v41); al borrarlo, se quita de aquí.
-const REFS = { ewgnvjtjhvdltvkopptn: "staging", wbvqrjqlfmlnbtpejvnm: "ensayo" };
+// El ensayo de v41 (wbvqrjqlfmlnbtpejvnm) se borró al cerrar el despliegue (14/10/2026): solo staging.
+const REFS = { ewgnvjtjhvdltvkopptn: "staging" };
 const APPS = {
   staging: "https://traceline-staging-70ce5b369e7c.herokuapp.com",
   ensayo: "https://traceline-dev-d4fd7a3cda04.herokuapp.com",

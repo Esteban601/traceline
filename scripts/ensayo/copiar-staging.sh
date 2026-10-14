@@ -27,7 +27,7 @@
 set -euo pipefail
 
 REF_STAGING="ewgnvjtjhvdltvkopptn"
-REF_ENSAYO="wbvqrjqlfmlnbtpejvnm"
+REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 
 falla() { echo "✗ $*" >&2; exit 1; }
 

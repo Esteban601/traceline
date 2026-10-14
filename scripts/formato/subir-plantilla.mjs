@@ -30,8 +30,8 @@ import { createClient } from "@supabase/supabase-js";
 import { validarImagenesEnCelda } from "../../lib/formato/xlsx-xml.ts";
 import { IMAGENES_EN_CELDA, RUTA_PLANTILLA_FORMATO } from "../../lib/formato/plantilla.ts";
 
-// Ensayo de v41; al borrarlo vuelve al marcador PENDIENTE_REF_ENSAYO y «ensayo» falla.
-const REFS = { dev: "kmjkoxecxcujxixlxwlb", ensayo: "wbvqrjqlfmlnbtpejvnm", staging: "ewgnvjtjhvdltvkopptn" };
+// Sin proyecto de ensayo vivo (el de v41 se borró el 14/10/2026): con el marcador, «ensayo» falla.
+const REFS = { dev: "kmjkoxecxcujxixlxwlb", ensayo: "PENDIENTE_REF_ENSAYO", staging: "ewgnvjtjhvdltvkopptn" };
 const SHA_ESPERADO = "eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786";
 const TIPO = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
