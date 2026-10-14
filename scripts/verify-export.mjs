@@ -194,17 +194,22 @@ async function main() {
   // cambió de 400,000 a 1,240 al pasar el demo de industrial a grupo financiero
   // (scripts/poblar-demo.mjs): son 118 sucursales y una flota, no una planta.
   ok(Number(cellText(gei1, "C3")) === 1240, "C3 (Alcance 1, 2025 validado) = 1240");
-  ok(cellText(gei1, "D3") === "", "D3 (Alcance 1, 2024 sin captura) VACÍA");
-  ok(
-    cellText(gei1, "E3") === "Sin evidencia (2024)",
-    "E3 nota = 'Sin evidencia (2024)' (NO 'pendiente': nada está por validar)"
-  );
-  // Alcance 2: ambos años validados y llenos → la celda de notas queda VACÍA.
+  // ALIVIOS (especificación 0.41, §6.1): el demo es primer año de adopción con
+  // C3, C4 y E5 vigentes. Sin comparativos (C3): la columna 2024 dice «No
+  // revelado · alivio C3» y no genera nota de brecha; sin Alcance 3 (C4).
+  // Las causas por año (pendiente / sin evidencia) las ejercita el segundo
+  // tenant y scripts/e2e-excel-alivios.mjs, sin alivios.
+  ok(cellText(gei1, "D3") === "No revelado · alivio C3", "D3 (Alcance 1, 2024) = 'No revelado · alivio C3'");
+  ok(cellText(gei1, "E3") === "", "E3 nota VACÍA: un año que el alivio deja fuera no es una brecha");
   ok(
     Number(cellText(gei1, "C4")) > 0 &&
-      Number(cellText(gei1, "D4")) > 0 &&
+      cellText(gei1, "D4") === "No revelado · alivio C3" &&
       cellText(gei1, "E4") === "",
-    "Alcance 2 completo (2024+2025) → nota de fila VACÍA"
+    "Alcance 2: 2025 lleno, 2024 «No revelado · alivio C3», nota de fila VACÍA"
+  );
+  ok(
+    cellText(gei1, "C5") === "No revelado · alivio C4" && cellText(gei1, "D5") === "No revelado · alivio C4",
+    "Alcance 3 total: «No revelado · alivio C4» en los dos años"
   );
 
   // El origen de TODAS las solicitudes del demo es 'irstrat' (backfill de la
@@ -227,23 +232,18 @@ async function main() {
       !notasDemo.some((t) => /perímetro de la división/i.test(t)),
       "ni nota de alcance: el demo no tiene salvedad de perímetro que declarar"
     );
-    ok(
-      cellText(gei1, "E3") === "Sin evidencia (2024)",
-      "y su celda de notas sigue diciendo exactamente 'Sin evidencia (2024)'"
-    );
+    ok(cellText(gei1, "E3") === "", "y su celda de notas sigue vacía");
   }
 
   console.log("\nGEI 29(a)(vi)(1) — causas por año (pendiente vs sin evidencia):");
-  ok(Number(cellText(geiVi, "B4")) > 0, "B4 (Categoría 1, 2025) tiene número");
-  let hayPend = false;
-  let haySin = false;
-  for (let r = 4; r <= 18; r++) {
-    const d = cellText(geiVi, `D${r}`);
-    if (/^Pendiente de validación en plataforma \(20\d\d\)/.test(d)) hayPend = true;
-    if (/Sin evidencia \(20\d\d\)/.test(d)) haySin = true;
+  {
+    // C4: ninguna categoría de Alcance 3 se exporta, ni su nota de brecha.
+    let todas = true;
+    for (let r = 4; r <= 18; r++) {
+      if (cellText(geiVi, `B${r}`) !== "No revelado · alivio C4" || cellText(geiVi, `C${r}`) !== "No revelado · alivio C4" || cellText(geiVi, `D${r}`) !== "") todas = false;
+    }
+    ok(todas, "las 15 categorías de Alcance 3: «No revelado · alivio C4» en los dos años y sin nota de brecha");
   }
-  ok(hayPend, "alguna categoría con captura sin validar → 'Pendiente de validación en plataforma (AAAA)'");
-  ok(haySin, "alguna categoría sin captura → 'Sin evidencia (AAAA)'");
 
   console.log("\nRegistros de clima (v2: horizonte multi + capital en tres):");
   ok(cellText(s10, "A4").length > 0, "S2 10: A4 tiene un riesgo");
@@ -350,11 +350,20 @@ async function main() {
   ok(cellText(s36, "F5") === "", "S2 36: F5 vacía (no hay cuarto objetivo)");
 
   console.log("\nObjetivos — S1 51 (secciones Riesgos / Oportunidades):");
-  ok(cellText(s51, "A4").length > 0, "S1 51: A4 tiene un objetivo en la sección Riesgos");
-  ok(cellText(s51, "H4").length > 0, "S1 51: H4 (resultados/tendencias) del primer objetivo");
-  let hayOportunidad = false;
-  for (let r = 14; r <= 18; r++) if (cellText(s51, `A${r}`).length > 0) hayOportunidad = true;
-  ok(hayOportunidad, "S1 51: la sección Oportunidades (filas 14-18) tiene al menos un objetivo");
+  // E5 (decisión de Esteban, 14 de octubre): las hojas de S1 llevan la información sobre clima, la misma del
+  // Formato electrónico: S1 51 los objetivos climáticos; S1 46-50 las métricas de NIIF S2 29 por riesgo.
+  ok(cellText(s51, "A4") === "Reducción de emisiones de Alcances 1 y 2" && cellText(s51, "H4").length > 0, "S1 51: A4 el primer objetivo climático, con resultados");
+  ok(cellText(s51, "A14") === "Cartera sostenible", "S1 51: Oportunidades con el objetivo climático de cartera sostenible");
+  ok(!/No revelado/.test(cellText(s51, "A4") + cellText(s51, "A14")), "S1 51: ningún «No revelado · alivio E5»");
+  const s4650 = wb.getWorksheet("NIIF S1 46-50");
+  ok(/párrafo E5/.test(cellText(s4650, "A2")) && cellText(s4650, "A6").length > 0 && /NIIF S2 párrafo 29/.test(cellText(s4650, "D6")), "S1 46-50: oración del E5 e instancias de métricas de NIIF S2 29 por riesgo");
+  {
+    const ley = wb.getWorksheet("Leyenda");
+    const textos = [];
+    ley?.eachRow((row) => row.eachCell((c) => textos.push(String(c.value ?? ""))));
+    ok(!!ley && textos.some((t) => /capturas validadas/.test(t)) && textos.some((t) => /APROBADO/.test(t)), "hoja «Leyenda»: hojas de datos y columna «Respuesta»");
+    ok(textos.some((t) => t === "C3, C4, E5"), "la Leyenda dice los alivios vigentes del reporte: C3, C4, E5");
+  }
 
   // ---------------------------------------------------------------------------
   // Cuestionarios narrativos (Sprint 4) — 3 hojas: 22(b)(i)/(ii) y 36(e).

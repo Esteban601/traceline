@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { NOTA_VALIDACION_INTERNA, type OrigenSolicitud } from "@/lib/origen";
+import { leerAlivios, regimenDe, type Alivios } from "@/lib/perfil-emisor";
+import { rubroExento } from "@/lib/suplemento/bloques";
 
 // =============================================================================
 // ENSAMBLADOR DE DATOS DE UN REPORTE — la fuente única de "qué dice el reporte".
@@ -42,6 +44,20 @@ type Cliente = SupabaseClient<Database>;
 export const NOTA_PENDIENTE = "Pendiente de validación en plataforma";
 export const NOTA_SIN = "Sin evidencia";
 export const NOTA_SIN_SOLICITUD = "Sin solicitud en el reporte";
+/** Celda que un alivio vigente deja fuera (especificación 0.41, §6.1): «No revelado · alivio C4». */
+export const noRevelado = (alivio: string) => `No revelado · alivio ${alivio}`;
+
+/**
+ * ALIVIOS EN LAS HOJAS DE DATOS (revisión externa, punto 1). El Word no revela el
+ * Alcance 3 con C4 ni el año anterior con C3; el Excel tiene que coincidir, en
+ * borrador y en aprobado. Qué alivio deja fuera una celda mapeada, o null.
+ */
+export function alivioDeCelda(rubro: string | null, anioOffset: number | null, alivios: Alivios): "C4" | "C3" | null {
+  // La misma lista de rubros que calla el Word (CONDICIONADOS_POR_ALIVIO).
+  if (alivios.C4 && rubroExento(rubro, { C4: true })) return "C4";
+  if (alivios.C3 && (anioOffset ?? 0) >= 1) return "C3";
+  return null;
+}
 
 // -----------------------------------------------------------------------------
 // Filas crudas. Se exportan porque los escritores posicionales del Excel
@@ -129,6 +145,8 @@ export type RegRow = {
   concentracion: string | null;
   impactos_potenciales: string | null;
   respuesta: string | null;
+  /** Métricas de NIIF S2 29 (a)–(e) que el riesgo lleva en NIIF S1 46–50; vacío = regla por defecto. */
+  metricas_asociadas: string[] | null;
   orden: number;
 };
 
@@ -160,6 +178,8 @@ export type ObjRow = {
   periodo_base: string | null;
   hito_intermedio: string | null;
   tipo_objetivo: string | null;
+  /** Fijado por la emisora o exigido por ley (NIIF S2 33). */
+  origen_objetivo: string | null;
   alineacion_acuerdo_internacional: string | null;
   orden: number;
 };
@@ -199,6 +219,8 @@ export type ReporteEnsamblado = {
   nombre: string;
   ejercicio: number;
   tenant: TenantReporte | null;
+  /** Alivios VIGENTES: los del reporte si el ejercicio es el primer año de adopción; si no, ninguno. */
+  aliviosVigentes: Alivios;
 };
 
 // -----------------------------------------------------------------------------
@@ -251,6 +273,8 @@ export type ConteosEnsamblado = {
   huecosSinSolicitud: number;
   validacionesInternas: number;
   alcancesDeclarados: number;
+  /** Celdas que un alivio vigente deja fuera («No revelado · alivio …»). */
+  noRevelados: number;
 };
 
 export type Ensamblado = {
@@ -322,7 +346,7 @@ export async function ensamblarReporte(
   const { data: reporteRaw, error: repErr } = await supabase
     .from("reportes")
     .select(
-      "id, nombre, ejercicio, tenant:tenants!reportes_tenant_id_fkey(nombre, slug, es_demo)"
+      "id, nombre, ejercicio, anio_adopcion, alivios, tenant:tenants!reportes_tenant_id_fkey(nombre, slug, es_demo)"
     )
     .eq("id", reporteId)
     .maybeSingle();
@@ -335,6 +359,9 @@ export async function ensamblarReporte(
     nombre: reporteRaw.nombre,
     ejercicio: reporteRaw.ejercicio,
     tenant: (reporteRaw.tenant as unknown as TenantReporte | null) ?? null,
+    // Los alivios son transitorios: solo rigen el primer ejercicio de adopción
+    // (la misma regla que la completitud y el generador).
+    aliviosVigentes: regimenDe(reporteRaw.ejercicio, reporteRaw.anio_adopcion) === "primer_anio" ? leerAlivios(reporteRaw.alivios) : {},
   };
 
   const [
@@ -379,7 +406,7 @@ export async function ensamblarReporte(
     supabase
       .from("registros_clima")
       .select(
-        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, concentracion, impactos_potenciales, respuesta, orden"
+        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, concentracion, impactos_potenciales, respuesta, metricas_asociadas, orden"
       )
       .eq("reporte_id", reporteId)
       .eq("activo", true)
@@ -394,7 +421,7 @@ export async function ensamblarReporte(
     supabase
       .from("objetivos")
       .select(
-        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, alineacion_acuerdo_internacional, orden"
+        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, origen_objetivo, alineacion_acuerdo_internacional, orden"
       )
       .eq("reporte_id", reporteId)
       .eq("activo", true)
@@ -522,6 +549,7 @@ export async function ensamblarReporte(
     huecosSinSolicitud: 0,
     validacionesInternas: 0,
     alcancesDeclarados: 0,
+    noRevelados: 0,
   };
 
   // Causa del hueco POR CELDA-AÑO, acumulada por celda de nota (una fila puede
@@ -565,6 +593,14 @@ export async function ensamblarReporte(
     // Celda de valor: el rubro se resuelve contra las solicitudes del reporte y
     // el año relativo contra su ejercicio.
     if (!m.rubro_clave || m.anio_offset == null) continue;
+    // Un alivio vigente deja la celda fuera: se dice, no se llena ni se cuenta
+    // como hueco (no falta evidencia; la norma no lo exige este ejercicio).
+    const alivio = alivioDeCelda(m.rubro_clave, m.anio_offset, reporte.aliviosVigentes);
+    if (alivio) {
+      celdas.push({ tipo: "etiqueta", hoja: m.hoja, celda: m.celda, texto: noRevelado(alivio) });
+      conteos.noRevelados++;
+      continue;
+    }
     const ejercicioCelda = reporte.ejercicio - m.anio_offset;
     const solicitudId = solPorRubro.get(m.rubro_clave);
 

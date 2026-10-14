@@ -21,6 +21,7 @@ import {
   WidthType,
 } from "docx";
 import { BLOQUES } from "@/lib/suplemento/bloques";
+import { numeracionConsecutiva } from "@/lib/suplemento/numeracion";
 
 // =============================================================================
 // EXPORTACIÓN DEL SUPLEMENTO A WORD (A6 mínimo).
@@ -280,6 +281,9 @@ function indice(bloques: BloqueWord[]): Paragraph[] {
     }),
   ];
 
+  // Numeración consecutiva entre las secciones que van en el documento
+  // (especificación 0.41): sin saltos por editoriales apagados o bloques fuera.
+  const numeroEnDocumento = numeracionConsecutiva(bloques.map((b) => b.numero));
   let seccionActual: string | null = "";
   for (const b of bloques) {
     if (b.seccion && b.seccion !== seccionActual) {
@@ -296,7 +300,7 @@ function indice(bloques: BloqueWord[]): Paragraph[] {
         indent: { left: 340 },
         spacing: { after: 40 },
         children: [
-          new TextRun({ text: `${b.numero}. `, size: 20, color: GRIS }),
+          new TextRun({ text: `${numeroEnDocumento.get(b.numero)}. `, size: 20, color: GRIS }),
           new TextRun({ text: tituloDe(b), size: 20, color: "1A1A1A" }),
         ],
       })

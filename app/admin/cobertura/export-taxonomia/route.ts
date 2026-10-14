@@ -8,6 +8,7 @@ import { registrarActividadAuditor } from "@/lib/auditoria";
 import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
 import { fmtFecha } from "@/lib/fechas";
+import { PADRE_DE } from "@/lib/suplemento/catalogo-incisos";
 import {
   ensamblarReporte,
   type CuestRow,
@@ -15,7 +16,13 @@ import {
   type ObjRow,
   type RegRow,
   type RegValRow,
+  noRevelado,
 } from "@/lib/reporte/ensamblar";
+import type { Alivios } from "@/lib/perfil-emisor";
+import { ORACION_E5, pendienteEnTextoPlano, sinRemision } from "@/lib/suplemento/respuestas";
+import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
+import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -87,6 +94,124 @@ function escribirRequisitos(
 
   return { escritas, sinCatalogo };
 }
+/**
+ * COLUMNA «RESPUESTA» (encargo 2026-10-13-excel-respuestas-narrativas, Paso 3).
+ *
+ * Las respuestas salen de `respuestas_datapoint`, que solo tiene filas del ÚLTIMO
+ * DOCUMENTO APROBADO del reporte. Sin ellas —el suplemento sigue en borrador, o
+ * la generación no ha terminado— la columna dice «En preparación»: el auditor
+ * descarga este libro y no debe leer un borrador. Con el generador apagado para
+ * la emisora, la columna no se agrega y el libro sale como antes.
+ *
+ * Como la columna D, solo en la PRIMERA fila de cada código. Los incisos hijos
+ * (25(a)(i)…(v), 36(a)…(d), 36(e)(i)…(iv), S1 44(a)(i)…(v)) quedan agrupados
+ * bajo su padre: un nivel de esquema y sangría, con la respuesta del padre como
+ * encabezado del grupo.
+ */
+const EN_PREPARACION = "En preparación";
+
+function escribirRespuestas(
+  ws: ExcelJS.Worksheet,
+  respuestas: Map<string, string> | null
+): { escritas: number; enPreparacion: number; hijos: number } {
+  const norm = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object" && v !== null && "richText" in v) {
+      return (v as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("").replace(/\s+/g, " ").trim();
+    }
+    return String(v).replace(/\s+/g, " ").trim();
+  };
+  const encabezado = ws.getCell("E1");
+  const modelo = ws.getCell("D1");
+  encabezado.value = "Respuesta";
+  encabezado.style = { ...modelo.style };
+  ws.getColumn(5).width = 90;
+  ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false };
+
+  const vistos = new Set<string>();
+  let escritas = 0;
+  let enPreparacion = 0;
+  let hijos = 0;
+  ws.eachRow((fila, nf) => {
+    if (nf === 1) return;
+    const codigo = norm(ws.getCell(`B${nf}`).value);
+    if (!codigo || vistos.has(codigo)) return;
+    vistos.add(codigo);
+    const esHijo = Object.hasOwn(PADRE_DE, codigo);
+    const celda = ws.getCell(`E${nf}`);
+    // Ninguna celda exportada lleva el marcador «[Pendiente: …]» (CLAUDE.md §5,
+    // 1.10): en este libro va en texto plano.
+    const r = respuestas?.get(codigo);
+    const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
+    celda.value = texto ?? EN_PREPARACION;
+    if (texto === null || texto === EN_PREPARACION) enPreparacion++;
+    else escritas++;
+    celda.alignment = { vertical: "top", wrapText: true, indent: esHijo ? 2 : 0 };
+    if (esHijo) {
+      fila.outlineLevel = 1;
+      hijos++;
+    }
+  });
+  return { escritas, enPreparacion, hijos };
+}
+
+/**
+ * HOJA «NIIF S1 46-50»: una fila por instancia (riesgo u oportunidad × métrica
+ * de NIIF S2 29), con las columnas de la plantilla: A riesgo, B–D métrica
+ * requerida por NIIF (nombre, descripción, fuente), E–K métrica que la entidad
+ * utiliza (nombre, descripción, ¿ajuste?, fuente y diferencia, tipo, ¿validada
+ * por tercero?, método y datos). Riesgos desde la fila 6 (12 lugares; si hacen
+ * falta más, se insertan antes de «OPORTUNIDADES»), oportunidades después de su
+ * encabezado. Con E5, la oración fija del alivio en A2. Devuelve la última fila.
+ */
+function escribirMetricasS1(ws: ExcelJS.Worksheet, inst: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] }, e5: boolean): number {
+  if (e5) ws.getCell("A2").value = ORACION_E5;
+  const fila = (n: number, m: InstanciaMetrica) => {
+    const valores = [m.riesgo, m.nombre, m.descripcion, `NIIF S2 párrafo ${m.parrafo}`, m.nombre, m.descripcion, "No", "No aplica: la métrica se toma sin ajuste de NIIF S2", m.tipoMedida, m.verificacion, m.metodo];
+    valores.forEach((v, i) => {
+      const c = ws.getRow(n).getCell(i + 1);
+      c.value = v || null;
+      c.alignment = { wrapText: true, vertical: "top" };
+    });
+  };
+  const LUGARES_RIESGOS = 12;
+  const extra = Math.max(0, inst.riesgos.length - LUGARES_RIESGOS);
+  if (extra) ws.spliceRows(18, 0, ...Array.from({ length: extra }, () => []));
+  inst.riesgos.forEach((m, i) => fila(6 + i, m));
+  const inicioOpp = 19 + extra;
+  inst.oportunidades.forEach((m, i) => fila(inicioOpp + i, m));
+  return Math.max(21 + extra, inicioOpp + inst.oportunidades.length - 1);
+}
+
+/**
+ * HOJA «LEYENDA» (revisión externa, puntos 1 y 3; especificación 0.41, §6.1).
+ * Qué es cada parte del libro y por qué una celda dice «No revelado · alivio».
+ */
+function escribirLeyenda(wb: ExcelJS.Workbook, alivios: Alivios): void {
+  const ws = wb.getWorksheet("Leyenda") ?? wb.addWorksheet("Leyenda");
+  ws.getColumn(1).width = 34;
+  ws.getColumn(2).width = 110;
+  const filas: [string, string][] = [
+    ["Leyenda", ""],
+    ["Hojas de datos", "Las hojas por párrafo (NIIF S2 29(a)(i), 29(b), 33, …) llevan capturas validadas en la plataforma. Se exportan con o sin suplemento: no dependen de que el documento esté aprobado."],
+    ["Columna «Respuesta»", "La columna E de la hoja «Taxonomía NIIF S1 S2» lleva la respuesta a cada requisito, redactada desde el último documento del Suplemento NIIF S1/S2 APROBADO, con remisión a su sección. Mientras no haya documento aprobado dice «En preparación»: nunca se exporta un borrador."],
+    ["«Pendiente: …»", "El requisito no tiene información en el documento aprobado: dice qué falta y de dónde debe salir."],
+    ["«No aplica»", "El requisito no aplica en este ejercicio, por el régimen o por la condición de la emisora."],
+    ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan las emisiones de Alcance 3, ni su total ni sus categorías."],
+    ["«No revelado · alivio C3»", "Alivio transitorio del primer año (NIIF S2 C3): no se presentan comparativos del ejercicio anterior."],
+    ["Alivio E5 en las hojas de NIIF S1", "Alivio transitorio del primer año (NIIF S1 E5): el informe trata solo los riesgos y oportunidades relacionados con el clima. «NIIF S1 46-50» lleva las métricas de NIIF S2 29 por riesgo y oportunidad, con la oración del alivio, y «NIIF S1 51» los objetivos climáticos: el mismo contenido que el Formato electrónico."],
+    ["Alivios de este reporte", (["C3", "C4", "E5"] as const).filter((k) => alivios[k]).join(", ") || "Ninguno vigente en este ejercicio."],
+  ];
+  filas.forEach(([a, b], i) => {
+    const fila = ws.getRow(i + 1);
+    fila.getCell(1).value = a;
+    fila.getCell(2).value = b;
+    fila.getCell(1).font = { bold: true };
+    fila.getCell(2).alignment = { wrapText: true, vertical: "top" };
+  });
+  ws.getRow(1).getCell(1).font = { bold: true, size: 14 };
+}
+
 const TIPO_LABEL: Record<string, string> = {
   riesgo_fisico: "Físico",
   riesgo_transicion: "Transición",
@@ -195,7 +320,9 @@ function escribirRegistros(
   vigentePorReg: Map<string, Map<number, RegValRow>>,
   hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
   /** Ejercicio del reporte: los años se resuelven relativos a él, no fijos. */
-  ejercicio: number
+  ejercicio: number,
+  /** Alivios vigentes: con C3 la columna del año anterior dice «No revelado · alivio C3». */
+  alivios: Alivios = {}
 ): number {
   let escritas = 0;
   const num = (ws: ExcelJS.Worksheet, addr: string, val: number, fmt: string) => {
@@ -240,6 +367,10 @@ function escribirRegistros(
           [ejercicio - 1, sec.cols.v2024] as const,
         ]) {
           if (!grupo) continue;
+          if (anio < ejercicio && alivios.C3) {
+            ws.getCell(`${grupo.cantidad}${fila}`).value = noRevelado("C3");
+            continue;
+          }
           const v = vig?.get(anio);
           const tieneDato =
             v &&
@@ -302,7 +433,9 @@ function escribirObjetivos(
   wb: ExcelJS.Workbook,
   objetivos: ObjRow[], // activos, ordenados por `orden`
   detallePorObj: Map<string, ObjDetRow>,
-  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
+  /** Alivios vigentes: con E5 la hoja NIIF S1 51 no se llena (el informe es solo de clima). */
+  alivios: Alivios = {}
 ): number {
   let escritas = 0;
   const put = (
@@ -421,9 +554,12 @@ function escribirObjetivos(
 
   // --- S1 51 — TODOS los objetivos, secciones Riesgos / Oportunidades ---
   const s51 = wb.getWorksheet("NIIF S1 51");
+  // E5: el primer ejercicio se informa solo sobre clima: la hoja lleva los
+  // objetivos climáticos, como el Formato electrónico y el Word (misma fuente).
+  const objetivosS51 = alivios.E5 ? objetivos.filter((o) => o.ambito === "climatico") : objetivos;
   if (s51) {
     const seccion = (naturaleza: string, inicio: number, fin: number) => {
-      const lista = objetivos.filter((o) => o.naturaleza === naturaleza);
+      const lista = objetivosS51.filter((o) => o.naturaleza === naturaleza);
       const vis = lista.slice(0, fin - inicio + 1);
       vis.forEach((o, i) => {
         const fila = inicio + i;
@@ -657,12 +793,32 @@ export async function GET(request: Request) {
     );
   }
 
+  // Columna «Respuesta»: solo con el generador encendido para la emisora; las
+  // respuestas, solo del último documento aprobado (las filas de la tabla).
+  const { data: repTenant } = await supabase
+    .from("reportes")
+    .select("tenant:tenants!reportes_tenant_id_fkey(generador_activo)")
+    .eq("id", reporteId)
+    .maybeSingle();
+  const generadorActivo = (repTenant?.tenant as unknown as { generador_activo: boolean } | null)?.generador_activo === true;
+  let respuestasEscritas: { escritas: number; enPreparacion: number; hijos: number } | null = null;
+  if (hojaIndice && generadorActivo) {
+    const { data: filasResp } = await supabase
+      .from("respuestas_datapoint")
+      .select("clave, texto")
+      .eq("reporte_id", reporteId)
+      .eq("destino", "taxonomia");
+    const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
+    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas);
+  }
+
   const registrosEscritos = escribirRegistros(
     wb,
     ens.registros,
     ens.vigentePorRegistro,
     hojasTocadas,
-    reporte.ejercicio
+    reporte.ejercicio,
+    reporte.aliviosVigentes
   );
 
   // Objetivos climáticos y de sostenibilidad (5 hojas: S1 51 + S2 33/34/35/36).
@@ -670,8 +826,36 @@ export async function GET(request: Request) {
     wb,
     ens.objetivos,
     ens.detallePorObjetivo,
-    hojasTocadas
+    hojasTocadas,
+    reporte.aliviosVigentes
   );
+
+  // NIIF S1 46-50: las instancias de métricas de NIIF S2 29 por riesgo y
+  // oportunidad, de la MISMA fuente que el Formato electrónico
+  // (lib/formato/instancias.ts). El método GEI y la verificación salen del
+  // documento aprobado; sin él, la verificación queda vacía.
+  const s4650 = wb.getWorksheet("NIIF S1 46-50");
+  if (s4650) {
+    const { data: aprob } = await supabase.from("respuestas_datapoint").select("destino, texto, estado").eq("reporte_id", reporteId).eq("clave", "NIIF S2 29 (a)(iii)");
+    // El documento aprobado del que salieron las respuestas (cualquiera de sus filas), como en el Formato.
+    const { data: una } = await supabase.from("respuestas_datapoint").select("documento_id").eq("reporte_id", reporteId).limit(1);
+    const documentoAprobado = una?.[0]?.documento_id ?? null;
+    const metodo = aprob?.find((r) => r.destino === "formato" && r.estado === "respuesta")?.texto ?? aprob?.find((r) => r.estado === "respuesta")?.texto ?? null;
+    const inst = instanciasDeMetricas(
+      insumosDeInstancias(ens, {
+        metodoGei: metodo ? sinRemision(metodo) : null,
+        // El hecho de verificación está en el documento aprobado, que el auditor no lee: se lee con service role.
+        verificacionGei: documentoAprobado ? await verificacionGeiDelDocumento(createAdminClient(), documentoAprobado) : null,
+        hayDocumentoAprobado: !!documentoAprobado,
+      })
+    );
+    const ultima = escribirMetricasS1(s4650, inst, reporte.aliviosVigentes.E5 === true);
+    const prev = hojasTocadas.get("NIIF S1 46-50") ?? { ws: s4650, ultimaFila: 0 };
+    prev.ultimaFila = Math.max(prev.ultimaFila, ultima);
+    hojasTocadas.set("NIIF S1 46-50", prev);
+  }
+
+  escribirLeyenda(wb, reporte.aliviosVigentes);
 
   // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
   const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas);
@@ -715,7 +899,9 @@ export async function GET(request: Request) {
       `sin_solicitud=${huecosSinSolicitud} ` +
       `registros=${registrosEscritos} objetivos=${objetivosEscritos} ` +
       `cuestionarios=${cuestionariosEscritos} requisitos=${requisitos.escritas} ` +
-      `requisitos_sin_catalogo=${requisitos.sinCatalogo.length} archivo=${filename}`
+      `requisitos_sin_catalogo=${requisitos.sinCatalogo.length} ` +
+      `respuestas=${respuestasEscritas ? `${respuestasEscritas.escritas}/${respuestasEscritas.enPreparacion} en preparación` : "sin generador"} ` +
+      `archivo=${filename}`
   );
 
   return new NextResponse(salida as unknown as BodyInit, {

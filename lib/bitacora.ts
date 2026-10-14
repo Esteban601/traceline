@@ -93,6 +93,8 @@ export type AccionEvento =
   // Pasada de coherencia del documento (una llamada al modelo; suplemento-calidad, Paso 3).
   | "suplemento_coherencia"
   | "suplemento_cierre_pendientes"
+  // Respuestas por datapoint para los Excel, al aprobar (encargo 2026-10-13, Paso 2).
+  | "suplemento_respuestas"
   // Restauración de una versión anterior de un bloque (historial, Paso 4).
   | "suplemento_bloque_restaurado"
   // Descarga del Suplemento de vitrina del tenant de demostración.
