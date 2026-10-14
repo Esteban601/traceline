@@ -56,8 +56,8 @@ import { HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, RUTA_PLANTILLA_FORMATO } from "../.
 import { celdasConCorchete, opcionesDeListas, validarImagenesEnCelda } from "../../lib/formato/xlsx-xml.ts";
 import { rutaDeHoja } from "../../lib/formato/zip.ts";
 
-// Sin proyecto de ensayo vivo hasta que Esteban lo cree: se agrega su ref aquí.
-const REFS = { ewgnvjtjhvdltvkopptn: "staging" };
+// Ensayo de v41 (traceline-ensayo-v41); al borrarlo, se quita de aquí.
+const REFS = { ewgnvjtjhvdltvkopptn: "staging", wbvqrjqlfmlnbtpejvnm: "ensayo" };
 const APPS = {
   staging: "https://traceline-staging-70ce5b369e7c.herokuapp.com",
   ensayo: "https://traceline-dev-d4fd7a3cda04.herokuapp.com",
