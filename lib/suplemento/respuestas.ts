@@ -118,6 +118,17 @@ export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; pa
   (c) => c.clasificacion === "concepto" && !c.datapoint && c.bloque != null && /^text|\(sin tipo\)/.test(c.tipo ?? "(sin tipo)")
 ).map((c) => ({ fila: c.fila!, bloque: c.bloque!, parrafos: c.parrafos ?? [] }));
 
+/**
+ * Conceptos del formato que comparten datapoint pero piden cosas distintas
+ * (cuarta lectura): 97 (rendimiento financiero) y 99 (flujos de efectivo) salen
+ * de NIIF S2 16(d). Cada uno se redacta con su enfoque, en dos oraciones, desde
+ * los hechos de la cobertura de ese datapoint; nunca se copian ni se remiten.
+ */
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string }[] = [
+  { fila: 97, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre el rendimiento financiero (resultados, margen, ingresos y gastos)" },
+  { fila: 99, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre los flujos de efectivo (entradas y salidas de efectivo, como ahorros, gastos o desembolsos)" },
+];
+
 /** NIIF S1 (sin espacios) → código NIIF S2 del catálogo que lo responde en el formato. */
 export const PAR_S2_DE_S1: Map<string, string> = (() => {
   const m = new Map<string, string>();
@@ -395,6 +406,15 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   };
 
   const planes = codigos.map((c) => planDe(c.codigo));
+  // Conceptos con enfoque propio (97/99): los hechos de la cobertura de su datapoint, redactados con su enfoque.
+  for (const c of CONCEPTOS_FORMATO_CON_ENFOQUE) {
+    const cob = coberturaDe(c.codigo);
+    if (!cob || !cob.hechos.length || !["cubierto", "parcial"].includes(cob.estado)) continue;
+    const clave = `fila:${c.fila}`;
+    const otras = CONCEPTOS_FORMATO_CON_ENFOQUE.filter((x) => x.codigo === c.codigo && x.fila !== c.fila).map((x) => `fila ${x.fila}`);
+    descripcion.set(clave, `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
+    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: cob.hechos });
+  }
   // Conceptos del formato sin datapoint: desde su bloque aprobado, con todos los hechos de su cobertura.
   for (const c of CONCEPTOS_FORMATO_SIN_DATAPOINT) {
     const v = porBloque.get(c.bloque);
@@ -552,6 +572,14 @@ async function responderBloque(
       }
       const g = aplicarGlosario(s.texto.trim(), ctx.glosario);
       const errores = validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: v.texto, hechos: p.hechos, citados: s.hechos });
+      // Conceptos con enfoque del mismo datapoint (97/99): ninguna oración compartida con el anterior.
+      const yo = CONCEPTOS_FORMATO_CON_ENFOQUE.find((c) => `fila:${c.fila}` === p.codigo);
+      for (const otro of CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => yo && c.codigo === yo.codigo && c.fila < yo.fila)) {
+        const previa = finales.get(`formato|fila:${otro.fila}`)?.texto ?? reutilizadas.get(`formato|fila:${otro.fila}`)?.texto ?? null;
+        const norm = (o: string) => o.toLowerCase().replace(/\s+/g, " ").trim();
+        const repetidas = previa ? oracionesDe(g.texto).filter((o) => oracionesDe(previa).some((q) => norm(q) === norm(o))) : [];
+        if (repetidas.length) errores.push(`repite oraciones de la respuesta de la fila ${otro.fila} (${repetidas.length}); esta fila responde otro efecto y no puede copiarla`);
+      }
       if (errores.length) {
         motivos.set(clave(p), errores);
         siguientes.push(p);

@@ -273,8 +273,11 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const otras = /no existen participadas|no hay participadas|ninguna participada/i.test(t) ? "Otras participadas: no existen participadas fuera de la consolidación con emisiones relevantes" : null;
       return { texto: conAnterior([`Grupo contable consolidado: ${alcances}`, ...(otras ? [otras] : []), `Total revelado: ${alcances}`]).join("\n"), origen: "datos" };
     }
-    // 97 (rendimiento) y 99 (flujos de efectivo) salen del mismo datapoint: con una sola respuesta, la 99 remite y nunca copia.
-    if (c.fila === 99) return textoDe(dp) ? { texto: "Ver la fila de rendimiento financiero: los efectos previstos sobre el rendimiento financiero y los flujos de efectivo se describen en conjunto.", origen: "datos", nota: "una sola respuesta para 16(d): remite a la fila 97" } : { texto: null, origen: "pendiente" };
+    // 97 (rendimiento) y 99 (flujos de efectivo): cada una con su respuesta propia (fila:N), por horizonte; nunca se copian ni remiten.
+    if (c.fila === 97 || c.fila === 99) {
+      const propia = textoDe(`fila:${c.fila}`);
+      return propia ? { texto: HORIZONTES.map((h) => `${h}: ${propia}`).join("\n"), origen: "datos", nota: "respuesta propia del concepto desde los hechos de 16(d)" } : { texto: null, origen: "pendiente" };
+    }
     if (dp === "NIIF S2 16(c)(i)(ii)" || dp === "NIIF S2 16(d)" || dp === "NIIF S2 22(a)(iii)") return porHorizonte(dp);
     if (dp === "NIIF S2 22(b)(i)" || dp === "NIIF S2 22(b)(ii)") {
       const hoja = dp === "NIIF S2 22(b)(i)" ? "S2 22(b)(i)" : "S2 22(b)(ii)";

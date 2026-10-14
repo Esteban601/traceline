@@ -53,7 +53,9 @@ const est = de(REG[1].nombre).find((m) => m.clave === "c");
 ok(est.metodo.includes("10,370") && !est.metodo.includes("Huracanes"), "29(c) de Estrés hídrico: las suyas, ninguna de Huracanes");
 const capH = de(REG[0].nombre).find((m) => m.clave === "e");
 ok(capH.metodo.includes("gasto de capital 12.3") && !capH.metodo.includes("640"), "29(e) de Huracanes: su gasto de capital, no la financiación de otro riesgo");
-ok(de(REG[2].nombre).find((m) => m.clave === "e").metodo === "", "29(e) de un riesgo sin capital capturado: vacío (no se deriva)");
+ok(de(REG[2].nombre).find((m) => m.clave === "e").metodo.endsWith("Sin despliegue de capital asignado en 2025."), "29(e) de un riesgo con captura del ejercicio sin capital: «Sin despliegue de capital asignado en 2025» (declaración negativa)");
+const sinCaptura = instanciasDeMetricas(insumos({ valorDe: (id) => (id === "p" ? null : VAL[id] ?? null) }));
+ok(sinCaptura.riesgos.find((m) => m.riesgo === REG[2].nombre && m.clave === "e").metodo === "", "sin captura del ejercicio: vacía (pendiente de datos), nunca «sin despliegue»");
 const geiP = de(REG[2].nombre).find((m) => m.clave === "a");
 ok(geiP.metodo.includes("Protocolo GEI") && geiP.metodo.includes("1,240"), "29(a) GEI: método de medición y emisiones capturadas");
 
