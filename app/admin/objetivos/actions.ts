@@ -69,6 +69,8 @@ function base(fd: FormData) {
     periodo_base: texto(fd, "periodo_base"),
     hito_intermedio: texto(fd, "hito_intermedio"),
     tipo_objetivo: texto(fd, "tipo_objetivo"),
+    // NIIF S2 33: fijado por la emisora o exigido por ley (Formato electrónico).
+    origen_objetivo: ["Fijado por la Emisora", "Requerido por ley o regulación"].includes(texto(fd, "origen_objetivo") ?? "") ? texto(fd, "origen_objetivo") : null,
     alineacion_acuerdo_internacional: texto(fd, "alineacion_acuerdo_internacional"),
   };
 }

@@ -18,6 +18,8 @@
 //     ya hay un adjunto con ese nombre cuya lectura terminó en `error` (el del
 //     demo era un archivo de texto de 90 bytes con extensión .pdf), se quita
 //     —objeto y fila— y se sube este en su lugar (Paso 3).
+//   · actas-consejo-2025.pdf — sesiones de abril y octubre: aprobación de los
+//     objetivos y de la capacitación, y constancia de su impartición.
 //
 // Inserta las filas en perfil_emisor_adjuntos (el trigger las encola) y, si se
 // da `baseUrl` de una app LOCAL, llama a su /api/evidencias/procesar para
@@ -143,6 +145,30 @@ const ACTA_CONSEJO = [
   "ACUERDO 3. Se encomienda al Comité de Sostenibilidad y Riesgos Climáticos la propuesta de objetivos climáticos para su aprobación por el Consejo.",
   "# IV. Delegados",
   "ACUERDO 4. Se designa al Secretario del Consejo como delegado para formalizar los acuerdos de esta sesión.",
+];
+
+// -----------------------------------------------------------------------------
+// Actas del Consejo de abril y octubre de 2025 (encargo 2026-10-13, Paso 2;
+// decisión de Esteban del 13 de octubre de 2026). Cierran la secuencia que las
+// otras actas dejan abierta: el Comité recomienda la capacitación y propone los
+// objetivos; aquí el Consejo aprueba ambos y en octubre consta la impartición.
+// -----------------------------------------------------------------------------
+const ACTAS_CONSEJO_2025 = [
+  `Actas de las sesiones ordinarias del Consejo de Administración de ${EMISORA} del 24 de abril y del 23 de octubre de 2025, celebradas en la Ciudad de México. Documento de utilería con datos ficticios.`,
+  "# Sesión del 24 de abril de 2025",
+  "I. Primer informe semestral del Comité de Sostenibilidad y Riesgos Climáticos. II. Objetivos climáticos. III. Programa de capacitación de consejeros. IV. Designación de delegados.",
+  "La Presidenta del Comité de Sostenibilidad y Riesgos Climáticos presentó el primer informe semestral del Comité sobre los riesgos y oportunidades relacionados con el clima. El Consejo tomó conocimiento del informe.",
+  "En cumplimiento del encargo del Consejo de su sesión del 27 de febrero de 2025, y con la opinión previa del Comité, se sometieron a aprobación los objetivos climáticos: reducción de 30% de las emisiones de Alcances 1 y 2 al 2030 respecto de 2025, cartera sostenible de al menos 20% de la cartera total en 2028 y medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027.",
+  "ACUERDO 1. Se aprueban los objetivos climáticos propuestos por el Comité de Sostenibilidad y Riesgos Climáticos. El Consejo dará seguimiento a su avance en la sesión de octubre de cada año.",
+  "A recomendación del Comité, se sometió a aprobación el programa de capacitación especializada sobre riesgos climáticos en instituciones financieras para los miembros del Consejo y del Comité de Dirección, de 16 horas, a cargo de una firma externa.",
+  "ACUERDO 2. Se aprueba el programa de capacitación propuesto, que se impartirá durante el segundo trimestre de 2025.",
+  "ACUERDO 3. Se designa al Secretario del Consejo como delegado para formalizar los acuerdos de esta sesión.",
+  "# Sesión del 23 de octubre de 2025",
+  "I. Segundo informe semestral del Comité de Sostenibilidad y Riesgos Climáticos y seguimiento de los objetivos climáticos. II. Constancia de capacitación. III. Designación de delegados.",
+  "El Comité presentó su segundo informe semestral y el seguimiento de los objetivos climáticos aprobados en la sesión del 24 de abril de 2025. El Consejo tomó conocimiento del informe.",
+  "El Secretario informó que la firma externa contratada impartió en junio de 2025 el programa de capacitación de 16 horas aprobado en la sesión de abril, al que asistieron los miembros del Consejo y del Comité de Dirección, y agregó al expediente la constancia de impartición.",
+  "ACUERDO 1. Se tiene por cumplido el programa de capacitación de consejeros de 2025.",
+  "ACUERDO 2. Se designa al Secretario del Consejo como delegado para formalizar los acuerdos de esta sesión.",
 ];
 
 // -----------------------------------------------------------------------------
@@ -277,6 +303,7 @@ archivos.push({
   buffer: await codigoDeEtica(),
 });
 archivos.push({ nombre: "acta-gobierno.pdf", mime: "application/pdf", buffer: await pdfDeTexto("Acta de sesión del Consejo de Administración", ACTA_CONSEJO) });
+archivos.push({ nombre: "actas-consejo-2025.pdf", mime: "application/pdf", buffer: await pdfDeTexto("Actas de sesión del Consejo de Administración", ACTAS_CONSEJO_2025) });
 archivos.push({ nombre: "acta-comite-sostenibilidad.pdf", mime: "application/pdf", buffer: await pdfDeTexto("Acta de sesión", ACTA) });
 const est = await estatutos();
 archivos.push({ nombre: "estatutos-sociales.pdf", mime: "application/pdf", buffer: est.buffer });

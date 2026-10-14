@@ -1,6 +1,10 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.9 · 6 de octubre de 2026.
+Versión 1.10 · 13 de octubre de 2026.
+
+**Cambios respecto a 1.9** (13 de octubre de 2026, decisión de Esteban):
+- §5: los marcadores de pendiente se escriben en texto plano en los Excel exportados (o celda vacía en el Formato
+  electrónico); la base conserva el formato exacto.
 
 **Cambios respecto a 1.8** (6 de octubre de 2026, decisión de Esteban):
 - §1: staging no tiene clientes a la fecha; Grupo Carso es un tenant de prueba con datos reales, no un cliente.
@@ -109,6 +113,9 @@ después el código.
 
 - Regla no negociable: **cero dato inventado**. Lo que falte se marca `[Pendiente: <qué falta> — <solicitud o
   campo>]`, con ese formato exacto. Un documento con pendientes no se aprueba.
+- Excepción solo para los Excel exportados (encargo 2026-10-13, decisión de Esteban): la base guarda el marcador con
+  el formato exacto de arriba; al exportar, el Excel de taxonomía lo escribe como `Pendiente: <qué falta> — <solicitud
+  o campo>` en texto plano y el Formato electrónico deja la celda vacía. Ninguna celda exportada empieza con «[».
 - El texto generado es la revelación de la emisora: sin vocabulario de plataforma (solicitud, evidencia,
   validado, IRStrat, bloque, ids). Ids solo en `fuentes_usadas`. Juicios del emisor en `notas_revision`.
 - Prompt en dos capas: estable (con caché) y volátil. Cambiar la capa estable o el esfuerzo invalida el caché;

@@ -55,8 +55,12 @@ function narrativa(fd: FormData): {
   concentracion: string | null;
   impactos_potenciales: string | null;
   respuesta: string | null;
+  metricas_asociadas: string[] | null;
 } {
+  // Métricas de NIIF S2 29 asociadas al riesgo (NIIF S1 46–50); vacío = regla por defecto.
+  const metricas = fd.getAll("metricas_asociadas").map((v) => String(v)).filter((v) => ["a", "b", "c", "d", "e"].includes(v));
   return {
+    metricas_asociadas: metricas.length ? metricas : null,
     concentracion: texto(fd, "concentracion"),
     impactos_potenciales: texto(fd, "impactos_potenciales"),
     respuesta: texto(fd, "respuesta"),

@@ -95,6 +95,28 @@ export function remitirDuplicada(texto: string, oracion: string, titulo: string)
   return `${texto.slice(0, i)}${nueva}${texto.slice(i + oracion.length)}`;
 }
 
+/**
+ * Los pendientes que siguen valiendo después del cierre. Se quita la entrada de
+ * un pendiente cerrado por remisión y también la de uno cuyo marcador estaba en
+ * el texto antes del cierre y ya no está: la remisión por duplicación sustituye
+ * la oración entera, y si esa oración llevaba un `[Pendiente: …]` la entrada se
+ * quedaba en la lista sin marcador en el texto y bloqueaba la aprobación sin que
+ * nadie la viera (bloque 16 del demo, 13 de octubre de 2026). Una entrada cuyo
+ * marcador nunca estuvo en el texto se conserva: no es este cierre quien la
+ * quitó. Las notas al revisor no se tocan. Exportada para la prueba.
+ */
+export function pendientesVigentes<P extends { campo: string; motivo: string }>(pendientes: P[], antes: string, despues: string, cerrados: string[] = []): P[] {
+  const marcadores = (t: string) => (t.match(/\[Pendiente:[^\]]*\]/g) ?? []).map(normal);
+  const enAntes = marcadores(antes);
+  const enDespues = marcadores(despues);
+  return pendientes.filter((p) => {
+    if (p.campo !== "bloque") return true;
+    const clave = normal(p.motivo).replace(/^\[?pendiente:\s*/, "").slice(0, 60);
+    if (cerrados.some((m) => normal(m).includes(clave))) return false;
+    return !enAntes.some((m) => m.includes(clave)) || enDespues.some((m) => m.includes(clave));
+  });
+}
+
 const ESQUEMA = {
   type: "object",
   properties: {
@@ -219,9 +241,7 @@ export async function cerrarPendientes(db: Db, documentoId: string, latido?: () 
       cierres.push({ bloque: numero, dueno: d.otroBloque!, marcador: d.oracionRepetida!, veredicto: "responde", razon: "duplicación literal" });
     }
     if (!notas.length) continue;
-    const pendientes = ((fila.pendientes ?? []) as { campo: string; motivo: string }[]).filter(
-      (p) => p.campo !== "bloque" || !cerrados.some((m) => normal(m).includes(normal(p.motivo).replace(/^\[?pendiente:\s*/, "").slice(0, 60)))
-    );
+    const pendientes = pendientesVigentes((fila.pendientes ?? []) as { campo: string; motivo: string }[], fila.texto, texto, cerrados);
     await sigue();
     await db
       .from("documentos_bloques")

@@ -35,6 +35,7 @@ type ObjRow = {
   periodo_base: string | null;
   hito_intermedio: string | null;
   tipo_objetivo: string | null;
+  origen_objetivo: string | null;
   alineacion_acuerdo_internacional: string | null;
   orden: number;
   activo: boolean;
@@ -73,7 +74,7 @@ export default async function ObjetivosPage() {
     db
       .from("objetivos")
       .select(
-        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, alineacion_acuerdo_internacional, orden, activo"
+        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, origen_objetivo, alineacion_acuerdo_internacional, orden, activo"
       )
       .order("orden", { ascending: true }),
     db
@@ -103,6 +104,7 @@ export default async function ObjetivosPage() {
       periodoBase: o.periodo_base,
       hitoIntermedio: o.hito_intermedio,
       tipoObjetivo: o.tipo_objetivo,
+      origenObjetivo: o.origen_objetivo,
       alineacion: o.alineacion_acuerdo_internacional,
       orden: o.orden,
       activo: o.activo,

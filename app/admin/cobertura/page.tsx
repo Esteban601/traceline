@@ -12,6 +12,7 @@ import { InformeButton } from "./informe-button";
 import { existeArchivoVitrina } from "@/lib/vitrina";
 import { SuplementoButton } from "./suplemento-button";
 import { SuplementoVitrinaButton } from "./suplemento-vitrina-button";
+import { FormatoExportButton } from "./formato-export-button";
 
 export const metadata: Metadata = { title: "Cobertura de taxonomía" };
 
@@ -73,6 +74,14 @@ export default async function CoberturaPage({
   const tenantDelReporte = reporteSel
     ? (datos.tenants.find((t) => t.id === reporteSel.tenant_id) ?? null)
     : null;
+
+  // Formato electrónico NIIF (encargo 2026-10-13, Paso 5): solo desde un
+  // documento aprobado con sus respuestas; si no, el botón se deshabilita con el motivo.
+  let motivoFormato: string | null = null;
+  if (reporteSel && tenantDelReporte?.generador_activo && !soyAuditor) {
+    const { count } = await supabase.from("respuestas_datapoint").select("id", { count: "exact", head: true }).eq("reporte_id", reporteSel.id);
+    if (!count) motivoFormato = "El Formato electrónico se genera desde el suplemento aprobado; aún no hay un documento aprobado con sus respuestas.";
+  }
 
   return (
     <CoberturaView
@@ -146,6 +155,10 @@ export default async function CoberturaPage({
                 reporte elegido se muestra apagado, como siempre. */}
             {!reporteSel || tenantDelReporte?.generador_activo ? (
               <SuplementoButton reporteId={datos.reporteSel} />
+            ) : null}
+            {/* Formato electrónico NIIF: con el generador encendido; deshabilitado con el motivo si no hay aprobado. */}
+            {reporteSel && tenantDelReporte?.generador_activo ? (
+              <FormatoExportButton reporteId={reporteSel.id} motivo={motivoFormato} />
             ) : null}
             {/* La vitrina, solo si esa emisora la tiene encendida: un mockup
                 puede apagarla (`tenants.vitrina_habilitada`), y la ruta la niega

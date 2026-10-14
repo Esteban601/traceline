@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -743,6 +743,9 @@ export type Database = {
           idioma: string
           regimen: string | null
           reporte_id: string
+          respuestas_actualizado_en: string | null
+          respuestas_estado: string | null
+          respuestas_resultado: Json | null
           tenant_id: string
           textos_literales: Json | null
           tipo: string
@@ -769,6 +772,9 @@ export type Database = {
           idioma?: string
           regimen?: string | null
           reporte_id: string
+          respuestas_actualizado_en?: string | null
+          respuestas_estado?: string | null
+          respuestas_resultado?: Json | null
           tenant_id: string
           textos_literales?: Json | null
           tipo?: string
@@ -795,6 +801,9 @@ export type Database = {
           idioma?: string
           regimen?: string | null
           reporte_id?: string
+          respuestas_actualizado_en?: string | null
+          respuestas_estado?: string | null
+          respuestas_resultado?: Json | null
           tenant_id?: string
           textos_literales?: Json | null
           tipo?: string
@@ -1351,6 +1360,7 @@ export type Database = {
           naturaleza: string
           nombre: string
           orden: number
+          origen_objetivo: string | null
           parte_entidad: string | null
           periodo_aplicacion: string | null
           periodo_base: string | null
@@ -1371,6 +1381,7 @@ export type Database = {
           naturaleza?: string
           nombre: string
           orden?: number
+          origen_objetivo?: string | null
           parte_entidad?: string | null
           periodo_aplicacion?: string | null
           periodo_base?: string | null
@@ -1391,6 +1402,7 @@ export type Database = {
           naturaleza?: string
           nombre?: string
           orden?: number
+          origen_objetivo?: string | null
           parte_entidad?: string | null
           periodo_aplicacion?: string | null
           periodo_base?: string | null
@@ -1563,81 +1575,105 @@ export type Database = {
       }
       perfil_emisor: {
         Row: {
+          actividades_financieras: string[] | null
           actualizado_en: string | null
           actualizado_por: string | null
           cadena_valor: Json
           carta_cargo: string | null
           carta_firmante: string | null
           carta_texto: string | null
+          clave_cotizacion: string | null
           created_at: string
           denominacion_formal: string | null
           entidad_que_informa: string | null
+          fiduciario: string | null
           forma_de_referencia: string | null
           glosario: Json
           gobierno_texto: string | null
+          hechos_posteriores: string | null
           hitos_corporativos: Json
           hitos_sostenibilidad: Json
           horizontes: Json
           id: string
           matriz_riesgos: Json
+          metricas_industria: string | null
           modelo_negocio: string | null
           nombre_corto: string | null
+          numero_fideicomiso: string | null
           organigrama_path: string | null
           perimetro: string | null
           proceso_materialidad: string | null
+          sector_sasb: string[] | null
           tenant_id: string
+          tipo_instrumento: string | null
           updated_at: string
         }
         Insert: {
+          actividades_financieras?: string[] | null
           actualizado_en?: string | null
           actualizado_por?: string | null
           cadena_valor?: Json
           carta_cargo?: string | null
           carta_firmante?: string | null
           carta_texto?: string | null
+          clave_cotizacion?: string | null
           created_at?: string
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
+          fiduciario?: string | null
           forma_de_referencia?: string | null
           glosario?: Json
           gobierno_texto?: string | null
+          hechos_posteriores?: string | null
           hitos_corporativos?: Json
           hitos_sostenibilidad?: Json
           horizontes?: Json
           id?: string
           matriz_riesgos?: Json
+          metricas_industria?: string | null
           modelo_negocio?: string | null
           nombre_corto?: string | null
+          numero_fideicomiso?: string | null
           organigrama_path?: string | null
           perimetro?: string | null
           proceso_materialidad?: string | null
+          sector_sasb?: string[] | null
           tenant_id: string
+          tipo_instrumento?: string | null
           updated_at?: string
         }
         Update: {
+          actividades_financieras?: string[] | null
           actualizado_en?: string | null
           actualizado_por?: string | null
           cadena_valor?: Json
           carta_cargo?: string | null
           carta_firmante?: string | null
           carta_texto?: string | null
+          clave_cotizacion?: string | null
           created_at?: string
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
+          fiduciario?: string | null
           forma_de_referencia?: string | null
           glosario?: Json
           gobierno_texto?: string | null
+          hechos_posteriores?: string | null
           hitos_corporativos?: Json
           hitos_sostenibilidad?: Json
           horizontes?: Json
           id?: string
           matriz_riesgos?: Json
+          metricas_industria?: string | null
           modelo_negocio?: string | null
           nombre_corto?: string | null
+          numero_fideicomiso?: string | null
           organigrama_path?: string | null
           perimetro?: string | null
           proceso_materialidad?: string | null
+          sector_sasb?: string[] | null
           tenant_id?: string
+          tipo_instrumento?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1944,6 +1980,7 @@ export type Database = {
           id: string
           impacto: number | null
           impactos_potenciales: string | null
+          metricas_asociadas: string[] | null
           nivel: string | null
           nombre: string
           orden: number
@@ -1962,6 +1999,7 @@ export type Database = {
           id?: string
           impacto?: number | null
           impactos_potenciales?: string | null
+          metricas_asociadas?: string[] | null
           nivel?: string | null
           nombre: string
           orden?: number
@@ -1980,6 +2018,7 @@ export type Database = {
           id?: string
           impacto?: number | null
           impactos_potenciales?: string | null
+          metricas_asociadas?: string[] | null
           nivel?: string | null
           nombre?: string
           orden?: number
@@ -2093,6 +2132,109 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "reportes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respuestas_datapoint: {
+        Row: {
+          bloque: number | null
+          bloque_version: number | null
+          clave: string
+          costo_usd: number
+          created_at: string
+          destino: string
+          documento_id: string
+          estado: string
+          hechos: Json
+          id: string
+          modelo: string | null
+          notas: Json
+          origen: string
+          prompt_version: string | null
+          reporte_id: string
+          tenant_id: string
+          texto: string | null
+          tipo_campo: string
+          tokens_cache_escritura: number
+          tokens_cache_lectura: number
+          tokens_entrada: number
+          tokens_salida: number
+          valor: Json | null
+          version_documento: number
+        }
+        Insert: {
+          bloque?: number | null
+          bloque_version?: number | null
+          clave: string
+          costo_usd?: number
+          created_at?: string
+          destino: string
+          documento_id: string
+          estado: string
+          hechos?: Json
+          id?: string
+          modelo?: string | null
+          notas?: Json
+          origen: string
+          prompt_version?: string | null
+          reporte_id: string
+          tenant_id: string
+          texto?: string | null
+          tipo_campo?: string
+          tokens_cache_escritura?: number
+          tokens_cache_lectura?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+          valor?: Json | null
+          version_documento: number
+        }
+        Update: {
+          bloque?: number | null
+          bloque_version?: number | null
+          clave?: string
+          costo_usd?: number
+          created_at?: string
+          destino?: string
+          documento_id?: string
+          estado?: string
+          hechos?: Json
+          id?: string
+          modelo?: string | null
+          notas?: Json
+          origen?: string
+          prompt_version?: string | null
+          reporte_id?: string
+          tenant_id?: string
+          texto?: string | null
+          tipo_campo?: string
+          tokens_cache_escritura?: number
+          tokens_cache_lectura?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+          valor?: Json | null
+          version_documento?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respuestas_datapoint_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_generados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respuestas_datapoint_reporte_id_fkey"
+            columns: ["reporte_id"]
+            isOneToOne: false
+            referencedRelation: "reportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respuestas_datapoint_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

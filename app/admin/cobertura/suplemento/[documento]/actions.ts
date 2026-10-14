@@ -7,6 +7,9 @@ import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
 import { avisarDocumentoAprobado } from "@/lib/notificaciones/inmediatos";
 import { bloqueantesDeAprobacion, motivoDeRechazo } from "@/lib/suplemento/aprobacion";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { accesoAlGenerador } from "@/lib/suplemento/acceso";
+import { completarRespuestas, reclamarRespuestas } from "@/lib/suplemento/respuestas";
 
 // =============================================================================
 // Acciones de la vista de revisión: editar un bloque y mover el estado del
@@ -228,6 +231,25 @@ export async function cambiarEstado(_p: EstadoAccion, fd: FormData): Promise<Est
     // revisar y descargar. Solo al ENTRAR a aprobado, no al reafirmarlo.
     if (destino === "aprobado" && a.doc.estado !== "aprobado") {
       await avisarDocumentoAprobado(documentoId);
+      // Respuestas por datapoint para los Excel (encargo 2026-10-13, Paso 2):
+      // salen del documento recién aprobado. Con el generador apagado, el Excel
+      // de taxonomía sale como antes y el Formato electrónico no se ofrece.
+      if ((await accesoAlGenerador(a.db, a.doc.tenant_id)).ok) {
+        const reserva = await reclamarRespuestas(a.db, documentoId);
+        if (reserva) {
+          const r = await completarRespuestas(a.db, createAdminClient(), documentoId, reserva);
+          if (r) {
+            await logEvento(a.db, {
+              tenantId: a.doc.tenant_id,
+              usuarioId: a.perfil.id,
+              accion: "suplemento_respuestas",
+              entidad: "documentos_generados",
+              entidadId: documentoId,
+              detalle: { costo_usd: r.costo, filas: r.filas.length, por_estado: r.porEstado },
+            });
+          }
+        }
+      }
     }
   });
 
