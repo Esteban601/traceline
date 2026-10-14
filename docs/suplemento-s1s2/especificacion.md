@@ -1058,6 +1058,20 @@ humana por documento (encargo, deudas).
   sector SASB salen del Perfil (`actividades_financieras`, `sector_sasb`) y las secciones de emisiones financiadas de
   una actividad en la que la emisora no participa dicen «No aplica por actividad». Los conceptos sin datapoint con
   bloque dueño se responden desde su bloque (`fila:N`). Un código de lista del formato («[815200] …») sí empieza con «[».
+- **Métricas NIIF S1 46–50** (tercera lectura del Formato, 14 de octubre de 2026): una instancia por riesgo u oportunidad
+  y métrica de NIIF S2 29 (`lib/formato/instancias.ts`), con las métricas que elige el consultor en el registro de clima
+  (`metricas_asociadas`) o la regla por defecto (transición → 29(b), 29(e); físico → 29(c), 29(e); oportunidad →
+  29(d), 29(e)); cada instancia lleva solo los datos de su riesgo; verificación «No» salvo la GEI con su verificador.
+  La misma fuente llena las filas iteradas del Formato y la hoja «NIIF S1 46-50» del Excel de taxonomía; con E5, las
+  hojas de NIIF S1 llevan la información sobre clima con la oración del alivio (S1 51, los objetivos climáticos).
+- **Regeneración por cambio de bloque:** al aprobar una versión nueva se reutilizan las respuestas del modelo del
+  aprobado anterior cuyos bloques tienen el mismo texto aprobado; solo se regeneran las de los bloques que cambiaron.
+- **Pantalla:** en Cobertura, «Excel de taxonomía» (como siempre) y «Formato electrónico NIIF» (con el generador
+  encendido; deshabilitado con el motivo si no hay documento aprobado; el auditor no lo ve). Al aprobar, aviso de que
+  los Excel incorporan las respuestas.
+- **Perfil y capturas nuevas:** clave de cotización, tipo de instrumento, fiduciario, número de fideicomiso, hechos
+  posteriores, actividades financieras, sector SASB y métricas por industria (Perfil); métricas asociadas (registros de
+  clima); origen del objetivo (objetivos).
 
 ---
 
@@ -1570,6 +1584,27 @@ Verificación en staging tras el release:
 Punto de reversión: `heroku releases:rollback v39 -a traceline-staging`. Revierte solo el código; las migraciones son
 aditivas y se quedan. En el ensayo, el código de v39 sobre la base migrada dio el Excel idéntico y `verificar-main`
 26 de 26.
+
+### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13)
+
+- **Migraciones** (las ejecuta Esteban, en orden): `20261013120000_respuestas_datapoint`,
+  `20261013130000_perfil_formato_electronico`, `20261013140000_perfil_actividad_sasb`,
+  `20261013150000_perfil_metricas_industria`, `20261014120000_metricas_asociadas_origen_objetivo`. Todas aditivas y con
+  la barrera del auditor.
+- **Plantilla del Formato electrónico en Storage de staging:** no está en git. Se arma en la máquina de Esteban con
+  `scripts/formato/preparar-plantilla.mjs` desde el formato de referencia y se sube al bucket `documentos`, ruta
+  `plantillas/formato-electronico/2025/plantilla.xlsx` (el `--subir` del script solo apunta a dev). Sin ella, el botón
+  del Formato responde «Falta la plantilla».
+- **Diferencias esperadas en el Excel de taxonomía** (para el comparador del despliegue): columna E «Respuesta» en la
+  hoja «Taxonomía NIIF S1 S2» («En preparación» sin documento aprobado; sin columna con el generador apagado); hoja nueva
+  «Leyenda»; con C3/C4 vigentes, «No revelado · alivio C3/C4» en el año anterior y en Alcance 3; con E5, «NIIF S1 46-50»
+  con las instancias de métricas y «NIIF S1 51» solo con objetivos climáticos.
+- **Word:** el índice numera las secciones de forma consecutiva; un Word aprobado que se vuelva a exportar cambia su
+  numeración (no su texto).
+- **Archivo nuevo:** el Formato electrónico (`Formato_electronico_NIIF_<emisora>_<ejercicio>.xlsx`), solo para staff y
+  administrador del cliente.
+- **Datos de cada emisora que hay que capturar** para que el Formato salga completo: los campos nuevos del Perfil, las
+  métricas asociadas de sus registros de clima y el origen de sus objetivos.
 
 ### Deudas conocidas
 

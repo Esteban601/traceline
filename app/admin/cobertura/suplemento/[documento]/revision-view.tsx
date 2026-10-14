@@ -210,6 +210,12 @@ export function RevisionView(p: {
               {motivoBloqueo}
             </span>
           )}
+          {p.estado !== "aprobado" && p.puedeAprobar && bloqueantes.length === 0 && (
+            // Encargo 2026-10-13, Paso 5: aprobar alimenta los dos Excel.
+            <span className="text-sm text-muted" data-aviso-excel>
+              Al aprobar, el Excel de taxonomía y el Formato electrónico NIIF incorporan las respuestas de este documento.
+            </span>
+          )}
         </div>
 
         {bloqueantes.length > 0 && (
