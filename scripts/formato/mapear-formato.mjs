@@ -381,13 +381,13 @@ hoja.columns = [
   { header: "Tipo", key: "tipo", width: 18 }, { header: "Clasificación", key: "clasificacion", width: 22 }, { header: "Ref / Fuente", key: "parrafos", width: 26 },
   { header: "Datapoint propuesto", key: "datapoint", width: 24 }, { header: "Capa", key: "capa", width: 14 }, { header: "Confianza", key: "confianza", width: 11 },
   { header: "Semáforo", key: "semaforo", width: 10 }, { header: "Bloque dueño", key: "bloque", width: 34 }, { header: "Regla de llenado", key: "regla", width: 60 },
-  { header: "Respondida por Autlán", key: "autlan", width: 11 }, { header: "Revisión aplicada", key: "revision", width: 30 }, { header: "Decisión de Esteban", key: "decision", width: 40 },
+  { header: "Respondida en la referencia", key: "referencia", width: 11 }, { header: "Revisión aplicada", key: "revision", width: 30 }, { header: "Decisión de Esteban", key: "decision", width: 40 },
 ];
 const etiquetaDe = new Map(filas.map((f) => [f.fila, f.etiqueta]));
 const COLOR = { verde: "FFC6EFCE", amarillo: "FFFFEB9C", rojo: "FFFFC7CE", gris: "FFE7E6E6" };
 for (const x of resultado) {
   const semaforo = /^(encabezado$|fuera|miembro)/.test(x.clasificacion) ? "gris" : x.confianza === "alta" ? "verde" : x.confianza === "media" ? "amarillo" : x.confianza === "baja" || x.capa === "sin candidato" ? "rojo" : "gris";
-  const fila = hoja.addRow({ fila: x.fila, seccion: x.seccion, etiqueta: etiquetaDe.get(x.fila), tipo: x.tipo, clasificacion: x.clasificacion, parrafos: x.parrafos.join("; "), datapoint: x.datapoint ?? x.perfil ?? "", capa: x.capa, confianza: x.confianza, semaforo, bloque: x.bloque ? `${x.bloque} · ${tituloDe.get(x.bloque)}` : "", regla: x.regla + (x.nota ? ` (${x.nota})` : ""), autlan: x.respondidaEnReferencia ? "Sí" : "", revision: x.revision ? `${x.revision.categoria} (${x.revision.origen})` : "", decision: "" });
+  const fila = hoja.addRow({ fila: x.fila, seccion: x.seccion, etiqueta: etiquetaDe.get(x.fila), tipo: x.tipo, clasificacion: x.clasificacion, parrafos: x.parrafos.join("; "), datapoint: x.datapoint ?? x.perfil ?? "", capa: x.capa, confianza: x.confianza, semaforo, bloque: x.bloque ? `${x.bloque} · ${tituloDe.get(x.bloque)}` : "", regla: x.regla + (x.nota ? ` (${x.nota})` : ""), referencia: x.respondidaEnReferencia ? "Sí" : "", revision: x.revision ? `${x.revision.categoria} (${x.revision.origen})` : "", decision: "" });
   fila.getCell("semaforo").fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR[semaforo] } };
   fila.alignment = { vertical: "top", wrapText: true };
 }

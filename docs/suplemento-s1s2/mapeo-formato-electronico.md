@@ -1,6 +1,6 @@
 # Mapeo concepto ↔ datapoint del Formato electrónico NIIF S1/S2
 
-Encargo `2026-10-13-excel-respuestas-narrativas`, Paso 1. Generado por `scripts/formato/mapear-formato.mjs` (sin modelo) desde el asset `Estructura_Formato_NIIF_S1_S2_Autlan.xlsx` (sha256 `69b062137cd8`, hoja «Estructura Formato Electronico») y el catálogo de dev. **Pendiente de la revisión de Esteban** (revisión de IRStrat) en `referencia/formato-electronico/mapeo-revision.xlsx`.
+Encargo `2026-10-13-excel-respuestas-narrativas`, Paso 1. Generado por `scripts/formato/mapear-formato.mjs` (sin modelo) desde el asset `Estructura_Formato_NIIF_S1_S2_<emisora>.xlsx` (sha256 `69b062137cd8`, hoja «Estructura Formato Electronico») y el catálogo de dev. **Pendiente de la revisión de Esteban** (revisión de IRStrat) en `referencia/formato-electronico/mapeo-revision.xlsx`.
 
 Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada concepto se identifica por su **fila** en el asset, su sección y los párrafos que cita. Las etiquetas están en el asset y en el Excel de revisión (fuera de git).
 
