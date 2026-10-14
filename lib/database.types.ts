@@ -1593,6 +1593,7 @@ export type Database = {
           horizontes: Json
           id: string
           matriz_riesgos: Json
+          metricas_industria: string | null
           modelo_negocio: string | null
           nombre_corto: string | null
           numero_fideicomiso: string | null
@@ -1626,6 +1627,7 @@ export type Database = {
           horizontes?: Json
           id?: string
           matriz_riesgos?: Json
+          metricas_industria?: string | null
           modelo_negocio?: string | null
           nombre_corto?: string | null
           numero_fideicomiso?: string | null
@@ -1659,6 +1661,7 @@ export type Database = {
           horizontes?: Json
           id?: string
           matriz_riesgos?: Json
+          metricas_industria?: string | null
           modelo_negocio?: string | null
           nombre_corto?: string | null
           numero_fideicomiso?: string | null

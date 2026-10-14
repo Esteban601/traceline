@@ -3,10 +3,11 @@ import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { llenarFormato } from "@/lib/formato/llenar";
+import { llenarFormato, metricasIteradas } from "@/lib/formato/llenar";
+import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
 import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, leyendaDelFormato } from "@/lib/formato/plantilla";
-import { celdasConCorchete, ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
+import { celdasConCorchete, opcionesDeListas, ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
 import { agregarHoja, rutaDeHoja } from "@/lib/formato/zip";
 import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
 
@@ -62,11 +63,15 @@ export async function GET(request: Request) {
     let est = await zip.file(rutaEst)!.async("string");
     let escritas = 0;
     for (const [fila, v] of valores) {
-      if (!v.texto) continue;
+      // La sección de métricas S1 46–50 se escribe al expandirla, abajo.
+      if (!v.texto || (fila >= SECCION_METRICAS.desde && fila <= SECCION_METRICAS.hasta)) continue;
       // Ninguna celda exportada empieza con «[» (CLAUDE.md §5, 1.10).
       est = ponerTexto(est, `K${fila}`, pendienteEnTextoPlano(v.texto));
       escritas++;
     }
+    // Métricas S1 46–50: una copia del bloque por métrica de NIIF S2 29 de cada riesgo u oportunidad.
+    const it = metricasIteradas(datos, valores, ins.descripciones);
+    est = expandirMetricas(est, it.riesgos, it.oportunidades).xml;
     zip.file(rutaEst, est);
 
     // Hoja «Tabla NIIF»: riesgos y oportunidades desde los registros de clima.
@@ -97,7 +102,8 @@ export async function GET(request: Request) {
     const hojas: Record<string, string> = {};
     for (const nombre of Object.keys(zip.files).filter((x) => /^xl\/worksheets\/sheet\d+\.xml$/.test(x))) hojas[nombre] = await zip.file(nombre)!.async("string");
     const problemas = validarImagenesEnCelda(hojas, Object.keys(zip.files), IMAGENES_EN_CELDA);
-    const conCorchete = celdasConCorchete(est, "K");
+    const opciones = opcionesDeListas((await zip.file("xl/sharedStrings.xml")?.async("string")) ?? "");
+    const conCorchete = celdasConCorchete(est, "K", opciones);
     if (conCorchete.length) problemas.push(`celdas K con «[»: ${conCorchete.join(", ")}`);
     if (problemas.length) {
       console.error("[export-formato] el validador de imágenes falló:", problemas.join("; "));

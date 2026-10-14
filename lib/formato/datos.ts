@@ -15,7 +15,7 @@ const NUM = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
 export type TenantFormato = { nombre: string; slug: string | null; generador_activo: boolean; logo_url: string | null };
 
 export type InsumosFormato =
-  | { ok: true; datos: DatosFormato; tenant: TenantFormato; ens: Ensamblado; denominacion: string }
+  | { ok: true; datos: DatosFormato; tenant: TenantFormato; ens: Ensamblado; denominacion: string; descripciones: Record<string, string> }
   | { ok: false; status: 404 | 409 | 500; error: string };
 
 export async function insumosDelFormato(db: Db, reporteId: string): Promise<InsumosFormato> {
@@ -47,7 +47,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   }));
 
   const [{ data: pe }, ens] = await Promise.all([
-    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, hechos_posteriores, actividades_financieras, sector_sasb").eq("tenant_id", rep.tenant_id).maybeSingle(),
+    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
     ensamblarReporte(db, reporteId),
   ]);
   if (!ens.ok) return { ok: false, status: 500, error: "No se pudo leer el reporte." };
@@ -62,7 +62,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   const registros = ens.registros.map((r) => {
     const v = ens.vigentePorRegistro.get(r.id)?.get(ejercicio);
     const partes = v ? ([["gasto", v.capital_gasto], ["financiación", v.capital_financiacion], ["inversión", v.capital_inversion]] as const).filter(([, x]) => x != null).map(([k, x]) => `${k} ${NUM.format(x as number)}`) : [];
-    return { tipo: r.tipo, nombre: r.nombre.replace(/\[DEMO\]\s*/i, "").trim(), horizontes: (r.horizontes ?? []).join(", "), cantidad: v?.cantidad_activos ?? null, porcentaje: v?.porcentaje ?? null, capital: partes.length ? `capital: ${partes.join(", ")}` : null };
+    return { tipo: r.tipo, nombre: r.nombre.replace(/\[DEMO\]\s*/i, "").trim(), horizontes: (r.horizontes ?? []).join(", "), concentracion: r.concentracion ?? null, cantidad: v?.cantidad_activos ?? null, porcentaje: v?.porcentaje ?? null, capital: partes.length ? `capital: ${partes.join(", ")}` : null };
   });
 
   // Documento aprobado del que salieron las respuestas: bloque 2 (declaración de
@@ -103,6 +103,8 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
       const det = ens.detallePorObjetivo.get(o.id);
       return { nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), tipo_objetivo: o.tipo_objetivo ?? null, gases: det?.gases_cubiertos ?? null, alcances: det?.alcances_cubiertos ?? null, bruto_neto: det?.bruto_neto ?? null };
     });
+  const { data: cat } = await db.from("datapoints_taxonomia").select("codigo, descripcion").in("codigo", ["NIIF S2 29 (a)(i)", "NIIF S2 29 (b)", "NIIF S2 29 (c)", "NIIF S2 29 (d)", "NIIF S2 29 (e)"]);
+  const descripciones: Record<string, string> = Object.fromEntries((cat ?? []).map((x) => [x.codigo, x.descripcion]));
   const cuestionarios: Record<string, (string | null)[]> = {};
   for (const q of [...ens.cuestionarios].sort((a, b) => a.pregunta_orden - b.pregunta_orden)) {
     (cuestionarios[q.hoja] ??= [])[q.pregunta_orden - 1] = q.respuesta;
@@ -113,6 +115,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
     tenant,
     ens,
     denominacion: pe?.denominacion_formal ?? tenant.nombre,
+    descripciones,
     datos: {
       ejercicio,
       primerAnio: regimenDe(ejercicio, rep.anio_adopcion) === "primer_anio",
@@ -126,6 +129,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
         hechos_posteriores: pe?.hechos_posteriores ?? null,
         actividades_financieras: pe?.actividades_financieras ?? [],
         sector_sasb: pe?.sector_sasb ?? [],
+        metricas_industria: pe?.metricas_industria ?? null,
       },
       hayLogo: !!tenant.logo_url,
       respuestas,

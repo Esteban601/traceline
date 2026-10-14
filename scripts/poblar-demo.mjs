@@ -199,7 +199,9 @@ const PERFIL = {
   numero_fideicomiso: null,
   hechos_posteriores: "No se identificaron hechos posteriores al cierre del ejercicio que afecten la información de sostenibilidad y clima.",
   actividades_financieras: ["Banca comercial"],
-  sector_sasb: ["Bancos comerciales (FN-CB)"],
+  sector_sasb: ["[815200] Finanzas - Bancos comerciales (FN-CB)"],
+  // Juicio de la emisora (filas 364, 387 y 410): «No» hasta que exista el catálogo SASB (Fase C).
+  metricas_industria: "No",
   forma_de_referencia: "la Compañía",
   entidad_que_informa:
     "Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V.",

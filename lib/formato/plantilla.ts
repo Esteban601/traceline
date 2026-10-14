@@ -27,6 +27,7 @@ export function leyendaDelFormato(alivios: Alivios, actividades: string[]): [str
     ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan cifras de emisiones de Alcance 3, ni su total ni sus categorías, incluidas las emisiones financiadas."],
     ["«No revelado · alivio C3»", "Alivio transitorio del primer año (NIIF S2 C3): no se presentan comparativos del ejercicio anterior."],
     ["Oración del alivio E5", "Alivio transitorio del primer año (NIIF S1 E5): los conceptos de NIIF S1 se responden con la información sobre clima de su par de NIIF S2, precedida de la oración fija del alivio."],
+    ["Métricas por industria (filas de riesgos y oportunidades)", "Si las métricas por industria podrían satisfacer los requerimientos es un juicio de la emisora, capturado en su Perfil y repetido en las tres filas. La plataforma todavía no incluye el catálogo SASB (Fase C)."],
     ["Hoja «Tabla NIIF»", "Riesgos y oportunidades relacionados con el clima, desde los registros de clima de la plataforma."],
     ["Hoja «Métricas SASB»", "Métricas por industria: pendiente de catálogo SASB (Fase C)."],
     ["Alivios de este reporte", (["C3", "C4", "E5"] as const).filter((k) => alivios[k]).join(", ") || "Ninguno vigente en este ejercicio."],

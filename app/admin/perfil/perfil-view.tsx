@@ -81,6 +81,7 @@ export type PerfilData = {
   hechos_posteriores: string | null;
   actividades_financieras: string[] | null;
   sector_sasb: string[] | null;
+  metricas_industria: string | null;
   carta_texto: string | null;
   carta_firmante: string | null;
   carta_cargo: string | null;
@@ -483,8 +484,20 @@ export function PerfilView({
                 <label className={LABEL} htmlFor={`${uid}-ss`}>
                   Sector SASB
                 </label>
-                <textarea id={`${uid}-ss`} name="sector_sasb" rows={2} defaultValue={(p?.sector_sasb ?? []).join("\n")} placeholder="Bancos comerciales (FN-CB)" className={cn(AREA, "mt-2")} />
-                <p className="mt-1.5 text-xs text-muted">Uno por línea: la industria con su código SASB, sin el código de la lista del formato.</p>
+                <textarea id={`${uid}-ss`} name="sector_sasb" rows={2} defaultValue={(p?.sector_sasb ?? []).join("\n")} placeholder="[815200] Finanzas - Bancos comerciales (FN-CB)" className={cn(AREA, "mt-2")} />
+                <p className="mt-1.5 text-xs text-muted">Uno por línea, con la opción literal de la lista del Formato electrónico.</p>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-mi`}>
+                  Métricas por industria
+                </label>
+                <select id={`${uid}-mi`} name="metricas_industria" defaultValue={p?.metricas_industria ?? ""} className={cn(INPUT, "mt-2")}>
+                  <option value="">Sin capturar</option>
+                  <option value="Sí, totalmente">Sí, totalmente</option>
+                  <option value="Sí, parcialmente">Sí, parcialmente</option>
+                  <option value="No">No</option>
+                </select>
+                <p className="mt-1.5 text-xs text-muted">¿Las métricas basadas en el sector industrial podrían satisfacer los requerimientos de riesgos y oportunidades, total o parcialmente? Es un juicio de la emisora.</p>
               </div>
             </div>
             {guardar()}

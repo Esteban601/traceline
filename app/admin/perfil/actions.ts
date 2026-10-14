@@ -192,6 +192,7 @@ export async function guardarIdentidad(_p: PerfilState, fd: FormData): Promise<P
     // Emisiones financiadas por actividad y sector SASB del Formato electrónico.
     actividades_financieras: lista(fd, "actividades_financieras"),
     sector_sasb: (texto(fd, "sector_sasb") ?? "").split(/\n+/).map((x) => x.trim()).filter(Boolean),
+    metricas_industria: texto(fd, "metricas_industria"),
   });
 }
 

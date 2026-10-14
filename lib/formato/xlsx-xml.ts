@@ -106,9 +106,32 @@ export function vaciarCompartidosSinUso(sst: string, usados: Set<number>): { xml
   return { xml, vaciados };
 }
 
-/** Celdas de una columna cuyo texto lleva «[» (validador de entrega: ninguna respuesta lo lleva). */
-export function celdasConCorchete(hoja: string, col: string): string[] {
-  return [...hoja.matchAll(new RegExp(`<c r="(${col}\\d+)"[^>]*><is><t[^>]*>([\\s\\S]*?)</t></is></c>`, "g"))].filter((m) => m[2].includes("[")).map((m) => m[1]);
+/**
+ * Celdas de una columna cuyo texto lleva «[» (validador de entrega). Lo que se
+ * prohíbe es el marcador de pendiente: «[Pendiente» falla siempre; otro «[» solo
+ * pasa si cada valor (separados por «; ») es EXACTAMENTE una opción de las listas
+ * del propio formato (decisión de Esteban: «[815200] Finanzas - …» es un valor).
+ */
+export function celdasConCorchete(hoja: string, col: string, opciones: Set<string> = new Set()): string[] {
+  const desesc = (t: string) => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  return [...hoja.matchAll(new RegExp(`<c r="(${col}\\d+)"[^>]*><is><t[^>]*>([\\s\\S]*?)</t></is></c>`, "g"))]
+    .filter((m) => {
+      const t = desesc(m[2]);
+      if (!t.includes("[")) return false;
+      if (/\[Pendiente/i.test(t)) return true;
+      return !t.split(/;\s*/).every((v) => opciones.has(v.trim()));
+    })
+    .map((m) => m[1]);
+}
+
+/** Opciones de las listas «▫ a ▫ b» del formato, desde sus cadenas compartidas. */
+export function opcionesDeListas(sharedStrings: string): Set<string> {
+  const out = new Set<string>();
+  for (const si of sharedStrings.match(/<si>[\s\S]*?<\/si>/g) ?? []) {
+    const t = [...si.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((m) => m[1]).join("").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+    if (t.includes("▫")) for (const o of t.split("▫")) if (o.trim()) out.add(o.trim().replace(/\s+/g, " "));
+  }
+  return out;
 }
 
 /**
