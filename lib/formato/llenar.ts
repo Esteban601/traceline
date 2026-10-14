@@ -1,6 +1,7 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
 import { ORACION_E5, pendienteEnTextoPlano, sinRemision, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import type { Alivios } from "@/lib/perfil-emisor";
+import type { InstanciaMetrica } from "@/lib/formato/instancias";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 
 // =============================================================================
@@ -49,7 +50,7 @@ export const CONCEPTOS_FORMATO = (mapeoFormato as unknown as { conceptos: Concep
 
 export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; estado: EstadoRespuesta; texto: string | null; hechosNegativos: boolean };
 
-export type ObjetivoFormato = { nombre: string; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null };
+export type ObjetivoFormato = { nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null };
 
 export type DatosFormato = {
   ejercicio: number;
@@ -72,7 +73,7 @@ export type DatosFormato = {
   /** Emisiones del ejercicio por alcance, de capturas confirmadas: «Alcance 1» → «1,240 tCO2e». */
   gei: { alcance: string; valor: string }[];
   /** Registros de clima con su valor del ejercicio, por tipo. */
-  registros: { tipo: string; nombre: string; horizontes: string; concentracion: string | null; cantidad: number | null; porcentaje: number | null; capital: string | null }[];
+  registros: { tipo: string; nombre: string; horizontes: string; concentracion: string | null; descripcion: string | null; cantidad: number | null; porcentaje: number | null; capital: string | null }[];
   /** Objetivos climáticos con su detalle. */
   objetivos: ObjetivoFormato[];
   /** Respuestas de los cuestionarios, en el orden del catálogo. */
@@ -83,10 +84,7 @@ export type DatosFormato = {
   declaracion: string | null;
   /** Cobertura del documento aprobado: requisitos «parcial» y pendientes (regla 1 de Esteban). */
   cumplimiento: { parciales: string[]; pendientes: number };
-  /** Hay un hecho vigente que dice que el inventario GEI está verificado por un tercero. */
-  verificacionTercero: boolean;
-  /** El hecho que nombra al verificador y el nivel de aseguramiento, tal cual (regla 7). */
-  verificacion: string | null;
+
 };
 
 export type OrigenFormato = "iteración" | "respuesta" | "regla" | "perfil" | "alivio" | "actividad" | "datos" | "logo" | "por decidir" | "sin mapeo" | "sin respuesta" | "fuera de alcance" | "pendiente";
@@ -132,6 +130,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const v = c.fila === 167 ? null : valorDeRegla(c);
       return { texto: v, origen: "iteración" as OrigenFormato, nota: "se repite por riesgo u oportunidad y métrica de NIIF S2 29" };
     }
+    // 435 (qué se trata como derivado en las financiadas): con C4 no se revela nada de Alcance 3, categoría 15.
+    if (c.fila === 435 && d.alivios.C4) return { texto: "No revelado · alivio C4", origen: "alivio" };
     if (c.capa === "sin candidato") return { texto: null, origen: "sin mapeo", nota: "código pedido sin datapoint en el catálogo (lista de ampliación del catálogo)" };
 
     // Actividad y sector, desde el Perfil (antes que el alivio: C4 exime cifras, no la pregunta).
@@ -153,23 +153,22 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (c.capa === "regla primer año") {
       if (!d.primerAnio) return { texto: null, origen: "por decidir" };
       const x = entreComillas(regla);
-      return x && !/sin mapeo/.test(x) ? { texto: x, origen: "regla" } : { texto: null, origen: "sin respuesta" };
+      // «sin mapeo» el primer año (eje sin comparativos): «No aplica».
+      if (x && /sin mapeo/.test(x)) return { texto: "No aplica", origen: "regla", nota: "primer año: sin comparativos" };
+      return x ? { texto: x, origen: "regla" } : { texto: null, origen: "sin respuesta" };
     }
     if (c.capa === "Perfil") return deperfil(c);
 
     const tipo = c.tipo === "(sin tipo)" ? "" : c.tipo ?? "";
     const conE5 = (t: string) => (c.alivioE5 && d.alivios.E5 && !t.includes("párrafo E5") ? `${ORACION_E5} ${t}` : t);
 
-    // Fila 167: verificación externa del inventario GEI, con el hecho tal cual y lo que falta.
-    if (c.fila === 167) {
-      if (d.verificacion) return { texto: `Sí. ${d.verificacion}`, origen: "respuesta" };
-      return d.verificacionTercero
-        ? { texto: "Sí, el inventario de emisiones de gases de efecto invernadero está verificado por un tercero. Pendiente: nombre del verificador y nivel de aseguramiento — solicitud «Enfoque de medición de emisiones y datos de entrada».", origen: "respuesta" }
-        : { texto: null, origen: "pendiente" };
-    }
     // Fila 64: dónde se concentran los riesgos (zonas, instalaciones, tipos de activos), por código desde los registros de clima.
     if (c.fila === 64) {
-      const lineas = d.registros.filter((r) => r.tipo !== "oportunidad" && (r.concentracion ?? "").trim()).map((r) => `${r.nombre}: ${r.concentracion!.trim()}`);
+      // Con la cifra cuando el registro la tiene: la oración de la descripción que lleva un número (capturada y validada).
+      const conCifra = (t: string | null) => (t ?? "").split(/(?<=\.)\s+/).find((o) => /\d/.test(o))?.trim() ?? null;
+      const lineas = d.registros
+        .filter((r) => r.tipo !== "oportunidad" && ((r.concentracion ?? "").trim() || conCifra(r.descripcion)))
+        .map((r) => `${r.nombre}: ${[conCifra(r.descripcion), (r.concentracion ?? "").trim() ? `Se concentra en: ${r.concentracion!.trim()}` : null].filter(Boolean).join(" ")}`);
       return lineas.length ? { texto: lineas.join("\n"), origen: "datos", nota: "registros de clima, campo concentración (bloque 23)" } : { texto: null, origen: "pendiente" };
     }
     // Fila 285: la declaración de cumplimiento, del bloque 2 aprobado (plantilla, sin hechos).
@@ -224,7 +223,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     // Regla 3: sin captura del origen del objetivo (emisora o ley), pendiente.
     // Juicio de la emisora (decisión de Esteban): el campo del Perfil, igual en las tres filas.
     if (c.fila === 364 || c.fila === 387 || c.fila === 410) return d.perfil.metricas_industria ? { texto: d.perfil.metricas_industria, origen: "perfil" } : { texto: null, origen: "pendiente" };
-    if (c.fila === 200 || c.fila === 219) return { texto: null, origen: "pendiente", nota: "sin captura del origen del objetivo (fijado por la emisora o por ley)" };
+    // Origen del objetivo (fijado por la emisora o por ley), de la captura de objetivos; sin captura, pendiente.
+    if (c.fila === 200 || c.fila === 219) return porObjetivo("origen");
     if (c.fila === 263 || c.fila === 265) {
       const r = resp("taxonomia", "NIIF S2 36 (e)(i)a(iv)");
       return r?.estado === "no_aplica" ? { texto: "No aplica: la Compañía no prevé usar créditos de carbono para alcanzar sus objetivos.", origen: "regla" } : { texto: null, origen: "por decidir" };
@@ -273,6 +273,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const otras = /no existen participadas|no hay participadas|ninguna participada/i.test(t) ? "Otras participadas: no existen participadas fuera de la consolidación con emisiones relevantes" : null;
       return { texto: conAnterior([`Grupo contable consolidado: ${alcances}`, ...(otras ? [otras] : []), `Total revelado: ${alcances}`]).join("\n"), origen: "datos" };
     }
+    // 97 (rendimiento) y 99 (flujos de efectivo) salen del mismo datapoint: con una sola respuesta, la 99 remite y nunca copia.
+    if (c.fila === 99) return textoDe(dp) ? { texto: "Ver la fila de rendimiento financiero: los efectos previstos sobre el rendimiento financiero y los flujos de efectivo se describen en conjunto.", origen: "datos", nota: "una sola respuesta para 16(d): remite a la fila 97" } : { texto: null, origen: "pendiente" };
     if (dp === "NIIF S2 16(c)(i)(ii)" || dp === "NIIF S2 16(d)" || dp === "NIIF S2 22(a)(iii)") return porHorizonte(dp);
     if (dp === "NIIF S2 22(b)(i)" || dp === "NIIF S2 22(b)(ii)") {
       const hoja = dp === "NIIF S2 22(b)(i)" ? "S2 22(b)(i)" : "S2 22(b)(ii)";
@@ -295,60 +297,41 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
 }
 
 // =============================================================================
-// MÉTRICAS NIIF S1 46–50 ITERADAS (filas 145–185; ver lib/formato/metricas.ts).
-// Cada riesgo u oportunidad de los registros de clima lleva las métricas
-// intersectoriales de NIIF S2 29 que le corresponden: transición → 29(a) GEI,
-// 29(b) y 29(e); físico → 29(c) y 29(e); oportunidad → 29(d) y 29(e). El
-// bloque de cada métrica sale de las reglas del mapeo (148, 151–153, 161–163),
-// de la descripción del catálogo (155, 159), del tipo de medida (166), de la
-// verificación externa (167, solo GEI) y de la respuesta de su datapoint (169).
+// MÉTRICAS NIIF S1 46–50 ITERADAS (filas 145–185; ver lib/formato/metricas.ts y
+// lib/formato/instancias.ts). El bloque de cada instancia sale de las reglas del
+// mapeo (148, 151–152, 161–163) y de la instancia: nombre (149, 157), párrafo
+// (153), descripción del catálogo (155, 159), tipo de medida (166), verificación
+// (167: «No» salvo la GEI con su verificador) y método con los datos de su
+// riesgo (169).
 // =============================================================================
 
-type MetricaS2 = { codigo: string; parrafo: string; nombre: string; tipo: string; metodo: string };
-const METRICAS_S2_29: Record<string, MetricaS2> = {
-  a: { codigo: "NIIF S2 29 (a)(i)", parrafo: "29(a)", nombre: "Emisiones brutas de gases de efecto invernadero de Alcances 1 y 2", tipo: "Medida absoluta", metodo: "NIIF S2 29 (a)(iii)" },
-  b: { codigo: "NIIF S2 29 (b)", parrafo: "29(b)", nombre: "Activos o actividades vulnerables a riesgos de transición", tipo: "Medida absoluta; Medida expresada con relación a otra métrica", metodo: "NIIF S2 29 (b)" },
-  c: { codigo: "NIIF S2 29 (c)", parrafo: "29(c)", nombre: "Activos o actividades vulnerables a riesgos físicos", tipo: "Medida absoluta; Medida expresada con relación a otra métrica", metodo: "NIIF S2 29 (c)" },
-  d: { codigo: "NIIF S2 29 (d)", parrafo: "29(d)", nombre: "Activos o actividades alineados con oportunidades relacionadas con el clima", tipo: "Medida absoluta; Medida expresada con relación a otra métrica", metodo: "NIIF S2 29 (d)" },
-  e: { codigo: "NIIF S2 29 (e)", parrafo: "29(e)", nombre: "Despliegue de capital", tipo: "Medida absoluta", metodo: "NIIF S2 29 (e)" },
-};
-const METRICAS_POR_TIPO: Record<string, string[]> = { riesgo_transicion: ["a", "b", "e"], riesgo_fisico: ["c", "e"], oportunidad: ["d", "e"] };
-
-export function metricasIteradas(d: DatosFormato, valores: Map<number, ValorFormato>, descripciones: Record<string, string>) {
-  const textoDe = (clave: string): string | null => {
-    const r = d.respuestas.find((x) => x.destino === "formato" && x.clave === clave) ?? d.respuestas.find((x) => x.destino === "taxonomia" && x.clave === clave);
-    if (!r?.texto || r.estado === "pendiente") return null;
-    return pendienteEnTextoPlano(r.destino === "taxonomia" ? sinRemision(r.texto) : r.texto);
-  };
+export function bloquesIterados(valores: Map<number, ValorFormato>, inst: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] }) {
   const regla = (fila: number) => valores.get(fila)?.texto ?? "";
-  // Fila 167 (solo la métrica GEI): el hecho del verificador y el nivel tal cual; si solo consta la verificación, con su pendiente.
-  const verificacion = d.verificacion
-    ? `Sí. ${d.verificacion}`
-    : d.verificacionTercero
-      ? "Sí, el inventario de emisiones de gases de efecto invernadero está verificado por un tercero. Pendiente: nombre del verificador y nivel de aseguramiento — solicitud «Enfoque de medición de emisiones y datos de entrada»."
-      : "";
-  const bloque = (m: MetricaS2): Map<number, string> => {
-    const descripcion = descripciones[m.codigo] ?? m.nombre;
-    return new Map<number, string>([
+  const bloque = (m: InstanciaMetrica) =>
+    new Map<number, string>([
       [148, regla(148)],
       [149, m.nombre],
       [151, regla(151)],
       [152, regla(152)],
       [153, `NIIF S2 párrafo ${m.parrafo}`],
-      [155, descripcion],
+      [155, m.descripcion],
       [157, m.nombre],
-      [159, descripcion],
+      [159, m.descripcion],
       [161, regla(161)],
       [162, regla(162)],
       [163, regla(163)],
-      [166, m.tipo],
-      [167, m.parrafo === "29(a)" ? verificacion : ""],
-      [169, textoDe(m.metodo) ?? ""],
+      [166, m.tipoMedida],
+      [167, m.verificacion],
+      [169, m.metodo],
     ]);
+  const agrupar = (lista: InstanciaMetrica[]) => {
+    const orden: string[] = [];
+    const por = new Map<string, InstanciaMetrica[]>();
+    for (const m of lista) {
+      if (!por.has(m.riesgo)) orden.push(m.riesgo);
+      por.set(m.riesgo, [...(por.get(m.riesgo) ?? []), m]);
+    }
+    return orden.map((nombre) => ({ nombre, metricas: por.get(nombre)!.map((m) => ({ nombre: m.nombre, valores: bloque(m) })) }));
   };
-  const elementos = (tipos: string[]) =>
-    d.registros
-      .filter((r) => tipos.includes(r.tipo))
-      .map((r) => ({ nombre: r.nombre, metricas: (METRICAS_POR_TIPO[r.tipo] ?? []).map((k) => ({ nombre: METRICAS_S2_29[k].nombre, valores: bloque(METRICAS_S2_29[k]) })) }));
-  return { riesgos: elementos(["riesgo_transicion", "riesgo_fisico"]), oportunidades: elementos(["oportunidad"]) };
+  return { riesgos: agrupar(inst.riesgos), oportunidades: agrupar(inst.oportunidades) };
 }

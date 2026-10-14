@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { llenarFormato, metricasIteradas } from "@/lib/formato/llenar";
+import { bloquesIterados, llenarFormato } from "@/lib/formato/llenar";
 import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
 import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, leyendaDelFormato } from "@/lib/formato/plantilla";
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
       escritas++;
     }
     // Métricas S1 46–50: una copia del bloque por métrica de NIIF S2 29 de cada riesgo u oportunidad.
-    const it = metricasIteradas(datos, valores, ins.descripciones);
+    const it = bloquesIterados(valores, ins.instancias);
     est = expandirMetricas(est, it.riesgos, it.oportunidades).xml;
     zip.file(rutaEst, est);
 

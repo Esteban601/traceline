@@ -12,7 +12,7 @@
 // lo restaura al terminar.
 //
 //   1. Sin alivios: comparativos, Alcance 3 y NIIF S1 se exportan como siempre.
-//   2. Con C3, C4 y E5 en el primer año: «No revelado · alivio C3/C4/E5» en las
+//   2. Con C3, C4 y E5 en el primer año: «No revelado · alivio C3/C4» en las
 //      celdas que deja fuera, sin nota de brecha; la Leyenda lo explica.
 //   3. Los mismos alivios en un año subsecuente no aplican.
 //   4. Ninguna celda exportada empieza con «[»: el pendiente va en texto plano.
@@ -84,8 +84,10 @@ try {
   ok(!/\(\d{4}\)/.test(b.c("NIIF S2 29(a)(i)", "E3")), "C3: el año anterior no aparece como brecha en la nota");
   const regHoja = ["NIIF S2 29(c)", "NIIF S2 29(b)", "NIIF S2 29(d)"].find((h) => b.c(h, "A5"));
   ok(!!regHoja && b.c(regHoja, "H5") === NR("C3"), `C3: los registros de clima tampoco muestran el año anterior (${regHoja} H5)`);
-  ok(b.c("NIIF S1 51", "A4").startsWith(NR("E5")) && b.c("NIIF S1 51", "B4") === "", "E5: NIIF S1 51 no se llena y remite a NIIF S2 33");
-  ok(b.c("NIIF S1 46-50", "A6").startsWith(NR("E5")), "E5: NIIF S1 46-50");
+  // E5 (decisión de Esteban, 14 de octubre): las hojas de S1 llevan la información sobre clima, la misma del Formato.
+  const climaticos = psql(`select string_agg(replace(nombre, '[DEMO] ', ''), '|') from objetivos where reporte_id=${lit(REPORTE)} and activo and ambito='climatico'`).split("|");
+  ok(!b.c("NIIF S1 51", "A4").startsWith("No revelado") && climaticos.includes(b.c("NIIF S1 51", "A4")) && !b.todas.some((t) => t === NR("E5")), "E5: NIIF S1 51 lleva solo objetivos climáticos, sin «No revelado · alivio E5»");
+  ok(/párrafo E5/.test(b.c("NIIF S1 46-50", "A2")) && b.c("NIIF S1 46-50", "B6") !== "", "E5: NIIF S1 46-50 con la oración del alivio y las instancias de métricas");
   ok(b.c("Leyenda", "B9") === "C3, C4, E5" && b.todas.some((t) => t.includes("NIIF S2 C4")), "la Leyenda lista los alivios vigentes y explica cada uno");
 
   console.log("\n3. Los mismos alivios en un año subsecuente no aplican");

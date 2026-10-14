@@ -352,6 +352,8 @@ const REGISTROS = [
   },
   {
     nombre: "Precio al carbono y regulación sobre sectores intensivos en la cartera empresarial",
+    // Métricas de NIIF S2 29 que lleva en NIIF S1 46–50 (decisión de Esteban, 14 de octubre): GEI, transición y capital.
+    metricas_asociadas: ["a", "b", "e"],
     tipo: "riesgo_transicion",
     horizontes: ["Mediano plazo", "Largo plazo"],
     probabilidad: 4,
@@ -376,6 +378,8 @@ const REGISTROS = [
   },
   {
     nombre: "Expectativas de inversionistas y taxonomía sostenible",
+    // Le corresponde la cartera sostenible (29(d)) y el capital (29(e)), no las emisiones propias.
+    metricas_asociadas: ["d", "e"],
     tipo: "riesgo_transicion",
     horizontes: ["Corto plazo", "Mediano plazo"],
     probabilidad: 3,
@@ -910,6 +914,7 @@ const OBJETIVOS = [
     naturaleza: "riesgo",
     tipo: "Objetivo de emisiones de gases de efecto invernadero",
     tipo_objetivo: "Absoluto",
+    origen_objetivo: "Fijado por la Emisora",
     metrica: "tCO2e",
     meta: "Reducción de 30% al 2030",
     parte_entidad: "Toda la Compañía",
@@ -939,6 +944,7 @@ const OBJETIVOS = [
     naturaleza: "oportunidad",
     tipo: "Objetivo de cartera",
     tipo_objetivo: "Relativo",
+    origen_objetivo: "Fijado por la Emisora",
     metrica:
       "Porcentaje de la cartera total con etiqueta sostenible conforme a la Taxonomía Sostenible de México",
     meta: "20% al 2028",
@@ -968,6 +974,7 @@ const OBJETIVOS = [
     naturaleza: "riesgo",
     tipo: "Objetivo de cobertura de medición",
     tipo_objetivo: "Relativo",
+    origen_objetivo: "Fijado por la Emisora",
     metrica: "Porcentaje de la cartera empresarial con emisiones financiadas medidas bajo PCAF",
     meta: "80% en 2027",
     parte_entidad: "Cartera empresarial",

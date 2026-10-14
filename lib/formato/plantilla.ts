@@ -21,7 +21,7 @@ export function leyendaDelFormato(alivios: Alivios, actividades: string[]): [str
   return [
     ["Leyenda", ""],
     ["Columna «Respuesta» (K)", "Se llena desde el último documento del Suplemento NIIF S1/S2 APROBADO de la emisora: las narrativas resumen la sección aprobada que responde cada concepto; las cifras salen de capturas validadas; la identificación, del Perfil del emisor."],
-    ["Celda vacía", "El concepto es un encabezado, se responde junto con la fila anterior, o falta la información: el pendiente se resuelve en la plataforma antes de presentar el formato."],
+    ["Celda vacía", "Tres casos: el concepto es un encabezado; se responde junto con la fila anterior; o falta un dato de la emisora (un pendiente), que se resuelve en la plataforma antes de presentar el formato. La revisión de IRStrat lista cada celda vacía con su caso."],
     ["«No aplica»", "El concepto no aplica en este ejercicio, por el régimen o por la condición de la emisora."],
     ["«No aplica por actividad»", `La sección de emisiones financiadas es de una actividad en la que la emisora no participa (actividades financieras del Perfil: ${actividades.join(", ") || "sin capturar"}).`],
     ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan cifras de emisiones de Alcance 3, ni su total ni sus categorías, incluidas las emisiones financiadas."],

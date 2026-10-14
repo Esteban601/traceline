@@ -350,11 +350,13 @@ async function main() {
   ok(cellText(s36, "F5") === "", "S2 36: F5 vacía (no hay cuarto objetivo)");
 
   console.log("\nObjetivos — S1 51 (secciones Riesgos / Oportunidades):");
-  // E5: el informe es solo de clima; los objetivos climáticos van en S2 33–36.
-  ok(cellText(s51, "A4").startsWith("No revelado · alivio E5"), "S1 51: A4 «No revelado · alivio E5» (remite a NIIF S2 33)");
-  ok(cellText(s51, "H4") === "" && cellText(s51, "A5") === "", "S1 51: sin objetivos escritos");
-  ok(cellText(s51, "A14") === "No revelado · alivio E5", "S1 51: la sección Oportunidades también");
-  ok(cellText(wb.getWorksheet("NIIF S1 46-50"), "A6").startsWith("No revelado · alivio E5"), "S1 46-50: «No revelado · alivio E5»");
+  // E5 (decisión de Esteban, 14 de octubre): las hojas de S1 llevan la información sobre clima, la misma del
+  // Formato electrónico: S1 51 los objetivos climáticos; S1 46-50 las métricas de NIIF S2 29 por riesgo.
+  ok(cellText(s51, "A4") === "Reducción de emisiones de Alcances 1 y 2" && cellText(s51, "H4").length > 0, "S1 51: A4 el primer objetivo climático, con resultados");
+  ok(cellText(s51, "A14") === "Cartera sostenible", "S1 51: Oportunidades con el objetivo climático de cartera sostenible");
+  ok(!/No revelado/.test(cellText(s51, "A4") + cellText(s51, "A14")), "S1 51: ningún «No revelado · alivio E5»");
+  const s4650 = wb.getWorksheet("NIIF S1 46-50");
+  ok(/párrafo E5/.test(cellText(s4650, "A2")) && cellText(s4650, "A6").length > 0 && /NIIF S2 párrafo 29/.test(cellText(s4650, "D6")), "S1 46-50: oración del E5 e instancias de métricas de NIIF S2 29 por riesgo");
   {
     const ley = wb.getWorksheet("Leyenda");
     const textos = [];

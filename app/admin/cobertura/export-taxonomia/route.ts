@@ -19,7 +19,10 @@ import {
   noRevelado,
 } from "@/lib/reporte/ensamblar";
 import type { Alivios } from "@/lib/perfil-emisor";
-import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
+import { ORACION_E5, pendienteEnTextoPlano, sinRemision } from "@/lib/suplemento/respuestas";
+import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
+import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -153,6 +156,34 @@ function escribirRespuestas(
 }
 
 /**
+ * HOJA «NIIF S1 46-50»: una fila por instancia (riesgo u oportunidad × métrica
+ * de NIIF S2 29), con las columnas de la plantilla: A riesgo, B–D métrica
+ * requerida por NIIF (nombre, descripción, fuente), E–K métrica que la entidad
+ * utiliza (nombre, descripción, ¿ajuste?, fuente y diferencia, tipo, ¿validada
+ * por tercero?, método y datos). Riesgos desde la fila 6 (12 lugares; si hacen
+ * falta más, se insertan antes de «OPORTUNIDADES»), oportunidades después de su
+ * encabezado. Con E5, la oración fija del alivio en A2. Devuelve la última fila.
+ */
+function escribirMetricasS1(ws: ExcelJS.Worksheet, inst: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] }, e5: boolean): number {
+  if (e5) ws.getCell("A2").value = ORACION_E5;
+  const fila = (n: number, m: InstanciaMetrica) => {
+    const valores = [m.riesgo, m.nombre, m.descripcion, `NIIF S2 párrafo ${m.parrafo}`, m.nombre, m.descripcion, "No", "No aplica: la métrica se toma sin ajuste de NIIF S2", m.tipoMedida, m.verificacion, m.metodo];
+    valores.forEach((v, i) => {
+      const c = ws.getRow(n).getCell(i + 1);
+      c.value = v || null;
+      c.alignment = { wrapText: true, vertical: "top" };
+    });
+  };
+  const LUGARES_RIESGOS = 12;
+  const extra = Math.max(0, inst.riesgos.length - LUGARES_RIESGOS);
+  if (extra) ws.spliceRows(18, 0, ...Array.from({ length: extra }, () => []));
+  inst.riesgos.forEach((m, i) => fila(6 + i, m));
+  const inicioOpp = 19 + extra;
+  inst.oportunidades.forEach((m, i) => fila(inicioOpp + i, m));
+  return Math.max(21 + extra, inicioOpp + inst.oportunidades.length - 1);
+}
+
+/**
  * HOJA «LEYENDA» (revisión externa, puntos 1 y 3; especificación 0.41, §6.1).
  * Qué es cada parte del libro y por qué una celda dice «No revelado · alivio».
  */
@@ -168,7 +199,7 @@ function escribirLeyenda(wb: ExcelJS.Workbook, alivios: Alivios): void {
     ["«No aplica»", "El requisito no aplica en este ejercicio, por el régimen o por la condición de la emisora."],
     ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan las emisiones de Alcance 3, ni su total ni sus categorías."],
     ["«No revelado · alivio C3»", "Alivio transitorio del primer año (NIIF S2 C3): no se presentan comparativos del ejercicio anterior."],
-    ["«No revelado · alivio E5»", "Alivio transitorio del primer año (NIIF S1 E5): el informe trata solo los riesgos y oportunidades relacionados con el clima; las hojas de NIIF S1 remiten a las de NIIF S2."],
+    ["Alivio E5 en las hojas de NIIF S1", "Alivio transitorio del primer año (NIIF S1 E5): el informe trata solo los riesgos y oportunidades relacionados con el clima. «NIIF S1 46-50» lleva las métricas de NIIF S2 29 por riesgo y oportunidad, con la oración del alivio, y «NIIF S1 51» los objetivos climáticos: el mismo contenido que el Formato electrónico."],
     ["Alivios de este reporte", (["C3", "C4", "E5"] as const).filter((k) => alivios[k]).join(", ") || "Ninguno vigente en este ejercicio."],
   ];
   filas.forEach(([a, b], i) => {
@@ -523,15 +554,12 @@ function escribirObjetivos(
 
   // --- S1 51 — TODOS los objetivos, secciones Riesgos / Oportunidades ---
   const s51 = wb.getWorksheet("NIIF S1 51");
-  if (s51 && alivios.E5) {
-    // E5: el primer ejercicio se informa solo sobre clima, y los objetivos
-    // climáticos ya van en NIIF S2 33 a 36 (el Word tampoco publica los demás).
-    s51.getCell("A4").value = `${noRevelado("E5")}: los objetivos climáticos se presentan en la hoja NIIF S2 33.`;
-    s51.getCell("A14").value = noRevelado("E5");
-    marcar("NIIF S1 51", s51, 18);
-  } else if (s51) {
+  // E5: el primer ejercicio se informa solo sobre clima: la hoja lleva los
+  // objetivos climáticos, como el Formato electrónico y el Word (misma fuente).
+  const objetivosS51 = alivios.E5 ? objetivos.filter((o) => o.ambito === "climatico") : objetivos;
+  if (s51) {
     const seccion = (naturaleza: string, inicio: number, fin: number) => {
-      const lista = objetivos.filter((o) => o.naturaleza === naturaleza);
+      const lista = objetivosS51.filter((o) => o.naturaleza === naturaleza);
       const vis = lista.slice(0, fin - inicio + 1);
       vis.forEach((o, i) => {
         const fila = inicio + i;
@@ -802,14 +830,28 @@ export async function GET(request: Request) {
     reporte.aliviosVigentes
   );
 
-  // NIIF S1 46-50 (métricas de S1): la plantilla no se llena desde la base; con
-  // E5 se dice que no se revela, igual que el Word, que no la publica.
+  // NIIF S1 46-50: las instancias de métricas de NIIF S2 29 por riesgo y
+  // oportunidad, de la MISMA fuente que el Formato electrónico
+  // (lib/formato/instancias.ts). El método GEI y la verificación salen del
+  // documento aprobado; sin él, la verificación queda vacía.
   const s4650 = wb.getWorksheet("NIIF S1 46-50");
-  if (s4650 && reporte.aliviosVigentes.E5) {
-    s4650.getCell("A6").value = `${noRevelado("E5")}: las métricas climáticas se presentan en las hojas NIIF S2 29.`;
-    s4650.getCell("A19").value = noRevelado("E5");
+  if (s4650) {
+    const { data: aprob } = await supabase.from("respuestas_datapoint").select("destino, texto, estado").eq("reporte_id", reporteId).eq("clave", "NIIF S2 29 (a)(iii)");
+    // El documento aprobado del que salieron las respuestas (cualquiera de sus filas), como en el Formato.
+    const { data: una } = await supabase.from("respuestas_datapoint").select("documento_id").eq("reporte_id", reporteId).limit(1);
+    const documentoAprobado = una?.[0]?.documento_id ?? null;
+    const metodo = aprob?.find((r) => r.destino === "formato" && r.estado === "respuesta")?.texto ?? aprob?.find((r) => r.estado === "respuesta")?.texto ?? null;
+    const inst = instanciasDeMetricas(
+      insumosDeInstancias(ens, {
+        metodoGei: metodo ? sinRemision(metodo) : null,
+        // El hecho de verificación está en el documento aprobado, que el auditor no lee: se lee con service role.
+        verificacionGei: documentoAprobado ? await verificacionGeiDelDocumento(createAdminClient(), documentoAprobado) : null,
+        hayDocumentoAprobado: !!documentoAprobado,
+      })
+    );
+    const ultima = escribirMetricasS1(s4650, inst, reporte.aliviosVigentes.E5 === true);
     const prev = hojasTocadas.get("NIIF S1 46-50") ?? { ws: s4650, ultimaFila: 0 };
-    prev.ultimaFila = Math.max(prev.ultimaFila, 21);
+    prev.ultimaFila = Math.max(prev.ultimaFila, ultima);
     hojasTocadas.set("NIIF S1 46-50", prev);
   }
 

@@ -58,6 +58,7 @@ export type RegistroFila = {
   nombre: string;
   descripcion: string | null;
   concentracion: string | null;
+  metricasAsociadas: string[];
   impactosPotenciales: string | null;
   respuesta: string | null;
   horizontes: string[];
@@ -123,6 +124,31 @@ function CheckboxHorizontes({
 }
 
 const nf = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 });
+/** Métricas de NIIF S2 29 que el riesgo lleva en las métricas de NIIF S1 46–50 del Formato electrónico. */
+const METRICAS_S2_29: [string, string][] = [
+  ["a", "29(a) Emisiones GEI"],
+  ["b", "29(b) Riesgos de transición"],
+  ["c", "29(c) Riesgos físicos"],
+  ["d", "29(d) Oportunidades"],
+  ["e", "29(e) Despliegue de capital"],
+];
+function MetricasAsociadas({ valor, onChange }: { valor: string[]; onChange: (v: string[]) => void }) {
+  return (
+    <div>
+      <label className={labelCls}>Métricas asociadas (NIIF S2 29)</label>
+      <div className="mt-2 flex flex-wrap gap-3 text-sm">
+        {METRICAS_S2_29.map(([k, etiqueta]) => (
+          <label key={k} className="flex items-center gap-1.5">
+            <input type="checkbox" checked={valor.includes(k)} onChange={(e) => onChange(e.target.checked ? [...valor, k].sort() : valor.filter((x) => x !== k))} />
+            {etiqueta}
+          </label>
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-muted">Vacío: transición → 29(b) y 29(e); físico → 29(c) y 29(e); oportunidad → 29(d) y 29(e).</p>
+    </div>
+  );
+}
+
 function limpiar(n: string): string {
   return n.replace(/\[DEMO\]\s*/i, "").trim();
 }
@@ -249,6 +275,7 @@ function CrearRegistroForm({
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [concentracion, setConcentracion] = useState("");
+  const [metricas, setMetricas] = useState<string[]>([]);
   const [impactos, setImpactos] = useState("");
   const [respuesta, setRespuesta] = useState("");
   const [horizontes, setHorizontes] = useState<string[]>([]);
@@ -286,6 +313,7 @@ function CrearRegistroForm({
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
     fd.set("concentracion", concentracion);
+    metricas.forEach((m) => fd.append("metricas_asociadas", m));
     fd.set("impactos_potenciales", impactos);
     fd.set("respuesta", respuesta);
     horizontes.forEach((h) => fd.append("horizontes", h));
@@ -384,6 +412,7 @@ function CrearRegistroForm({
             className={areaCls}
           />
         </div>
+        <MetricasAsociadas valor={metricas} onChange={setMetricas} />
         <div>
           <label className={labelCls}>Impactos potenciales</label>
           <textarea
@@ -653,6 +682,7 @@ function EditarRegistroForm({
   const [nombre, setNombre] = useState(registro.nombre);
   const [descripcion, setDescripcion] = useState(registro.descripcion ?? "");
   const [concentracion, setConcentracion] = useState(registro.concentracion ?? "");
+  const [metricas, setMetricas] = useState<string[]>(registro.metricasAsociadas);
   const [impactos, setImpactos] = useState(registro.impactosPotenciales ?? "");
   const [respuesta, setRespuesta] = useState(registro.respuesta ?? "");
   const [horizontes, setHorizontes] = useState<string[]>(registro.horizontes);
@@ -675,6 +705,7 @@ function EditarRegistroForm({
     fd.set("nombre", nombre);
     fd.set("descripcion", descripcion);
     fd.set("concentracion", concentracion);
+    metricas.forEach((m) => fd.append("metricas_asociadas", m));
     fd.set("impactos_potenciales", impactos);
     fd.set("respuesta", respuesta);
     horizontes.forEach((h) => fd.append("horizontes", h));
@@ -718,6 +749,7 @@ function EditarRegistroForm({
             className={areaCls}
           />
         </div>
+        <MetricasAsociadas valor={metricas} onChange={setMetricas} />
         <div>
           <label className={labelCls}>Impactos potenciales</label>
           <textarea

@@ -26,6 +26,7 @@
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
+import ExcelJS from "exceljs";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { celdasConCorchete, opcionesDeListas, validarImagenesEnCelda } from "../lib/formato/xlsx-xml.ts";
@@ -145,6 +146,36 @@ try {
     let menciones = 0;
     for (const n of Object.keys(z.files).filter((x) => /\.(xml|rels|vml)$/.test(x))) menciones += ((await z.file(n).async("string")).match(/autl[aá]n/gi) ?? []).length;
     ok(menciones === 0, "ninguna parte del archivo nombra a la emisora de referencia");
+  }
+
+  console.log("\n3b. Misma fuente: «NIIF S1 46-50» del Excel de taxonomía = instancias del Formato (punto 6)");
+  {
+    const rf = await bajar(staff);
+    const zf = await JSZip.loadAsync(Buffer.from(await rf.arrayBuffer()));
+    const est = await zf.file("xl/worksheets/sheet2.xml").async("string");
+    const txt = (c, n) => desescapar(est.match(new RegExp(`<c r="${c}${n}"[^>]*>(?:<is><t[^>]*>([\\s\\S]*?)</t></is>)?`))?.[1] ?? "");
+    const delta = Number(est.match(/<dimension ref="[A-Z]+\d+:[A-Z]+(\d+)"/)[1]) - 588;
+    const delFormato = [];
+    let riesgo = "";
+    for (let n = 145; n <= 185 + delta; n++) {
+      const d = txt("D", n);
+      const mr = d.match(/^(?:Riesgo|Oportunidad) \d+: (.*)$/);
+      if (mr) riesgo = mr[1];
+      const mm = d.match(/^Métrica \d+: (.*)$/);
+      if (mm) delFormato.push([riesgo, mm[1], txt("K", n + 20), txt("K", n + 22)].join(" | "));
+    }
+    const rt = await fetch(`${BASE}/admin/cobertura/export-taxonomia?reporte=${REPORTE}`, { headers: { cookie: staff() } });
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(Buffer.from(await rt.arrayBuffer()));
+    const hoja = wb.getWorksheet("NIIF S1 46-50");
+    const v = (c) => (c.value == null ? "" : typeof c.value === "object" && c.value.richText ? c.value.richText.map((x) => x.text).join("") : String(c.value));
+    const delExcel = [];
+    hoja.eachRow((row, n) => {
+      if (n < 6 || !v(row.getCell(2)) || /^OPORTUNIDADES|^RIESGOS/.test(v(row.getCell(1)))) return;
+      delExcel.push([v(row.getCell(1)), v(row.getCell(2)), v(row.getCell(10)), v(row.getCell(11))].join(" | "));
+    });
+    ok(delFormato.length > 0 && JSON.stringify(delFormato) === JSON.stringify(delExcel), `las mismas ${delFormato.length} instancias (riesgo, métrica, verificación, método) en el Formato y en la taxonomía (${delExcel.length})`);
+    ok(/párrafo E5/.test(v(hoja.getCell("A2"))) && !delExcel.some((x) => /No revelado/.test(x)), "la hoja lleva la oración del E5 y ningún «No revelado · alivio E5»");
   }
 
   console.log("\n4. Generador apagado");

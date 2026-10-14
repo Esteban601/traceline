@@ -3,6 +3,8 @@ import type { Database } from "@/lib/database.types";
 import { ensamblarReporte, type Ensamblado } from "@/lib/reporte/ensamblar";
 import { regimenDe } from "@/lib/perfil-emisor";
 import type { DatosFormato, RespuestaLeida } from "@/lib/formato/llenar";
+import { clausulaDeVerificacion, insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
+import { sinRemision } from "@/lib/suplemento/respuestas";
 
 // =============================================================================
 // Insumos del Formato electrónico (encargo 2026-10-13, Paso 4): lo que lee la
@@ -15,7 +17,7 @@ const NUM = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
 export type TenantFormato = { nombre: string; slug: string | null; generador_activo: boolean; logo_url: string | null };
 
 export type InsumosFormato =
-  | { ok: true; datos: DatosFormato; tenant: TenantFormato; ens: Ensamblado; denominacion: string; descripciones: Record<string, string> }
+  | { ok: true; datos: DatosFormato; tenant: TenantFormato; ens: Ensamblado; denominacion: string; descripciones: Record<string, string>; instancias: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] } }
   | { ok: false; status: 404 | 409 | 500; error: string };
 
 export async function insumosDelFormato(db: Db, reporteId: string): Promise<InsumosFormato> {
@@ -62,7 +64,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   const registros = ens.registros.map((r) => {
     const v = ens.vigentePorRegistro.get(r.id)?.get(ejercicio);
     const partes = v ? ([["gasto", v.capital_gasto], ["financiación", v.capital_financiacion], ["inversión", v.capital_inversion]] as const).filter(([, x]) => x != null).map(([k, x]) => `${k} ${NUM.format(x as number)}`) : [];
-    return { tipo: r.tipo, nombre: r.nombre.replace(/\[DEMO\]\s*/i, "").trim(), horizontes: (r.horizontes ?? []).join(", "), concentracion: r.concentracion ?? null, cantidad: v?.cantidad_activos ?? null, porcentaje: v?.porcentaje ?? null, capital: partes.length ? `capital: ${partes.join(", ")}` : null };
+    return { tipo: r.tipo, nombre: r.nombre.replace(/\[DEMO\]\s*/i, "").trim(), horizontes: (r.horizontes ?? []).join(", "), concentracion: r.concentracion ?? null, descripcion: r.descripcion ?? null, cantidad: v?.cantidad_activos ?? null, porcentaje: v?.porcentaje ?? null, capital: partes.length ? `capital: ${partes.join(", ")}` : null };
   });
 
   // Documento aprobado del que salieron las respuestas: bloque 2 (declaración de
@@ -80,28 +82,25 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   }
   let declaraCumplimiento = false;
   let declaracion: string | null = null;
-  let verificacionTercero = false;
-  let verificacion: string | null = null;
   if (aprobadas["2"]) {
     const { data: b2 } = await db.from("documentos_bloques_versiones").select("texto").eq("id", aprobadas["2"].id).maybeSingle();
     declaraCumplimiento = /de conformidad con las Normas NIIF S1 y (?:NIIF )?S2/i.test(b2?.texto ?? "");
     // La declaración es la oración del bloque 2 que la hace, tal cual (bloque de plantilla, sin hechos).
     declaracion = (b2?.texto ?? "").split(/\n+/).map((p) => p.trim()).find((p) => /de conformidad con las Normas NIIF S1/i.test(p)) ?? null;
   }
-  if (aprobadas["30"]) {
-    const { data: b30 } = await db.from("documentos_bloques_versiones").select("libro_id").eq("id", aprobadas["30"].id).maybeSingle();
-    if (b30?.libro_id) {
-      const { data: hs } = await db.from("hechos").select("enunciado").eq("libro_id", b30.libro_id).eq("estado", "vigente").eq("bloque_dueno", 30);
-      verificacionTercero = (hs ?? []).some((h) => /verificad[oa] por/i.test(h.enunciado));
-      // Regla 7: con verificador y nivel de aseguramiento en un hecho, la respuesta es ese hecho tal cual.
-      verificacion = (hs ?? []).find((h) => /verificad[oa] por/i.test(h.enunciado) && /aseguramiento (?:limitado|razonable)/i.test(h.enunciado))?.enunciado ?? null;
-    }
-  }
+  // Instancias de métricas NIIF S1 46–50: la misma fuente que la hoja «NIIF S1 46-50» del Excel de taxonomía.
+  const metodoGei = respuestas.find((r) => r.clave === "NIIF S2 29 (a)(iii)" && r.destino === "formato" && r.estado === "respuesta")?.texto
+    ?? respuestas.find((r) => r.clave === "NIIF S2 29 (a)(iii)" && r.estado === "respuesta")?.texto ?? null;
+  const instancias = instanciasDeMetricas(insumosDeInstancias(ens, {
+    metodoGei: metodoGei ? sinRemision(metodoGei) : null,
+    verificacionGei: await verificacionGeiDelDocumento(db, documentoId),
+    hayDocumentoAprobado: true,
+  }));
   const objetivos = ens.objetivos
     .filter((o) => o.ambito === "climatico")
     .map((o) => {
       const det = ens.detallePorObjetivo.get(o.id);
-      return { nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), tipo_objetivo: o.tipo_objetivo ?? null, gases: det?.gases_cubiertos ?? null, alcances: det?.alcances_cubiertos ?? null, bruto_neto: det?.bruto_neto ?? null };
+      return { nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), origen: o.origen_objetivo ?? null, tipo_objetivo: o.tipo_objetivo ?? null, gases: det?.gases_cubiertos ?? null, alcances: det?.alcances_cubiertos ?? null, bruto_neto: det?.bruto_neto ?? null };
     });
   const { data: cat } = await db.from("datapoints_taxonomia").select("codigo, descripcion").in("codigo", ["NIIF S2 29 (a)(i)", "NIIF S2 29 (b)", "NIIF S2 29 (c)", "NIIF S2 29 (d)", "NIIF S2 29 (e)"]);
   const descripciones: Record<string, string> = Object.fromEntries((cat ?? []).map((x) => [x.codigo, x.descripcion]));
@@ -140,8 +139,24 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
       declaraCumplimiento,
       declaracion,
       cumplimiento: { parciales, pendientes: pendientesDoc },
-      verificacionTercero,
-      verificacion,
     },
+    instancias,
   };
+}
+
+/**
+ * La cláusula de verificación externa del inventario GEI en el libro del bloque
+ * 30 del documento APROBADO («inventario verificado por …, con aseguramiento
+ * limitado.»), o null. La usan el Formato y el Excel de taxonomía.
+ */
+export async function verificacionGeiDelDocumento(db: Db, documentoId: string | null): Promise<string | null> {
+  if (!documentoId) return null;
+  const { data: doc } = await db.from("documentos_generados").select("versiones_aprobadas").eq("id", documentoId).maybeSingle();
+  const v30 = ((doc?.versiones_aprobadas ?? {}) as Record<string, { id: string }>)["30"];
+  if (!v30) return null;
+  const { data: b30 } = await db.from("documentos_bloques_versiones").select("libro_id").eq("id", v30.id).maybeSingle();
+  if (!b30?.libro_id) return null;
+  const { data: hs } = await db.from("hechos").select("enunciado").eq("libro_id", b30.libro_id).eq("estado", "vigente").eq("bloque_dueno", 30);
+  const h = (hs ?? []).find((x) => /verificad[oa] por/i.test(x.enunciado) && /aseguramiento (?:limitado|razonable)/i.test(x.enunciado)) ?? (hs ?? []).find((x) => /verificad[oa] por/i.test(x.enunciado));
+  return clausulaDeVerificacion(h?.enunciado ?? null);
 }

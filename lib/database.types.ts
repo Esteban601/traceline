@@ -1360,6 +1360,7 @@ export type Database = {
           naturaleza: string
           nombre: string
           orden: number
+          origen_objetivo: string | null
           parte_entidad: string | null
           periodo_aplicacion: string | null
           periodo_base: string | null
@@ -1380,6 +1381,7 @@ export type Database = {
           naturaleza?: string
           nombre: string
           orden?: number
+          origen_objetivo?: string | null
           parte_entidad?: string | null
           periodo_aplicacion?: string | null
           periodo_base?: string | null
@@ -1400,6 +1402,7 @@ export type Database = {
           naturaleza?: string
           nombre?: string
           orden?: number
+          origen_objetivo?: string | null
           parte_entidad?: string | null
           periodo_aplicacion?: string | null
           periodo_base?: string | null
@@ -1977,6 +1980,7 @@ export type Database = {
           id: string
           impacto: number | null
           impactos_potenciales: string | null
+          metricas_asociadas: string[] | null
           nivel: string | null
           nombre: string
           orden: number
@@ -1995,6 +1999,7 @@ export type Database = {
           id?: string
           impacto?: number | null
           impactos_potenciales?: string | null
+          metricas_asociadas?: string[] | null
           nivel?: string | null
           nombre: string
           orden?: number
@@ -2013,6 +2018,7 @@ export type Database = {
           id?: string
           impacto?: number | null
           impactos_potenciales?: string | null
+          metricas_asociadas?: string[] | null
           nivel?: string | null
           nombre?: string
           orden?: number

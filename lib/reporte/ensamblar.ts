@@ -145,6 +145,8 @@ export type RegRow = {
   concentracion: string | null;
   impactos_potenciales: string | null;
   respuesta: string | null;
+  /** Métricas de NIIF S2 29 (a)–(e) que el riesgo lleva en NIIF S1 46–50; vacío = regla por defecto. */
+  metricas_asociadas: string[] | null;
   orden: number;
 };
 
@@ -176,6 +178,8 @@ export type ObjRow = {
   periodo_base: string | null;
   hito_intermedio: string | null;
   tipo_objetivo: string | null;
+  /** Fijado por la emisora o exigido por ley (NIIF S2 33). */
+  origen_objetivo: string | null;
   alineacion_acuerdo_internacional: string | null;
   orden: number;
 };
@@ -402,7 +406,7 @@ export async function ensamblarReporte(
     supabase
       .from("registros_clima")
       .select(
-        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, concentracion, impactos_potenciales, respuesta, orden"
+        "id, reporte_id, tipo, nombre, descripcion, horizontes, probabilidad, impacto, severidad, nivel, concentracion, impactos_potenciales, respuesta, metricas_asociadas, orden"
       )
       .eq("reporte_id", reporteId)
       .eq("activo", true)
@@ -417,7 +421,7 @@ export async function ensamblarReporte(
     supabase
       .from("objetivos")
       .select(
-        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, alineacion_acuerdo_internacional, orden"
+        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, origen_objetivo, alineacion_acuerdo_internacional, orden"
       )
       .eq("reporte_id", reporteId)
       .eq("activo", true)

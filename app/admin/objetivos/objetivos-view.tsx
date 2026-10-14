@@ -73,6 +73,7 @@ export type ObjetivoFila = {
   periodoBase: string | null;
   hitoIntermedio: string | null;
   tipoObjetivo: string | null;
+  origenObjetivo: string | null;
   alineacion: string | null;
   orden: number;
   activo: boolean;
@@ -440,6 +441,7 @@ type Campos = {
   periodoBase: string;
   hitoIntermedio: string;
   tipoObjetivo: string;
+  origenObjetivo: string;
   alineacion: string;
   validacionTercero: string;
   procesosRevision: string;
@@ -469,6 +471,7 @@ function desdeObjetivo(o: ObjetivoFila | undefined, reportes: ReporteOpcion[]): 
     periodoBase: o?.periodoBase ?? "",
     hitoIntermedio: o?.hitoIntermedio ?? "",
     tipoObjetivo: o?.tipoObjetivo ?? "",
+    origenObjetivo: o?.origenObjetivo ?? "",
     alineacion: o?.alineacion ?? "",
     validacionTercero: o?.ficha.validacionTercero ?? "",
     procesosRevision: o?.ficha.procesosRevision ?? "",
@@ -595,6 +598,7 @@ function ObjetivoForm({
     fd.set("periodo_base", c.periodoBase);
     fd.set("hito_intermedio", c.hitoIntermedio);
     fd.set("tipo_objetivo", c.tipoObjetivo);
+    fd.set("origen_objetivo", c.origenObjetivo);
     fd.set("alineacion_acuerdo_internacional", c.alineacion);
     fd.set("validacion_tercero", c.validacionTercero);
     fd.set("procesos_revision", c.procesosRevision);
@@ -758,6 +762,16 @@ function ObjetivoForm({
               {c.tipoObjetivo.trim() !== "" && !TIPOS_OBJETIVO.includes(c.tipoObjetivo) && (
                 <option value={c.tipoObjetivo}>{c.tipoObjetivo} (valor previo)</option>
               )}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>
+              Origen del objetivo <span className="font-normal text-muted">· opcional</span>
+            </label>
+            <select value={c.origenObjetivo} onChange={(e) => set("origenObjetivo", e.target.value)} className={inputCls}>
+              <option value="">—</option>
+              <option value="Fijado por la Emisora">Fijado por la Emisora</option>
+              <option value="Requerido por ley o regulación">Requerido por ley o regulación</option>
             </select>
           </div>
           {campoInput("Métrica utilizada", "metrica", "p. ej. tCO2e absolutas")}
