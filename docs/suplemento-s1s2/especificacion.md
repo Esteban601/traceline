@@ -1,6 +1,8 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.41** · 13 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.42** · 14 de octubre de 2026.
+
+**Cambios respecto a 0.41:** §10, registro del despliegue v41 a staging.
 
 **Cambios respecto a 0.40** (encargo 2026-10-13-excel-respuestas-narrativas; revisión externa del Excel de taxonomía,
 aprobada por Esteban como cambio de alcance):
@@ -1585,7 +1587,51 @@ Punto de reversión: `heroku releases:rollback v39 -a traceline-staging`. Revier
 aditivas y se quedan. En el ensayo, el código de v39 sobre la base migrada dio el Excel idéntico y `verificar-main`
 26 de 26.
 
-### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13)
+### staging · release v41 · 14 de octubre de 2026 · `a1d979b`
+
+**Excel de taxonomía con respuestas y Formato electrónico NIIF S1/S2.** Encargo
+`docs/encargos/2026-10-14-excel-formato-a-produccion.md`, por el PR #28 (`dev/ajustes-sep26` → `main`, merge commit
+`a1d979b`), revisado con el asesor y aprobado por Esteban. Qué entra: §6.1 (respuestas por requisito, columna
+«Respuesta», Leyenda, alivios en las hojas de datos, «NIIF S1 46-50» con instancias de métricas) y el Formato
+electrónico. Orden de v40 con la plantilla primero:
+
+1. Plantilla del Formato en Storage (Esteban).
+2. Merge (Claude Code).
+3. Migraciones (Esteban).
+4. `git push heroku main` (Claude Code).
+
+**Plantilla.** Subida por Esteban con `scripts/formato/subir-plantilla.mjs --destino staging --subir` al bucket
+`documentos`, ruta `plantillas/formato-electronico/2025/plantilla.xlsx`: 6,424,008 bytes, sha256
+`eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786` antes = después = esperado. Claude Code lo comprobó en
+solo lectura antes del merge y otra vez después del release.
+
+**Migraciones.** Aplicadas por Esteban con `migrar-remoto.sh staging --aplicar`: 5 de 5, **91 de 91 alineadas, barrera
+108** (era 105). Son `20261013120000_respuestas_datapoint`, `20261013130000_perfil_formato_electronico`,
+`20261013140000_perfil_actividad_sasb`, `20261013150000_perfil_metricas_industria` y
+`20261014120000_metricas_asociadas_origen_objetivo`. Todas aditivas y sin relleno. Antes:
+- verificaciones previas (Paso 2): ninguna columna ni la tabla existían, ningún documento aprobado y `perfil_emisor`
+  vacío;
+- ensayo completo en la copia `wbvqrjqlfmlnbtpejvnm` y A8 en `traceline-dev` v19 (encargo §7).
+
+**Respuestas al desplegar:** ninguna. La regla de Esteban las pide solo para los documentos aprobados que ya existan en
+emisoras `es_demo`, y staging no tiene ninguno: el único documento es el de Empresa Demo, en borrador.
+
+Verificación en staging tras el release:
+
+| | Resultado |
+|---|---|
+| Release | ✓ v41 · Deploy `a1d979b8`; `web.1` up; `/login` 200 |
+| Logs desde el release | ✓ 70 líneas, 47 peticiones al router: 0 respuestas 5xx, 0 `Error:`, 0 códigos H; máxima 1.35 s |
+| `comprobar-v41 --despues` | ✓ Banderas de las 21 emisoras idénticas a las de antes; columnas nuevas legibles y vacías (Grupo Carso en null); `respuestas_datapoint` con 0 filas; plantilla con el sha256 esperado; usuario de área 307 a `/portal` |
+| Formato electrónico | ✓ Empresa Demo 409 «aún no hay un documento aprobado con sus respuestas» (esperado hasta que haya uno); Grupo Carso 409 «generador apagado» (Cobertura no le muestra el botón); afirme 409. El 200 se probó en la A8: 23 imágenes enlazadas, 0 `#VALUE!` |
+| Excel de CLEPSA, Banco Base, Grupo Carso y Empresa Demo (`comparar-excel-v41.mjs`) | ✓ 0 diferencias no esperadas en las cuatro. Esperadas: 149, 149, 73 y 247, igual que en el ensayo. Grupo Carso: Leyenda, pie y 6 instancias de métricas de sus 3 registros (solo la métrica; verificación y método vacíos), sin columna E ni esquema |
+| Grupo Carso, instantánea antes y después de migrar | ✓ Idénticas en las 26 líneas (`v41:columnas_nuevas_con_valor|0`, `v41:respuestas_datapoint|0`) |
+
+Punto de reversión: `heroku releases:rollback v40 -a traceline-staging`. Revierte solo el código; las migraciones son
+aditivas y se quedan, y la plantilla en Storage no estorba al código de v40. En el ensayo, el código de v40 sobre la base
+migrada dio el Excel idéntico en las cuatro emisoras.
+
+### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
 - **Migraciones** (las ejecuta Esteban, en orden): `20261013120000_respuestas_datapoint`,
   `20261013130000_perfil_formato_electronico`, `20261013140000_perfil_actividad_sasb`,
@@ -1593,8 +1639,8 @@ aditivas y se quedan. En el ensayo, el código de v39 sobre la base migrada dio 
   la barrera del auditor.
 - **Plantilla del Formato electrónico en Storage de staging:** no está en git. Se arma en la máquina de Esteban con
   `scripts/formato/preparar-plantilla.mjs` desde el formato de referencia y se sube al bucket `documentos`, ruta
-  `plantillas/formato-electronico/2025/plantilla.xlsx` (el `--subir` del script solo apunta a dev). Sin ella, el botón
-  del Formato responde «Falta la plantilla».
+  `plantillas/formato-electronico/2025/plantilla.xlsx` con `scripts/formato/subir-plantilla.mjs` (en staging la sube
+  Esteban; sha256 verificado antes y después). Sin ella, el botón del Formato responde «Falta la plantilla».
 - **Diferencias esperadas en el Excel de taxonomía** (para el comparador del despliegue): columna E «Respuesta» en la
   hoja «Taxonomía NIIF S1 S2» («En preparación» sin documento aprobado; sin columna con el generador apagado); hoja nueva
   «Leyenda»; con C3/C4 vigentes, «No revelado · alivio C3/C4» en el año anterior y en Alcance 3; con E5, «NIIF S1 46-50»
