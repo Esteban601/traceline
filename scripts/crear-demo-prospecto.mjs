@@ -752,9 +752,61 @@ const PROSPECTOS = [
       { re: /productos\/servicios sostenibles/i, area: "Finanzas" },
     ],
   },
+  {
+    slug: "portafolio-durango",
+    nombre: "Portafolio Durango (AINDA Fondo II)",
+    prefijo: "PDUR",
+    logo: "portafolio-durango.png",
+    // Seis proyectos de generación fotovoltaica en Durango, 146.5 MWp / 112.5 MWac:
+    // Versalles de las Cuatas (84 MWp) y Las Ánimas II (62.5 MWp), operados por
+    // Eosol Energy de México, en operación desde 2020 y adquiridos en septiembre de
+    // 2025. Solo contexto: los datos del mockup siguen siendo ilustrativos.
+    // Vitrina encendida (la clave no se pone) y sin auditor.
+    areas: [
+      "Operación y Mantenimiento",
+      "Gestión de Activos",
+      "Medio Ambiente y Seguridad",
+      "Riesgos y Cumplimiento",
+      "Recursos Humanos",
+      "Finanzas",
+    ],
+    mapa: {
+      Operaciones: "Operación y Mantenimiento",
+      RH: "Recursos Humanos",
+      Finanzas: "Finanzas",
+      "Gobierno Corporativo": "Gestión de Activos",
+      Dirección: "Gestión de Activos",
+    },
+    mueve: [
+      // Cat. 1 y Cat. 4 ya caen en Operación y Mantenimiento por el mapa; se dejan
+      // escritas porque es la decisión del reparto (Esteban, 14/10/2026).
+      { re: /Categoría 1-Bienes y servicios adquiridos/i, area: "Operación y Mantenimiento" },
+      { re: /Categoría 4-Transporte/i, area: "Operación y Mantenimiento" },
+      // La gestión ambiental: agua, combustibles y residuos. `residuos` también
+      // atrapa la Categoría 5 del Alcance 3, a propósito (como en PINFRA).
+      { re: /consumo de agua/i, area: "Medio Ambiente y Seguridad" },
+      { re: /residuos/i, area: "Medio Ambiente y Seguridad" },
+      { re: /Consumo de combustibles fósiles/i, area: "Medio Ambiente y Seguridad" },
+      // Lo prospectivo del clima lo arma quien administra riesgos.
+      { re: /Riesgos físicos climáticos/i, area: "Riesgos y Cumplimiento" },
+      { re: /Plan de transición climática/i, area: "Riesgos y Cumplimiento" },
+      { re: /Análisis de escenarios climáticos/i, area: "Riesgos y Cumplimiento" },
+      // Ya caen en Finanzas por el mapa; escritas por la misma razón.
+      { re: /productos\/servicios sostenibles/i, area: "Finanzas" },
+      { re: /Efectos financieros de riesgos climáticos/i, area: "Finanzas" },
+    ],
+    // Un portafolio fotovoltaico emite poco: las cifras comunes de la escena
+    // (100,000 / 50,000 / 250,000 tCO2e) se leerían mal. Siguen siendo redondas y
+    // de un dígito significativo, ilustrativas como las demás.
+    cifrasEscena: [
+      { re: /Inventario GEI Alcance 1/i, valor: 200 },
+      { re: /Inventario GEI Alcance 2/i, valor: 2000 },
+      { re: /Alcance 3 — total/i, valor: 20000 },
+    ],
+  },
 ];
 
-const REPORTE = { nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
+const REPORTE ={ nombre: "Informe Anual Sustentable 2025", ejercicio: 2025 };
 
 /** Mismo tope que el uploader de la aplicación (lib/tenants.ts). */
 const LOGO_MAX_ANCHO = 400;
@@ -902,6 +954,25 @@ const ESCENA = [
     dias: 35,
   },
 ];
+
+/**
+ * `cifrasEscena` (opcional por prospecto): sobreescribe el valor de una entrada
+ * de ESCENA, identificada por su mismo patrón. Unidad, estado, plazo y
+ * justificación no cambian. Sin la propiedad, el valor es el de ESCENA.
+ */
+const valorEscena = (p, e) => (p.cifrasEscena ?? []).find((c) => c.re.source === e.re.source)?.valor ?? e.valor;
+
+/** Un patrón de `cifrasEscena` que no está en ESCENA aborta antes de conectarse: una errata no deja la cifra común. */
+function validarCifrasEscena(prospectos) {
+  for (const p of prospectos) {
+    for (const c of p.cifrasEscena ?? []) {
+      if (!ESCENA.some((e) => e.re.source === c.re.source && e.valor != null)) {
+        console.error(`\n❌ ${p.slug}: cifrasEscena trae ${c.re}, que no es una entrada con cifra de ESCENA. No se escribió nada.\n`);
+        process.exit(2);
+      }
+    }
+  }
+}
 
 /** Plazo por default de las que no están en la escena (quedan en solicitado). */
 const DIAS_LIMITE_RESTO = 45;
@@ -1789,7 +1860,7 @@ async function montarEscena(ctx, p, { tenantId, reporteId, areaDelJefe }) {
       log(`  ⚠️  ${p.slug}: la plantilla no trae ninguna solicitud para ${e.re}`);
       continue;
     }
-    pendientes.push({ ...e, sol });
+    pendientes.push({ ...e, valor: valorEscena(p, e), sol });
   }
 
   // 1. Todas a `solicitado`: es el punto de partida del proceso (ya se le pidió
@@ -1949,6 +2020,7 @@ async function montarEscena(ctx, p, { tenantId, reporteId, areaDelJefe }) {
 // -----------------------------------------------------------------------------
 async function main() {
   log("\n=== Tenants de demostración para prospectos ===");
+  validarCifrasEscena(PROSPECTOS);
   const ctx = await conectar();
 
   const objetivo = SOLO ? PROSPECTOS.filter((p) => p.slug === SOLO) : PROSPECTOS;
