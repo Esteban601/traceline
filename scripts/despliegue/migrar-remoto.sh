@@ -28,31 +28,18 @@ REF_STAGING="ewgnvjtjhvdltvkopptn"
 # Con el marcador, «ensayo» falla.
 REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# v40 (encargo 2026-10-11-suplemento-a-produccion): las 16 del encargo
-# suplemento-calidad (PR #17) y las 2 de fix/pre-v40 (PR #18).
-# Anteriores: v39, 20261006120000 y 20261006130000; v33, las 30 de
-# 20261005120000 a 20261005130100; v32.1,
-# 20261004170000_jefe_area_sube_evidencia; v31, 20261001140000; v30,
-# 20261001120000; v29, las 20260929*.
+# v41 (encargo 2026-10-14-excel-formato-a-produccion): las 5 del encargo
+# excel-respuestas-narrativas (PR #27), aditivas y sin relleno.
+# Anteriores: v40, las 18 de 20261006140000 a 20261011121000; v39,
+# 20261006120000 y 20261006130000; v33, las 30 de 20261005120000 a
+# 20261005130100; v32.1, 20261004170000_jefe_area_sube_evidencia; v31,
+# 20261001140000; v30, 20261001120000; v29, las 20260929*.
 ESPERADAS=(
-  20261006140000_suplemento_editoriales.sql
-  20261006150000_perfil_adjuntos_contenido.sql
-  20261006160000_suplemento_texto_del_emisor.sql
-  20261006160100_observaciones_coherencia.sql
-  20261006170000_documentos_bloques_versiones.sql
-  20261007120000_libro_hechos.sql
-  20261007130000_libro_hechos_reutilizado.sql
-  20261007140000_documentos_bloques_cobertura.sql
-  20261007150000_perfil_glosario.sql
-  20261007160000_libro_estable.sql
-  20261007161000_hechos_alcance_entidad.sql
-  20261007170000_catalogo_incisos.sql
-  20261007180000_hechos_por_conciliar.sql
-  20261008120000_origen_automatica.sql
-  20261008130000_hechos_tramite.sql
-  20261008140000_hechos_declaracion_negativa.sql
-  20261011120000_versiones_respaldo.sql
-  20261011121000_documentos_cierre_estado.sql
+  20261013120000_respuestas_datapoint.sql
+  20261013130000_perfil_formato_electronico.sql
+  20261013140000_perfil_actividad_sasb.sql
+  20261013150000_perfil_metricas_industria.sql
+  20261014120000_metricas_asociadas_origen_objetivo.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
@@ -63,7 +50,9 @@ ESPERADAS=(
 # v40: 90 + 15 de las cinco tablas nuevas (perfil_emisor_adjuntos_contenido,
 # observaciones_coherencia, documentos_bloques_versiones, libros_hechos, hechos)
 # = 105 (medido en dev el 11/10/2026, también tras las 2 de fix/pre-v40).
-BARRERA_ESPERADA="${BARRERA_ESPERADA:-105}"
+# v41: 105 + 3 de respuestas_datapoint = 108 (medido en local el 14/10/2026; las
+# otras 4 migraciones solo agregan columnas).
+BARRERA_ESPERADA="${BARRERA_ESPERADA:-108}"
 
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"
 falla() { echo "✗ $*" >&2; exit 1; }
