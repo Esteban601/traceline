@@ -160,20 +160,48 @@ eso Esteban decide §2.3.
    - `comprobar-v41 --despues` con la app local de `dev`, con la utilería del auditor (`crear-utileria.mjs`) para el
      403, y la utilería borrada después.
 
-**Paso 6 · despliegue v41.**
+**Paso 6 · despliegue v41** (orden aprobado por Esteban el 14/10, el de v40 con la plantilla primero).
 
-*1. Antes (Claude Code, solo lectura).* `heroku releases -a traceline-staging -n 3` (v40 · Deploy e6e33089) y config
-vars por nombre. Línea base del día en `$D/antes/` (Excel de las tres emisoras y `comprobar-v41 --antes`). Esteban
-toma la instantánea «antes» de Carso con el comando de abajo, cambiando `despues` por `antes`.
+*0. Antes (Claude Code, solo lectura).* Staging en v40 y config vars por nombre; línea base del día en `$D/antes/`.
+```sh
+cd ~/Repositorios/vert-evidencia
+heroku releases -a traceline-staging -n 1                      # v40 · Deploy e6e33089
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node ../vert-evidencia-dev/scripts/ensayo/descargar-excel.mjs --credenciales $C $D/antes clepsa banco-base gcarso empresa-demo-sab)
+(set -a; source .env.staging.local; set +a; $TS ../vert-evidencia-dev/scripts/despliegue/comprobar-v41.mjs --antes $D/antes --credenciales $C)   # banderas.json, contexto.json, plantilla ausente
+```
+Esteban toma la instantánea de Carso «antes» si el despliegue no es el mismo día que la del ensayo (14/10):
+`psql "$STAGING_DB_URL" -X -A -t -v ON_ERROR_STOP=1 -f scripts/ensayo/instantanea-v41.sql > $D/antes/instantanea-v41.txt` (26 líneas).
+
+*1. Plantilla del Formato (Esteban, en su terminal).* Antes del merge el script solo está en `dev`: se corre desde
+`~/Repositorios/vert-evidencia`, que tiene `.env.staging.local` y la plantilla en `referencia/formato-electronico/`
+(ruta ignorada por git), con el script del worktree de `dev`. El código de v40 no lee esa ruta: subirla antes no cambia
+nada en staging.
+```sh
+cd ~/Repositorios/vert-evidencia
+git -C ../vert-evidencia-dev fetch -q origin && git -C ../vert-evidencia-dev status -sb | head -1   # dev/ajustes-sep26, al día
+# Revisión: sha256 del archivo local, 23 imágenes, 0 menciones, «en Storage: no existe»
+(set -a; source .env.staging.local; set +a; \
+ node --experimental-strip-types --import ../vert-evidencia-dev/scripts/captura-sugerida/node/registrar.mjs \
+   ../vert-evidencia-dev/scripts/formato/subir-plantilla.mjs referencia/formato-electronico/plantilla-formato-2025.xlsx --destino staging)
+# Subida: pide escribir el ref de staging; sube sin reemplazar, descarga de vuelta e imprime su sha256
+(set -a; source .env.staging.local; set +a; \
+ node --experimental-strip-types --import ../vert-evidencia-dev/scripts/captura-sugerida/node/registrar.mjs \
+   ../vert-evidencia-dev/scripts/formato/subir-plantilla.mjs referencia/formato-electronico/plantilla-formato-2025.xlsx --destino staging --subir)
+```
+Salida esperada: sha256 antes = después = `eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786`. La llave
+y la URL no se imprimen. Así se subió al ensayo el 14/10. Claude Code lo vuelve a comprobar en el paso 5 con
+`comprobar-v41`.
 
 *2. Merge del PR (Claude Code, con autorización por chat, CLAUDE.md §9).*
 ```sh
-gh pr merge <n> --merge
+gh pr merge <n> --merge                          # merge commit, con el comentario de revisión
 cd ~/Repositorios/vert-evidencia && git fetch origin && git merge --ff-only origin/main
 test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" && echo "HEAD = origin/main ✓"
+nvm use 22 && pnpm install --frozen-lockfile
 ```
 
-*3. Migraciones (Esteban, en su terminal).*
+*3. Migraciones (Esteban, en su terminal).* Con la URL del session pooler si el host directo no resuelve (staging:
+`aws-1-us-east-2`).
 ```sh
 cd ~/Repositorios/vert-evidencia && git status --short && git rev-parse --short HEAD      # limpio, = origin/main
 mkdir -p referencia/lineas-base/v41/despues
@@ -185,24 +213,11 @@ bash scripts/despliegue/migrar-remoto.sh staging --aplicar    # pide el ref; al 
 unset STAGING_DB_URL
 diff referencia/lineas-base/v41/antes/instantanea-v41.txt referencia/lineas-base/v41/despues/instantanea-v41.txt   # sin salida
 ```
+Esperado, como en el ensayo: 26 líneas idénticas, con `v41:columnas_nuevas_con_valor|0` y `v41:respuestas_datapoint|0`.
 Una línea distinta se revisa por `created_at` (actividad de Carso entre las dos tomas). Si no se explica así, se
-detiene el despliegue: el código no ha salido.
+detiene el despliegue: el código no ha salido y no hay nada que revertir en Heroku.
 
-*4. Plantilla del Formato (Esteban, en su terminal).* El archivo ya está en `referencia/formato-electronico/` de
-`~/Repositorios/vert-evidencia` (copiado el 14/10; ruta ignorada por git).
-```sh
-cd ~/Repositorios/vert-evidencia
-(set -a; source .env.staging.local; set +a; \
- node --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs \
-   scripts/formato/subir-plantilla.mjs referencia/formato-electronico/plantilla-formato-2025.xlsx --destino staging)          # revisión: sha256 local, «no existe»
-(set -a; source .env.staging.local; set +a; \
- node --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs \
-   scripts/formato/subir-plantilla.mjs referencia/formato-electronico/plantilla-formato-2025.xlsx --destino staging --subir)  # pide el ref
-```
-Salida esperada: el sha256 del archivo local y el de Storage después de subir, los dos
-`eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786`. La llave y la URL no se imprimen.
-
-*5. Despliegue (Claude Code, con autorización por chat).*
+*4. Despliegue (Claude Code, con autorización por chat).*
 ```sh
 cd ~/Repositorios/vert-evidencia && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" && echo "HEAD = origin/main ✓"
 git push heroku main
@@ -210,29 +225,41 @@ heroku releases -a traceline-staging -n 2        # v41 · Deploy <sha de main>
 heroku ps -a traceline-staging                   # web.1: up
 ```
 
-*6. Comprobaciones (Claude Code; solo lectura y descargas, salvo lo marcado).*
+*5. Comprobaciones (Claude Code; solo lectura y descargas).*
 ```sh
 cd ~/Repositorios/vert-evidencia
+# a) Logs, solo conteos.
 curl -s -o /dev/null -w "%{http_code}\n" $APP/login                                      # 200
 heroku logs -a traceline-staging -n 1500 | grep -c -E 'status=5[0-9]{2}'                 # 0
 heroku logs -a traceline-staging -n 1500 | grep -c -E 'Error:|Unhandled'                 # 0
+# b) Banderas iguales, columnas nuevas (Carso en null), 0 respuestas de Carso, plantilla por sha256,
+#    Formato: Empresa Demo 409 (sin aprobado en staging), Grupo Carso 409 «generador apagado»,
+#    una emisora sin aprobado 409, usuario de área 307 a /portal.
 (set -a; source .env.staging.local; set +a; BASE_URL=$APP $TS scripts/despliegue/comprobar-v41.mjs --despues $D/despues --credenciales $C)
-(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/ensayo/descargar-excel.mjs --credenciales $C $D/despues/excel clepsa banco-base gcarso)
-for s in clepsa banco-base gcarso; do
+# c) Excel de las cuatro emisoras contra la línea base: 0 no esperadas en cada una.
+(set -a; source .env.staging.local; set +a; BASE_URL=$APP node scripts/ensayo/descargar-excel.mjs --credenciales $C $D/despues/excel clepsa banco-base gcarso empresa-demo-sab)
+for s in clepsa banco-base gcarso empresa-demo-sab; do
   $TS scripts/ensayo/comparar-excel-v41.mjs $D/antes/$s.xlsx $D/despues/excel/$s.xlsx \
     --plantilla assets/taxonomia-base.xlsx --contexto $D/antes/contexto.json --emisora $s
-done                                                     # cada una: 0 no esperadas
-# Solo si Esteban lo decidió en §2.3 (ESCRIBE y cuesta ~$0.50 por documento):
-(set -a; source .env.staging.local; set +a; BASE_URL=$APP $TS scripts/despliegue/comprobar-v41.mjs --respuestas <slug>… --credenciales $C)
+done
 ```
-Grupo Carso, con el generador apagado, sale sin columna E ni nivel de esquema; si tiene registros de clima, con
-instancias en «NIIF S1 46-50». El Formato de Empresa Demo da 200 con el validador en verde si tiene respuestas de un
-aprobado, o 409 con el motivo si no.
+Esperado, según el ensayo:
+- CLEPSA y Banco Base: 149 diferencias esperadas cada una.
+- Grupo Carso: 73, sin columna E ni esquema y con J y K vacías en sus 6 instancias.
+- Empresa Demo: 247.
+- Si cambia el número de registros de clima de una emisora entre la línea base y el despliegue, cambia su conteo de
+  instancias, pero no las no esperadas.
+- **Respuestas:** con la regla de Esteban (Paso 2), al desplegar se piden solo para los documentos aprobados que ya
+  existan en emisoras `es_demo`; hoy no hay ninguno, así que `comprobar-v41 --respuestas` no se corre. Si al desplegar
+  apareciera alguno, se pide con `--respuestas <slug>` (~$0.50 cada uno) y se anota.
 
-*7. Registro.* Entrada de v41 en la especificación §10 y en §7 de este encargo; push a `origin`.
+*6. Registro.* Entrada de v41 en la especificación §10 y en §7 de este encargo; push a `origin`. Después, limpieza
+del ensayo (Esteban borra el proyecto; Claude Code, los `.env.ensayo*.local` y el ref de vuelta al marcador).
 
-**Rollback (Esteban).** `heroku releases:rollback v40 -a traceline-staging`. Las migraciones se quedan (aditivas;
-`main` corre sobre la base migrada, se prueba en el ensayo); la plantilla en Storage no estorba al código de v40.
+**Rollback (Esteban).** `heroku releases:rollback v40 -a traceline-staging`. Si una config var movió la numeración,
+el destino es el release inmediatamente anterior al `Deploy` de v41. Las migraciones se quedan: son aditivas, y el
+código de v40 sobre la base migrada dio en el ensayo el Excel idéntico en las cuatro emisoras. La plantilla en Storage
+no estorba al código de v40.
 
 ## 6. Riesgos y dudas conocidas
 
@@ -256,3 +283,4 @@ aprobado, o 409 con el motivo si no.
 | 2026-10-14 | **Paso 0 aprobado por Esteban:** ensayo en copia sí (él crea el proyecto y corre copia y migraciones); la plantilla la sube él con un comando, no por el panel. **Paso 1:** `migrar-remoto.sh` (5 `ESPERADAS`, barrera 108), `instantanea-v41.sql`, `subir-plantilla.mjs`, `comprobar-v41.mjs`, `comparar-excel-v41.mjs` y guion en §5.1. **Pruebas:** instantánea sobre el demo local, idéntica en las 26 líneas antes de migrar (tabla y columnas quitadas en una transacción revertida) y después; un `origen_objetivo` con valor solo mueve `v41:columnas_nuevas_con_valor`, y la cuenta dinámica se probó contra `bitacora`. `subir-plantilla` contra dev en revisión: sha256 de Storage = local; rechaza destino ajeno, ensayo sin ref y otro archivo; `--subir` con el mismo archivo no escribe. Falta probar la subida real: se hace en el ensayo. `comprobar-v41` `--antes` y `--despues` contra dev, con una copia temporal que admitía dev: Formato del demo 200 con validador en verde y sha256 de la plantilla; 2 fallas propias de dev (sin Carso; contraseña del auditor). `comparar-excel-v41` con el Excel del demo hecho por `main` (`58f7e77`, local :3016) y por `dev` (:3014) sobre la misma base: 0 no esperadas, 342 esperadas. Negativos: sin `--respuestas`, 111; con generador apagado y sin alivios, 181; con celdas alteradas, 1 y 2. La plantilla se copió a `referencia/` del worktree principal. **Errores propios:** (1) §2.2 decía que el nivel de esquema de los incisos era «para todas»; solo va con el generador encendido. (2) El 403 del auditor no se puede comprobar en staging, que no tiene cuenta de auditor, y el usuario de área no sirve como sustituto: el middleware lo saca de `/admin` (307) antes de llegar a la ruta. Se prueba en el ensayo con la utilería (§4 corregido). (3) El patrón de la columna D del comparador tenía un espacio de más, y el del pie no aceptaba «TRACELINE DEV»; los dos se corrigieron en la prueba | Detenido en el Paso 1 |
 | 2026-10-14 | **No hay PR #28.** Esteban pidió mezclarlo; en GitHub el último es el #27 (ya mezclado) y no hay ninguno abierto. El Paso 1 se commiteó directo en `dev/ajustes-sep26` (`1154607`, `df972c0`). El PR de `dev` a `main` es el Paso 5: no se creó ni se mezcló nada. **Paso 2: verificaciones previas sobre staging**, solo lectura, con la sesión del analista (`verificar-previas-v41.mjs` y `comprobar-v41 --antes`; salida en `referencia/lineas-base/v41/paso2/`). (a) 21 emisoras: 20 de demostración con vitrina, generador y lectura encendidos (`ainda` con la vitrina apagada), topes 10/mes y 500/mes; Grupo Carso con todo apagado. (b) Un solo documento en staging, de Empresa Demo y **sin aprobar**; ninguna otra emisora tiene documento. Con la propuesta de §2.3 se pedirían 0 respuestas ($0); al desplegar no se genera ninguna. (c) Ninguna de las 13 columnas nuevas ni la tabla `respuestas_datapoint` existen en staging: los CHECK y NOT NULL caen sobre columnas que nacen en null y sobre una tabla vacía, así que ningún dato existente puede violarlos. (d) `perfil_emisor` tiene 0 filas en staging (ninguna emisora tiene Perfil; el analista sí ve las tablas del mismo patrón), así que los 8 campos nuevos nacen vacíos en las 21. (e) El bucket `documentos` existe; `plantillas/` no existe y la ruta de la plantilla está libre. (f) 18 de 18 incisos y 4 de 4 padres activos; catálogo 116; 180 enlaces a incisos y 40 a padres (9 y 2 por cada emisora de demostración; Carso 0 y 0); 1374 filas en `mapeo_solicitud_datapoint`. Ningún reporte tiene alivios vigentes. Registros de clima: Empresa Demo 5 y **Grupo Carso 3** (el código nuevo llena «NIIF S1 46-50» de Carso con sus instancias, sin documento aprobado: verificación vacía). Objetivos: Empresa Demo 4 (1 no climático), Carso 2 | Detenido en el Paso 2 |
 | 2026-10-14 | **Paso 2 aprobado.** Regla de Esteban: al desplegar se piden respuestas solo para los documentos aprobados que ya existan en emisoras `es_demo` (hoy ninguno); Grupo Carso, sin respuestas y sin Formato visible mientras su generador esté apagado (el código ya lo cumple: Cobertura no muestra el botón y la ruta da 409). Opción (a) para el Formato en la copia: aprobar el documento de Empresa Demo; si los pendientes lo impiden, 409 y el 200 en la A8. **Ensayo** en `wbvqrjqlfmlnbtpejvnm` (`traceline-ensayo-v41`, us-east-2, Postgres 17). Ref en 10 archivos y en `comprobar-v41` (`6d95842`). Esteban: copia (41 tablas idénticas, 86 migraciones de origen), 5 aplicadas, 91 de 91, barrera 108, instantánea de Carso «antes» en staging (26 líneas), por el session pooler `aws-0` (el de staging es `aws-1`). **Resultados:** (a) `migrar-remoto.sh ensayo` en revisión: nada pendiente, 91 de 91, barrera 108. (b) **Carso:** instantánea del ensayo migrado idéntica a la de staging en las 26 líneas (`v41:*` en 0), y otra vez idéntica después de los e2e. (c) Llaves de la API de la CLI a `.env.ensayo-app.local` (600, sin imprimirse). **Plantilla subida a la copia con `subir-plantilla.mjs --subir`:** sha256 antes = después = esperado; repetir `--subir` no escribe nada. (d) **`main` (`58f7e77`) sobre la base migrada:** Excel idéntico a la línea base de staging celda por celda en CLEPSA, Banco Base, Grupo Carso y Empresa Demo. (e) **`dev` (`6d95842`):** `comparar-excel-v41` con 0 no esperadas en las cuatro. CLEPSA y Banco Base, 149 esperadas cada una: Leyenda 18, esquema 18, E1 1, «En preparación» 111, pie 1. Grupo Carso, 73: Leyenda 18, 6 instancias (54 celdas), pie 1; sin columna E ni esquema; de sus instancias solo se llenan A–I, J y K vacías porque no hay valores capturados ni documento aprobado. Empresa Demo, 247: además 10 instancias (98 celdas). (f) **E2E con utilería sobre Empresa Demo:** `e2e:auditor` 58 de 58, `e2e:auditor:rutas` 92 de 92. Utilería borrada; conteos iguales salvo +2 de bitácora, como en v40. (g) **Formato en la copia:** el documento de Empresa Demo (`ec665a76`, v1) no se puede aprobar, porque 30 de sus 33 bloques con texto tienen pendientes (criterio de `bloqueantesDeAprobacion`; no se intentó desde la pantalla). Como se decidió, el resultado correcto es el 409 con el motivo. `comprobar-v41 --despues` con la app local de `dev`: banderas iguales, columnas nuevas en null, 0 respuestas, plantilla con el sha256 esperado; Empresa Demo y afirme 409; usuario de área 307 a `/portal`; **auditor 403**. Grupo Carso 409 «generador apagado». **A8 en `traceline-dev`:** push de `dev` (`6d95842`, fast-forward desde `21814d5`) → **v19**, contra dev con el demo v3 aprobado. Dos pasadas como analista: **Formato 200 en 8.4 s y 4.8 s**, 23 imágenes enlazadas, 0 `#VALUE!`, 0 K con «[», Leyenda; idéntico al entregado en Descargas (44 de 44 partes del zip, sin `docProps`). Excel 200 en 2.3 s y 1.5 s: 111 respuestas, 0 «En preparación», 0 con «[», 13 instancias, Leyenda. Logs: 0 5xx, 0 `Error:`, 0 H en 1500 líneas | Detenido con el informe del ensayo y la A8 |
+| 2026-10-14 | **Ensayo y A8 aprobados. Paso 5:** guion del despliegue en §5.1, en el orden pedido por Esteban: plantilla (Esteban, desde `~/Repositorios/vert-evidencia` con el script del worktree de `dev`, porque antes del merge solo está en `dev`), merge, migraciones con instantánea, push, comprobaciones, registro. `comprobar-v41 --despues` ahora también comprueba el 409 «generador apagado» de Grupo Carso; probado contra la copia (en verde). PR de `dev/ajustes-sep26` a `main` | Detenido en el Paso 5, esperando la revisión del PR |

@@ -40,7 +40,8 @@
 //                           con «[» fuera de las opciones de lista, hoja
 //                           «Leyenda») si tiene respuestas de un aprobado, o 409
 //                           con el motivo si no; el de una emisora sin aprobado,
-//                           409; usuario de área, 307 a /portal; auditor (si
+//                           409; Grupo Carso, 409 «generador apagado»; usuario
+//                           de área, 307 a /portal; auditor (si
 //                           hay cuenta), 403.
 //   --respuestas <slug>…  ESCRIBE: POST …/respuestas del último aprobado de cada
 //                         emisora (decisión de Esteban, encargo §2.3). Cuesta
@@ -247,6 +248,12 @@ if (carpetaDespues) {
     } else {
       const cuerpo = await r.json().catch(() => ({}));
       ok(r.status === 409, `GET export-formato → ${r.status} «${cuerpo.error ?? ""}» (sin respuestas de un aprobado: se espera 409)`);
+    }
+    // Grupo Carso: con el generador apagado, el Formato no se ofrece (409), aunque la plantilla ya esté en Storage.
+    if (carso?.reporte) {
+      const rc = await formato(carso.reporte, cookie);
+      const cc = await rc.json().catch(() => ({}));
+      ok(rc.status === 409 && /apagado/.test(cc.error ?? ""), `Grupo Carso → ${rc.status} «${cc.error ?? ""}»`);
     }
     const sinAprobado = ctx.find((c) => c.generador && !c.aprobados && c.reporte && c.reporte !== REPORTE_DEMO);
     if (sinAprobado) {
