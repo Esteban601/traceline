@@ -6,7 +6,7 @@ import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { llenarFormato } from "@/lib/formato/llenar";
 import { insumosDelFormato } from "@/lib/formato/datos";
 import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, leyendaDelFormato } from "@/lib/formato/plantilla";
-import { ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
+import { celdasConCorchete, ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
 import { agregarHoja, rutaDeHoja } from "@/lib/formato/zip";
 import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
 
@@ -97,9 +97,11 @@ export async function GET(request: Request) {
     const hojas: Record<string, string> = {};
     for (const nombre of Object.keys(zip.files).filter((x) => /^xl\/worksheets\/sheet\d+\.xml$/.test(x))) hojas[nombre] = await zip.file(nombre)!.async("string");
     const problemas = validarImagenesEnCelda(hojas, Object.keys(zip.files), IMAGENES_EN_CELDA);
+    const conCorchete = celdasConCorchete(est, "K");
+    if (conCorchete.length) problemas.push(`celdas K con «[»: ${conCorchete.join(", ")}`);
     if (problemas.length) {
       console.error("[export-formato] el validador de imágenes falló:", problemas.join("; "));
-      return NextResponse.json({ error: "El Formato electrónico no pasó el validador de entrega (imágenes de la plantilla)." }, { status: 500 });
+      return NextResponse.json({ error: `El Formato electrónico no pasó el validador de entrega: ${problemas.join("; ")}.` }, { status: 500 });
     }
 
     const nombre = `Formato_electronico_NIIF_${slug(ins.denominacion)}_${datos.ejercicio}.xlsx`;

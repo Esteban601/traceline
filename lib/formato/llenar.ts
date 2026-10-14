@@ -80,8 +80,12 @@ export type DatosFormato = {
   declaraCumplimiento: boolean;
   /** El párrafo del bloque 2 aprobado que hace la declaración, tal cual. */
   declaracion: string | null;
+  /** Cobertura del documento aprobado: requisitos «parcial» y pendientes (regla 1 de Esteban). */
+  cumplimiento: { parciales: string[]; pendientes: number };
   /** Hay un hecho vigente que dice que el inventario GEI está verificado por un tercero. */
   verificacionTercero: boolean;
+  /** El hecho que nombra al verificador y el nivel de aseguramiento, tal cual (regla 7). */
+  verificacion: string | null;
 };
 
 export type OrigenFormato = "respuesta" | "regla" | "perfil" | "alivio" | "actividad" | "datos" | "logo" | "por decidir" | "sin mapeo" | "sin respuesta" | "fuera de alcance" | "pendiente";
@@ -152,6 +156,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
 
     // Fila 167: verificación externa del inventario GEI, con el hecho tal cual y lo que falta.
     if (c.fila === 167) {
+      if (d.verificacion) return { texto: `Sí. ${d.verificacion}`, origen: "respuesta" };
       return d.verificacionTercero
         ? { texto: "Sí, el inventario de emisiones de gases de efecto invernadero está verificado por un tercero. Pendiente: nombre del verificador y nivel de aseguramiento — solicitud «Enfoque de medición de emisiones y datos de entrada».", origen: "respuesta" }
         : { texto: null, origen: "pendiente" };
@@ -159,7 +164,13 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     // Fila 285: la declaración de cumplimiento, del bloque 2 aprobado (plantilla, sin hechos).
     if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "párrafo del bloque 2 aprobado, tal cual" } : { texto: null, origen: "pendiente" };
     // Fila 286: ¿cumple con todos los requerimientos, explícitamente y sin reservas?
-    if (c.fila === 286) return d.declaraCumplimiento ? { texto: "Sí", origen: "respuesta", nota: "el bloque 2 aprobado declara la preparación de conformidad con las Normas NIIF S1 y S2" } : { texto: null, origen: "pendiente" };
+    // Regla 1 de Esteban: «Sí» solo con cero pendientes y cero «parcial» en la cobertura aprobada; si no, «No» y qué falta.
+    if (c.fila === 286) {
+      const { parciales, pendientes } = d.cumplimiento;
+      if (!parciales.length && !pendientes) return { texto: "Sí", origen: "regla", nota: "documento aprobado con cero pendientes y cero requisitos «parcial»" };
+      const falta = [parciales.length ? `requisitos con información parcial: ${parciales.join(", ")}` : null, pendientes ? `${pendientes} pendiente(s) en el documento` : null].filter(Boolean).join("; ");
+      return { texto: `No. Falta completar ${falta}.`, origen: "regla" };
+    }
 
     if (tipo === "tabla") return tabla(c);
     if (/^enumeración/.test(tipo)) return enumeracion(c);
@@ -174,10 +185,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (tipo === "booleano" && c.datapoint) {
       const r = resp("taxonomia", c.datapoint);
       if (!r || r.estado === "pendiente") return { texto: null, origen: "pendiente" };
-      if (r.estado === "no_aplica") return r.texto?.includes("párrafo E5") ? { texto: null, origen: "por decidir" } : { texto: "No", origen: "respuesta" };
+      // Regla 2: sin un hecho que lo responda (el E5 lo deja sin respuesta propia), vacío en el formato.
+      if (r.estado === "no_aplica") return r.texto?.includes("párrafo E5") ? { texto: null, origen: "pendiente" } : { texto: "No", origen: "respuesta" };
       return { texto: r.hechosNegativos ? "No" : "Sí", origen: "respuesta" };
     }
-    if (tipo === "porcentaje") return { texto: null, origen: "por decidir" };
+    // Regla 8: una cifra que no está en capturas no se deriva.
+    if (tipo === "porcentaje") return { texto: null, origen: "pendiente", nota: "cifra sin captura" };
     return { texto: null, origen: "por decidir" };
   }
 
@@ -191,6 +204,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (c.fila === 247) return porObjetivo("gases");
     if (c.fila === 249) return porObjetivo("alcances");
     if (c.fila === 251) return porObjetivo("bruto_neto");
+    // Regla 3: sin captura del origen del objetivo (emisora o ley), pendiente.
+    if (c.fila === 200 || c.fila === 219) return { texto: null, origen: "pendiente", nota: "sin captura del origen del objetivo (fijado por la emisora o por ley)" };
     if (c.fila === 263 || c.fila === 265) {
       const r = resp("taxonomia", "NIIF S2 36 (e)(i)a(iv)");
       return r?.estado === "no_aplica" ? { texto: "No aplica: la Compañía no prevé usar créditos de carbono para alcanzar sus objetivos.", origen: "regla" } : { texto: null, origen: "por decidir" };

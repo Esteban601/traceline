@@ -483,8 +483,8 @@ export function PerfilView({
                 <label className={LABEL} htmlFor={`${uid}-ss`}>
                   Sector SASB
                 </label>
-                <textarea id={`${uid}-ss`} name="sector_sasb" rows={2} defaultValue={(p?.sector_sasb ?? []).join("\n")} placeholder="[815200] Finanzas - Bancos comerciales (FN-CB)" className={cn(AREA, "mt-2")} />
-                <p className="mt-1.5 text-xs text-muted">Uno por línea, con la etiqueta de la lista del Formato electrónico.</p>
+                <textarea id={`${uid}-ss`} name="sector_sasb" rows={2} defaultValue={(p?.sector_sasb ?? []).join("\n")} placeholder="Bancos comerciales (FN-CB)" className={cn(AREA, "mt-2")} />
+                <p className="mt-1.5 text-xs text-muted">Uno por línea: la industria con su código SASB, sin el código de la lista del formato.</p>
               </div>
             </div>
             {guardar()}

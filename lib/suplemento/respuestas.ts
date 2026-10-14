@@ -202,8 +202,7 @@ export const sinRemision = (t: string) => t.replace(/\s*Ver sección \d+ · [^.]
  * Ninguna celda exportada empieza con «[».
  */
 export function pendienteEnTextoPlano(texto: string): string {
-  // Un código de lista del formato («[815200] Finanzas - …») sí empieza con «[»: es el valor de la opción.
-  return texto.replace(/\[Pendiente:\s*([^\]]*)\]/g, "Pendiente: $1").replace(/^\[+(?!\d{6}\])\s*/, "").trim();
+  return texto.replace(/\[Pendiente:\s*([^\]]*)\]/g, "Pendiente: $1").replace(/^\[+\s*/, "").trim();
 }
 
 /** Para el Formato electrónico: un pendiente deja la celda vacía. */

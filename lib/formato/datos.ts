@@ -70,9 +70,18 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   const documentoId = filas[0].documento_id;
   const { data: doc } = await db.from("documentos_generados").select("versiones_aprobadas").eq("id", documentoId).maybeSingle();
   const aprobadas = (doc?.versiones_aprobadas ?? {}) as Record<string, { id: string }>;
+  // Regla 1 de Esteban (13 de octubre): «Sí» solo con cero pendientes y cero «parcial» en la cobertura aprobada.
+  const { data: vers } = await db.from("documentos_bloques_versiones").select("numero, respaldo, pendientes").in("id", Object.values(aprobadas).map((v) => v.id).concat(["00000000-0000-0000-0000-000000000000"]));
+  const parciales: string[] = [];
+  let pendientesDoc = 0;
+  for (const v of vers ?? []) {
+    for (const c of ((v.respaldo as { cobertura?: { codigo: string; estado: string }[] } | null)?.cobertura ?? [])) if (c.estado === "parcial") parciales.push(c.codigo);
+    pendientesDoc += ((v.pendientes as { campo: string }[] | null) ?? []).filter((p) => p.campo !== "nota_revision").length;
+  }
   let declaraCumplimiento = false;
   let declaracion: string | null = null;
   let verificacionTercero = false;
+  let verificacion: string | null = null;
   if (aprobadas["2"]) {
     const { data: b2 } = await db.from("documentos_bloques_versiones").select("texto").eq("id", aprobadas["2"].id).maybeSingle();
     declaraCumplimiento = /de conformidad con las Normas NIIF S1 y (?:NIIF )?S2/i.test(b2?.texto ?? "");
@@ -83,7 +92,9 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
     const { data: b30 } = await db.from("documentos_bloques_versiones").select("libro_id").eq("id", aprobadas["30"].id).maybeSingle();
     if (b30?.libro_id) {
       const { data: hs } = await db.from("hechos").select("enunciado").eq("libro_id", b30.libro_id).eq("estado", "vigente").eq("bloque_dueno", 30);
-      verificacionTercero = (hs ?? []).some((h) => /verificad[oa] por (?:un )?tercero/i.test(h.enunciado));
+      verificacionTercero = (hs ?? []).some((h) => /verificad[oa] por/i.test(h.enunciado));
+      // Regla 7: con verificador y nivel de aseguramiento en un hecho, la respuesta es ese hecho tal cual.
+      verificacion = (hs ?? []).find((h) => /verificad[oa] por/i.test(h.enunciado) && /aseguramiento (?:limitado|razonable)/i.test(h.enunciado))?.enunciado ?? null;
     }
   }
   const objetivos = ens.objetivos
@@ -124,7 +135,9 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
       cuestionarios,
       declaraCumplimiento,
       declaracion,
+      cumplimiento: { parciales, pendientes: pendientesDoc },
       verificacionTercero,
+      verificacion,
     },
   };
 }

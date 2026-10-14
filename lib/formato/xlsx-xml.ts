@@ -106,6 +106,11 @@ export function vaciarCompartidosSinUso(sst: string, usados: Set<number>): { xml
   return { xml, vaciados };
 }
 
+/** Celdas de una columna cuyo texto lleva «[» (validador de entrega: ninguna respuesta lo lleva). */
+export function celdasConCorchete(hoja: string, col: string): string[] {
+  return [...hoja.matchAll(new RegExp(`<c r="(${col}\\d+)"[^>]*><is><t[^>]*>([\\s\\S]*?)</t></is></c>`, "g"))].filter((m) => m[2].includes("[")).map((m) => m[1]);
+}
+
 /**
  * Validador de entrega: las celdas con imagen siguen enlazadas a su rich value y
  * ningún «#VALUE!» quedó como texto suelto. Devuelve los problemas (vacío = ok).

@@ -79,7 +79,7 @@ psql(`update reportes set anio_adopcion = ${ejercicio}, alivios = '{"E5": true, 
 // El seed local no siempre trae Perfil para el demo: se crea para la prueba y se borra al terminar.
 const perfilCreado = !perfilAntes;
 if (perfilCreado) psql(`insert into perfil_emisor (tenant_id) values (${lit(TENANT)})`);
-psql(`update perfil_emisor set actividades_financieras = array['Banca comercial'], sector_sasb = array['[815200] Finanzas - Bancos comerciales (FN-CB)'] where tenant_id=${lit(TENANT)}`);
+psql(`update perfil_emisor set actividades_financieras = array['Banca comercial'], sector_sasb = array['Bancos comerciales (FN-CB)'] where tenant_id=${lit(TENANT)}`);
 let doc = null;
 try {
   console.log("\n1. El auditor no lo descarga");
@@ -123,7 +123,7 @@ try {
     ok(k(25).includes("(prueba-formato)") && k(25).includes("párrafo E5"), "fila 25 (NIIF S2 6 (a)): la respuesta, con la oración fija del E5");
     ok(k(28) === "", "fila 28 (NIIF S2 6 (a)(i)): pendiente → celda vacía");
     ok(k(5) === `Informe de Sostenibilidad y Clima ${ejercicio}`, "fila 5: regla fija con el ejercicio");
-    ok(k(339) === "Banca comercial" && k(446) === "[815200] Finanzas - Bancos comerciales (FN-CB)", "actividad y sector SASB desde el Perfil (el código de lista conserva su «[»)");
+    ok(k(339) === "Banca comercial" && k(446) === "Bancos comerciales (FN-CB)", "actividad y sector SASB desde el Perfil");
     ok(/^No aplica por actividad/.test(k(454)) && /^No aplica por actividad/.test(k(488)), "gestión de activos y seguros: «No aplica por actividad»");
     ok(k(469) === "No revelado · alivio C4" && k(337) === "No revelado · alivio C4", "cifras de Alcance 3 (banca, categorías): «No revelado · alivio C4»");
     const fisicos = psql(`select string_agg(nombre, '|') from registros_clima where reporte_id=${lit(REPORTE)} and activo and tipo='riesgo_fisico'`).split("|").filter(Boolean);
@@ -131,7 +131,7 @@ try {
     const limpio = (n) => n.replace(/\[DEMO\]\s*/i, "").trim();
     ok(fisicos.every((n) => k(370).includes(limpio(n))) && !transicion.some((n) => k(370).includes(limpio(n))), "fila 370 (NIIF S2 29 (c)): los riesgos físicos, ninguno de transición");
     const ks = [...est.matchAll(/<c r="K(\d+)"[^>]*><is><t[^>]*>([\s\S]*?)<\/t><\/is>/g)].map((m) => desescapar(m[2]));
-    ok(!ks.some((t) => t.startsWith("[") && !/^\[\d{6}\]/.test(t)), "ninguna respuesta empieza con «[» (salvo un código de lista)");
+    ok(!ks.some((t) => t.includes("[")), "ninguna celda K lleva «[»");
     const libro = await z.file("xl/workbook.xml").async("string");
     ok(/<sheet name="Leyenda"/.test(libro) && /<sheet name="Métricas SASB"/.test(libro), "hojas «Leyenda» y «Métricas SASB»");
     let menciones = 0;

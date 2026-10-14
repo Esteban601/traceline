@@ -199,7 +199,7 @@ const PERFIL = {
   numero_fideicomiso: null,
   hechos_posteriores: "No se identificaron hechos posteriores al cierre del ejercicio que afecten la información de sostenibilidad y clima.",
   actividades_financieras: ["Banca comercial"],
-  sector_sasb: ["[815200] Finanzas - Bancos comerciales (FN-CB)"],
+  sector_sasb: ["Bancos comerciales (FN-CB)"],
   forma_de_referencia: "la Compañía",
   entidad_que_informa:
     "Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V.",
@@ -691,7 +691,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 29 (a)(iii)"],
     area: "Administración y Operaciones",
     texto:
-      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, y los potenciales de calentamiento global (GWP) a 100 años del Quinto Informe de Evaluación del IPCC (AR5), con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal; en las 14 sucursales arrendadas con servicio incluido, sin medición directa, el consumo se estima con el promedio por metro cuadrado de las sucursales propias. Las fugas de refrigerantes (HFC) de los equipos de climatización no se incluyen en el Alcance 1 de 2025 porque no hay registros de recarga; su estimación preliminar es menor al 3% del Alcance 1 y se incorporarán al inventario de 2026. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por tercero. Por adoptar el alivio C3, no se presenta información comparativa.",
+      "Las emisiones de Alcances 1 y 2 se calculan conforme al Protocolo GEI, con factores de emisión de la SEMARNAT para combustibles y el factor de emisión del Sistema Eléctrico Nacional publicado por la Comisión Reguladora de Energía (CRE) para electricidad, y los potenciales de calentamiento global (GWP) a 100 años del Quinto Informe de Evaluación del IPCC (AR5), con enfoque de control operacional. Los datos de entrada son los litros de combustible de la flota y de las plantas de emergencia —488,000 litros de gasolina y diésel en 2025— y los kWh facturados por sucursal; en las 14 sucursales arrendadas con servicio incluido, sin medición directa, el consumo se estima con el promedio por metro cuadrado de las sucursales propias. Las fugas de refrigerantes (HFC) de los equipos de climatización no se incluyen en el Alcance 1 de 2025 porque no hay registros de recarga; su estimación preliminar es menor al 3% del Alcance 1 y se incorporarán al inventario de 2026. El método, los factores de emisión y los datos de entrada no cambiaron respecto del periodo anterior: la Compañía mide conforme al Protocolo GEI desde 2022, con inventario verificado por Verificadora Demo, S.C., con aseguramiento limitado. Por adoptar el alivio C3, no se presenta información comparativa.",
   },
   {
     titulo: "Enfoque de consolidación y desagregación de Alcances 1 y 2",
