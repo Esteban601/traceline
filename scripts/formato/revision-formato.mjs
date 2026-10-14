@@ -113,7 +113,6 @@ ws.views = [{ state: "frozen", ySplit: 1 }];
 ws.autoFilter = { from: "A1", to: "M1" };
 pd.getRow(1).font = { bold: true };
 pd.views = [{ state: "frozen", ySplit: 1 }];
-await wb.xlsx.writeFile(salida);
 console.log("por origen:", JSON.stringify(cuenta));
 console.log(`filas que la referencia respondía: ${conRef.llenas + conRef.vacias} · llenas aquí ${conRef.llenas} · vacías aquí ${conRef.vacias}`);
 if (exportado) {
@@ -147,12 +146,17 @@ if (exportado) {
     const c = fp ? CONCEPTOS_FORMATO.find((x) => x.fila === fp) : null;
     const v = fp ? valores.get(fp) : null;
     const caso = iterada ? "pendiente de datos" : !c ? "encabezado" : /^subconcepto/.test(c.clasificacion) ? "se responde junto con la fila anterior" : /encabezado/.test(c.clasificacion) ? "encabezado" : "pendiente de datos";
-    const detalle = iterada ? "sección de métricas iterada: la instancia no tiene el dato (verificación o método)" : v?.nota || MOTIVO(c ?? {}, { origen: "por decidir" }) || (c?.clasificacion ?? "");
+    const detalle = iterada
+      ? "sección de métricas iterada: la instancia no tiene la cifra que pide su método (sin captura)"
+      : caso === "encabezado"
+        ? `encabezado del formato${c ? ` (${c.clasificacion})` : " (sin concepto en el mapeo)"}`
+        : caso.startsWith("se responde") ? c.clasificacion : v?.nota || "falta el dato en la plataforma";
     casos[caso] = (casos[caso] ?? 0) + 1;
     cv.addRow({ fila: r, plantilla: fp ?? "iterada", tipo, caso, detalle }).alignment = { vertical: "top", wrapText: true };
   }
   cv.getRow(1).font = { bold: true };
   console.log("celdas vacías con tipo:", JSON.stringify(casos));
 }
+await wb.xlsx.writeFile(salida);
 console.log(`por decidir: ${nPd}`);
 console.log(`escrito: ${salida}`);
