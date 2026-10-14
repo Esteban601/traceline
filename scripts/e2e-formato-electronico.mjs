@@ -28,6 +28,7 @@ import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { validarImagenesEnCelda } from "../lib/formato/xlsx-xml.ts";
 
 const BASE = process.argv[2] || "http://localhost:3016";
 const URL_SB = "http://127.0.0.1:54321";
@@ -75,6 +76,9 @@ if (psql(`select count(*) from respuestas_datapoint where reporte_id=${lit(REPOR
 psql(`update tenants set generador_activo = true, generaciones_mes_max = 100 where id=${lit(TENANT)}`);
 const ejercicio = Number(psql(`select ejercicio from reportes where id=${lit(REPORTE)}`));
 psql(`update reportes set anio_adopcion = ${ejercicio}, alivios = '{"E5": true, "C4": true, "C3": true}'::jsonb where id=${lit(REPORTE)}`);
+// El seed local no siempre trae Perfil para el demo: se crea para la prueba y se borra al terminar.
+const perfilCreado = !perfilAntes;
+if (perfilCreado) psql(`insert into perfil_emisor (tenant_id) values (${lit(TENANT)})`);
 psql(`update perfil_emisor set actividades_financieras = array['Banca comercial'], sector_sasb = array['[815200] Finanzas - Bancos comerciales (FN-CB)'] where tenant_id=${lit(TENANT)}`);
 let doc = null;
 try {
@@ -111,8 +115,10 @@ try {
       if (!b || Buffer.compare(a, b) !== 0) iguales = false;
     }
     ok(iguales, "xl/richData, xl/metadata.xml y las imágenes, idénticos a la plantilla");
-    const sueltos = [...est.matchAll(/<c r="([A-Z]+\d+)"([^>]*)>(?:(?!<\/c>)[\s\S])*#VALUE!/g)].filter((m) => !/vm="/.test(m[2])).length;
-    ok(sueltos === 0, "ningún «#VALUE!» suelto (sin imagen enlazada)");
+    const hojas = {};
+    for (const n of Object.keys(z.files).filter((x) => /^xl\/worksheets\/sheet\d+\.xml$/.test(x))) hojas[n] = await z.file(n).async("string");
+    const problemas = validarImagenesEnCelda(hojas, Object.keys(z.files), 23);
+    ok(problemas.length === 0, `validador de entrega: ningún «#VALUE!» suelto, 23 imágenes enlazadas (${problemas.join("; ") || "ok"})`);
 
     ok(k(25).includes("(prueba-formato)") && k(25).includes("párrafo E5"), "fila 25 (NIIF S2 6 (a)): la respuesta, con la oración fija del E5");
     ok(k(28) === "", "fila 28 (NIIF S2 6 (a)(i)): pendiente → celda vacía");
@@ -143,9 +149,12 @@ try {
   psql(`update tenants set generador_activo = ${gA === "true" || gA === "t"}, generaciones_mes_max = ${m} where id=${lit(TENANT)}`);
   const [anio, ...resto] = regAntes.split("|");
   psql(`update reportes set anio_adopcion = ${anio === "null" ? "null" : anio}, alivios = ${lit(resto.join("|"))}::jsonb where id=${lit(REPORTE)}`);
-  const [act, sec] = perfilAntes.split("|");
-  const arr = (j) => (j === "null" ? "null" : `array[${JSON.parse(j).map(lit).join(",")}]::text[]`);
-  psql(`update perfil_emisor set actividades_financieras = ${arr(act)}, sector_sasb = ${arr(sec)} where tenant_id=${lit(TENANT)}`);
+  if (perfilCreado) psql(`delete from perfil_emisor where tenant_id=${lit(TENANT)}`);
+  else {
+    const [act, sec] = perfilAntes.split("|");
+    const arr = (j) => (j === "null" ? "null" : `array[${JSON.parse(j).map(lit).join(",")}]::text[]`);
+    psql(`update perfil_emisor set actividades_financieras = ${arr(act)}, sector_sasb = ${arr(sec)} where tenant_id=${lit(TENANT)}`);
+  }
   ok(psql(`select count(*) from respuestas_datapoint where reporte_id=${lit(REPORTE)}`) === "0", "sin respuestas de prueba");
 }
 

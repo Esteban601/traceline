@@ -1050,6 +1050,14 @@ humana por documento (encargo, deudas).
 - **Hoja «Leyenda»:** explica que las hojas de datos son capturas validadas y salen con o sin suplemento, que la
   columna «Respuesta» sale solo desde documento aprobado, y qué significa «No revelado · alivio».
 - **Remisiones:** «Ver sección N · título», con N la numeración consecutiva del Word.
+- **Formato electrónico** (revisión externa del formato, 13 de octubre de 2026): se escribe sobre una copia de la
+  plantilla A NIVEL ZIP/XML —solo la columna K, la «Tabla NIIF» y la hoja «Leyenda»—, porque las 23 tablas-plantilla de
+  la BMV son imágenes en celda (xl/richData, xl/metadata.xml) que una librería que reescribe el libro pierde; un
+  validador impide entregar si una imagen quedó desenlazada o un «#VALUE!» suelto. La plantilla (sin respuestas de la
+  referencia) vive en Storage. «No revelado · alivio C4» solo para cifras de Alcance 3; la selección de actividad y el
+  sector SASB salen del Perfil (`actividades_financieras`, `sector_sasb`) y las secciones de emisiones financiadas de
+  una actividad en la que la emisora no participa dicen «No aplica por actividad». Los conceptos sin datapoint con
+  bloque dueño se responden desde su bloque (`fila:N`). Un código de lista del formato («[815200] …») sí empieza con «[».
 
 ---
 
