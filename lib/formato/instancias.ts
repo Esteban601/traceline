@@ -81,8 +81,9 @@ export function instanciasDeMetricas(x: InsumosInstancias): { riesgos: Instancia
     const cifras = capital
       ? ([["gasto de capital", v.capital_gasto], ["financiación", v.capital_financiacion], ["inversión", v.capital_inversion]] as const).filter(([, n]) => n != null).map(([k, n]) => `${k} ${NUM.format(n as number)}`)
       : [v.cantidad_activos != null ? `cantidad ${NUM.format(v.cantidad_activos)}` : null, v.porcentaje != null ? `${NUM.format(v.porcentaje)} %` : null].filter((s): s is string => !!s);
-    // Sin la cifra que pide la métrica no hay datos que publicar (regla 8: nunca derivar): queda vacía, como pendiente.
-    if (!cifras.length) return "";
+    // Captura del ejercicio sin capital: la emisora no asignó capital (decisión de Esteban, cuarta lectura): se
+    // declara en negativo. Sin la cifra que pide otra métrica, no hay datos que publicar (regla 8): vacía.
+    if (!cifras.length) return capital ? `«${limpio(r.nombre)}»: Sin despliegue de capital asignado en ${x.ejercicio}.` : "";
     return `«${limpio(r.nombre)}»: ${[`${cifras.join(", ")} (ejercicio ${x.ejercicio})`, v.notas?.trim() || null].filter(Boolean).join(". ")}`;
   };
   const fuentes = (r: Registro, tipo: string): Registro[] => {
