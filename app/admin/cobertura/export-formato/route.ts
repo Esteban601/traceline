@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { llenarFormato, CONCEPTOS_FORMATO } from "@/lib/formato/llenar";
+import { llenarFormato } from "@/lib/formato/llenar";
 import { insumosDelFormato } from "@/lib/formato/datos";
-import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA } from "@/lib/formato/plantilla";
+import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, leyendaDelFormato } from "@/lib/formato/plantilla";
+import { ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
+import { agregarHoja, rutaDeHoja } from "@/lib/formato/zip";
 import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
 
 export const runtime = "nodejs";
@@ -17,8 +19,12 @@ export const runtime = "nodejs";
 // QUIÉN: staff y administrador del cliente (RLS acota al suyo). El AUDITOR NO:
 // descarga el Excel de taxonomía, no el formato que presenta la emisora.
 // CUÁNDO: solo con el generador encendido para la emisora y con respuestas del
-// último documento APROBADO; si no, 409 con el motivo (la pantalla deshabilita
-// el botón con el mismo texto).
+// último documento APROBADO; si no, 409 con el motivo.
+// CÓMO (revisión externa, punto 1): sobre una COPIA del asset, editando solo el
+// XML de la columna K, de la «Tabla NIIF» y la hoja «Leyenda» nueva; las 23
+// imágenes en celda (xl/richData, xl/metadata.xml) se copian intactas. Antes de
+// entregar, el validador comprueba que siguen enlazadas y que ningún «#VALUE!»
+// quedó suelto; si falla, 500 y no se entrega.
 // LA PLANTILLA no está en git (trae los textos de la norma): vive en Storage,
 // bucket `documentos`, y se lee con service role.
 // =============================================================================
@@ -38,8 +44,7 @@ export async function GET(request: Request) {
   const db = await createClient();
   const ins = await insumosDelFormato(db, reporteId);
   if (!ins.ok) return NextResponse.json({ error: ins.error }, { status: ins.status });
-  const { tenant, ens, datos } = ins;
-  const ejercicio = datos.ejercicio;
+  const { ens, datos } = ins;
   const valores = llenarFormato(datos);
 
   try {
@@ -48,65 +53,57 @@ export async function GET(request: Request) {
       console.error("[export-formato] sin plantilla en Storage:", error?.message);
       return NextResponse.json({ error: "Falta la plantilla del Formato electrónico en la plataforma." }, { status: 500 });
     }
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load((await blob.arrayBuffer()) as ArrayBuffer);
-    const ws = wb.getWorksheet(HOJA_ESTRUCTURA);
-    if (!ws) return NextResponse.json({ error: "La plantilla no trae la hoja de estructura." }, { status: 500 });
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+    const rutaEst = await rutaDeHoja(zip, HOJA_ESTRUCTURA);
+    const rutaTabla = await rutaDeHoja(zip, "Tabla NIIF");
+    if (!rutaEst) return NextResponse.json({ error: "La plantilla no trae la hoja de estructura." }, { status: 500 });
 
+    // Columna K de la estructura.
+    let est = await zip.file(rutaEst)!.async("string");
     let escritas = 0;
-    let logo: Buffer | null = null;
-    if (tenant.logo_url && CONCEPTOS_FORMATO.some((c) => valores.get(c.fila)?.origen === "logo")) {
-      try {
-        const r = await fetch(tenant.logo_url);
-        if (r.ok) logo = Buffer.from(await r.arrayBuffer());
-      } catch {
-        logo = null;
-      }
-    }
     for (const [fila, v] of valores) {
-      const celda = ws.getCell(`K${fila}`);
-      if (v.origen === "logo" && logo) {
-        const ext = /\.jpe?g($|\?)/i.test(tenant.logo_url ?? "") ? "jpeg" : "png";
-        const id = wb.addImage({ buffer: logo as unknown as ExcelJS.Buffer, extension: ext });
-        ws.addImage(id, { tl: { col: 10, row: fila - 1 }, ext: { width: 120, height: 48 } });
-        escritas++;
-        continue;
-      }
       if (!v.texto) continue;
       // Ninguna celda exportada empieza con «[» (CLAUDE.md §5, 1.10).
-      celda.value = pendienteEnTextoPlano(v.texto);
-      celda.alignment = { wrapText: true, vertical: "top" };
+      est = ponerTexto(est, `K${fila}`, pendienteEnTextoPlano(v.texto));
       escritas++;
     }
+    zip.file(rutaEst, est);
 
     // Hoja «Tabla NIIF»: riesgos y oportunidades desde los registros de clima.
-    const tn = wb.getWorksheet("Tabla NIIF");
-    if (tn) {
-      const filaDe = (r: (typeof ens.registros)[number], n: number) => {
-        const row = tn.getRow(n);
-        row.getCell(1).value = r.nombre.replace(/\[DEMO\]\s*/i, "").trim();
-        row.getCell(2).value = r.descripcion ?? "";
-        row.getCell(3).value = "Sí";
-        row.getCell(4).value = TIPO_LABEL[r.tipo] ?? r.tipo;
-        row.getCell(5).value = (r.horizontes ?? []).join(", ");
-        row.getCell(6).value = r.impactos_potenciales ?? "";
-        row.getCell(7).value = r.concentracion ?? "";
-        row.eachCell((c) => (c.alignment = { wrapText: true, vertical: "top" }));
-      };
+    if (rutaTabla) {
+      let tn = await zip.file(rutaTabla)!.async("string");
       let n = 3;
-      for (const r of ens.registros.filter((x) => x.tipo !== "oportunidad")) filaDe(r, n++);
+      const fila = (r: (typeof ens.registros)[number]) => {
+        const siete = [r.nombre.replace(/\[DEMO\]\s*/i, "").trim(), r.descripcion ?? "", "Sí", TIPO_LABEL[r.tipo] ?? r.tipo, (r.horizontes ?? []).join(", "), r.impactos_potenciales ?? "", r.concentracion ?? ""];
+        siete.forEach((x, i) => {
+          if (x) tn = ponerTexto(tn, `${"ABCDEFG"[i]}${n}`, x);
+        });
+        n++;
+      };
+      for (const r of ens.registros.filter((x) => x.tipo !== "oportunidad")) fila(r);
       const opps = ens.registros.filter((x) => x.tipo === "oportunidad");
       if (opps.length) {
         n++;
-        tn.getCell(`A${n}`).value = "OPORTUNIDADES";
-        tn.getCell(`A${n}`).font = { bold: true };
+        tn = ponerTexto(tn, `A${n}`, "OPORTUNIDADES");
         n++;
-        for (const r of opps) filaDe(r, n++);
+        for (const r of opps) fila(r);
       }
+      zip.file(rutaTabla, tn);
     }
 
-    const nombre = `Formato_electronico_NIIF_${slug(ins.denominacion)}_${ejercicio}.xlsx`;
-    const salida = await wb.xlsx.writeBuffer();
+    await agregarHoja(zip, "Leyenda", leyendaDelFormato(datos.alivios, datos.perfil.actividades_financieras));
+
+    // Validador de entrega: las imágenes en celda siguen enlazadas; ningún «#VALUE!» suelto.
+    const hojas: Record<string, string> = {};
+    for (const nombre of Object.keys(zip.files).filter((x) => /^xl\/worksheets\/sheet\d+\.xml$/.test(x))) hojas[nombre] = await zip.file(nombre)!.async("string");
+    const problemas = validarImagenesEnCelda(hojas, Object.keys(zip.files), IMAGENES_EN_CELDA);
+    if (problemas.length) {
+      console.error("[export-formato] el validador de imágenes falló:", problemas.join("; "));
+      return NextResponse.json({ error: "El Formato electrónico no pasó el validador de entrega (imágenes de la plantilla)." }, { status: 500 });
+    }
+
+    const nombre = `Formato_electronico_NIIF_${slug(ins.denominacion)}_${datos.ejercicio}.xlsx`;
+    const salida = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
     console.log(`[export-formato] reporte=${reporteId} respuestas=${escritas} archivo=${nombre}`);
     return new NextResponse(salida as unknown as BodyInit, {
       status: 200,

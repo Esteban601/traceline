@@ -79,6 +79,8 @@ export type PerfilData = {
   fiduciario: string | null;
   numero_fideicomiso: string | null;
   hechos_posteriores: string | null;
+  actividades_financieras: string[] | null;
+  sector_sasb: string[] | null;
   carta_texto: string | null;
   carta_firmante: string | null;
   carta_cargo: string | null;
@@ -463,6 +465,27 @@ export function PerfilView({
               </label>
               <textarea id={`${uid}-hp`} name="hechos_posteriores" rows={3} defaultValue={p?.hechos_posteriores ?? ""} placeholder="Hechos ocurridos después del cierre del ejercicio que afectan la información de sostenibilidad." className={cn(AREA, "mt-2")} />
               <p className="mt-1.5 text-xs text-muted">Si no hubo ninguno, dígalo: «No se identificaron hechos posteriores relevantes».</p>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <fieldset>
+                <legend className={LABEL}>Actividades financieras</legend>
+                <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                  {["Gestión de activos", "Banca comercial", "Seguros"].map((a) => (
+                    <label key={a} className="flex items-center gap-2">
+                      <input type="checkbox" name="actividades_financieras" value={a} defaultChecked={(p?.actividades_financieras ?? []).includes(a)} />
+                      {a}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-xs text-muted">Solo para emisoras del sector financiero. Las secciones de emisiones financiadas de las actividades no marcadas dicen «No aplica por actividad».</p>
+              </fieldset>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-ss`}>
+                  Sector SASB
+                </label>
+                <textarea id={`${uid}-ss`} name="sector_sasb" rows={2} defaultValue={(p?.sector_sasb ?? []).join("\n")} placeholder="[815200] Finanzas - Bancos comerciales (FN-CB)" className={cn(AREA, "mt-2")} />
+                <p className="mt-1.5 text-xs text-muted">Uno por línea, con la etiqueta de la lista del Formato electrónico.</p>
+              </div>
             </div>
             {guardar()}
             <Aviso state={sIdent} seccion="identidad" />

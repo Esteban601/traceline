@@ -63,6 +63,11 @@ function numero(fd: FormData, k: string): number | null {
  * al menos un valor no vacío — así "agregar fila y no llenarla" no ensucia el
  * jsonb, que es el error más fácil de cometer en una lista editable.
  */
+/** Valores marcados de un grupo de casillas (vacío si ninguno). */
+function lista(fd: FormData, k: string): string[] {
+  return fd.getAll(k).map((v) => String(v).trim()).filter(Boolean);
+}
+
 function filas(fd: FormData, campos: string[]): Record<string, string>[] {
   const columnas = campos.map((c) => fd.getAll(c).map((v) => String(v).trim()));
   const n = Math.max(0, ...columnas.map((c) => c.length));
@@ -184,6 +189,9 @@ export async function guardarIdentidad(_p: PerfilState, fd: FormData): Promise<P
     fiduciario: texto(fd, "fiduciario"),
     numero_fideicomiso: texto(fd, "numero_fideicomiso"),
     hechos_posteriores: texto(fd, "hechos_posteriores"),
+    // Emisiones financiadas por actividad y sector SASB del Formato electrónico.
+    actividades_financieras: lista(fd, "actividades_financieras"),
+    sector_sasb: (texto(fd, "sector_sasb") ?? "").split(/\n+/).map((x) => x.trim()).filter(Boolean),
   });
 }
 

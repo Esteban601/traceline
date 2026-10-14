@@ -1572,6 +1572,7 @@ export type Database = {
       }
       perfil_emisor: {
         Row: {
+          actividades_financieras: string[] | null
           actualizado_en: string | null
           actualizado_por: string | null
           cadena_valor: Json
@@ -1598,11 +1599,13 @@ export type Database = {
           organigrama_path: string | null
           perimetro: string | null
           proceso_materialidad: string | null
+          sector_sasb: string[] | null
           tenant_id: string
           tipo_instrumento: string | null
           updated_at: string
         }
         Insert: {
+          actividades_financieras?: string[] | null
           actualizado_en?: string | null
           actualizado_por?: string | null
           cadena_valor?: Json
@@ -1629,11 +1632,13 @@ export type Database = {
           organigrama_path?: string | null
           perimetro?: string | null
           proceso_materialidad?: string | null
+          sector_sasb?: string[] | null
           tenant_id: string
           tipo_instrumento?: string | null
           updated_at?: string
         }
         Update: {
+          actividades_financieras?: string[] | null
           actualizado_en?: string | null
           actualizado_por?: string | null
           cadena_valor?: Json
@@ -1660,6 +1665,7 @@ export type Database = {
           organigrama_path?: string | null
           perimetro?: string | null
           proceso_materialidad?: string | null
+          sector_sasb?: string[] | null
           tenant_id?: string
           tipo_instrumento?: string | null
           updated_at?: string

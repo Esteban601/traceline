@@ -102,12 +102,21 @@ const USO_CERO: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 
 // Mapeo del formato: qué datapoints alimentan conceptos text / text block, y el
 // par NIIF S2 de cada párrafo de NIIF S1 (regla S1→S2 de la revisión de Esteban).
 // -----------------------------------------------------------------------------
-type ConceptoMapeo = { tipo?: string | null; datapoint?: string | null; parrafos?: string[]; alivioE5?: boolean };
+type ConceptoMapeo = { fila?: number; tipo?: string | null; clasificacion?: string; datapoint?: string | null; bloque?: number | null; parrafos?: string[]; alivioE5?: boolean };
 const CONCEPTOS = (mapeoFormato as { conceptos: ConceptoMapeo[] }).conceptos;
 
 export const DATAPOINTS_FORMATO_TEXTO: Set<string> = new Set(
   CONCEPTOS.filter((c) => /^text/.test(c.tipo ?? "") && c.datapoint).map((c) => c.datapoint as string)
 );
+
+/**
+ * Conceptos de texto del formato con bloque dueño y sin datapoint en el catálogo
+ * (declaración de cumplimiento, juicios, S2 13, S2 22…): se responden desde su
+ * bloque con la clave `fila:N`, solo para el formato (revisión externa, punto 4).
+ */
+export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; parrafos: string[] }[] = CONCEPTOS.filter(
+  (c) => c.clasificacion === "concepto" && !c.datapoint && c.bloque != null && /^text|\(sin tipo\)/.test(c.tipo ?? "(sin tipo)")
+).map((c) => ({ fila: c.fila!, bloque: c.bloque!, parrafos: c.parrafos ?? [] }));
 
 /** NIIF S1 (sin espacios) → código NIIF S2 del catálogo que lo responde en el formato. */
 export const PAR_S2_DE_S1: Map<string, string> = (() => {
@@ -193,7 +202,8 @@ export const sinRemision = (t: string) => t.replace(/\s*Ver sección \d+ · [^.]
  * Ninguna celda exportada empieza con «[».
  */
 export function pendienteEnTextoPlano(texto: string): string {
-  return texto.replace(/\[Pendiente:\s*([^\]]*)\]/g, "Pendiente: $1").replace(/^\[+\s*/, "").trim();
+  // Un código de lista del formato («[815200] Finanzas - …») sí empieza con «[»: es el valor de la opción.
+  return texto.replace(/\[Pendiente:\s*([^\]]*)\]/g, "Pendiente: $1").replace(/^\[+(?!\d{6}\])\s*/, "").trim();
 }
 
 /** Para el Formato electrónico: un pendiente deja la celda vacía. */
@@ -366,8 +376,19 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   };
 
   const planes = codigos.map((c) => planDe(c.codigo));
+  // Conceptos del formato sin datapoint: desde su bloque aprobado, con todos los hechos de su cobertura.
+  for (const c of CONCEPTOS_FORMATO_SIN_DATAPOINT) {
+    const v = porBloque.get(c.bloque);
+    const hs = v ? [...new Set(v.cobertura.flatMap((x) => x.hechos))] : [];
+    if (!hs.length) continue;
+    const clave = `fila:${c.fila}`;
+    const de = codigos.filter((x) => c.parrafos.some((p) => sinCodigoNorma(x.codigo).startsWith(sinCodigoNorma(p)))).map((x) => `${x.codigo}: ${x.descripcion}`);
+    descripcion.set(clave, `Concepto del Formato electrónico (fila ${c.fila}), párrafos ${c.parrafos.join(", ")}.${de.length ? ` ${de.join(" ")}` : ""}`);
+    planes.push({ codigo: clave, via: "bloque", bloque: c.bloque, hechos: hs });
+  }
   const filas: FilaRespuesta[] = [];
-  const destinosDe = (codigo: string): Destino[] => (DATAPOINTS_FORMATO_TEXTO.has(codigo) ? ["taxonomia", "formato"] : ["taxonomia"]);
+  const destinosDe = (codigo: string): Destino[] =>
+    codigo.startsWith("fila:") ? ["formato"] : DATAPOINTS_FORMATO_TEXTO.has(codigo) ? ["taxonomia", "formato"] : ["taxonomia"];
   const base = (destino: Destino, clave: string): Omit<FilaRespuesta, "estado" | "origen" | "texto"> => ({
     destino, clave, tipo_campo: destino === "formato" ? "text block" : "text", valor: null, bloque: null, bloque_version: null,
     hechos: [], notas: [], modelo: null, prompt_version: null, uso: USO_CERO, costo_usd: 0,

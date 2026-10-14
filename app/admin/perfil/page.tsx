@@ -81,7 +81,7 @@ export default async function PerfilEmisorPage({
   const { data: fila } = await db
     .from("perfil_emisor")
     .select(
-      "denominacion_formal, nombre_corto, forma_de_referencia, entidad_que_informa, perimetro, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, hechos_posteriores, carta_texto, carta_firmante, carta_cargo, proceso_materialidad, modelo_negocio, gobierno_texto, glosario, organigrama_path, horizontes, hitos_corporativos, hitos_sostenibilidad, cadena_valor, matriz_riesgos, actualizado_en, actualizado:perfiles_usuario!perfil_emisor_actualizado_por_fkey(nombre)"
+      "denominacion_formal, nombre_corto, forma_de_referencia, entidad_que_informa, perimetro, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, hechos_posteriores, actividades_financieras, sector_sasb, carta_texto, carta_firmante, carta_cargo, proceso_materialidad, modelo_negocio, gobierno_texto, glosario, organigrama_path, horizontes, hitos_corporativos, hitos_sostenibilidad, cadena_valor, matriz_riesgos, actualizado_en, actualizado:perfiles_usuario!perfil_emisor_actualizado_por_fkey(nombre)"
     )
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -98,6 +98,8 @@ export default async function PerfilEmisorPage({
         fiduciario: fila.fiduciario,
         numero_fideicomiso: fila.numero_fideicomiso,
         hechos_posteriores: fila.hechos_posteriores,
+        actividades_financieras: fila.actividades_financieras,
+        sector_sasb: fila.sector_sasb,
         carta_texto: fila.carta_texto,
         carta_firmante: fila.carta_firmante,
         carta_cargo: fila.carta_cargo,
