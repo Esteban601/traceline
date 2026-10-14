@@ -142,3 +142,4 @@ plantilla», pero nada más se rompe).
 | Fecha | Qué pasó | Decisión |
 |---|---|---|
 | 2026-10-14 | PR #27 mezclado en `dev/ajustes-sep26` (`478c06e`) con el comentario de revisión. Encargo escrito; Paso 0 en el chat | Detenido en el Paso 0 |
+| 2026-10-14 | Cuarta lectura del Formato: tres correcciones de redacción en dev (capital sin asignar como declaración negativa; 97 y 99 con texto propio; 64 sin cambio). Sin migraciones nuevas: el inventario de §2.1 no cambia | Paso 0 pendiente de aprobación |
