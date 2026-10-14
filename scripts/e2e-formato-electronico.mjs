@@ -28,7 +28,7 @@ import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
-import { validarImagenesEnCelda } from "../lib/formato/xlsx-xml.ts";
+import { celdasConCorchete, opcionesDeListas, validarImagenesEnCelda } from "../lib/formato/xlsx-xml.ts";
 
 const BASE = process.argv[2] || "http://localhost:3016";
 const URL_SB = "http://127.0.0.1:54321";
@@ -79,7 +79,7 @@ psql(`update reportes set anio_adopcion = ${ejercicio}, alivios = '{"E5": true, 
 // El seed local no siempre trae Perfil para el demo: se crea para la prueba y se borra al terminar.
 const perfilCreado = !perfilAntes;
 if (perfilCreado) psql(`insert into perfil_emisor (tenant_id) values (${lit(TENANT)})`);
-psql(`update perfil_emisor set actividades_financieras = array['Banca comercial'], sector_sasb = array['Bancos comerciales (FN-CB)'] where tenant_id=${lit(TENANT)}`);
+psql(`update perfil_emisor set actividades_financieras = array['Banca comercial'], sector_sasb = array['[815200] Finanzas - Bancos comerciales (FN-CB)'], metricas_industria = 'No'  where tenant_id=${lit(TENANT)}`);
 let doc = null;
 try {
   console.log("\n1. El auditor no lo descarga");
@@ -104,11 +104,15 @@ try {
     if (quien !== "staff") continue;
     const z = await JSZip.loadAsync(Buffer.from(await r.arrayBuffer()));
     const est = await z.file("xl/worksheets/sheet2.xml").async("string");
-    const k = (n) => desescapar(est.match(new RegExp(`<c r="K${n}"[^>]*>(?:<is><t[^>]*>([\\s\\S]*?)</t></is>)?`))?.[1] ?? "");
+    const celda = (col, n) => desescapar(est.match(new RegExp(`<c r="${col}${n}"[^>]*>(?:<is><t[^>]*>([\\s\\S]*?)</t></is>)?`))?.[1] ?? "");
+    const k = (n) => celda("K", n > 185 ? n + delta : n);
 
+    // La iteración de métricas (145–185) recorre lo que sigue: delta = última fila − 588 de la plantilla.
+    const delta = Number(est.match(/<dimension ref="[A-Z]+\d+:[A-Z]+(\d+)"/)[1]) - 588;
     // Imágenes en celda (punto 1 de la revisión).
     const vm = (s) => [...s.matchAll(/<c r="([A-Z]+\d+)"[^>]*vm="(\d+)"/g)].map((m) => `${m[1]}:${m[2]}`).join(",");
-    ok(vm(est) === vm(await plantilla.file("xl/worksheets/sheet2.xml").async("string")) && vm(est).split(",").length === 23, "las 23 celdas con imagen conservan su vm= (mismas celdas, mismo rich value)");
+    const vmPlantilla = vm(await plantilla.file("xl/worksheets/sheet2.xml").async("string")).split(",").map((x) => x.replace(/^([A-Z]+)(\d+):/, (_m, c, r) => `${c}${Number(r) > 185 ? Number(r) + delta : r}:`)).join(",");
+    ok(vm(est) === vmPlantilla && vm(est).split(",").length === 23, "las 23 celdas con imagen conservan su vm= (las mismas celdas, recorridas por la iteración, con el mismo rich value)");
     let iguales = true;
     for (const n of Object.keys(plantilla.files).filter((x) => /^xl\/(richData\/|metadata\.xml|media\/)/.test(x) && !plantilla.files[x].dir)) {
       const [a, b] = await Promise.all([plantilla.file(n).async("nodebuffer"), z.file(n)?.async("nodebuffer")]);
@@ -123,7 +127,10 @@ try {
     ok(k(25).includes("(prueba-formato)") && k(25).includes("párrafo E5"), "fila 25 (NIIF S2 6 (a)): la respuesta, con la oración fija del E5");
     ok(k(28) === "", "fila 28 (NIIF S2 6 (a)(i)): pendiente → celda vacía");
     ok(k(5) === `Informe de Sostenibilidad y Clima ${ejercicio}`, "fila 5: regla fija con el ejercicio");
-    ok(k(339) === "Banca comercial" && k(446) === "Bancos comerciales (FN-CB)", "actividad y sector SASB desde el Perfil");
+    ok(k(339) === "Banca comercial" && k(446) === "[815200] Finanzas - Bancos comerciales (FN-CB)", "actividad y sector SASB desde el Perfil (opción literal de la lista)");
+    const registros = Number(psql(`select count(*) from registros_clima where reporte_id=${lit(REPORTE)} and activo`));
+    ok(delta > 0 && /^Riesgo 1: /.test(celda("D", 146)) && /^Métrica 1: /.test(celda("D", 147)) && celda("K", 148) === "Verdadero", `métricas S1 46–50 iteradas: «Riesgo 1» / «Métrica 1» y su bloque (${registros} registros, ${delta} filas más)`);
+    ok(["K364", "K387", "K410"].every((r) => k(Number(r.slice(1))) === "No"), "métricas por industria: el juicio del Perfil en 364, 387 y 410");
     ok(/^No aplica por actividad/.test(k(454)) && /^No aplica por actividad/.test(k(488)), "gestión de activos y seguros: «No aplica por actividad»");
     ok(k(469) === "No revelado · alivio C4" && k(337) === "No revelado · alivio C4", "cifras de Alcance 3 (banca, categorías): «No revelado · alivio C4»");
     const fisicos = psql(`select string_agg(nombre, '|') from registros_clima where reporte_id=${lit(REPORTE)} and activo and tipo='riesgo_fisico'`).split("|").filter(Boolean);
@@ -131,7 +138,8 @@ try {
     const limpio = (n) => n.replace(/\[DEMO\]\s*/i, "").trim();
     ok(fisicos.every((n) => k(370).includes(limpio(n))) && !transicion.some((n) => k(370).includes(limpio(n))), "fila 370 (NIIF S2 29 (c)): los riesgos físicos, ninguno de transición");
     const ks = [...est.matchAll(/<c r="K(\d+)"[^>]*><is><t[^>]*>([\s\S]*?)<\/t><\/is>/g)].map((m) => desescapar(m[2]));
-    ok(!ks.some((t) => t.includes("[")), "ninguna celda K lleva «[»");
+    const opciones = opcionesDeListas(await z.file("xl/sharedStrings.xml").async("string"));
+    ok(celdasConCorchete(est, "K", opciones).length === 0 && !ks.some((t) => /\[Pendiente/.test(t)), "ninguna celda K con «[Pendiente» ni con «[» fuera de una opción de lista del formato");
     const libro = await z.file("xl/workbook.xml").async("string");
     ok(/<sheet name="Leyenda"/.test(libro) && /<sheet name="Métricas SASB"/.test(libro), "hojas «Leyenda» y «Métricas SASB»");
     let menciones = 0;
