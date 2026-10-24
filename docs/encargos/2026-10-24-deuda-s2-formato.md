@@ -125,11 +125,13 @@ En este orden (decisión de Esteban del 24/10):
 4. **Formato v4** generado en `traceline-dev`, con la lista de la Fase 1, para el lector externo. **Parada:** lectura
    externa.
 5. **El día del despliegue a staging, después de la lectura externa:**
-   - foto «antes» en staging (la misma de §6, punto 4);
+   - foto «antes» en staging (la misma de §6, punto 4), con totales y porcentajes por emisora;
    - Esteban corre la migración con `scripts/despliegue/migrar-remoto.sh` (CLAUDE.md §1);
    - `git push heroku main` (v42);
    - foto «después», comparada contra la diferencia esperada;
-   - registro en la especificación §10.
+   - registro en la especificación §10, que **incluye el cambio de Cobertura**: los códigos padre (los 4 anteriores
+     y los 4 nuevos) salen de conteos y porcentajes. En el demo de dev, NIIF pasa de 113 códigos con 65 % cubierto
+     (v41) a 109 con 64 % (v42).
 
 ## 3. Qué toca y qué no
 
@@ -154,8 +156,12 @@ En este orden (decisión de Esteban del 24/10):
 
 - **Auditoría de la Fase 1, vuelta a correr al final:** 0 discrepancias no explicadas.
 - **K433 y K437:** con C4, «No revelado · alivio C4»; sin C4, vacías como pendiente, igual que K435.
-- **K84, K91 y K100:** sin «Sin sección en el suplemento». En ninguna celda K del Formato del demo aparecen
-  «suplemento», «solicitud», «evidencia» ni «IRStrat».
+- **K84, K91 y K100:** sin «Sin sección en el suplemento». En ninguna celda K del Formato del demo ni en ninguna
+  respuesta del Excel aparecen «suplemento», «solicitud», «evidencia» ni «IRStrat».
+  - **Excepción escrita (decisión de Esteban del 24/10):** los marcadores de pendiente de §5, `[Pendiente: … —
+    <solicitud o campo>]`, nombran la solicitud por regla de CLAUDE.md. En el demo son 2 respuestas del Excel:
+    NIIF S2 30 y NIIF S2 B65 inciso (e).
+- **Voz:** ninguna respuesta ni celda K en primera persona del plural. El validador rechaza y reintenta.
 - **K100:** responde con los hechos de los bloques 10 y 34, sin dato inventado.
 - **K105, K65 y K59:** responden con su código padre; K59 ya no es igual a K60.
 - **`validarMapeo()`:** 0 faltantes; `supabase migration list` igual en local y en remoto.
@@ -272,6 +278,27 @@ celdas), con los generales `NIIF S2 33` y `NIIF S2 34`; y NIIF S2 16(a) en K85 a
   con el clima (y aplicar NIIF S1 solo en esa medida); no exime de información cuantitativa. La oración E5 delante
   de las cifras de K84–K98 no contradice nada.
 
+### Regla de `HECHO_RAZON` (decisión de Esteban del 24/10)
+
+`HECHO_RAZON` degrada. Si `emisora.compromiso_transparencia_limitaciones` no está en los libros del documento, la
+descripción del requisito no pide la razón y el validador no la exige: K100 se responde con los hechos de
+`efectos_financieros.*` (y `riesgos_transicion.efectos_registrados_2025`). Nunca se empuja al modelo a dar una razón
+que el libro no trae.
+
+### Reuso de respuestas con firma del pedido (Fase 3)
+
+La versión de prompt de cada respuesta lleva una firma: un hash de la descripción del requisito y de los hechos que
+recibe. Una respuesta previa solo se reutiliza si su pedido es el mismo. Sin la firma, K64 y K84 conservaban el texto
+anterior aunque su descripción hubiera cambiado. La primera corrida con firma regeneró todas las respuestas del demo
+(0.53 USD); `e2e-respuestas-regeneracion` comprueba que el reuso sigue funcionando con el mismo pedido.
+
+### Deuda siguiente: pendientes del demo
+
+Esteban anotó «los 22 pendientes del demo (36(e), 25(a))» como la deuda que sigue a este encargo. **Medido en dev
+el 24/10, el número no coincide:** el demo v3 tiene 2 respuestas pendientes (NIIF S2 30 y NIIF S2 B65 inciso (e)). Los
+códigos de 25(a) tienen respuesta y los de 36(e) llevan el «no aplica» heredado. Falta que Esteban confirme a qué se
+refieren los 22 antes de escribir el encargo.
+
 ## 7. Registro
 
 | Fecha | Qué pasó | Decisión |
@@ -282,3 +309,4 @@ celdas), con los generales `NIIF S2 33` y `NIIF S2 34`; y NIIF S2 16(a) en K85 a
 | 2026-10-24 | **Fase 1.** `scripts/formato/auditar-mapeo.mjs` (lectura; plantilla 2025 contra el JSON, con el demo v3 `99992cd3` en dev). 262 filas con datapoint: 201 iguales, 8 parciales, 16 con datapoint más general, 12 S1→S2 sin juzgar y 25 distintas. Errores reales del mapeo: 91, 390 (y 391/392), 433, 437, 462/463 y 488; 329 mal clasificada. La 84 no sale como distinta: su columna G («S1 36-40») contiene el 40. Las demás distintas son erratas de la columna A de la plantilla, ruido de la 2.ª pasada o la deuda 29C | Detenido para que Esteban confirme la lista |
 | 2026-10-24 | **Fase 2.** Mapeo corregido en 14 filas (62, 64, 84, 91, 100, 329, 390–392, 433, 437, 462, 463, 488) con `scripts/formato/correcciones-mapeo.mjs`, que también aplica `mapear-formato.mjs` (las salidas pasan a `mapeo-salidas.mjs`, con el `.md` idéntico byte por byte antes de corregir). **Alta de `NIIF S2 21(a)`**, dueño el bloque 10: migración `20261024120000_catalogo_s2_21a` aplicada en local y en dev (local == remoto, barrera 108). Foto de dev antes y después (`scripts/despliegue/foto-cobertura.mjs`): la diferencia es exactamente la esperada, escrita antes de correrla (`NIIF S2 21(a)` nuevo en 1 de 1 emisoras, 0 solicitudes, «sin solicitud»). Respuesta de 21(a) por clave de hechos para documentos aprobados antes del alta (`HECHOS_POR_CLAVE`). Llenado: 433/435/437 con C4; la sección de una actividad que la emisora no tiene se resuelve antes que «sin candidato»; la concentración pasa de K64 a K62. **Respuestas del demo v3 regeneradas** (sin el documento): 189 respuestas, **0.047 USD**. tsc, eslint, `verify:export` (contra dev) y 4 e2e (`respuestas-validadores`, `metricas-instancias`, `formato-electronico`, `respuestas-regeneracion`) en verde. Fase 1 corregida: el parser no leía «NIF S2 …» (350, 371, 373 y 396) ni «EI14 a E18»; antes de corregir eran 21 filas distintas y no 25; después quedan 14, todas explicadas. Abierto: K81 (`NIIF S1 33(c)`) todavía escribe «No aplica… Sin sección en el suplemento»; la descripción de 21(a) se cargó en dev sin la revisión de IRStrat | Detenido con el informe |
 | 2026-10-24 | **Fase 3, punto 1 y punto 2 (sin migración).** `textoNoAplicaE5` con el texto aprobado: 34 respuestas del Excel (28 con par de NIIF S2, 6 sin par) y K81. Ninguna celda K tiene «suplemento», «solicitud», «evidencia» ni «IRStrat». K100 da la razón: `emisora.compromiso_transparencia_limitaciones` (de otro libro del documento) por `HECHOS_POR_CLAVE`, pedida en la descripción y exigida por el validador (`HECHO_RAZON`). Respuestas del demo regeneradas dos veces: 0.0179 y 0.0146 USD. Descripciones de los padres reescritas según (b) y (c), pendientes. Abierto: 2 respuestas pendientes del Excel (S2 30 y B65(e)) llevan el marcador de §5, que nombra la solicitud y el suplemento | Detenido para el OK de las descripciones |
+| 2026-10-24 | **Fase 3.** Descripciones aprobadas (21(a) y los 4 padres). `HECHO_RAZON` degrada; regla de voz en el validador (`primeraPersonaPlural`) sobre respuestas y celdas K (e2e del Formato). **Cobertura:** los padres, viejos y nuevos, salen de conteos y porcentajes como filas de agrupación (`esPadre`, `contables`), en el tablero y en el informe. Migración `20261024130000_catalogo_padres_fase3` (13 (a)a(b), 14 (a)(i)a(v), 16 (b)a(d), 22 (a)a(b)) en local y en dev: local == remoto, barrera 108. Foto antes y después: exactamente la esperada (4 códigos nuevos, «sin solicitud», 0 solicitudes; NIIF de 113 · 73 cubiertos (65 %) a 109 · 70 (64 %)). Mapeo: 59, 65, 91, 103 y 105 a los padres; 64 y 84 como síntesis sin repetir K65 y K85; 13 suma `cadena_valor.*` y `modelo_negocio.*` (`HECHOS_DEL_PADRE`); un padre no copia oraciones de sus incisos (validador). **Reuso con firma del pedido.** Respuestas regeneradas: 0.0754 USD (todavía sin firma; K64 y K84 salieron reutilizadas) y 0.5281 USD (con firma, regeneración completa). 0 oraciones compartidas entre K59–K60, K64–K65, K84–K85 y K91–K92; K105 = K103 sin E5. tsc, eslint, `verify:export` (contra dev) y los 4 e2e en verde; el informe de Cobertura de dev muestra «/ 109». Auditoría: 15 distintas, todas explicadas (la 91 hereda la columna A de la 85) | Detenido con el informe |

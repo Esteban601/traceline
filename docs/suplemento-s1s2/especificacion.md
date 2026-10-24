@@ -4,6 +4,11 @@ Especificación para revisión interna. **Versión 0.43** · 24 de octubre de 20
 
 **Cambios respecto a 0.42** (encargo 2026-10-24-deuda-s2-formato, Fase 2, aprobada por Esteban):
 - §6.1, «No aplica · E5»: texto nuevo, sin «sección en el suplemento».
+- Catálogo: códigos padre `NIIF S2 13 (a)a(b)`, `14 (a)(i)a(v)`, `16 (b)a(d)` y `22 (a)a(b)` (migración
+  `20261024130000_catalogo_padres_fase3`). En Cobertura, todos los códigos padre (los de 25(a), S1 44(a), 36(a)–(d) y
+  36(e), y estos cuatro) son filas de agrupación y no entran a conteos ni porcentajes.
+- Respuestas: tercera persona obligatoria (el validador rechaza la primera del plural) y reuso solo con el mismo pedido
+  (firma de la descripción y los hechos en la versión de prompt).
 - §3 y Anexo A: el bloque 10 cita además `NIIF S2 21(a)` (alta en el catálogo, migración
   `20261024120000_catalogo_s2_21a`); responde la fila 100 del Formato electrónico.
 
