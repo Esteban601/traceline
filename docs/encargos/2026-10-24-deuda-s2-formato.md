@@ -241,9 +241,24 @@ correcto): 344, 367, 369, 390, 392, 413, 416 y 468.
 **Deuda de la modificación de 2025 de NIIF S2** (`ampliacion-catalogo.md`): 29B (filas 433, 435–436 y 437) y 29C
 (439 y 441). Con C4 escriben «No revelado · alivio C4».
 
-**Encargo siguiente, fuera de este: `formato-objetivos-por-inciso`.** Las filas de NIIF S2 33(a)–(h) (221 a 235) y
-34(b)–(d) (239 a 243) tienen los datapoints generales `NIIF S2 33` y `NIIF S2 34`, y el Formato repite el mismo
-texto en 7 y en 3 celdas.
+**Encargo siguiente, fuera de este: `formato-repeticiones-por-inciso`** (renombrado el 24/10). Filas que repiten el
+mismo texto porque comparten datapoint: NIIF S2 33(a)–(h) (221 a 235, 7 celdas con texto) y 34(b)–(d) (239 a 243, 3
+celdas), con los generales `NIIF S2 33` y `NIIF S2 34`; y NIIF S2 16(a) en K85 a K90 (6 celdas).
+
+### Decisiones de Esteban antes de la migración de la Fase 3 (24/10)
+
+- **Descripción de `NIIF S2 21(a)`:** aprobada sin cambios.
+- **`textoNoAplicaE5`:** «[oración E5] La información correspondiente a este requisito, en lo relativo al clima, se
+  revela conforme a NIIF S2 X.»; sin par de NIIF S2, solo la oración E5.
+- **(a) Cobertura:** los padres, viejos y nuevos, salen de los conteos y porcentajes y quedan como filas de agrupación.
+  La foto mide totales y porcentajes por emisora, y el cambio se escribe en el registro de v42.
+- **(b) Efectos financieros, según la plantilla:**
+  - K84 es una síntesis de 16(a), con la regla de K97/K99 respecto a K85;
+  - K91 responde al padre `NIIF S2 16 (b)a(d)`.
+- **(c) S2 14:** K65 responde al padre `NIIF S2 14 (a)(i)a(v)`; K64 es una síntesis de una o dos oraciones de S2 14,
+  con la regla de K97/K99 respecto a K65.
+- **(d)** Solo padres de NIIF S2.
+- **(e)** S2 13 suma `cadena_valor.*` y `modelo_negocio.*` con un mecanismo general por clave, no limitado al demo.
 
 ### Reglas registradas en la Fase 3 (decisión de Esteban del 24/10)
 
@@ -266,3 +281,4 @@ texto en 7 y en 3 celdas.
 | 2026-10-24 | Paso 0 aprobado | Respuestas a §6 registradas arriba. Fase 4 reescrita. Se agregan a §4: ningún padre suma con sus incisos, fotos antes y después de cada migración, y el worktree de vuelta a `dev/ajustes-sep26` al cerrar |
 | 2026-10-24 | **Fase 1.** `scripts/formato/auditar-mapeo.mjs` (lectura; plantilla 2025 contra el JSON, con el demo v3 `99992cd3` en dev). 262 filas con datapoint: 201 iguales, 8 parciales, 16 con datapoint más general, 12 S1→S2 sin juzgar y 25 distintas. Errores reales del mapeo: 91, 390 (y 391/392), 433, 437, 462/463 y 488; 329 mal clasificada. La 84 no sale como distinta: su columna G («S1 36-40») contiene el 40. Las demás distintas son erratas de la columna A de la plantilla, ruido de la 2.ª pasada o la deuda 29C | Detenido para que Esteban confirme la lista |
 | 2026-10-24 | **Fase 2.** Mapeo corregido en 14 filas (62, 64, 84, 91, 100, 329, 390–392, 433, 437, 462, 463, 488) con `scripts/formato/correcciones-mapeo.mjs`, que también aplica `mapear-formato.mjs` (las salidas pasan a `mapeo-salidas.mjs`, con el `.md` idéntico byte por byte antes de corregir). **Alta de `NIIF S2 21(a)`**, dueño el bloque 10: migración `20261024120000_catalogo_s2_21a` aplicada en local y en dev (local == remoto, barrera 108). Foto de dev antes y después (`scripts/despliegue/foto-cobertura.mjs`): la diferencia es exactamente la esperada, escrita antes de correrla (`NIIF S2 21(a)` nuevo en 1 de 1 emisoras, 0 solicitudes, «sin solicitud»). Respuesta de 21(a) por clave de hechos para documentos aprobados antes del alta (`HECHOS_POR_CLAVE`). Llenado: 433/435/437 con C4; la sección de una actividad que la emisora no tiene se resuelve antes que «sin candidato»; la concentración pasa de K64 a K62. **Respuestas del demo v3 regeneradas** (sin el documento): 189 respuestas, **0.047 USD**. tsc, eslint, `verify:export` (contra dev) y 4 e2e (`respuestas-validadores`, `metricas-instancias`, `formato-electronico`, `respuestas-regeneracion`) en verde. Fase 1 corregida: el parser no leía «NIF S2 …» (350, 371, 373 y 396) ni «EI14 a E18»; antes de corregir eran 21 filas distintas y no 25; después quedan 14, todas explicadas. Abierto: K81 (`NIIF S1 33(c)`) todavía escribe «No aplica… Sin sección en el suplemento»; la descripción de 21(a) se cargó en dev sin la revisión de IRStrat | Detenido con el informe |
+| 2026-10-24 | **Fase 3, punto 1 y punto 2 (sin migración).** `textoNoAplicaE5` con el texto aprobado: 34 respuestas del Excel (28 con par de NIIF S2, 6 sin par) y K81. Ninguna celda K tiene «suplemento», «solicitud», «evidencia» ni «IRStrat». K100 da la razón: `emisora.compromiso_transparencia_limitaciones` (de otro libro del documento) por `HECHOS_POR_CLAVE`, pedida en la descripción y exigida por el validador (`HECHO_RAZON`). Respuestas del demo regeneradas dos veces: 0.0179 y 0.0146 USD. Descripciones de los padres reescritas según (b) y (c), pendientes. Abierto: 2 respuestas pendientes del Excel (S2 30 y B65(e)) llevan el marcador de §5, que nombra la solicitud y el suplemento | Detenido para el OK de las descripciones |

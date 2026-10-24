@@ -3,6 +3,7 @@
 Especificación para revisión interna. **Versión 0.43** · 24 de octubre de 2026.
 
 **Cambios respecto a 0.42** (encargo 2026-10-24-deuda-s2-formato, Fase 2, aprobada por Esteban):
+- §6.1, «No aplica · E5»: texto nuevo, sin «sección en el suplemento».
 - §3 y Anexo A: el bloque 10 cita además `NIIF S2 21(a)` (alta en el catálogo, migración
   `20261024120000_catalogo_s2_21a`); responde la fila 100 del Formato electrónico.
 
@@ -1048,8 +1049,9 @@ humana por documento (encargo, deudas).
   generador apagado, la columna no se agrega. Los incisos hijos van agrupados bajo su padre.
 - **Marcadores:** la base guarda `[Pendiente: … — …]`; el Excel de taxonomía escribe «Pendiente: … — …» en texto plano
   y el Formato electrónico deja la celda vacía. Ninguna celda exportada empieza con «[».
-- **«No aplica · E5»:** los códigos de NIIF S1 sin sección propia, con el alivio E5 vigente, dicen que no hay sección
-  en el suplemento y remiten al párrafo de NIIF S2 que lo responde.
+- **«No aplica · E5»:** los códigos de NIIF S1 sin sección propia, con el alivio E5 vigente, llevan la oración del
+  alivio y, si tienen par, «La información correspondiente a este requisito, en lo relativo al clima, se revela conforme
+  a NIIF S2 X.» (texto aprobado por Esteban el 24/10/2026; sin vocabulario de plataforma, §5).
 - **Alivios en las hojas de datos** (borrador y aprobado, como el Word): C4 deja fuera Alcance 3 (total y categorías),
   C3 deja fuera los comparativos del año anterior y E5 deja fuera las hojas de NIIF S1; las celdas dicen «No revelado ·
   alivio C4», «… C3» o «… E5».

@@ -29,15 +29,18 @@
 > descripciones son redacciones propias en la terminología de la traducción oficial; no transcriben la norma. **No hay
 > migración hasta que Esteban apruebe estos textos.**
 >
-> | Código padre propuesto | Incisos | Filas del Formato | Descripción propuesta | Estado |
+> | Código padre propuesto | Incisos | Fila del Formato que responde | Descripción propuesta | Estado |
 > |---|---|---|---|---|
 > | `NIIF S2 13 (a)a(b)` | 13(a), 13(b) | 59 | Efectos actuales y previstos de los riesgos y oportunidades relacionados con el clima sobre el modelo de negocio y la cadena de valor de la entidad, y dónde se concentran esos riesgos y oportunidades en el modelo de negocio y en la cadena de valor. | Pendiente de revisión |
-> | `NIIF S2 14 (a)(i)a(v)` | 14(a)(i)–(v) | 64 (y 65, por decidir) | Cómo ha respondido y prevé responder la entidad a los riesgos y oportunidades relacionados con el clima en su estrategia y toma de decisiones: cambios en el modelo de negocio y en la asignación de recursos, esfuerzos directos e indirectos de reducción o adaptación, plan de transición y cómo prevé alcanzar sus objetivos relacionados con el clima. | Pendiente de revisión |
-> | `NIIF S2 16 (a)a(b)` | 16(a), 16(b) | 84 | Efectos financieros actuales de los riesgos y oportunidades relacionados con el clima: cómo han afectado a la situación financiera, el rendimiento financiero y los flujos de efectivo del periodo sobre el que se informa, y para cuáles hay un riesgo significativo de ajuste material en el periodo siguiente. | Pendiente de revisión |
-> | `NIIF S2 16 (c)a(d)` | 16(c)(i)(ii), 16(d) | 91 | Efectos financieros previstos de los riesgos y oportunidades relacionados con el clima: cómo espera la entidad que cambien su situación financiera, su rendimiento financiero y sus flujos de efectivo a corto, medio y largo plazo. | Pendiente de revisión |
+> | `NIIF S2 14 (a)(i)a(v)` | 14(a)(i)–(v) | 65 | Cómo ha respondido y prevé responder la entidad a los riesgos y oportunidades relacionados con el clima en su estrategia y toma de decisiones: cambios en el modelo de negocio y en la asignación de recursos, esfuerzos directos e indirectos de reducción o adaptación, plan de transición y cómo prevé alcanzar sus objetivos relacionados con el clima. | Pendiente de revisión |
+> | `NIIF S2 16 (b)a(d)` | 16(b), 16(c)(i)(ii), 16(d) | 91 | Efectos financieros previstos de los riesgos y oportunidades relacionados con el clima: para cuáles existe un riesgo significativo de ajuste material, dentro del siguiente periodo anual, en los importes en libros de los activos y pasivos de los estados financieros, y cómo espera la entidad que cambien su situación financiera, su rendimiento financiero y sus flujos de efectivo a corto, medio y largo plazo. | Pendiente de revisión |
 > | `NIIF S2 22 (a)a(b)` | 22(a)(i)–(iii), 22(b)(i)–(iii) | 103 y 105 | Resiliencia de la estrategia y del modelo de negocio de la entidad frente al cambio climático: la evaluación de su resiliencia climática a la fecha de presentación y cómo y cuándo se llevó a cabo el análisis de escenarios relacionado con el clima. | Pendiente de revisión |
+>
+> Sin código nuevo (decisiones b y c de Esteban): la fila 84 es una síntesis de `NIIF S2 16(a)` y la 64 una síntesis de
+> NIIF S2 14. Las dos llevan la regla de las filas 97 y 99: una o dos oraciones, sin compartir ninguna oración con K85
+> (fila 84) ni con K65 (fila 64).
 
-> ## Alta de `NIIF S2 21(a)` — aplicada en dev el 24 de octubre de 2026 (pendiente de la revisión de IRStrat)
+> ## Alta de `NIIF S2 21(a)` — aplicada en dev el 24 de octubre de 2026; descripción aprobada por Esteban sin cambios
 >
 > Encargo `2026-10-24-deuda-s2-formato`, Fase 2. Migración `20261024120000_catalogo_s2_21a.sql`: **una fila
 > nueva**, con norma, pilar, sección del índice, versión, marco y ODS copiados de `NIIF S2 16(d)`. Su bloque dueño
@@ -47,7 +50,7 @@
 >
 > | Código nuevo | Párrafo | Descripción | Estado |
 > |---|---|---|---|
-> | `NIIF S2 21(a)` | 21(a) | Si la entidad determina, con los criterios de los párrafos 19 y 20, que no necesita proporcionar información cuantitativa sobre los efectos financieros actuales o previstos de un riesgo u oportunidad relacionados con el clima: explicación de por qué no ha proporcionado esa información cuantitativa. | Aplicada en dev; **la descripción espera la revisión de IRStrat (§4)** |
+> | `NIIF S2 21(a)` | 21(a) | Si la entidad determina, con los criterios de los párrafos 19 y 20, que no necesita proporcionar información cuantitativa sobre los efectos financieros actuales o previstos de un riesgo u oportunidad relacionados con el clima: explicación de por qué no ha proporcionado esa información cuantitativa. | Aplicada en dev; **descripción aprobada por Esteban el 24/10 (revisión de IRStrat, §4)** |
 >
 > La descripción es una redacción propia en la terminología de la traducción oficial; no transcribe la norma.
 > Staging: en la Fase 4 del encargo, el día del despliegue v42.

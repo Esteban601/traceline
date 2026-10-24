@@ -143,6 +143,18 @@ export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
   "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, /^emisora\.compromiso_transparencia_limitaciones$/],
 };
 
+/**
+ * Requisitos cuya respuesta debe dar una RAZÓN que está en un hecho concreto
+ * (decisión de Esteban, Fase 3 del encargo deuda-s2-formato): la descripción lo
+ * pide y el validador rechaza la respuesta que no cita ese hecho.
+ */
+export const HECHO_RAZON: Record<string, { clave: RegExp; pide: string }> = {
+  "NIIF S2 21(a)": {
+    clave: /^emisora\.compromiso_transparencia_limitaciones$/,
+    pide: "Da como razón de que no haya información cuantitativa la del hecho sobre las limitaciones que la Compañía reconoce (cuantificar los efectos financieros es una tarea de los próximos periodos), y cita ese hecho.",
+  },
+};
+
 /** NIIF S1 (sin espacios) → código NIIF S2 del catálogo que lo responde en el formato. */
 export const PAR_S2_DE_S1: Map<string, string> = (() => {
   const m = new Map<string, string>();
@@ -237,9 +249,12 @@ export function paraFormatoElectronico(estado: EstadoRespuesta, texto: string | 
   return estado === "pendiente" || !texto ? null : pendienteEnTextoPlano(texto);
 }
 
-/** «No aplica · E5»: no hay sección en el suplemento; se remite al párrafo de NIIF S2 que lo responde. */
+/**
+ * «No aplica · E5»: la oración del alivio y, si hay par de NIIF S2, a cuál remite. Texto aprobado por Esteban
+ * el 24/10/2026 (encargo deuda-s2-formato): sin vocabulario de plataforma (§5).
+ */
 export function textoNoAplicaE5(parS2: string | null): string {
-  return `No aplica. ${ORACION_E5} Sin sección en el suplemento${parS2 ? `; ver ${parS2}` : ""}.`;
+  return parS2 ? `${ORACION_E5} La información correspondiente a este requisito, en lo relativo al clima, se revela conforme a ${parS2}.` : ORACION_E5;
 }
 
 // -----------------------------------------------------------------------------
@@ -340,7 +355,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   }
 
   const codigos = ((catalogo ?? []) as { id: string; codigo: string; descripcion: string }[]).filter((c) => c.codigo.startsWith("NIIF"));
-  const descripcion = new Map(codigos.map((c) => [c.codigo, c.descripcion]));
+  const descripcion = new Map(codigos.map((c) => [c.codigo, HECHO_RAZON[c.codigo] ? `${c.descripcion} ${HECHO_RAZON[c.codigo].pide}` : c.descripcion]));
   const hijosDe = new Map<string, string[]>();
   for (const [hijo, padre] of Object.entries(PADRE_DE)) hijosDe.set(padre, [...(hijosDe.get(padre) ?? []), hijo]);
 
@@ -597,6 +612,9 @@ async function responderBloque(
       }
       const g = aplicarGlosario(s.texto.trim(), ctx.glosario);
       const errores = validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: v.texto, hechos: p.hechos, citados: s.hechos });
+      const razon = HECHO_RAZON[p.codigo];
+      const deLaRazon = razon ? p.hechos.filter((h) => razon.clave.test(ctx.hechos.get(h.id)?.clave ?? "")) : [];
+      if (deLaRazon.length && !deLaRazon.some((h) => s.hechos.includes(h.local))) errores.push(`no da la razón que pide el requisito: debe apoyarse en el hecho ${deLaRazon[0].local} y citarlo`);
       // Conceptos con enfoque del mismo datapoint (97/99): ninguna oración compartida con el anterior.
       const yo = CONCEPTOS_FORMATO_CON_ENFOQUE.find((c) => `fila:${c.fila}` === p.codigo);
       for (const otro of CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => yo && c.codigo === yo.codigo && c.fila < yo.fila)) {
