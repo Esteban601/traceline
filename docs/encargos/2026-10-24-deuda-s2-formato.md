@@ -114,12 +114,19 @@ puede ir al lector externo.
 
 ### Fase 4 · Integración y despliegue (con el OK)
 
-- PR `dev/ajustes-sep26` → `main`, mezclado con el comentario de siempre (CLAUDE.md §2).
-- Esteban corre la migración contra staging con `scripts/despliegue/migrar-remoto.sh` (CLAUDE.md §1).
-- **Despliegue v42**, primero a `traceline-dev`.
-- **Demo v4 en dev:** una sola corrida de regeneración (cerca de 8 USD, §5).
-- **Formato v4:** con la lista de la Fase 1, para el lector externo.
-- **Staging:** se despliega después de la lectura externa, con su registro en la especificación §10.
+En este orden (decisión de Esteban del 24/10):
+
+1. PR `dev/ajustes-sep26` → `main`, mezclado con el comentario de siempre (CLAUDE.md §2).
+2. **Despliegue v42 a `traceline-dev`** (las migraciones ya están en dev desde las Fases 2 y 3).
+3. **Demo v4 en dev:** una sola corrida de regeneración (cerca de 8 USD, §5).
+4. **Formato v4** generado en `traceline-dev`, con la lista de la Fase 1, para el lector externo. **Parada:** lectura
+   externa.
+5. **El día del despliegue a staging, después de la lectura externa:**
+   - foto «antes» en staging (la misma de §6, punto 4);
+   - Esteban corre la migración con `scripts/despliegue/migrar-remoto.sh` (CLAUDE.md §1);
+   - `git push heroku main` (v42);
+   - foto «después», comparada contra la diferencia esperada;
+   - registro en la especificación §10.
 
 ## 3. Qué toca y qué no
 
@@ -135,8 +142,8 @@ puede ir al lector externo.
   - 29B(a) y 29B(b) en el catálogo;
   - la plantilla en Storage: su sha256 no cambia.
 - **Ambientes:**
-  - Fases 1 a 3: código local contra el dev de Esteban (`kmjkoxecxcujxixlxwlb`) en lectura, y el stack local para las
-    migraciones.
+  - Fases 1 a 3: código local contra el dev de Esteban (`kmjkoxecxcujxixlxwlb`). En las Fases 2 y 3 las migraciones
+    de datos se aplican ahí, con foto antes y después. El libro no se copia a local.
   - Fase 4: `traceline-dev` y, después de la lectura externa, staging.
   - Nada contra staging antes de la Fase 4.
 
@@ -152,7 +159,11 @@ puede ir al lector externo.
 - **Validador del Formato:** 23 imágenes enlazadas, 0 «#VALUE!» y 0 celdas K con «[».
 - `tsc` limpio, `eslint` sin errores nuevos, `npm run verify:export` en verde, y e2e `e2e-formato-electronico` y
   `e2e-metricas-instancias` en verde.
+- **Ningún código padre suma con sus incisos** en Cobertura ni en el Excel de taxonomía.
+- **Foto antes y después de cada migración** (dev en las Fases 2 y 3, staging en la Fase 4): la diferencia es
+  exactamente la esperada, escrita antes de correrla.
 - v42 registrado en la especificación §10.
+- Al cerrar el encargo, el worktree `vert-evidencia-dev` vuelve a `dev/ajustes-sep26`.
 
 ## 5. Entregables intermedios
 
@@ -160,8 +171,8 @@ puede ir al lector externo.
 - Fase 1: lista de discrepancias, más K62 y K64. **Parada:** Esteban confirma la lista.
 - Fase 2: correcciones, S2 21(a) y textos de las seis celdas. **Parada:** informe.
 - Fase 3: códigos padre y textos de K59, K65 y K105. **Parada:** informe.
-- Fase 4: PR, v42 en `traceline-dev`, demo v4 y Formato v4 para el lector externo. **Parada:** informe. Staging,
-  después de la lectura.
+- Fase 4: PR, v42 en `traceline-dev`, demo v4 y Formato v4 para el lector externo. **Parada:** lectura externa.
+  Después, staging con la migración y las fotos, el mismo día. **Parada:** informe.
 
 ## 6. Riesgos y dudas conocidas
 
@@ -194,9 +205,25 @@ puede ir al lector externo.
 - **`EI14 a E18`** en el catálogo es «Emisiones de GEI de Alcance 1» (un ejemplo ilustrativo). Al quitarlo de 433 y
   437, verificar que ninguna otra fila lo use para algo distinto del Alcance 1.
 
+### Decisiones de Esteban sobre §6 (24/10)
+
+1. **K100:** se regeneran solo las respuestas del demo v3, no el documento. El costo se registra en §7.
+2. **Pruebas de las Fases 2 y 3:** en el Supabase dev (`kmjkoxecxcujxixlxwlb`), con la migración aditiva de datos
+   aplicada ahí. El libro no se copia a local.
+3. **Fase 4:** la migración contra staging la corre Esteban el mismo día del despliegue v42 a staging, después de la
+   lectura externa del Formato v4 generado en `traceline-dev` (§2, Fase 4, reescrita).
+4. **Sin copia de staging, pero con foto.**
+   - Antes de cada migración en dev se guarda el conteo de solicitudes y de Cobertura por emisora y por código.
+   - Antes de correrla se escribe la diferencia esperada: qué códigos aparecen, en cuántas emisoras y con qué estado.
+   - Después se compara y se entrega la diferencia.
+   - El mismo par de fotos se hace en staging en la Fase 4.
+   - Si en dev aparece cualquier diferencia no prevista, el encargo pasa a ensayo en copia de staging antes de seguir.
+
 ## 7. Registro
 
 | Fecha | Qué pasó | Decisión |
 |---|---|---|
 | 2026-10-24 | Paso 0 de lectura de los seis códigos (sin código). Demo v3 = documento `99992cd3` en dev. Errores fuera de los seis: 433/437 → `NIIF S2 EI14 a E18` (Alcance 1), 390 → 13(a), 84/91 → S1 40(a). `normas/` tiene NIIF S2 de junio de 2023, sin 29A–29C | — |
 | 2026-10-24 | Encargo escrito | Orden: mapeo y 21(a); luego 22, 14(a) y 13. **S2 28 cerrada sin alta**: párrafo que solo remite (28(a) → 29–31, (b) → 32, (c) → 33–37), resuelto por la iteración de `lib/formato/metricas.ts`. **S2 29B(a) pospuesta** hasta que `normas/` tenga la modificación de 2025 |
+| 2026-10-24 | Paso 0 aprobado | Respuestas a §6 registradas arriba. Fase 4 reescrita. Se agregan a §4: ningún padre suma con sus incisos, fotos antes y después de cada migración, y el worktree de vuelta a `dev/ajustes-sep26` al cerrar |
+| 2026-10-24 | **Fase 1.** `scripts/formato/auditar-mapeo.mjs` (lectura; plantilla 2025 contra el JSON, con el demo v3 `99992cd3` en dev). 262 filas con datapoint: 201 iguales, 8 parciales, 16 con datapoint más general, 12 S1→S2 sin juzgar y 25 distintas. Errores reales del mapeo: 91, 390 (y 391/392), 433, 437, 462/463 y 488; 329 mal clasificada. La 84 no sale como distinta: su columna G («S1 36-40») contiene el 40. Las demás distintas son erratas de la columna A de la plantilla, ruido de la 2.ª pasada o la deuda 29C | Detenido para que Esteban confirme la lista |
