@@ -28,6 +28,23 @@ export const PADRE_DE: Record<string, string> = {
   "NIIF S2 36 (e)(ii)": "NIIF S2 36 (e)(i)a(iv)",
   "NIIF S2 36 (e)(iii)": "NIIF S2 36 (e)(i)a(iv)",
   "NIIF S2 36 (e)(iv)": "NIIF S2 36 (e)(i)a(iv)",
+  // Padres de la Fase 3 del encargo 2026-10-24-deuda-s2-formato (migración 20261024130000_catalogo_padres_fase3).
+  "NIIF S2 13(a)": "NIIF S2 13 (a)a(b)",
+  "NIIF S2 13(b)": "NIIF S2 13 (a)a(b)",
+  "NIIF S2 14(a)(i)": "NIIF S2 14 (a)(i)a(v)",
+  "NIIF S2 14(a)(ii)": "NIIF S2 14 (a)(i)a(v)",
+  "NIIF S2 14(a)(iii)": "NIIF S2 14 (a)(i)a(v)",
+  "NIIF S2 14(a)(iv)": "NIIF S2 14 (a)(i)a(v)",
+  "NIIF S2 14(a)(v)": "NIIF S2 14 (a)(i)a(v)",
+  "NIIF S2 16(b)": "NIIF S2 16 (b)a(d)",
+  "NIIF S2 16(c)(i)(ii)": "NIIF S2 16 (b)a(d)",
+  "NIIF S2 16(d)": "NIIF S2 16 (b)a(d)",
+  "NIIF S2 22(a)(i)": "NIIF S2 22 (a)a(b)",
+  "NIIF S2 22(a)(ii)": "NIIF S2 22 (a)a(b)",
+  "NIIF S2 22(a)(iii)": "NIIF S2 22 (a)a(b)",
+  "NIIF S2 22(b)(i)": "NIIF S2 22 (a)a(b)",
+  "NIIF S2 22(b)(ii)": "NIIF S2 22 (a)a(b)",
+  "NIIF S2 22(b)(iii)": "NIIF S2 22 (a)a(b)",
 };
 
 export const padreDe = (codigo: string): string | null => PADRE_DE[codigo] ?? null;

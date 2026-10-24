@@ -30,6 +30,7 @@ import ExcelJS from "exceljs";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { celdasConCorchete, opcionesDeListas, validarImagenesEnCelda } from "../lib/formato/xlsx-xml.ts";
+import { primeraPersonaPlural } from "../lib/suplemento/respuestas.ts";
 
 const BASE = process.argv[2] || "http://localhost:3016";
 const URL_SB = "http://127.0.0.1:54321";
@@ -141,6 +142,8 @@ try {
     const ks = [...est.matchAll(/<c r="K(\d+)"[^>]*><is><t[^>]*>([\s\S]*?)<\/t><\/is>/g)].map((m) => desescapar(m[2]));
     const opciones = opcionesDeListas(await z.file("xl/sharedStrings.xml").async("string"));
     ok(celdasConCorchete(est, "K", opciones).length === 0 && !ks.some((t) => /\[Pendiente/.test(t)), "ninguna celda K con «[Pendiente» ni con «[» fuera de una opción de lista del formato");
+    ok(!ks.some((t) => /suplemento|solicitud|evidencia|IRStrat/i.test(t)), "ninguna celda K con vocabulario de plataforma (suplemento, solicitud, evidencia, IRStrat)");
+    ok(!ks.some((t) => primeraPersonaPlural(t).length), "ninguna celda K en primera persona del plural (tercera persona, «la Compañía»)");
     const libro = await z.file("xl/workbook.xml").async("string");
     ok(/<sheet name="Leyenda"/.test(libro) && /<sheet name="Métricas SASB"/.test(libro), "hojas «Leyenda» y «Métricas SASB»");
     let menciones = 0;

@@ -18,6 +18,7 @@ import {
   remision,
   sinRemision,
   textoNoAplicaE5,
+  primeraPersonaPlural,
   ORACION_E5,
   respuestaDeCaptura,
   textoNoAplicaHeredado,
@@ -69,6 +70,8 @@ ok(PAR_S2_DE_S1.get("niifs127(a)") === "NIIF S2 6 (a)", "par S1→S2 del mapeo: 
 console.log("\n3. Revisión externa del Excel (especificación 0.41)");
 ok(pendienteEnTextoPlano("[Pendiente: dato X — solicitud Y]") === "Pendiente: dato X — solicitud Y", "el pendiente sale en texto plano para el Excel");
 ok(paraFormatoElectronico("pendiente", "[Pendiente: dato X — solicitud Y]") === null && paraFormatoElectronico("respuesta", "Texto.") === "Texto.", "en el Formato electrónico, un pendiente deja la celda vacía");
+ok(["La cuantificación es una tarea que iremos completando.", "Nos comprometemos a reportar.", "Nuestra cartera creció.", "Hemos reducido emisiones.", "Reportaremos los avances."].every((t) => primeraPersonaPlural(t).length > 0), "voz: detecta la primera persona del plural (iremos, nos comprometemos, nuestra, hemos, reportaremos)");
+ok(["La Compañía reconoce que completará la medición.", "Los eventos extremos y los mínimos regulatorios.", "Los últimos años y los próximos periodos.", "La Compañía se compromete a reportar."].every((t) => primeraPersonaPlural(t).length === 0), "voz: no confunde tercera persona ni palabras como «extremos», «mínimos» o «próximos»");
 ok(textoNoAplicaE5("NIIF S2 6 (a)").endsWith("en lo relativo al clima, se revela conforme a NIIF S2 6 (a).") && textoNoAplicaE5(null) === ORACION_E5 && !/suplemento|solicitud|evidencia|IRStrat/i.test(textoNoAplicaE5("NIIF S2 6 (a)")), "«No aplica · E5»: la oración E5 y el par de NIIF S2, sin vocabulario de plataforma");
 const num = numeracionConsecutiva([21, 19, 15, 33, 19]);
 ok(num.get(15) === 1 && num.get(19) === 2 && num.get(21) === 3 && num.get(33) === 4, "numeración consecutiva: 15, 19, 21, 33 → 1, 2, 3, 4");

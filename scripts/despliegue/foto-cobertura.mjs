@@ -17,11 +17,19 @@
 // ("cambio": "nuevo" | "quitado" | "cambia"; "emisoras": "todas" o un número).
 // Cualquier diferencia que no esté en el esperado es «no prevista» y la
 // comparación sale con código 1 (el encargo pasa a ensayo en copia de staging).
+//
+// Totales y porcentajes por emisora (catálogo NIIF, como los KPI de Cobertura),
+// de dos formas: «todos» (cuenta cada fila del catálogo: así cuenta v41) y «sin
+// padres» (los códigos padre de PADRE_DE no cuentan: así cuenta v42, decisión (a)
+// del encargo). La comparación exige que los totales «sin padres» de después sean
+// los «todos» de antes menos los padres que existían y más los códigos nuevos que
+// no son padre, emisora por emisora.
 // La llave (SUPABASE_SERVICE_ROLE_KEY) y la URL no se imprimen.
 // =============================================================================
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import { coberturaDe } from "../../lib/cobertura.ts";
+import { PADRE_DE } from "../../lib/suplemento/catalogo-incisos.ts";
 
 const args = process.argv.slice(2);
 const arg = (n) => { const i = args.indexOf(n); return i === -1 ? null : args[i + 1]; };
@@ -56,7 +64,7 @@ const todo = async (tabla, campos, orden = "id") => {
   }
 };
 const [dps, tenants, reportes, sols, mapeo] = await Promise.all([
-  todo("datapoints_taxonomia", "id, codigo, version_taxonomia, activo"),
+  todo("datapoints_taxonomia", "id, codigo, marco, version_taxonomia, activo"),
   todo("tenants", "id, nombre"),
   todo("reportes", "id, tenant_id"),
   todo("solicitudes", "id, reporte_id, estado, declinada, desactivada"),
@@ -65,7 +73,14 @@ const [dps, tenants, reportes, sols, mapeo] = await Promise.all([
 const catalogo = dps.filter((d) => d.version_taxonomia === "2025");
 const tenantDeReporte = new Map(reportes.map((r) => [r.id, r.tenant_id]));
 const solPorId = new Map(sols.map((s) => [s.id, s]));
-const foto = { destino, tomada: new Date().toISOString(), catalogo: catalogo.length, mapeo: mapeo.length, solicitudes: sols.length, emisoras: {} };
+const PADRES = [...new Set(Object.values(PADRE_DE))].filter((p) => catalogo.some((d) => d.codigo === p));
+const foto = { destino, tomada: new Date().toISOString(), catalogo: catalogo.length, mapeo: mapeo.length, solicitudes: sols.length, padres: PADRES, emisoras: {}, totales: {} };
+const totalesDe = (porCodigo, sinPadres) => {
+  const cods = catalogo.filter((d) => d.marco === "NIIF" && !(sinPadres && PADRES.includes(d.codigo))).map((d) => d.codigo);
+  const dist = { cubierto: 0, parcial: 0, sin_evidencia: 0, sin_solicitud: 0 };
+  for (const c of cods) dist[porCodigo[c].cobertura]++;
+  return { n: cods.length, dist, pct: Object.fromEntries(Object.entries(dist).map(([k, v]) => [k, cods.length ? Math.round((v / cods.length) * 100) : 0])) };
+};
 for (const t of tenants) {
   const porCodigo = {};
   for (const d of catalogo) {
@@ -74,6 +89,7 @@ for (const t of tenants) {
     porCodigo[d.codigo] = { solicitudes: ligadas.length, vivas: vivas.length, cobertura: coberturaDe(vivas.map((s) => s.estado)), activo: d.activo };
   }
   foto.emisoras[t.nombre] = porCodigo;
+  foto.totales[t.nombre] = { todos: totalesDe(porCodigo, false), sinPadres: totalesDe(porCodigo, true) };
 }
 fs.writeFileSync(salida, JSON.stringify(foto, null, 1));
 console.log(`Foto de ${destino}: ${tenants.length} emisoras × ${catalogo.length} códigos del catálogo 2025 · ${sols.length} solicitudes · ${mapeo.length} enlaces → ${salida}`);
@@ -106,6 +122,23 @@ function comparar(antes, despues, esperado) {
     if (!ok) noPrevistas.push(k);
   }
   for (const e of esperado) if (!porCodigo.has(`${e.codigo}|${e.cambio}`)) { console.log(`✗ ${e.codigo} · ${e.cambio}: esperado y no apareció`); noPrevistas.push(e.codigo); }
+  // Totales por emisora: «todos» de antes (v41) → «sin padres» de después (v42).
+  if (antes.totales && despues.totales) {
+    console.log("\nTotales NIIF por emisora · antes (cuenta todo, v41) → después (sin padres, v42):");
+    const fmt = (t) => `${t.n} · ${Object.entries(t.dist).map(([k, v]) => `${k} ${v} (${t.pct[k]} %)`).join(", ")}`;
+    for (const e of emisoras) {
+      const a = antes.totales[e]?.todos, d = despues.totales[e]?.sinPadres;
+      if (!a || !d) continue;
+      const esperadoDist = { ...a.dist };
+      let n = a.n;
+      const enAntes = antes.emisoras[e] ?? {}, enDespues = despues.emisoras[e] ?? {};
+      for (const c of despues.padres) if (enAntes[c] && /^NIIF/.test(c)) { esperadoDist[enAntes[c].cobertura]--; n--; }
+      for (const c of Object.keys(enDespues)) if (!enAntes[c] && /^NIIF/.test(c) && !despues.padres.includes(c)) { esperadoDist[enDespues[c].cobertura]++; n++; }
+      const ok = n === d.n && Object.keys(esperadoDist).every((k) => esperadoDist[k] === d.dist[k]);
+      console.log(`${ok ? "✓" : "✗"} ${e}\n    antes:   ${fmt(a)}\n    después: ${fmt(d)}${ok ? "" : `\n    esperado: ${n} · ${JSON.stringify(esperadoDist)} (NO PREVISTO)`}`);
+      if (!ok) noPrevistas.push(`totales ${e}`);
+    }
+  }
   if (antes.solicitudes !== despues.solicitudes || antes.mapeo !== despues.mapeo) console.log(`· solicitudes ${antes.solicitudes} → ${despues.solicitudes}, enlaces ${antes.mapeo} → ${despues.mapeo}`);
   console.log(noPrevistas.length ? `\n✗ ${noPrevistas.length} diferencia(s) no prevista(s): el encargo pasa a ensayo en copia de staging.` : `\n✓ La diferencia es exactamente la esperada (${difs.length} celdas emisora × código).`);
   return noPrevistas.length ? 1 : 0;
