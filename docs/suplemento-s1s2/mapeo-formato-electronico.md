@@ -7,13 +7,13 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 ## Resumen
 
 - Filas en alcance: **370** (secciones [100000]–[211300] y [901000]; [8xxxxx] SASB fuera, Fase C).
-- Clasificación: encabezado 44 · concepto 256 · subconcepto 58 · encabezado narrativo 7 · fuera de alcance (SASB, Fase C) 2 · miembro de tabla 3.
-- Capa que resolvió: — 49 · regla fija 11 · Perfil 20 · 3 · revisión (S1→S2) 44 · 3 · revisión 11 · 1 · fuente 165 · 3 · revisión (tabla) 9 · 2 · etiqueta 29 · 1 · correspondencia S1→S2 17 · 3 · revisión (regla) 5 · regla primer año 8 · sin candidato 2.
-- Confianza: — 52 · alta 316 · media 2.
-- Con datapoint propuesto: 262; con bloque dueño: 265.
+- Clasificación: encabezado 45 · concepto 256 · subconcepto 57 · encabezado narrativo 7 · fuera de alcance (SASB, Fase C) 2 · miembro de tabla 3.
+- Capa que resolvió: — 50 · regla fija 11 · Perfil 20 · 3 · revisión (S1→S2) 46 · 3 · revisión 11 · 1 · fuente 164 · 3 · revisión (tabla) 9 · 1 · correspondencia S1→S2 17 · 3 · revisión (regla) 5 · regla primer año 8 · 2 · etiqueta 23 · sin candidato 6.
+- Confianza: — 57 · alta 311 · media 2.
+- Con datapoint propuesto: 255; con bloque dueño: 264.
 
 - Revisión de Esteban (`mapeo-revision.xlsx`): (sin decisión) 222 · regla fija 11 · subconcepto 1 · Perfil o reporte 6 · regla S1→S2 43 · encabezado narrativo 4 · confirmada 6 · tabla 8 · encabezado 39 · regla 5 · datapoint y bloque 7 · primer año 8 · corrección de Ref 1 · sector financiero 4 · confirmada (sector financiero) 3 · fuera de alcance 2. No interpretadas: ninguna.
-- Llevan la oración fija del alivio E5: 88.
+- Llevan la oración fija del alivio E5: 91.
 
 ## Conceptos
 
@@ -61,9 +61,9 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 57 | 200000 | text block | concepto | NIIF S1 30 (c); NIIF S2 10 (d); NIIF S1 31 | NIIF S2 10(d) | 3 · revisión (S1→S2) | alta | 8 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 8 aprobado y los hechos de NIIF S2 10(d) · lleva la oración fija del alivio E5 |
 | 59 | 200000 | text | concepto | NIIF S1 32; NIIF S2 13; NIIF S2 23 | — | 3 · revisión (S1→S2) | media | 13 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 13 aprobado; datapoint por decidir · lleva la oración fija del alivio E5 (NIIF S2 13 → sin código propio; sus 2 incisos son del bloque 13) |
 | 60 | 200000 | text block | concepto | NIIF S1 32 (a); NIIF S2 13 (a) | NIIF S2 13(a) | 3 · revisión (S1→S2) | alta | 13 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(a) · lleva la oración fija del alivio E5 |
-| 62 | 200000 | text block | concepto | NIIF S1 32 (b); NIIF S2 13 (b) | NIIF S2 13(b) | 3 · revisión (S1→S2) | alta | 13 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(b) · lleva la oración fija del alivio E5 |
+| 62 | 200000 | text block | concepto | NIIF S1 32 (b); NIIF S2 13 (b) | NIIF S2 13(b) | 3 · revisión (S1→S2) | alta | 13 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(b), más la concentración por código desde registros_clima (una línea por riesgo) · lleva la oración fija del alivio E5 |
 | 63 | 200000 | (sin tipo) | concepto | NIIF S1 32 (b); NIIF S2 13 (b) | NIIF S2 13(b) | 3 · revisión (S1→S2) | alta | 13 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(b) · lleva la oración fija del alivio E5 |
-| 64 | 200000 | text | concepto | NIIF S1 33; NIIF S2 14; NIIF S2 23 | — | 3 · revisión (S1→S2) | — | — | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Sin datapoint en el catálogo: «Pendiente» (NIIF S2 14(a) no existe en el catálogo) |
+| 64 | 200000 | text | concepto | NIIF S1 33; NIIF S2 14; NIIF S2 23 | — | 3 · revisión (S1→S2) | — | 22 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 22 aprobado: texto general de NIIF S2 14 hasta el código padre (Fase 3) · lleva la oración fija del alivio E5 (NIIF S2 14(a) no existe en el catálogo) |
 | 65 | 200000 | text block | concepto | NIIF S1 33 (a); NIIF S2 14 (a) | NIIF S2 14(a)(i) | 1 · fuente | alta | 22 | sí |  | Modelo, desde el bloque 22 aprobado y los hechos de NIIF S2 14(a)(i) · lleva la oración fija del alivio E5 (5 códigos del párrafo; elegido por la etiqueta) |
 | 67 | 200000 | text block | concepto | NIIF S2 14 (a)(i) | NIIF S2 14(a)(i) | 1 · fuente | alta | 22 |  |  | Modelo, desde el bloque 22 aprobado y los hechos de NIIF S2 14(a)(i) |
 | 68 | 200000 | (sin tipo) | subconcepto de la fila 67 | — | NIIF S2 14(a)(i) | 1 · fuente | alta | 22 |  |  | Se responde junto con la fila 67 (text block) |
@@ -78,14 +78,14 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 81 | 200000 | text block | concepto | NIIF S1 33 (c) | NIIF S1 33(c) | 1 · fuente | alta | — |  |  | Sin bloque dueño para NIIF S1 33(c): «Pendiente» |
 | 82 | 200000 | (sin tipo) | subconcepto de la fila 81 | — | NIIF S1 33(c) | 1 · fuente | alta | — |  |  | Se responde junto con la fila 81 (text block) |
 | 83 | 200000 | text | encabezado narrativo | NIIF S1 34; NIIF S2 15; NIIF S2 23 | — | 3 · revisión | alta | 10 |  | encabezado narrativo (asesor (aceptada por Esteban)) | Párrafo introductorio desde el bloque 10 aprobado |
-| 84 | 200000 | text | concepto | NIIF S1 36; NIIF S1 40 | NIIF S1 40(a) | 1 · fuente | alta | — |  |  | Sin bloque dueño para NIIF S1 40(a): «Pendiente» |
+| 84 | 200000 | text | concepto | NIIF S1 34; NIIF S2 15; NIIF S2 16 (a); NIIF S2 16 (b) | — | 3 · revisión (S1→S2) | alta | 10 | sí |  | Modelo, desde el bloque 10 aprobado: efectos financieros actuales (NIIF S2 15 y 16(a)–(b)); código padre en la Fase 3 · lleva la oración fija del alivio E5 (la plantilla cita NIIF S1 36-40 en la columna G) |
 | 85 | 200000 | text block | concepto | NIIF S1 35 (a); NIIF S2 16 (a); NIIF S1 36; NIIF S1 40 | NIIF S2 16(a) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(a) · lleva la oración fija del alivio E5 |
 | 86 | 200000 | (sin tipo) | concepto | NIIF S1 35 (a); NIIF S2 16 (a); NIIF S1 36; NIIF S1 40 | NIIF S2 16(a) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(a) · lleva la oración fija del alivio E5 |
 | 87 | 200000 | text block | concepto | NIIF S1 35 (a); NIIF S2 16 (a); NIIF S1 36; NIIF S1 40 | NIIF S2 16(a) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(a) · lleva la oración fija del alivio E5 |
 | 88 | 200000 | (sin tipo) | concepto | NIIF S1 35 (a); NIIF S2 16 (a); NIIF S1 36; NIIF S1 40 | NIIF S2 16(a) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(a) · lleva la oración fija del alivio E5 |
 | 89 | 200000 | text block | concepto | NIIF S1 35 (a); NIIF S2 16 (a); NIIF S1 36; NIIF S1 40 | NIIF S2 16(a) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(a) · lleva la oración fija del alivio E5 |
 | 90 | 200000 | (sin tipo) | concepto | NIIF S1 35 (a); NIIF S2 16 (a); NIIF S1 36; NIIF S1 40 | NIIF S2 16(a) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(a) · lleva la oración fija del alivio E5 |
-| 91 | 200000 | text | concepto | NIIF S1 36; NIIF S1 40 | NIIF S1 40(a) | 1 · fuente | alta | — |  |  | Sin bloque dueño para NIIF S1 40(a): «Pendiente» |
+| 91 | 200000 | text | concepto | NIIF S1 34; NIIF S2 15; NIIF S2 16 (c); NIIF S2 16 (d) | — | 3 · revisión (S1→S2) | alta | 10 | sí |  | Modelo, desde el bloque 10 aprobado: efectos financieros previstos (NIIF S2 15 y 16(c)–(d)); código padre en la Fase 3 · lleva la oración fija del alivio E5 (la plantilla no cita párrafo en las columnas A ni G) |
 | 92 | 200000 | text block | concepto | NIIF S1 35 (b); NIIF S2 16 (b); NIIF S1 36; NIIF S1 40 | NIIF S2 16(b) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(b) · lleva la oración fija del alivio E5 |
 | 93 | 200000 | (sin tipo) | subconcepto de la fila 92 | NIIF S1 36; NIIF S1 40 | NIIF S2 16(b) | 3 · revisión (S1→S2) | alta | 10 | sí |  | Se responde junto con la fila 92 (text block) |
 | 94 | 200000 | text | concepto | NIIF S1 35 (c)(i)(ii); NIIF S2 16 (c)(i)(ii); NIIF S1 36; NIIF S1 40 | NIIF S2 16(c)(i)(ii) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(c)(i)(ii) · lleva la oración fija del alivio E5 (NIIF S2 16(c) → único inciso «NIIF S2 16(c)(i)(ii)») |
@@ -94,7 +94,7 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 97 | 200000 | tabla | concepto | NIIF S1 35 (d); NIIF S2 16 (d); NIIF S1 36; NIIF S1 40 | NIIF S2 16(d) | 3 · revisión (tabla) | alta | 10 | sí | tabla (asesor (aceptada por Esteban)) | Tabla TE: tres hechos (corto/mediano/largo) de S2 16(d) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
 | 98 | 200000 | text | concepto | NIIF S1 35 (d); NIIF S2 16 (d); NIIF S1 36; NIIF S1 40 | NIIF S2 16(d) | 3 · revisión (S1→S2) | alta | 10 | sí | regla S1→S2 (asesor (aceptada por Esteban)) | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 16(d) · lleva la oración fija del alivio E5 |
 | 99 | 200000 | tabla | concepto | NIIF S1 35 (d); NIIF S2 16 (d); NIIF S1 36; NIIF S1 40 | NIIF S2 16(d) | 3 · revisión (tabla) | alta | 10 | sí | tabla (asesor (aceptada por Esteban)) | Tabla TE: tres hechos (corto/mediano/largo) de S2 16(d) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
-| 100 | 200000 | text block | concepto | NIIF S1 40; NIIF S2 21; NIIF S1 36 | NIIF S1 40(a) | 2 · etiqueta | alta | — |  |  | Sin bloque dueño para NIIF S1 40(a): «Pendiente» |
+| 100 | 200000 | text block | concepto | NIIF S1 40; NIIF S2 21; NIIF S1 36 | NIIF S2 21(a) | 1 · fuente | alta | 10 | sí |  | Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 21(a) · lleva la oración fija del alivio E5 |
 | 102 | 200000 | (sin tipo) | encabezado | — | — | — | — | — |  | encabezado (asesor (aceptada por Esteban)) | Sin respuesta (encabezado) |
 | 103 | 200000 | text block | concepto | NIIF S1 41; NIIF S1 42 | — | 1 · correspondencia S1→S2 | media | 26 | sí |  | Modelo, desde el bloque 26 aprobado (incisos de NIIF S2 22); datapoint por decidir · lleva la oración fija del alivio E5 (NIIF S2 22 → sin código propio; sus 6 incisos son del bloque 26) |
 | 105 | 200000 | text | concepto | NIIF S2 22; NIIF S2 B1; NIIF S2 B18 | NIIF S2 22(a)(ii) | 1 · fuente | alta | 26 |  | confirmada (asesor (aceptada por Esteban)) | Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(a)(ii) (6 códigos del párrafo; elegido por la etiqueta) |
@@ -257,7 +257,7 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 326 | 210000 | (sin tipo) | encabezado | — | — | — | — | — |  | encabezado (asesor (aceptada por Esteban)) | Sin respuesta (encabezado) |
 | 327 | 210000 | text block | concepto | — | NIIF S2 EI14 a E18 | 2 · etiqueta | alta | 29 |  |  | Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18 |
 | 328 | 210000 | (sin tipo) | subconcepto de la fila 327 | — | NIIF S2 EI14 a E18 | 2 · etiqueta | alta | 29 |  |  | Se responde junto con la fila 327 (text block) |
-| 329 | 210000 | (sin tipo) | subconcepto de la fila 327 | NIIF S2 29 (a)(v); NIIF S2 B30; NIIF S2 B31 | NIIF S2 EI14 a E18 | 2 · etiqueta | alta | 29 |  |  | Se responde junto con la fila 327 (text block) |
+| 329 | 210000 | (sin tipo) | encabezado | NIIF S2 29 (a)(v); NIIF S2 B30; NIIF S2 B31 | — | — | — | — |  |  | Sin respuesta (encabezado) |
 | 330 | 210000 | text block | concepto | NIIF S2 29 (a)(v); NIIF S2 B30; NIIF S2 B31 | NIIF S2 29 (a)(v) | 1 · fuente | alta | 32 |  |  | Modelo, desde el bloque 32 aprobado y los hechos de NIIF S2 29 (a)(v) |
 | 332 | 210000 | text block | concepto | NIIF S2 29 (a)(v); NIIF S2 B30; NIIF S2 B31 | NIIF S2 29 (a)(v) | 1 · fuente | alta | 32 |  |  | Modelo, desde el bloque 32 aprobado y los hechos de NIIF S2 29 (a)(v) |
 | 334 | 210000 | text | concepto | NIIF S2 29 (a)(vi)(1); NIIF S2 B32; NIIF S2 B57 | NIIF S2 29 (a)(vi)(1) | 1 · fuente | alta | 33 |  |  | Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(1) |
@@ -301,9 +301,9 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 386 | 210000 | (sin tipo) | subconcepto de la fila 384 | NIIF S2 29 (c); NIIF S2 B64; NIIF S2 B65 (d) | NIIF S2 29 (c) | 1 · fuente | alta | 35 |  |  | Se responde junto con la fila 384 (text block) |
 | 387 | 210000 | enumeración valor unico | concepto | NIIF S2 29 (c); NIIF S2 B64; NIIF S2 B65 (d) | NIIF S2 29 (c) | 1 · fuente | alta | 35 |  |  | Valor de la lista desde el Perfil o el hecho de NIIF S2 29 (c) |
 | 388 | 210000 | (sin tipo) | subconcepto de la fila 387 | NIIF S2 29 (c); NIIF S2 B64; NIIF S2 B65 (e) | NIIF S2 29 (c) | 1 · fuente | alta | 35 |  |  | Se responde junto con la fila 387 (enumeración valor unico) |
-| 390 | 210000 | text block | encabezado narrativo | — | NIIF S2 13(a) | 2 · etiqueta | alta | 36 |  | confirmada (asesor (aceptada por Esteban)) | Párrafo introductorio desde el bloque 36 aprobado |
-| 391 | 210000 | (sin tipo) | subconcepto de la fila 390 | NIIF S2 29 (b) | NIIF S2 13(a) | 2 · etiqueta | alta | 36 |  |  | Se responde junto con la fila 390 (text block) |
-| 392 | 210000 | (sin tipo) | subconcepto de la fila 390 | — | NIIF S2 13(a) | 2 · etiqueta | alta | 36 |  |  | Se responde junto con la fila 390 (text block) |
+| 390 | 210000 | text block | encabezado narrativo | — | NIIF S2 29 (d) · B65 (b) | 2 · etiqueta | alta | 36 |  | confirmada (asesor (aceptada por Esteban)) | Párrafo introductorio desde el bloque 36 aprobado (NIIF S2 29(d); la columna A de la fila 391 dice 29(b), errata de la plantilla) |
+| 391 | 210000 | (sin tipo) | subconcepto de la fila 390 | NIIF S2 29 (b) | NIIF S2 29 (d) · B65 (b) | 2 · etiqueta | alta | 36 |  |  | Se responde junto con la fila 390 (text block) |
+| 392 | 210000 | (sin tipo) | subconcepto de la fila 390 | — | NIIF S2 29 (d) · B65 (b) | 2 · etiqueta | alta | 36 |  |  | Se responde junto con la fila 390 (text block) |
 | 393 | 210000 | tabla | concepto | NIIF S2 29 (d); NIIF S2 B64; NIIF S2 B65 (a) | NIIF S2 29 (d) | 1 · fuente | alta | 36 |  |  | Tabla desde registros de clima u objetivos (NIIF S2 29 (d)) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
 | 394 | 210000 | text block | concepto | NIIF S2 29 (d) | NIIF S2 29 (d) | 1 · fuente | alta | 36 |  |  | Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) |
 | 396 | 210000 | text block | concepto | NIIF S2 29 (e) | NIIF S2 29 (e) | 1 · fuente | alta | 36 |  |  | Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (e) |
@@ -331,10 +331,10 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 428 | 210000 | text block | concepto | NIIF S2 29 (g)(i) | NIIF S2 29 (g) (i) y (ii) | 3 · revisión | alta | 37 |  | datapoint y bloque (asesor (aceptada por Esteban)) | S2 29(g)(i) · bloque 37 (NIIF S2 29(g)(i) → nombre combinado «NIIF S2 29 (g) (i) y (ii)») |
 | 430 | 210000 | text block | concepto | NIIF S2 29 (g)(i) | NIIF S2 29 (g) (i) y (ii) | 1 · fuente | alta | 37 |  |  | Modelo, desde el bloque 37 aprobado y los hechos de NIIF S2 29 (g) (i) y (ii) |
 | 432 | 210000 | (sin tipo) | encabezado | NIIF S2 29A | — | — | — | — |  | encabezado (asesor (aceptada por Esteban)) | Sin respuesta (encabezado) |
-| 433 | 210000 | booleano | concepto | NIIF S2 29B | NIIF S2 EI14 a E18 | 2 · etiqueta | alta | 29 |  |  | Sí/No desde un hecho o declaración negativa de NIIF S2 EI14 a E18 |
+| 433 | 210000 | booleano | concepto | NIIF S2 29B | — | sin candidato | — | — |  |  | Con el alivio C4, «No revelado · alivio C4» (regla de la fila 435); sin C4, «Pendiente» hasta ampliar el catálogo (NIIF S2 29B no existe en el catálogo · deuda de la modificación de 2025 de NIIF S2 (docs/suplemento-s1s2/ampliacion-catalogo.md)) |
 | 435 | 210000 | text block | concepto | NIIF S2 29B (a) | — | sin candidato | — | — |  | sector financiero (asesor (aceptada por Esteban)) | Solo sector financiero (Perfil); si no, «No aplica». Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo (NIIF S2 29B(a) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)) |
 | 436 | 210000 | (sin tipo) | subconcepto de la fila 435 | — | — | sin candidato | — | — |  | sector financiero (asesor (aceptada por Esteban)) | Solo sector financiero (Perfil); si no, «No aplica». Se responde junto con la fila 435 (text block) (NIIF S2 29B(a) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)) |
-| 437 | 210000 | text block | concepto | NIIF S2 29B (b) | NIIF S2 EI14 a E18 | 2 · etiqueta | alta | 29 |  |  | Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18 |
+| 437 | 210000 | text block | concepto | NIIF S2 29B (b) | — | sin candidato | — | — |  |  | Con el alivio C4, «No revelado · alivio C4» (regla de la fila 435); sin C4, «Pendiente» hasta ampliar el catálogo (NIIF S2 29B(b) no existe en el catálogo · deuda de la modificación de 2025 de NIIF S2 (docs/suplemento-s1s2/ampliacion-catalogo.md)) |
 | 439 | 210000 | text block | concepto | NIIF S2 29C | NIIF S2 29 (a)(vi)(2) | 2 · etiqueta | alta | 33 |  | sector financiero (asesor (aceptada por Esteban)) | Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) |
 | 441 | 210000 | text block | concepto | NIIF S2 29C | NIIF S2 29 (a)(vi)(2) | 2 · etiqueta | alta | 33 |  | sector financiero (asesor (aceptada por Esteban)) | Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) |
 | 443 | 210000 | text block | concepto | NIIF S2 32 | NIIF S2 32 | 1 · fuente | alta | 4 |  |  | Modelo, desde el bloque 4 aprobado y los hechos de NIIF S2 32 |
@@ -352,8 +352,8 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 458 | 211100 | text block | concepto | NIIF S2 29 (a)(vi)(2); NIIF S2 B61 (c); NIIF S2 32 | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  | confirmada (sector financiero) (asesor (aceptada por Esteban)) | Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) (2 códigos del párrafo; elegido por la etiqueta) |
 | 459 | 211100 | (sin tipo) | subconcepto de la fila 458 | NIIF S2 29 (a)(vi)(2); NIIF S2 B61 (c); NIIF S2 32 | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Se responde junto con la fila 458 (text block) |
 | 460 | 211100 | text block | concepto | NIIF S2 29 (a)(vi)(2); NIIF S2 B61 (d) | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) |
-| 462 | 211100 | text block | concepto | — | NIIF S2 29 (a)(iv) EI5 | 2 · etiqueta | alta | 31 |  | confirmada (sector financiero) (asesor (aceptada por Esteban)) | Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 31 aprobado y los hechos de NIIF S2 29 (a)(iv) EI5 |
-| 463 | 211100 | (sin tipo) | subconcepto de la fila 462 | — | NIIF S2 29 (a)(iv) EI5 | 2 · etiqueta | alta | 31 |  |  | Se responde junto con la fila 462 (text block) |
+| 462 | 211100 | text block | concepto | — | — | sin candidato | — | — |  | confirmada (sector financiero) (asesor (aceptada por Esteban)) | Solo emisoras con gestión de activos (Perfil); si no, «No aplica por actividad». Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo (NIIF S2 EI25 a EI38 (desagregación de las emisiones financiadas por clase de activo) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)) |
+| 463 | 211100 | (sin tipo) | subconcepto de la fila 462 | — | — | sin candidato | — | — |  |  | Solo emisoras con gestión de activos (Perfil); si no, «No aplica por actividad». Se responde junto con la fila 462 (text block) (NIIF S2 EI25 a EI38 (desagregación de las emisiones financiadas por clase de activo) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)) |
 | 466 | 211200 | (sin tipo) | encabezado | — | — | — | — | — |  | encabezado (asesor (aceptada por Esteban)) | Sin respuesta (encabezado) |
 | 467 | 211200 | (sin tipo) | encabezado | — | — | — | — | — |  | encabezado (asesor (aceptada por Esteban)) | Sin respuesta (encabezado) |
 | 468 | 211200 | text | concepto | — | NIIF S2 29 (a)(vi)(2) | 2 · etiqueta | alta | 33 |  |  | Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) |
@@ -369,7 +369,7 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | 483 | 211200 | text block | concepto | NIIF S2 29 (a)(vi)(2); NIIF S2 B62A (b) | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) |
 | 484 | 211200 | (sin tipo) | subconcepto de la fila 483 | NIIF S2 29 (a)(vi)(2); NIIF S2 B62A (b) | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Se responde junto con la fila 483 (text block) |
 | 487 | 211300 | (sin tipo) | encabezado | — | — | — | — | — |  | encabezado (asesor (aceptada por Esteban)) | Sin respuesta (encabezado) |
-| 488 | 211300 | text | concepto | — | NIIF S2 32 | 2 · etiqueta | alta | 4 |  |  | Modelo, desde el bloque 4 aprobado y los hechos de NIIF S2 32 |
+| 488 | 211300 | text | concepto | — | NIIF S2 29 (a)(vi)(2) | 2 · etiqueta | alta | 33 |  |  | Solo emisoras con seguros (Perfil); si no, «No aplica por actividad». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) (entrada de la sección, como la fila 468) |
 | 489 | 211300 | tabla | concepto | NIIF S2 29 (a)(vi)(2); NIIF S2 B63 (a) | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2)) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
 | 490 | 211300 | tabla | concepto | NIIF S2 29 (a)(vi)(2); NIIF S2 B63 (a) | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2)) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
 | 491 | 211300 | tabla | concepto | NIIF S2 29 (a)(vi)(2); NIIF S2 B63 (a) | NIIF S2 29 (a)(vi)(2) | 1 · fuente | alta | 33 |  |  | Tabla desde registros de clima u objetivos (NIIF S2 29 (a)(vi)(2)) · tabla-plantilla de la BMV (imagen en la celda): estructura en la columna O de la revisión, fuera de git |
@@ -392,19 +392,23 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 
 ## Sin mapeo (propuesta de ampliación del catálogo; no se crea nada ahora)
 
-### Conceptos con tipo sin datapoint (1)
+### Conceptos con tipo sin datapoint (4)
 
 | Fila | Sección | Tipo | Párrafos que piden |
 |---:|---|---|---|
+| 433 | 210000 | booleano | NIIF S2 29B |
 | 435 | 210000 | text block | NIIF S2 29B (a) |
+| 437 | 210000 | text block | NIIF S2 29B (b) |
+| 462 | 211100 | text block | (sin párrafo citado) |
 
-### Párrafos citados por el formato que no tienen código en el catálogo (97)
+### Párrafos citados por el formato que no tienen código en el catálogo (98)
 
 | Párrafo | Filas que lo citan |
 |---|---|
 | NIIF S1 30 (a) | 1 (56) |
 | NIIF S1 31 | 1 (57) |
-| NIIF S1 36 | 16 (84, 85, 86, 87, 88, 89, 90, 91, 92, 94, 95, 96, …) |
+| NIIF S1 34 | 2 (84, 91) |
+| NIIF S1 36 | 14 (85, 86, 87, 88, 89, 90, 92, 94, 95, 96, 97, 98, …) |
 | NIIF S1 42 | 1 (103) |
 | NIIF S1 46 | 6 (148, 149, 151, 152, 153, 155) |
 | NIIF S1 49 | 6 (148, 149, 151, 152, 153, 155) |
@@ -439,7 +443,7 @@ Conforme a CLAUDE.md §4, este archivo no reproduce texto del formato: cada conc
 | NIIF S2 10 (a) | 1 (56) |
 | NIIF S2 11 | 1 (56) |
 | NIIF S2 12 | 2 (56, 337) |
-| NIIF S2 21 | 1 (100) |
+| NIIF S2 15 | 2 (84, 91) |
 | NIIF S2 23 | 4 (59, 64, 309, 310) |
 | NIIF S2 26 | 13 (122, 124, 125, 126, 128, 129, 130, 132, 134, 135, 137, 139, …) |
 | NIIF S2 29 (a)(iv) | 2 (324, 325) |

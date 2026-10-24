@@ -7,35 +7,35 @@
   },
   "filas": 370,
   "porClasificacion": {
-   "encabezado": 44,
+   "encabezado": 45,
    "concepto": 256,
-   "subconcepto": 58,
+   "subconcepto": 57,
    "encabezado narrativo": 7,
    "fuera de alcance (SASB, Fase C)": 2,
    "miembro de tabla": 3
   },
   "porCapa": {
-   "—": 49,
+   "—": 50,
    "regla fija": 11,
    "Perfil": 20,
-   "3 · revisión (S1→S2)": 44,
+   "3 · revisión (S1→S2)": 46,
    "3 · revisión": 11,
-   "1 · fuente": 165,
+   "1 · fuente": 164,
    "3 · revisión (tabla)": 9,
-   "2 · etiqueta": 29,
    "1 · correspondencia S1→S2": 17,
    "3 · revisión (regla)": 5,
    "regla primer año": 8,
-   "sin candidato": 2
+   "2 · etiqueta": 23,
+   "sin candidato": 6
   },
   "porConfianza": {
-   "—": 52,
-   "alta": 316,
+   "—": 57,
+   "alta": 311,
    "media": 2
   },
-  "conDatapoint": 262,
-  "conBloque": 265,
-  "conAlivioE5": 88,
+  "conDatapoint": 255,
+  "conBloque": 264,
+  "conAlivioE5": 91,
   "revision": {
    "archivo": "mapeo-revision.xlsx",
    "porCategoria": {
@@ -899,13 +899,14 @@
    "datapoint": "NIIF S2 13(b)",
    "confianza": "alta",
    "bloque": 13,
-   "regla": "Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(b) · lleva la oración fija del alivio E5",
+   "regla": "Modelo, desde el bloque 13 aprobado y los hechos de NIIF S2 13(b), más la concentración por código desde registros_clima (una línea por riesgo) · lleva la oración fija del alivio E5",
    "nota": null,
    "alivioE5": true,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "regla S1→S2"
-   }
+   },
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: la concentración de registros_clima pasa a esta fila (13(b)), añadida al texto del modelo"
   },
   {
    "fila": 63,
@@ -945,14 +946,15 @@
    "capa": "3 · revisión (S1→S2)",
    "datapoint": null,
    "confianza": "—",
-   "bloque": null,
-   "regla": "Sin datapoint en el catálogo: «Pendiente»",
+   "bloque": 22,
+   "regla": "Modelo, desde el bloque 22 aprobado: texto general de NIIF S2 14 hasta el código padre (Fase 3) · lleva la oración fija del alivio E5",
    "nota": "NIIF S2 14(a) no existe en el catálogo",
    "alivioE5": true,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "regla S1→S2"
-   }
+   },
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: deja la concentración (es de 13(b), fila 62); texto general de NIIF S2 14 hasta el código padre de la Fase 3"
   },
   {
    "fila": 65,
@@ -1211,19 +1213,22 @@
    "seccion": "200000",
    "tipo": "text",
    "parrafos": [
-    "NIIF S1 36",
-    "NIIF S1 40"
+    "NIIF S1 34",
+    "NIIF S2 15",
+    "NIIF S2 16 (a)",
+    "NIIF S2 16 (b)"
    ],
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "1 · fuente",
-   "datapoint": "NIIF S1 40(a)",
+   "capa": "3 · revisión (S1→S2)",
+   "datapoint": null,
    "confianza": "alta",
-   "bloque": null,
-   "regla": "Sin bloque dueño para NIIF S1 40(a): «Pendiente»",
-   "nota": null,
-   "alivioE5": false
+   "bloque": 10,
+   "regla": "Modelo, desde el bloque 10 aprobado: efectos financieros actuales (NIIF S2 15 y 16(a)–(b)); código padre en la Fase 3 · lleva la oración fija del alivio E5",
+   "nota": "la plantilla cita NIIF S1 36-40 en la columna G",
+   "alivioE5": true,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: efectos financieros actuales: S1 34–35 / S2 15–16, no S1 40(a); S2 15 sin código padre (alta en la Fase 3)"
   },
   {
    "fila": 85,
@@ -1380,19 +1385,22 @@
    "seccion": "200000",
    "tipo": "text",
    "parrafos": [
-    "NIIF S1 36",
-    "NIIF S1 40"
+    "NIIF S1 34",
+    "NIIF S2 15",
+    "NIIF S2 16 (c)",
+    "NIIF S2 16 (d)"
    ],
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "1 · fuente",
-   "datapoint": "NIIF S1 40(a)",
+   "capa": "3 · revisión (S1→S2)",
+   "datapoint": null,
    "confianza": "alta",
-   "bloque": null,
-   "regla": "Sin bloque dueño para NIIF S1 40(a): «Pendiente»",
-   "nota": null,
-   "alivioE5": false
+   "bloque": 10,
+   "regla": "Modelo, desde el bloque 10 aprobado: efectos financieros previstos (NIIF S2 15 y 16(c)–(d)); código padre en la Fase 3 · lleva la oración fija del alivio E5",
+   "nota": "la plantilla no cita párrafo en las columnas A ni G",
+   "alivioE5": true,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: efectos financieros previstos: S1 34–35 / S2 15–16, no S1 40(a); S2 15 sin código padre (alta en la Fase 3)"
   },
   {
    "fila": 92,
@@ -1602,13 +1610,14 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S1 40(a)",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 21(a)",
    "confianza": "alta",
-   "bloque": null,
-   "regla": "Sin bloque dueño para NIIF S1 40(a): «Pendiente»",
+   "bloque": 10,
+   "regla": "Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 21(a) · lleva la oración fija del alivio E5",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": true,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: NIIF S2 21(a), alta en el catálogo con dueño el bloque 10"
   },
   {
    "fila": 102,
@@ -5016,13 +5025,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 327",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 EI14 a E18",
-   "confianza": "alta",
-   "bloque": 29,
-   "regla": "Se responde junto con la fila 327 (text block)",
-   "alivioE5": false
+   "clasificacion": "encabezado",
+   "capa": "—",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Sin respuesta (encabezado)",
+   "alivioE5": false,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: encabezado de Alcance 2 (29(a)(v)), no subconcepto de la fila 327"
   },
   {
    "fila": 330,
@@ -5867,16 +5877,17 @@
    "respondidaEnReferencia": true,
    "clasificacion": "encabezado narrativo",
    "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 13(a)",
+   "datapoint": "NIIF S2 29 (d) · B65 (b)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Párrafo introductorio desde el bloque 36 aprobado",
+   "regla": "Párrafo introductorio desde el bloque 36 aprobado (NIIF S2 29(d); la columna A de la fila 391 dice 29(b), errata de la plantilla)",
    "nota": null,
    "alivioE5": false,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "confirmada"
-   }
+   },
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: entrada de la métrica de oportunidades, NIIF S2 29(d), no 13(a)"
   },
   {
    "fila": 391,
@@ -5889,11 +5900,12 @@
    "respondidaEnReferencia": false,
    "clasificacion": "subconcepto de la fila 390",
    "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 13(a)",
+   "datapoint": "NIIF S2 29 (d) · B65 (b)",
    "confianza": "alta",
    "bloque": 36,
    "regla": "Se responde junto con la fila 390 (text block)",
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: subconcepto de la fila 390"
   },
   {
    "fila": 392,
@@ -5904,11 +5916,12 @@
    "respondidaEnReferencia": false,
    "clasificacion": "subconcepto de la fila 390",
    "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 13(a)",
+   "datapoint": "NIIF S2 29 (d) · B65 (b)",
    "confianza": "alta",
    "bloque": 36,
    "regla": "Se responde junto con la fila 390 (text block)",
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: subconcepto de la fila 390"
   },
   {
    "fila": 393,
@@ -6437,13 +6450,14 @@
    "lista": true,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 EI14 a E18",
-   "confianza": "alta",
-   "bloque": 29,
-   "regla": "Sí/No desde un hecho o declaración negativa de NIIF S2 EI14 a E18",
-   "nota": null,
-   "alivioE5": false
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Con el alivio C4, «No revelado · alivio C4» (regla de la fila 435); sin C4, «Pendiente» hasta ampliar el catálogo",
+   "nota": "NIIF S2 29B no existe en el catálogo · deuda de la modificación de 2025 de NIIF S2 (docs/suplemento-s1s2/ampliacion-catalogo.md)",
+   "alivioE5": false,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: NIIF S2 29B, no el Alcance 1 (EI14 a E18)"
   },
   {
    "fila": 435,
@@ -6496,13 +6510,14 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 EI14 a E18",
-   "confianza": "alta",
-   "bloque": 29,
-   "regla": "Modelo, desde el bloque 29 aprobado y los hechos de NIIF S2 EI14 a E18",
-   "nota": null,
-   "alivioE5": false
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Con el alivio C4, «No revelado · alivio C4» (regla de la fila 435); sin C4, «Pendiente» hasta ampliar el catálogo",
+   "nota": "NIIF S2 29B(b) no existe en el catálogo · deuda de la modificación de 2025 de NIIF S2 (docs/suplemento-s1s2/ampliacion-catalogo.md)",
+   "alivioE5": false,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: NIIF S2 29B(b), no el Alcance 1 (EI14 a E18)"
   },
   {
    "fila": 439,
@@ -6847,17 +6862,18 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 29 (a)(iv) EI5",
-   "confianza": "alta",
-   "bloque": 31,
-   "regla": "Solo sector financiero (Perfil); si no, «No aplica». Modelo, desde el bloque 31 aprobado y los hechos de NIIF S2 29 (a)(iv) EI5",
-   "nota": null,
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Solo emisoras con gestión de activos (Perfil); si no, «No aplica por actividad». Sin datapoint en el catálogo: «Pendiente» hasta ampliar el catálogo",
+   "nota": "NIIF S2 EI25 a EI38 (desagregación de las emisiones financiadas por clase de activo) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)",
    "alivioE5": false,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "confirmada (sector financiero)"
-   }
+   },
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: desagregación de las emisiones financiadas por clase de activo (EI25 a EI38), no 29(a)(iv) EI5"
   },
   {
    "fila": 463,
@@ -6867,12 +6883,14 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "subconcepto de la fila 462",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 29 (a)(iv) EI5",
-   "confianza": "alta",
-   "bloque": 31,
-   "regla": "Se responde junto con la fila 462 (text block)",
-   "alivioE5": false
+   "capa": "sin candidato",
+   "datapoint": null,
+   "confianza": "—",
+   "bloque": null,
+   "regla": "Solo emisoras con gestión de activos (Perfil); si no, «No aplica por actividad». Se responde junto con la fila 462 (text block)",
+   "alivioE5": false,
+   "nota": "NIIF S2 EI25 a EI38 (desagregación de las emisiones financiadas por clase de activo) no existe en el catálogo · en la lista de ampliación del catálogo (docs/suplemento-s1s2/ampliacion-catalogo.md)",
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: subconcepto de la fila 462"
   },
   {
    "fila": 466,
@@ -7169,12 +7187,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 32",
+   "datapoint": "NIIF S2 29 (a)(vi)(2)",
    "confianza": "alta",
-   "bloque": 4,
-   "regla": "Modelo, desde el bloque 4 aprobado y los hechos de NIIF S2 32",
+   "bloque": 33,
+   "regla": "Solo emisoras con seguros (Perfil); si no, «No aplica por actividad». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) (entrada de la sección, como la fila 468)",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: entrada de la sección de seguros, como la 468 en banca comercial; no NIIF S2 32"
   },
   {
    "fila": 489,
@@ -7545,12 +7564,34 @@
  ],
  "sinMapeo": [
   {
+   "fila": 433,
+   "seccion": "210000",
+   "tipo": "booleano",
+   "parrafos": [
+    "NIIF S2 29B"
+   ]
+  },
+  {
    "fila": 435,
    "seccion": "210000",
    "tipo": "text block",
    "parrafos": [
     "NIIF S2 29B (a)"
    ]
+  },
+  {
+   "fila": 437,
+   "seccion": "210000",
+   "tipo": "text block",
+   "parrafos": [
+    "NIIF S2 29B (b)"
+   ]
+  },
+  {
+   "fila": 462,
+   "seccion": "211100",
+   "tipo": "text block",
+   "parrafos": []
   }
  ],
  "parrafosSinCodigo": {
@@ -7560,15 +7601,17 @@
   "NIIF S1 31": [
    57
   ],
-  "NIIF S1 36": [
+  "NIIF S1 34": [
    84,
+   91
+  ],
+  "NIIF S1 36": [
    85,
    86,
    87,
    88,
    89,
    90,
-   91,
    92,
    94,
    95,
@@ -7734,8 +7777,9 @@
    56,
    337
   ],
-  "NIIF S2 21": [
-   100
+  "NIIF S2 15": [
+   84,
+   91
   ],
   "NIIF S2 23": [
    59,

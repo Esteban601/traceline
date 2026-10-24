@@ -21,12 +21,16 @@
 // =============================================================================
 import fs from "node:fs";
 import JSZip from "jszip";
-import mapeo from "../../docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
+import mapeoVersionado from "../../docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 
 const args = process.argv.slice(2);
 const iDemo = args.indexOf("--demo");
 const reporte = iDemo === -1 ? null : args[iDemo + 1];
-const [plantilla, salida] = args.filter((a, i) => !a.startsWith("--") && i !== iDemo + 1);
+// --mapeo <json>: otro JSON del mapeo (p. ej. el de antes de las correcciones); por omisión, el versionado.
+const iMapeo = args.indexOf("--mapeo");
+const mapeo = iMapeo === -1 ? mapeoVersionado : JSON.parse(fs.readFileSync(args[iMapeo + 1], "utf8"));
+const valoresDeOpcion = new Set([iDemo, iMapeo].filter((i) => i !== -1).map((i) => i + 1));
+const [plantilla, salida] = args.filter((a, i) => !a.startsWith("--") && !valoresDeOpcion.has(i));
 if (!plantilla || !salida) { console.error("Uso: auditar-mapeo.mjs <plantilla.xlsx> <salida.md> [--demo <reporte_id>]"); process.exit(2); }
 
 // ---------- Plantilla: columnas A, C, D y G por fila ----------
@@ -99,12 +103,13 @@ function parsearTramo(norma, t) {
 export function referencias(texto) {
   if (!texto) return [];
   const out = [];
-  const partes = texto.replace(/NIIF\s+NIIF/g, "NIIF").split(/NIIF\s+(S[12])\s*/).slice(1);
+  // «NIF S2 29 (e)»: errata de la plantilla (filas 350, 371, 373, 396); cuenta como NIIF.
+  const partes = texto.replace(/NIIF\s+NIIF/g, "NIIF").split(/NII?F\s+(S[12])\s*/).slice(1);
   for (let i = 0; i < partes.length; i += 2) {
     const norma = partes[i];
     // «29 (b) · B65 (b)»: cada tramo separado por «·» es una referencia propia.
     // «23 y 29 (a)(i)», «B64 y B65 inciso (a)»: varios párrafos en un tramo; «inciso» es texto de la plantilla.
-    const tramos = partes[i + 1].replace(/\binciso\s+/g, "").split(/·|\s+y\s+(?=(?:EI|E|B)?\d)|,\s*(?=(?:EI|E|B)?\d)|\s+(?=(?:EI|E|B)\d)/);
+    const tramos = partes[i + 1].replace(/\binciso\s+/g, "").split(/·|\s+y\s+(?=(?:EI|E|B)?\d)|,\s*(?=(?:EI|E|B)?\d)|(?<!(?:-|\ba))\s+(?=(?:EI|E|B)\d)/);
     for (const tramo of tramos) out.push(...parsearTramo(norma, tramo.trim()));
   }
   return out;

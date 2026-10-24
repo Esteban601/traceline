@@ -129,6 +129,17 @@ export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfo
   { fila: 99, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre los flujos de efectivo (entradas y salidas de efectivo, como ahorros, gastos o desembolsos)" },
 ];
 
+/**
+ * Requisitos dados de alta en el catálogo DESPUÉS de aprobarse un documento
+ * (encargo 2026-10-24-deuda-s2-formato): la cobertura aprobada de su bloque no
+ * los trae, así que se responden con los hechos del libro de ese bloque cuya
+ * clave coincide, sin regenerar el documento. En un documento generado después
+ * del alta, la cobertura del bloque manda y esto no se usa.
+ */
+export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
+  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./],
+};
+
 /** NIIF S1 (sin espacios) → código NIIF S2 del catálogo que lo responde en el formato. */
 export const PAR_S2_DE_S1: Map<string, string> = (() => {
   const m = new Map<string, string>();
@@ -234,7 +245,7 @@ export function textoNoAplicaE5(parS2: string | null): string {
 type Cobertura = { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario?: string };
 type Ancla = { oracion: string; hechos: { id: string; hecho: string | null }[] };
 type VersionAprobada = { numero: number; version: number; texto: string; cobertura: Cobertura[]; anclas: Ancla[]; libro_id: string | null };
-type HechoLibro = { id: string; tipo: string; enunciado: string; extracto: string; valor: number | null; unidad: string | null; estado: string };
+type HechoLibro = { id: string; clave: string; libro_id: string; tipo: string; enunciado: string; extracto: string; valor: number | null; unidad: string | null; estado: string };
 type Previa = {
   documento_id: string;
   destino: Destino; clave: string; texto: string | null; bloque: number | null; bloque_version: number | null; prompt_version: string | null;
@@ -301,7 +312,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   const libros = [...new Set([...porBloque.values()].map((v) => v.libro_id).filter((x): x is string => !!x))];
   const hechos = new Map<string, HechoLibro>();
   for (const l of libros) {
-    const { data } = await db.from("hechos").select("id, tipo, enunciado, extracto, valor, unidad, estado").eq("libro_id", l);
+    const { data } = await db.from("hechos").select("id, clave, libro_id, tipo, enunciado, extracto, valor, unidad, estado").eq("libro_id", l);
     for (const h of data ?? []) hechos.set(h.id, h as HechoLibro);
   }
   const glosario: EntradaGlosario[] = leerGlosario(perfil?.glosario);
@@ -370,6 +381,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     }
     if (cob && (cob.estado === "cubierto" || cob.estado === "parcial") && cob.hechos.length) {
       return { codigo, via: "bloque", bloque: cob.bloque, hechos: cob.hechos };
+    }
+    // Alta posterior a la aprobación: los hechos vigentes del libro del bloque dueño, por clave.
+    if (cob?.estado === "sin_cobertura" && HECHOS_POR_CLAVE[codigo]) {
+      const libro = porBloque.get(cob.bloque)?.libro_id;
+      const porClave = [...hechos.values()].filter((x) => x.libro_id === libro && x.estado === "vigente" && HECHOS_POR_CLAVE[codigo].some((re) => re.test(x.clave)));
+      if (porClave.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: porClave.map((x) => x.id) };
     }
     if (cob) {
       const b = BLOQUES.find((x) => x.numero === cob.bloque);
