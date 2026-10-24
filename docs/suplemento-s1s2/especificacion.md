@@ -1,6 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.42** · 14 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.43** · 24 de octubre de 2026.
+
+**Cambios respecto a 0.42** (encargo 2026-10-24-deuda-s2-formato, Fase 2, aprobada por Esteban):
+- §3 y Anexo A: el bloque 10 cita además `NIIF S2 21(a)` (alta en el catálogo, migración
+  `20261024120000_catalogo_s2_21a`); responde la fila 100 del Formato electrónico.
 
 **Cambios respecto a 0.41:** §10, registro del despliegue v41 a staging.
 
@@ -392,7 +396,7 @@ construye en A2 cruzando contra los 91 códigos reales y se anexa a esta especif
 | 7 | Materialidad: contexto y proceso | Perfil: texto del proceso de materialidad | T→E | Pendiente |
 | 8 | Horizontes temporales (tabla) | Perfil: 3 horizontes con definición y justificación | Tabla | Pendiente |
 | 9 | Evaluación y priorización de riesgos | `registros_clima` con **severidad** (§5) y matriz del tenant | D→T + Tabla | Sin severidad: solo conteo por tipo |
-| 10 | Resumen de efectos financieros actuales y previstos | Datapoints S2 16(a)–(d); capturas; cuestionario | D→T | Pendiente |
+| 10 | Resumen de efectos financieros actuales y previstos | Datapoints S2 16(a)–(d) y 21(a); capturas; cuestionario | D→T | Pendiente |
 | 11 | Nuestra historia (línea de tiempo) | Perfil: hitos corporativos | Tabla + T→E | Bloque omitido |
 | 12 | Modelo de negocio y cadena de valor | Perfil: texto + etapas | T→E | Bloque omitido |
 | 13 | Efectos sobre el modelo de negocio y la cadena de valor | Datapoints S2 13; `registros_clima` | D→T | Pendiente |
@@ -2061,7 +2065,7 @@ viene de la plantilla, no de los datos.
 | 7 | Materialidad: contexto y proceso | Editorial · recomendado | Contexto que la emisora suele querer: S1 17–18 pide aplicar la materialidad, no describir el proceso. | T→E | **varía** | — | — | `proceso_materialidad` |
 | 8 | Horizontes temporales | Normativo | NIIF S2 10(d) (horizontes de corto, mediano y largo plazo). | Tabla | ambos | `NIIF S2 10(d)` (desde el 8 de octubre de 2026; antes en el 21) | — | `horizontes` |
 | 9 | Evaluación y priorización de riesgos | Normativo | NIIF S2 25(a)(ii)–(iv) (evaluación y priorización); se solapa con el 27. | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
-| 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
+| 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos) y 21(a) (por qué no hay información cuantitativa). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)`<br>`NIIF S2 21(a)` | `capturas_valor` | — |
 | 11 | Nuestra historia (línea de tiempo) | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
 | 12 | Modelo de negocio y cadena de valor | Editorial · opcional | La norma pide los efectos sobre el modelo de negocio y la cadena de valor (bloque 13), no describirlos. | T→E | ambos | — | — | `modelo_negocio`<br>`cadena_valor` |
 | 13 | Efectos sobre el modelo de negocio y la cadena de valor | Normativo | NIIF S2 13 (efectos sobre el modelo de negocio y la cadena de valor). | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |

@@ -105,6 +105,9 @@ puede ir al lector externo.
   - **S2 22:** K105 reutiliza la síntesis de K103;
   - **S2 14(a):** sintetiza los cinco incisos de los bloques 22, 23, 25 y 28;
   - **S2 13:** toma `cadena_valor.*` y `modelo_negocio.*`, y K59 deja de repetir K60.
+- **Códigos padre de los efectos financieros** (`NIIF S2 15` / `NIIF S1 34`, filas 84 y 91): misma tanda, si
+  hace falta el padre. Hasta entonces las dos filas se responden desde el bloque 10 con la clave `fila:N`
+  (Fase 2).
 - Una migración aditiva para la tanda.
 - **S2 28:** cerrada sin alta, resuelta por la iteración de `lib/formato/metricas.ts` (§7).
 - **S2 29B(a):** pospuesta hasta que `normas/` tenga la modificación de NIIF S2 de 2025 (la pone Esteban; la edición
@@ -219,6 +222,29 @@ En este orden (decisión de Esteban del 24/10):
    - El mismo par de fotos se hace en staging en la Fase 4.
    - Si en dev aparece cualquier diferencia no prevista, el encargo pasa a ensayo en copia de staging antes de seguir.
 
+### Hallazgos de la Fase 1 que no se corrigen aquí (decisión de Esteban del 24/10)
+
+**Erratas de la columna A de la plantilla de la BMV. Sin cambio: el datapoint es el correcto.**
+
+| Fila | Columna A en la plantilla | Referencia correcta | Nota |
+|---:|---|---|---|
+| 350, 373, 396 | NIF S2 29 (e) | NIIF S2 29 (e) | «NIF» por «NIIF»; despliegue de capital |
+| 371 | NIF S2 29 (c) | NIIF S2 29 (c) | «NIF» por «NIIF» |
+| 368 | NIIF S2 29 (b) | NIIF S2 29 (c) | sección de riesgos físicos con la referencia de transición |
+| 370 | NIIF S2 29 (b) B64 y B65 inciso (a) | NIIF S2 29 (c), B64, B65 (a) | ídem (tabla de riesgos físicos) |
+| 391 | NIIF S2 29 (b) | NIIF S2 29 (d) | sección de oportunidades con la referencia de transición |
+| 472 | NIIF S2 B62 (c) | por confirmar | la etiqueta habla de «activos bajo gestión» dentro de la sección de banca comercial |
+
+**Falsos positivos de la segunda pasada** (la fila no tiene columna A y hereda la de otra; el datapoint es el
+correcto): 344, 367, 369, 390, 392, 413, 416 y 468.
+
+**Deuda de la modificación de 2025 de NIIF S2** (`ampliacion-catalogo.md`): 29B (filas 433, 435–436 y 437) y 29C
+(439 y 441). Con C4 escriben «No revelado · alivio C4».
+
+**Encargo siguiente, fuera de este: `formato-objetivos-por-inciso`.** Las filas de NIIF S2 33(a)–(h) (221 a 235) y
+34(b)–(d) (239 a 243) tienen los datapoints generales `NIIF S2 33` y `NIIF S2 34`, y el Formato repite el mismo
+texto en 7 y en 3 celdas.
+
 ## 7. Registro
 
 | Fecha | Qué pasó | Decisión |
@@ -227,3 +253,4 @@ En este orden (decisión de Esteban del 24/10):
 | 2026-10-24 | Encargo escrito | Orden: mapeo y 21(a); luego 22, 14(a) y 13. **S2 28 cerrada sin alta**: párrafo que solo remite (28(a) → 29–31, (b) → 32, (c) → 33–37), resuelto por la iteración de `lib/formato/metricas.ts`. **S2 29B(a) pospuesta** hasta que `normas/` tenga la modificación de 2025 |
 | 2026-10-24 | Paso 0 aprobado | Respuestas a §6 registradas arriba. Fase 4 reescrita. Se agregan a §4: ningún padre suma con sus incisos, fotos antes y después de cada migración, y el worktree de vuelta a `dev/ajustes-sep26` al cerrar |
 | 2026-10-24 | **Fase 1.** `scripts/formato/auditar-mapeo.mjs` (lectura; plantilla 2025 contra el JSON, con el demo v3 `99992cd3` en dev). 262 filas con datapoint: 201 iguales, 8 parciales, 16 con datapoint más general, 12 S1→S2 sin juzgar y 25 distintas. Errores reales del mapeo: 91, 390 (y 391/392), 433, 437, 462/463 y 488; 329 mal clasificada. La 84 no sale como distinta: su columna G («S1 36-40») contiene el 40. Las demás distintas son erratas de la columna A de la plantilla, ruido de la 2.ª pasada o la deuda 29C | Detenido para que Esteban confirme la lista |
+| 2026-10-24 | **Fase 2.** Mapeo corregido en 14 filas (62, 64, 84, 91, 100, 329, 390–392, 433, 437, 462, 463, 488) con `scripts/formato/correcciones-mapeo.mjs`, que también aplica `mapear-formato.mjs` (las salidas pasan a `mapeo-salidas.mjs`, con el `.md` idéntico byte por byte antes de corregir). **Alta de `NIIF S2 21(a)`**, dueño el bloque 10: migración `20261024120000_catalogo_s2_21a` aplicada en local y en dev (local == remoto, barrera 108). Foto de dev antes y después (`scripts/despliegue/foto-cobertura.mjs`): la diferencia es exactamente la esperada, escrita antes de correrla (`NIIF S2 21(a)` nuevo en 1 de 1 emisoras, 0 solicitudes, «sin solicitud»). Respuesta de 21(a) por clave de hechos para documentos aprobados antes del alta (`HECHOS_POR_CLAVE`). Llenado: 433/435/437 con C4; la sección de una actividad que la emisora no tiene se resuelve antes que «sin candidato»; la concentración pasa de K64 a K62. **Respuestas del demo v3 regeneradas** (sin el documento): 189 respuestas, **0.047 USD**. tsc, eslint, `verify:export` (contra dev) y 4 e2e (`respuestas-validadores`, `metricas-instancias`, `formato-electronico`, `respuestas-regeneracion`) en verde. Fase 1 corregida: el parser no leía «NIF S2 …» (350, 371, 373 y 396) ni «EI14 a E18»; antes de corregir eran 21 filas distintas y no 25; después quedan 14, todas explicadas. Abierto: K81 (`NIIF S1 33(c)`) todavía escribe «No aplica… Sin sección en el suplemento»; la descripción de 21(a) se cargó en dev sin la revisión de IRStrat | Detenido con el informe |

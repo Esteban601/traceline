@@ -22,6 +22,21 @@
 >
 > **Staging no se ha tocado.** Aplicarlo allá es una operación aparte, todavía sin planear.
 
+> ## Alta de `NIIF S2 21(a)` — aplicada en dev el 24 de octubre de 2026 (pendiente de la revisión de IRStrat)
+>
+> Encargo `2026-10-24-deuda-s2-formato`, Fase 2. Migración `20261024120000_catalogo_s2_21a.sql`: **una fila
+> nueva**, con norma, pilar, sección del índice, versión, marco y ODS copiados de `NIIF S2 16(d)`. Su bloque dueño
+> es el 10 y responde la fila 100 del Formato electrónico, el par de `NIIF S1 40(a)`. No enlaza solicitudes ni toca
+> la plantilla de solicitudes. En dev: catálogo de 116 a 117 filas; local == remoto; barrera 108 sin cambio. En la
+> foto de Cobertura aparece en 1 de 1 emisoras, «sin solicitud», y no cambia nada más.
+>
+> | Código nuevo | Párrafo | Descripción | Estado |
+> |---|---|---|---|
+> | `NIIF S2 21(a)` | 21(a) | Si la entidad determina, con los criterios de los párrafos 19 y 20, que no necesita proporcionar información cuantitativa sobre los efectos financieros actuales o previstos de un riesgo u oportunidad relacionados con el clima: explicación de por qué no ha proporcionado esa información cuantitativa. | Aplicada en dev; **la descripción espera la revisión de IRStrat (§4)** |
+>
+> La descripción es una redacción propia en la terminología de la traducción oficial; no transcribe la norma.
+> Staging: en la Fase 4 del encargo, el día del despliegue v42.
+
 > ## ✅ Incisos de los códigos agrupados — aplicada en dev el 8 de octubre de 2026
 >
 > **Aprobada por Esteban como revisión de IRStrat** el 8 de octubre de 2026: los 18 códigos existen en el párrafo
