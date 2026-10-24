@@ -245,6 +245,18 @@ correcto): 344, 367, 369, 390, 392, 413, 416 y 468.
 34(b)–(d) (239 a 243) tienen los datapoints generales `NIIF S2 33` y `NIIF S2 34`, y el Formato repite el mismo
 texto en 7 y en 3 celdas.
 
+### Reglas registradas en la Fase 3 (decisión de Esteban del 24/10)
+
+- **Documento vigente:** el documento aprobado vigente del demo es el v3 (`99992cd3`) hasta que se genere el v4 en
+  la Fase 4; a partir de entonces lo es el v4, y las respuestas y el Formato se leen de él.
+- **`HECHOS_POR_CLAVE` no se usa con documentos de clientes.** Solo resuelve, en el demo, los requisitos dados de
+  alta después de aprobar el documento (hoy `NIIF S2 21(a)`). En el v4, y en cualquier documento generado después
+  del alta, la cobertura del bloque manda y no se usa. Las respuestas que salen por esa vía no se reutilizan: se
+  generan de nuevo en cada corrida.
+- **E5 y cifras de efectos financieros:** NIIF S1 E5 permite revelar solo los riesgos y oportunidades relacionados
+  con el clima (y aplicar NIIF S1 solo en esa medida); no exime de información cuantitativa. La oración E5 delante
+  de las cifras de K84–K98 no contradice nada.
+
 ## 7. Registro
 
 | Fecha | Qué pasó | Decisión |

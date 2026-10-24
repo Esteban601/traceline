@@ -22,6 +22,21 @@
 >
 > **Staging no se ha tocado.** Aplicarlo allá es una operación aparte, todavía sin planear.
 
+> ## Códigos padre de la Fase 3 — **PENDIENTES de la revisión de IRStrat, no cargados a ningún ambiente**
+>
+> Encargo `2026-10-24-deuda-s2-formato`, Fase 3. Mismo patrón que `NIIF S2 25 (a)(i)a(v)`: el padre convive con sus
+> incisos (`PADRE_DE`). Norma, pilar, sección del índice, versión, marco y ODS se copian del primer inciso. Las
+> descripciones son redacciones propias en la terminología de la traducción oficial; no transcriben la norma. **No hay
+> migración hasta que Esteban apruebe estos textos.**
+>
+> | Código padre propuesto | Incisos | Filas del Formato | Descripción propuesta | Estado |
+> |---|---|---|---|---|
+> | `NIIF S2 13 (a)a(b)` | 13(a), 13(b) | 59 | Efectos actuales y previstos de los riesgos y oportunidades relacionados con el clima sobre el modelo de negocio y la cadena de valor de la entidad, y dónde se concentran esos riesgos y oportunidades en el modelo de negocio y en la cadena de valor. | Pendiente de revisión |
+> | `NIIF S2 14 (a)(i)a(v)` | 14(a)(i)–(v) | 64 (y 65, por decidir) | Cómo ha respondido y prevé responder la entidad a los riesgos y oportunidades relacionados con el clima en su estrategia y toma de decisiones: cambios en el modelo de negocio y en la asignación de recursos, esfuerzos directos e indirectos de reducción o adaptación, plan de transición y cómo prevé alcanzar sus objetivos relacionados con el clima. | Pendiente de revisión |
+> | `NIIF S2 16 (a)a(b)` | 16(a), 16(b) | 84 | Efectos financieros actuales de los riesgos y oportunidades relacionados con el clima: cómo han afectado a la situación financiera, el rendimiento financiero y los flujos de efectivo del periodo sobre el que se informa, y para cuáles hay un riesgo significativo de ajuste material en el periodo siguiente. | Pendiente de revisión |
+> | `NIIF S2 16 (c)a(d)` | 16(c)(i)(ii), 16(d) | 91 | Efectos financieros previstos de los riesgos y oportunidades relacionados con el clima: cómo espera la entidad que cambien su situación financiera, su rendimiento financiero y sus flujos de efectivo a corto, medio y largo plazo. | Pendiente de revisión |
+> | `NIIF S2 22 (a)a(b)` | 22(a)(i)–(iii), 22(b)(i)–(iii) | 103 y 105 | Resiliencia de la estrategia y del modelo de negocio de la entidad frente al cambio climático: la evaluación de su resiliencia climática a la fecha de presentación y cómo y cuándo se llevó a cabo el análisis de escenarios relacionado con el clima. | Pendiente de revisión |
+
 > ## Alta de `NIIF S2 21(a)` — aplicada en dev el 24 de octubre de 2026 (pendiente de la revisión de IRStrat)
 >
 > Encargo `2026-10-24-deuda-s2-formato`, Fase 2. Migración `20261024120000_catalogo_s2_21a.sql`: **una fila

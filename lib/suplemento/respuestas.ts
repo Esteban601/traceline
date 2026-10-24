@@ -132,12 +132,15 @@ export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfo
 /**
  * Requisitos dados de alta en el catálogo DESPUÉS de aprobarse un documento
  * (encargo 2026-10-24-deuda-s2-formato): la cobertura aprobada de su bloque no
- * los trae, así que se responden con los hechos del libro de ese bloque cuya
- * clave coincide, sin regenerar el documento. En un documento generado después
- * del alta, la cobertura del bloque manda y esto no se usa.
+ * los trae, así que se responden con los hechos vigentes de los libros del
+ * documento cuya clave coincide (uno por clave, del libro del bloque dueño si lo
+ * tiene), sin regenerar el documento. En un documento generado después del
+ * alta, la cobertura del bloque manda y esto no se usa. No se usa con
+ * documentos de clientes (registro del encargo).
  */
 export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
-  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./],
+  // La razón de que no haya cifras: emisora.compromiso_transparencia_limitaciones (decisión de Esteban, Fase 3).
+  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, /^emisora\.compromiso_transparencia_limitaciones$/],
 };
 
 /** NIIF S1 (sin espacios) → código NIIF S2 del catálogo que lo responde en el formato. */
@@ -385,8 +388,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // Alta posterior a la aprobación: los hechos vigentes del libro del bloque dueño, por clave.
     if (cob?.estado === "sin_cobertura" && HECHOS_POR_CLAVE[codigo]) {
       const libro = porBloque.get(cob.bloque)?.libro_id;
-      const porClave = [...hechos.values()].filter((x) => x.libro_id === libro && x.estado === "vigente" && HECHOS_POR_CLAVE[codigo].some((re) => re.test(x.clave)));
-      if (porClave.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: porClave.map((x) => x.id) };
+      const candidatos = [...hechos.values()]
+        .filter((x) => x.estado === "vigente" && HECHOS_POR_CLAVE[codigo].some((re) => re.test(x.clave)))
+        .sort((a, b) => Number(b.libro_id === libro) - Number(a.libro_id === libro));
+      const unoPorClave = new Map<string, HechoLibro>();
+      for (const x of candidatos) if (!unoPorClave.has(x.clave)) unoPorClave.set(x.clave, x);
+      if (unoPorClave.size) return { codigo, via: "bloque", bloque: cob.bloque, hechos: [...unoPorClave.values()].map((x) => x.id) };
     }
     if (cob) {
       const b = BLOQUES.find((x) => x.numero === cob.bloque);
@@ -563,8 +570,9 @@ async function responderBloque(
   const reutilizadas = new Map<string, Previa>();
   for (const p of pedidos) {
     const prev = ctx.previaDe?.get(clave(p));
-    // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe.
-    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === PROMPT_RESPUESTAS) reutilizadas.set(clave(p), prev);
+    // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe. Los requisitos que se
+    // responden por clave de hechos (HECHOS_POR_CLAVE) no se reutilizan: sus hechos cambian sin que cambie el bloque.
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === PROMPT_RESPUESTAS && !HECHOS_POR_CLAVE[p.codigo]) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;
