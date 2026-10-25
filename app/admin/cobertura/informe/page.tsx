@@ -11,6 +11,7 @@ import { fmtFechaHora, fmtFechaLarga } from "@/lib/fechas";
 import { limpiarNombreTenant } from "@/lib/tenants";
 import { cargarCobertura } from "@/lib/cobertura-datos";
 import {
+  contables,
   distribucion,
   pct,
   PILAR_CORTO,
@@ -59,7 +60,7 @@ const ESTILOS_IMPRESION = `
 
 function Barra({ items }: { items: DatapointCobertura[] }) {
   const dist = distribucion(items);
-  const total = items.length || 1;
+  const total = contables(items).length || 1;
   return (
     <span className="flex h-2 w-32 overflow-hidden rounded-full bg-line/60" aria-hidden>
       {COBERTURA_ORDEN.filter((c) => dist[c] > 0).map((c) => (
@@ -99,6 +100,7 @@ function FilaDatapoint({ d }: { d: DatapointCobertura }) {
     <li className="flex items-start gap-3 border-b border-line/60 py-1.5 last:border-0">
       <code className="w-40 shrink-0 font-mono text-[11px] font-semibold text-teal">
         {d.codigo}
+        {d.esPadre && <span className="block font-normal text-muted">agrupa incisos · no cuenta</span>}
       </code>
       <span className="min-w-0 flex-1 text-[12px] leading-snug text-ink">{d.descripcion}</span>
       <span
@@ -129,7 +131,7 @@ function Grupo({
         <h3 className="font-display text-[15px] font-semibold text-ink">
           {titulo}
           <span className="ml-2 text-xs font-normal text-muted">
-            {items.length} {items.length === 1 ? "datapoint" : "datapoints"}
+            {contables(items).length} {contables(items).length === 1 ? "datapoint" : "datapoints"}
           </span>
         </h3>
         <span className="flex items-center gap-3">
@@ -166,11 +168,12 @@ export default async function InformeCoberturaPage({
   // va aparte y no entra a los conteos.
   const niif = datos.filas.filter((d) => d.marco === "NIIF");
   const gri = datos.filas.filter((d) => d.marco === "GRI");
-  const universo = niif.length;
+  // Los padres que agrupan incisos se listan pero no cuentan (lib/cobertura-vista.ts, contables).
+  const universo = contables(niif).length;
   const dist = distribucion(niif);
 
   const anillos = [...PILAR_ORDEN].map((p) => {
-    const items = niif.filter((d) => d.pilar === p);
+    const items = contables(niif).filter((d) => d.pilar === p);
     return {
       key: p,
       label: PILAR_CORTO[p],

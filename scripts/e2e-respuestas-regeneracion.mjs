@@ -88,7 +88,9 @@ try {
   console.log("\n1. Documento A aprobado; sus respuestas, «del modelo»");
   const A = documento("El Consejo revisa la estrategia climática cada año.");
   ok((await aprobar(nav, A)) === "listo", "A aprobado y con respuestas");
-  psql(`update respuestas_datapoint set origen = 'modelo', prompt_version = ${lit(PROMPT_RESPUESTAS)}, texto = 'MODELO-A ' || clave || ' Ver sección 9 · Título viejo.' where documento_id=${lit(A)} and clave in (${lista([...B15, ...B16])})`);
+  // La versión de prompt (con la firma del pedido) se queda la que calculó la app: el reuso exige el mismo pedido.
+  ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(A)} and clave in (${lista([...B15, ...B16])})`) !== "0" && psql(`select count(*) from respuestas_datapoint where documento_id=${lit(A)} and clave in (${lista([...B15, ...B16])}) and coalesce(prompt_version, '') not like ${lit(`${PROMPT_RESPUESTAS}·%`)}`) === "0", "las respuestas de A llevan la firma del pedido");
+  psql(`update respuestas_datapoint set origen = 'modelo', texto = 'MODELO-A ' || clave || ' Ver sección 9 · Título viejo.' where documento_id=${lit(A)} and clave in (${lista([...B15, ...B16])})`);
 
   console.log("\n2. Documento B: el 15 igual, el 16 cambiado; aprobado");
   const B = documento("El Consejo revisa la estrategia climática cada semestre y aprueba los objetivos.");

@@ -6,6 +6,10 @@ import { cargarDiscrepancias } from "@/lib/discrepancias";
 import type { EstadoSolicitud } from "@/lib/estados";
 import type { OrigenSolicitud } from "@/lib/origen";
 import type { DatapointCobertura } from "@/lib/cobertura-vista";
+import { PADRE_DE } from "@/lib/suplemento/catalogo-incisos";
+
+/** Códigos padre que agrupan incisos: filas de agrupación, fuera de conteos y porcentajes. */
+const PADRES = new Set(Object.values(PADRE_DE));
 
 // =============================================================================
 // CARGA de los datos de cobertura (servidor). El tipo y los agregados de
@@ -165,6 +169,7 @@ export async function cargarCobertura(
       descripcion: d.descripcion,
       ods: d.ods,
       cobertura: coberturaDe(ligadas.map((s) => s.estado)),
+      esPadre: PADRES.has(d.codigo),
       discrepancia: discrepancias.porDatapoint.has(d.id),
       solicitudes: ligadas,
     };

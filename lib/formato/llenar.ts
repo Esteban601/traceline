@@ -100,6 +100,8 @@ export const SECCIONES_ACTIVIDAD = [
   { actividad: "Seguros", desde: 487, hasta: 505 },
 ];
 const FILAS_ACTIVIDAD = new Set([339, 340]);
+/** NIIF S2 29B: 433 (¿limitó la categoría 15?), 435 (qué trató como derivado) y 437 (actividades excluidas). Sin código en el catálogo (modificación de 2025). */
+const FILAS_29B = new Set([433, 435, 437]);
 const FILAS_SECTOR = new Set([446, 447]);
 const HORIZONTES = ["Corto plazo", "Mediano plazo", "Largo plazo"];
 const CAMPOS_22B_I = ["Cómo y cuándo se llevó a cabo", "Escenarios usados y sus fuentes", "¿Rango diverso de escenarios?", "Riesgos asociados a los escenarios", "¿Escenario alineado con el último acuerdo internacional?", "Por qué los escenarios son pertinentes", "Horizontes temporales usados", "Alcance de las operaciones cubierto"];
@@ -130,17 +132,18 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const v = c.fila === 167 ? null : valorDeRegla(c);
       return { texto: v, origen: "iteración" as OrigenFormato, nota: "se repite por riesgo u oportunidad y métrica de NIIF S2 29" };
     }
-    // 435 (qué se trata como derivado en las financiadas): con C4 no se revela nada de Alcance 3, categoría 15.
-    if (c.fila === 435 && d.alivios.C4) return { texto: "No revelado · alivio C4", origen: "alivio" };
-    if (c.capa === "sin candidato") return { texto: null, origen: "sin mapeo", nota: "código pedido sin datapoint en el catálogo (lista de ampliación del catálogo)" };
+    // NIIF S2 29B (433, 435, 437): con C4 no se revela nada de Alcance 3, categoría 15.
+    if (FILAS_29B.has(c.fila) && d.alivios.C4) return { texto: "No revelado · alivio C4", origen: "alivio" };
 
     // Actividad y sector, desde el Perfil (antes que el alivio: C4 exime cifras, no la pregunta).
     if (FILAS_ACTIVIDAD.has(c.fila)) return actividades.length ? { texto: actividades.join("; "), origen: "perfil" } : { texto: null, origen: "pendiente" };
     if (FILAS_SECTOR.has(c.fila)) return d.perfil.sector_sasb.length ? { texto: d.perfil.sector_sasb.join("; "), origen: "perfil" } : { texto: null, origen: "pendiente" };
+    // La sección de una actividad que la emisora no tiene no aplica, aunque el concepto no tenga datapoint (462).
     const seccion = SECCIONES_ACTIVIDAD.find((s) => c.fila >= s.desde && c.fila <= s.hasta);
     if (seccion && actividades.length && !actividades.includes(seccion.actividad)) {
       return { texto: `No aplica por actividad: la Compañía no participa en ${seccion.actividad.toLowerCase()} (actividades financieras del Perfil: ${actividades.join(", ")}).`, origen: "actividad" };
     }
+    if (c.capa === "sin candidato") return { texto: null, origen: "sin mapeo", nota: "código pedido sin datapoint en el catálogo (lista de ampliación del catálogo)" };
     if (c.datapoint && exentos.has(c.datapoint)) return { texto: "No revelado · alivio C4", origen: "alivio" };
     const regla = c.regla ?? "";
 
@@ -162,14 +165,18 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const tipo = c.tipo === "(sin tipo)" ? "" : c.tipo ?? "";
     const conE5 = (t: string) => (c.alivioE5 && d.alivios.E5 && !t.includes("párrafo E5") ? `${ORACION_E5} ${t}` : t);
 
-    // Fila 64: dónde se concentran los riesgos (zonas, instalaciones, tipos de activos), por código desde los registros de clima.
-    if (c.fila === 64) {
+    // Fila 62 (NIIF S2 13(b), dónde se concentran; la 63 pide zonas, instalaciones y tipos de activos): el texto del
+    // modelo y, después, la concentración por código desde los registros de clima (encargo 2026-10-24; antes iba en la 64).
+    if (c.fila === 62) {
       // Con la cifra cuando el registro la tiene: la oración de la descripción que lleva un número (capturada y validada).
       const conCifra = (t: string | null) => (t ?? "").split(/(?<=\.)\s+/).find((o) => /\d/.test(o))?.trim() ?? null;
       const lineas = d.registros
         .filter((r) => r.tipo !== "oportunidad" && ((r.concentracion ?? "").trim() || conCifra(r.descripcion)))
         .map((r) => `${r.nombre}: ${[conCifra(r.descripcion), (r.concentracion ?? "").trim() ? `Se concentra en: ${r.concentracion!.trim()}` : null].filter(Boolean).join(" ")}`);
-      return lineas.length ? { texto: lineas.join("\n"), origen: "datos", nota: "registros de clima, campo concentración (bloque 23)" } : { texto: null, origen: "pendiente" };
+      const modelo = c.datapoint ? textoDe(c.datapoint) : null;
+      const texto = [modelo, lineas.join("\n")].filter(Boolean).join("\n");
+      if (!texto) return { texto: null, origen: "pendiente" };
+      return { texto: conE5(texto), origen: modelo ? "respuesta" : "datos", nota: lineas.length ? "texto del bloque 13 y registros de clima, campo concentración" : undefined };
     }
     // Fila 285: la declaración de cumplimiento, del bloque 2 aprobado (plantilla, sin hechos).
     if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "párrafo del bloque 2 aprobado, tal cual" } : { texto: null, origen: "pendiente" };
