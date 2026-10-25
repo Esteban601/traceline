@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.43** · 24 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.44** · 25 de octubre de 2026.
+
+**Cambios respecto a 0.43** (encargo 2026-10-24-deuda-s2-formato, Fase 4): §10, registro de v42 (preparado; staging
+después de la lectura externa), con el cambio de porcentajes de Cobertura y la regeneración completa de respuestas.
 
 **Cambios respecto a 0.42** (encargo 2026-10-24-deuda-s2-formato, Fase 2, aprobada por Esteban):
 - §6.1, «No aplica · E5»: texto nuevo, sin «sección en el suplemento».
@@ -1641,6 +1644,41 @@ Verificación en staging tras el release:
 Punto de reversión: `heroku releases:rollback v40 -a traceline-staging`. Revierte solo el código; las migraciones son
 aditivas y se quedan, y la plantilla en Storage no estorba al código de v40. En el ensayo, el código de v40 sobre la base
 migrada dio el Excel idéntico en las cuatro emisoras.
+
+### staging · release v42 · pendiente (después de la lectura externa)
+
+**Deuda S2 del suplemento y corrección del mapeo del Formato electrónico.** Encargo
+`docs/encargos/2026-10-24-deuda-s2-formato.md`. Registro abierto el 25 de octubre de 2026 al preparar la Fase 4; el
+release a staging se anota aquí cuando ocurra, después de la lectura externa del Formato v4.
+
+**Qué entra:** mapeo del Formato corregido en 18 filas; alta de `NIIF S2 21(a)` (bloque 10); códigos padre
+`NIIF S2 13 (a)a(b)`, `14 (a)(i)a(v)`, `16 (b)a(d)` y `22 (a)a(b)`; texto «No aplica · E5» nuevo; K84 y K64 como
+síntesis; «No revelado · alivio C4» en las filas 433 y 437; voz en tercera persona obligatoria en las respuestas.
+
+**Migraciones** (las ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`, en orden):
+`20261024120000_catalogo_s2_21a` y `20261024130000_catalogo_padres_fase3`. Solo filas del catálogo, idempotentes, con
+la barrera del auditor. Antes y después, foto con `scripts/despliegue/foto-cobertura.mjs --destino staging` y
+comparación contra la diferencia esperada escrita antes: los 5 códigos nuevos en todas las emisoras, sin solicitudes y
+«sin solicitud»; ninguna otra celda emisora × código cambia.
+
+**Cambio visible en Cobertura (para avisar a quien mire los porcentajes).** Desde v42 los códigos padre (los 4 que ya
+existían: `NIIF S2 25 (a)(i)a(v)`, `NIIF S1 44 (a)(i)a(v)`, `NIIF S2 36 (a)a(d)` y `NIIF S2 36 (e)(i)a(iv)`, y los 4
+nuevos) son filas de agrupación, marcadas «Agrupa incisos · no cuenta», y **no entran a conteos ni porcentajes** del
+tablero ni del informe. Los totales y porcentajes NIIF de cada emisora cambian aunque no cambie ninguna solicitud: en
+el demo de dev, NIIF pasa de **113 códigos con 73 cubiertos (65 %)** en v41 a **109 con 70 (64 %)** en v42 (foto de la
+Fase 3 del encargo, 24 de octubre de 2026). La comparación de la foto exige, emisora por emisora, que los totales
+«sin padres» de después sean los de antes menos los padres que ya existían y más los códigos nuevos que no son padre.
+
+**Respuestas: regeneración completa en la primera corrida de cada documento.** La versión de prompt de cada respuesta
+lleva desde v42 una firma del pedido (hash de la descripción y de los hechos), y una respuesta previa solo se reutiliza
+con la misma firma. Ninguna respuesta guardada antes de v42 la tiene, así que **la primera generación de respuestas de
+cada documento después del despliegue las regenera todas** (en el demo de dev: 0.5281 USD, 194 respuestas). Las
+siguientes reutilizan las que no cambiaron. El despliegue no dispara ninguna: solo se generan al aprobar un documento.
+Al registrar v41 staging no tenía documentos aprobados; se vuelve a comprobar el día del despliegue.
+
+**Orden previsto:** merge de `dev/ajustes-sep26` → `main` (hecho el 25/10, ver el encargo); v42 en `traceline-dev`
+y demo v4; lectura externa; foto «antes» en staging; migraciones (Esteban); `git push heroku main`; foto «después»;
+verificación y registro aquí.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
