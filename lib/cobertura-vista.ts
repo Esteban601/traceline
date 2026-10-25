@@ -22,6 +22,11 @@ export type DatapointCobertura = {
   descripcion: string;
   ods: string | null;
   cobertura: Cobertura;
+  /**
+   * Código PADRE que agrupa incisos (lib/suplemento/catalogo-incisos.ts). Se lista como fila de agrupación y no
+   * entra a conteos ni porcentajes: sus incisos ya cuentan (encargo 2026-10-24-deuda-s2-formato, decisión (a)).
+   */
+  esPadre: boolean;
   discrepancia: boolean;
   solicitudes: {
     id: string;
@@ -53,7 +58,10 @@ export const PILAR_CORTO: Record<string, string> = {
   metricas: "Métricas",
 };
 
-/** Cuenta por estado de cobertura. */
+/** Los datapoints que cuentan en conteos y porcentajes: todos menos los padres que agrupan incisos. */
+export const contables = (items: DatapointCobertura[]): DatapointCobertura[] => items.filter((d) => !d.esPadre);
+
+/** Cuenta por estado de cobertura (sin los padres que agrupan incisos). */
 export function distribucion(items: DatapointCobertura[]): Record<Cobertura, number> {
   const base: Record<Cobertura, number> = {
     cubierto: 0,
@@ -61,7 +69,7 @@ export function distribucion(items: DatapointCobertura[]): Record<Cobertura, num
     sin_evidencia: 0,
     sin_solicitud: 0,
   };
-  for (const d of items) base[d.cobertura] += 1;
+  for (const d of contables(items)) base[d.cobertura] += 1;
   return base;
 }
 

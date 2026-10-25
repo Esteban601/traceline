@@ -1,6 +1,19 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.42** · 14 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.44** · 25 de octubre de 2026.
+
+**Cambios respecto a 0.43** (encargo 2026-10-24-deuda-s2-formato, Fase 4): §10, registro de v42 (preparado; staging
+después de la lectura externa), con el cambio de porcentajes de Cobertura y la regeneración completa de respuestas.
+
+**Cambios respecto a 0.42** (encargo 2026-10-24-deuda-s2-formato, Fase 2, aprobada por Esteban):
+- §6.1, «No aplica · E5»: texto nuevo, sin «sección en el suplemento».
+- Catálogo: códigos padre `NIIF S2 13 (a)a(b)`, `14 (a)(i)a(v)`, `16 (b)a(d)` y `22 (a)a(b)` (migración
+  `20261024130000_catalogo_padres_fase3`). En Cobertura, todos los códigos padre (los de 25(a), S1 44(a), 36(a)–(d) y
+  36(e), y estos cuatro) son filas de agrupación y no entran a conteos ni porcentajes.
+- Respuestas: tercera persona obligatoria (el validador rechaza la primera del plural) y reuso solo con el mismo pedido
+  (firma de la descripción y los hechos en la versión de prompt).
+- §3 y Anexo A: el bloque 10 cita además `NIIF S2 21(a)` (alta en el catálogo, migración
+  `20261024120000_catalogo_s2_21a`); responde la fila 100 del Formato electrónico.
 
 **Cambios respecto a 0.41:** §10, registro del despliegue v41 a staging.
 
@@ -392,7 +405,7 @@ construye en A2 cruzando contra los 91 códigos reales y se anexa a esta especif
 | 7 | Materialidad: contexto y proceso | Perfil: texto del proceso de materialidad | T→E | Pendiente |
 | 8 | Horizontes temporales (tabla) | Perfil: 3 horizontes con definición y justificación | Tabla | Pendiente |
 | 9 | Evaluación y priorización de riesgos | `registros_clima` con **severidad** (§5) y matriz del tenant | D→T + Tabla | Sin severidad: solo conteo por tipo |
-| 10 | Resumen de efectos financieros actuales y previstos | Datapoints S2 16(a)–(d); capturas; cuestionario | D→T | Pendiente |
+| 10 | Resumen de efectos financieros actuales y previstos | Datapoints S2 16(a)–(d) y 21(a); capturas; cuestionario | D→T | Pendiente |
 | 11 | Nuestra historia (línea de tiempo) | Perfil: hitos corporativos | Tabla + T→E | Bloque omitido |
 | 12 | Modelo de negocio y cadena de valor | Perfil: texto + etapas | T→E | Bloque omitido |
 | 13 | Efectos sobre el modelo de negocio y la cadena de valor | Datapoints S2 13; `registros_clima` | D→T | Pendiente |
@@ -1044,8 +1057,9 @@ humana por documento (encargo, deudas).
   generador apagado, la columna no se agrega. Los incisos hijos van agrupados bajo su padre.
 - **Marcadores:** la base guarda `[Pendiente: … — …]`; el Excel de taxonomía escribe «Pendiente: … — …» en texto plano
   y el Formato electrónico deja la celda vacía. Ninguna celda exportada empieza con «[».
-- **«No aplica · E5»:** los códigos de NIIF S1 sin sección propia, con el alivio E5 vigente, dicen que no hay sección
-  en el suplemento y remiten al párrafo de NIIF S2 que lo responde.
+- **«No aplica · E5»:** los códigos de NIIF S1 sin sección propia, con el alivio E5 vigente, llevan la oración del
+  alivio y, si tienen par, «La información correspondiente a este requisito, en lo relativo al clima, se revela conforme
+  a NIIF S2 X.» (texto aprobado por Esteban el 24/10/2026; sin vocabulario de plataforma, §5).
 - **Alivios en las hojas de datos** (borrador y aprobado, como el Word): C4 deja fuera Alcance 3 (total y categorías),
   C3 deja fuera los comparativos del año anterior y E5 deja fuera las hojas de NIIF S1; las celdas dicen «No revelado ·
   alivio C4», «… C3» o «… E5».
@@ -1631,6 +1645,41 @@ Punto de reversión: `heroku releases:rollback v40 -a traceline-staging`. Revier
 aditivas y se quedan, y la plantilla en Storage no estorba al código de v40. En el ensayo, el código de v40 sobre la base
 migrada dio el Excel idéntico en las cuatro emisoras.
 
+### staging · release v42 · pendiente (después de la lectura externa)
+
+**Deuda S2 del suplemento y corrección del mapeo del Formato electrónico.** Encargo
+`docs/encargos/2026-10-24-deuda-s2-formato.md`. Registro abierto el 25 de octubre de 2026 al preparar la Fase 4; el
+release a staging se anota aquí cuando ocurra, después de la lectura externa del Formato v4.
+
+**Qué entra:** mapeo del Formato corregido en 18 filas; alta de `NIIF S2 21(a)` (bloque 10); códigos padre
+`NIIF S2 13 (a)a(b)`, `14 (a)(i)a(v)`, `16 (b)a(d)` y `22 (a)a(b)`; texto «No aplica · E5» nuevo; K84 y K64 como
+síntesis; «No revelado · alivio C4» en las filas 433 y 437; voz en tercera persona obligatoria en las respuestas.
+
+**Migraciones** (las ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`, en orden):
+`20261024120000_catalogo_s2_21a` y `20261024130000_catalogo_padres_fase3`. Solo filas del catálogo, idempotentes, con
+la barrera del auditor. Antes y después, foto con `scripts/despliegue/foto-cobertura.mjs --destino staging` y
+comparación contra la diferencia esperada escrita antes: los 5 códigos nuevos en todas las emisoras, sin solicitudes y
+«sin solicitud»; ninguna otra celda emisora × código cambia.
+
+**Cambio visible en Cobertura (para avisar a quien mire los porcentajes).** Desde v42 los códigos padre (los 4 que ya
+existían: `NIIF S2 25 (a)(i)a(v)`, `NIIF S1 44 (a)(i)a(v)`, `NIIF S2 36 (a)a(d)` y `NIIF S2 36 (e)(i)a(iv)`, y los 4
+nuevos) son filas de agrupación, marcadas «Agrupa incisos · no cuenta», y **no entran a conteos ni porcentajes** del
+tablero ni del informe. Los totales y porcentajes NIIF de cada emisora cambian aunque no cambie ninguna solicitud: en
+el demo de dev, NIIF pasa de **113 códigos con 73 cubiertos (65 %)** en v41 a **109 con 70 (64 %)** en v42 (foto de la
+Fase 3 del encargo, 24 de octubre de 2026). La comparación de la foto exige, emisora por emisora, que los totales
+«sin padres» de después sean los de antes menos los padres que ya existían y más los códigos nuevos que no son padre.
+
+**Respuestas: regeneración completa en la primera corrida de cada documento.** La versión de prompt de cada respuesta
+lleva desde v42 una firma del pedido (hash de la descripción y de los hechos), y una respuesta previa solo se reutiliza
+con la misma firma. Ninguna respuesta guardada antes de v42 la tiene, así que **la primera generación de respuestas de
+cada documento después del despliegue las regenera todas** (en el demo de dev: 0.5281 USD, 194 respuestas). Las
+siguientes reutilizan las que no cambiaron. El despliegue no dispara ninguna: solo se generan al aprobar un documento.
+Al registrar v41 staging no tenía documentos aprobados; se vuelve a comprobar el día del despliegue.
+
+**Orden previsto:** merge de `dev/ajustes-sep26` → `main` (hecho el 25/10, ver el encargo); v42 en `traceline-dev`
+y demo v4; lectura externa; foto «antes» en staging; migraciones (Esteban); `git push heroku main`; foto «después»;
+verificación y registro aquí.
+
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
 - **Migraciones** (las ejecuta Esteban, en orden): `20261013120000_respuestas_datapoint`,
@@ -2061,7 +2110,7 @@ viene de la plantilla, no de los datos.
 | 7 | Materialidad: contexto y proceso | Editorial · recomendado | Contexto que la emisora suele querer: S1 17–18 pide aplicar la materialidad, no describir el proceso. | T→E | **varía** | — | — | `proceso_materialidad` |
 | 8 | Horizontes temporales | Normativo | NIIF S2 10(d) (horizontes de corto, mediano y largo plazo). | Tabla | ambos | `NIIF S2 10(d)` (desde el 8 de octubre de 2026; antes en el 21) | — | `horizontes` |
 | 9 | Evaluación y priorización de riesgos | Normativo | NIIF S2 25(a)(ii)–(iv) (evaluación y priorización); se solapa con el 27. | D→T + Tabla | ambos | — | `registros_clima` | `matriz_riesgos` |
-| 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)` | `capturas_valor` | — |
+| 10 | Resumen de efectos financieros actuales y previstos | Normativo | NIIF S2 15–16 (efectos financieros actuales y previstos) y 21(a) (por qué no hay información cuantitativa). | D→T | **varía** | `NIIF S2 16(a)`<br>`NIIF S2 16(b)`<br>`NIIF S2 16(c)(i)(ii)`<br>`NIIF S2 16(d)`<br>`NIIF S2 21(a)` | `capturas_valor` | — |
 | 11 | Nuestra historia (línea de tiempo) | Editorial · opcional | Contexto de la emisora; no lo exige ningún párrafo. | Tabla + T→E | ambos | — | — | `hitos_corporativos` |
 | 12 | Modelo de negocio y cadena de valor | Editorial · opcional | La norma pide los efectos sobre el modelo de negocio y la cadena de valor (bloque 13), no describirlos. | T→E | ambos | — | — | `modelo_negocio`<br>`cadena_valor` |
 | 13 | Efectos sobre el modelo de negocio y la cadena de valor | Normativo | NIIF S2 13 (efectos sobre el modelo de negocio y la cadena de valor). | D→T | ambos | `NIIF S2 13(a)`<br>`NIIF S2 13(b)` | `registros_clima` | — |

@@ -11,6 +11,7 @@ import {
   PILAR_CORTO,
   PILAR_LABEL,
   PILAR_ORDEN,
+  contables,
   distribucion,
   pct,
   type DatapointCobertura,
@@ -99,13 +100,14 @@ export function CoberturaView({
   const [soloConSolicitudes, setSoloConSolicitudes] = useState(false);
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
 
-  const universo = datapoints.length;
+  // Los padres que agrupan incisos se listan pero no cuentan (lib/cobertura-vista.ts, contables).
+  const universo = contables(datapoints).length;
 
   // Anillos por pilar sobre el UNIVERSO completo (overview estable, no filtrado).
   const anillos = useMemo(
     () =>
       [...PILAR_ORDEN].map((p) => {
-        const items = datapoints.filter((d) => d.pilar === p);
+        const items = contables(datapoints).filter((d) => d.pilar === p);
         return {
           key: p,
           label: PILAR_CORTO[p],
@@ -203,13 +205,13 @@ export function CoberturaView({
         aria-label="Resumen de cobertura"
         className="grid grid-cols-2 gap-4 lg:grid-cols-5"
       >
-        <KpiTotal total={visibles.length} universo={universo} />
+        <KpiTotal total={contables(visibles).length} universo={universo} />
         {COBERTURA_ORDEN.map((c) => (
           <KpiCobertura
             key={c}
             cobertura={c}
             valor={conteo[c]}
-            porcentaje={pct(conteo[c], visibles.length)}
+            porcentaje={pct(conteo[c], contables(visibles).length)}
           />
         ))}
       </section>
@@ -479,7 +481,7 @@ function AnillosCobertura({
 /** Mini-barra apilada de la proporción de cobertura del grupo (escaneo sin abrir). */
 function MiniBarra({ items }: { items: DatapointCobertura[] }) {
   const dist = distribucion(items);
-  const total = items.length || 1;
+  const total = contables(items).length || 1;
   return (
     <span
       className="flex h-1.5 w-24 overflow-hidden rounded-full bg-line/50 sm:w-36"
@@ -561,7 +563,7 @@ function GrupoCobertura({
               {norma} · {PILAR_LABEL[pilar] ?? pilar}
             </span>
             <span className="text-sm text-muted">
-              {items.length} {items.length === 1 ? "datapoint" : "datapoints"}
+              {contables(items).length} {contables(items).length === 1 ? "datapoint" : "datapoints"}
             </span>
             {nDisc > 0 && (
               <AlertaDiscrepancia className="ml-0.5" />
@@ -598,6 +600,11 @@ function DatapointCard({ d }: { d: DatapointCobertura }) {
             <code className="rounded-md bg-teal/10 px-2 py-0.5 font-mono text-sm font-semibold text-teal">
               {d.codigo}
             </code>
+            {d.esPadre && (
+              <span title="Agrupa incisos que tienen su propia fila; no entra a conteos ni porcentajes" className="rounded-pill border border-line px-2 py-0.5 text-[11px] text-muted">
+                Agrupa incisos · no cuenta
+              </span>
+            )}
             {d.discrepancia && <AlertaDiscrepancia />}
             {d.ods && (
               <span
