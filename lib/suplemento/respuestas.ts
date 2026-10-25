@@ -131,7 +131,9 @@ const FILAS_CON_ENFOQUE = new Set(CONCEPTOS_FORMATO_CON_ENFOQUE.map((c) => c.fil
  * Perfil para cualquier emisora (decisión (e) del encargo deuda-s2-formato).
  */
 export const HECHOS_DEL_PADRE: Record<string, RegExp[]> = {
-  "NIIF S2 13 (a)a(b)": [/^cadena_valor\./, /^modelo_negocio\./],
+  // Sin `modelo_negocio.*`: sus subclaves las extrae el modelo del texto libre del Perfil y mezclan cambios al modelo
+  // (respuesta, NIIF S2 14) con efectos (13); los de 13 ya llegan por los incisos (K59, revisión del 25/10).
+  "NIIF S2 13 (a)a(b)": [/^cadena_valor\./],
 };
 
 /**
@@ -484,7 +486,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   for (const p of planes) {
     const hijos = hijosDe.get(p.codigo);
     if (!hijos || p.via !== "bloque") continue;
-    const extra = HECHOS_DEL_PADRE[p.codigo] ? " Incluye también lo que dicen los hechos de la cadena de valor y del modelo de negocio." : "";
+    const extra = HECHOS_DEL_PADRE[p.codigo] ? " Incluye también lo que dicen los hechos de la cadena de valor. No describe acciones de respuesta (cambios al modelo de negocio, límites, recursos o planes), que van en NIIF S2 14." : "";
     descripcion.set(p.codigo, `${descripcion.get(p.codigo)} Es el código que agrupa ${hijos.join(", ")}: da una síntesis propia del párrafo completo, sin copiar oraciones de las respuestas de esos incisos, que van en otras filas.${extra}`);
   }
   // HECHO_RAZON: la descripción pide la razón solo si su hecho está entre los del requisito.

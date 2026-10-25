@@ -104,7 +104,7 @@ puede ir al lector externo.
 - Mismo patrón que «NIIF S2 25 (a)(i)a(v)», en este orden:
   - **S2 22:** K105 reutiliza la síntesis de K103;
   - **S2 14(a):** sintetiza los cinco incisos de los bloques 22, 23, 25 y 28;
-  - **S2 13:** toma `cadena_valor.*` y `modelo_negocio.*`, y K59 deja de repetir K60.
+  - **S2 13:** toma `cadena_valor.*` (y, hasta el 25/10, `modelo_negocio.*`), y K59 deja de repetir K60.
 - **Códigos padre de los efectos financieros** (`NIIF S2 15` / `NIIF S1 34`, filas 84 y 91): misma tanda, si
   hace falta el padre. Hasta entonces las dos filas se responden desde el bloque 10 con la clave `fila:N`
   (Fase 2).
@@ -265,6 +265,11 @@ celdas), con los generales `NIIF S2 33` y `NIIF S2 34`; y NIIF S2 16(a) en K85 a
   con la regla de K97/K99 respecto a K65.
 - **(d)** Solo padres de NIIF S2.
 - **(e)** S2 13 suma `cadena_valor.*` y `modelo_negocio.*` con un mecanismo general por clave, no limitado al demo.
+  **Ajuste del 25/10 (revisión de K59 por Esteban):** `modelo_negocio.*` sale del padre. Sus subclaves las extrae el
+  modelo del texto libre del Perfil y mezclan acciones de respuesta (en el demo, `modelo_negocio.cambios_2025`:
+  límites sectoriales y unidad de financiamiento sostenible, contenido de NIIF S2 14) con efectos y concentración (13);
+  los hechos de `modelo_negocio` que son de 13 ya llegan por los incisos. La descripción del padre dice además que no
+  describe acciones de respuesta.
 
 ### Reglas registradas en la Fase 3 (decisión de Esteban del 24/10)
 
@@ -298,6 +303,16 @@ Esteban anotó «los 22 pendientes del demo (36(e), 25(a))» como la deuda que s
 el 24/10, el número no coincide:** el demo v3 tiene 2 respuestas pendientes (NIIF S2 30 y NIIF S2 B65 inciso (e)). Los
 códigos de 25(a) tienen respuesta y los de 36(e) llevan el «no aplica» heredado. Falta que Esteban confirme a qué se
 refieren los 22 antes de escribir el encargo.
+
+**36(e), revisado el 25/10 (pendiente del encargo siguiente, no se corrige aquí).** El «no aplica» de
+`NIIF S2 36 (e)(i)` a `(iv)` y de su padre viene de una **regla**, no de una decisión de IRStrat sobre la emisora:
+`noAplicaHeredado` (`lib/suplemento/catalogo-incisos.ts`, decisión del 8/10) busca con una expresión regular una
+negación del uso de créditos de carbono en las respuestas del cuestionario «S2 36(e)» que capturó la emisora; si la
+encuentra, los cuatro incisos y el padre son «no aplica» con el texto fijo. En el Formato exportado (filas 534–547;
+son las 255–270 del mapeo, desplazadas por las tablas de métricas), K534, K538, K540 y K546 dicen «No aplica. La
+Compañía no prevé usar créditos de carbono para alcanzar sus objetivos de emisiones.» y K542 y K544 (enumeraciones
+de (iii)) dicen «No aplica: la Compañía no prevé usar créditos de carbono para alcanzar sus objetivos.». Lo que falta
+revisar: que la detección dependa de la redacción de la respuesta y no de un campo explícito, y las dos redacciones.
 
 ## 7. Registro
 

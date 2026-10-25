@@ -853,14 +853,14 @@
    "datapoint": "NIIF S2 13 (a)a(b)",
    "confianza": "media",
    "bloque": 13,
-   "regla": "Modelo, desde el bloque 13 aprobado: código padre NIIF S2 13 (a)a(b), con los hechos de sus incisos y los de cadena_valor.* y modelo_negocio.* · lleva la oración fija del alivio E5",
+   "regla": "Modelo, desde el bloque 13 aprobado: código padre NIIF S2 13 (a)a(b), con los hechos de sus incisos y los de cadena_valor.*, sin acciones de respuesta (van en NIIF S2 14) · lleva la oración fija del alivio E5",
    "nota": "NIIF S2 13 → sin código propio; sus 2 incisos son del bloque 13",
    "alivioE5": true,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "regla S1→S2"
    },
-   "correccion": "2026-10-24 · encargo deuda-s2-formato: código padre NIIF S2 13 (a)a(b), con cadena_valor.* y modelo_negocio.*; deja de repetir K60"
+   "correccion": "2026-10-24 · encargo deuda-s2-formato: código padre NIIF S2 13 (a)a(b), con cadena_valor.* (sin modelo_negocio.*, 25/10); deja de repetir K60"
   },
   {
    "fila": 60,
