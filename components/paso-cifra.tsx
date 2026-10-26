@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { SugerenciaBloque } from "@/components/sugerencia-bloque";
 import { cn } from "@/lib/cn";
-import { capturarCifra, consultarLectura, type CifraState } from "@/lib/evidencias/acciones-lectura";
+import { capturarCifra, type CifraState } from "@/lib/evidencias/acciones-lectura";
 import type { EstadoLectura } from "@/lib/evidencias/estado-lectura";
+import type { ConsultaLectura } from "@/app/api/evidencias/lectura/route";
 
 // =============================================================================
 // PASO 3 «LA CIFRA QUE REPORTAS», DESPUÉS DE SUBIR (encargo 2026-10-26-carga-
 // lectura-primero). Portal y panel.
 //
-//   · leyendo   → «Leyendo tu archivo…»; consulta cada 4 s, hasta 90 s.
+//   · leyendo   → «Leyendo tu archivo…»; consulta cada 4 s, hasta 90 s, con
+//                 GET /api/evidencias/lectura (una ruta, no una acción: las
+//                 acciones van en fila y dejaban Confirmar en espera).
 //   · sugerida  → la cifra, unidad, periodo, fuente y cita que encontró la
 //                 lectura, con Confirmar / Corregir / Rechazar
 //                 (fn_decidir_sugerencia, en SugerenciaBloque).
@@ -32,12 +35,15 @@ export function PasoCifra({
   nombreArchivo,
   unidadEsperada,
   periodoArchivo,
+  periodoSolicitud = null,
   estadoInicial,
 }: {
   solicitudId: string;
   nombreArchivo: string;
   unidadEsperada: string | null;
   periodoArchivo: string | null;
+  /** El ejercicio del reporte: Corregir lo propone como periodo. */
+  periodoSolicitud?: string | null;
   estadoInicial: EstadoLectura;
 }) {
   const [estado, setEstado] = useState(estadoInicial);
@@ -52,7 +58,10 @@ export function PasoCifra({
   useEffect(() => {
     if (estado.fase !== "leyendo") return;
     const t = setTimeout(async () => {
-      const r = await consultarLectura(solicitudId, estado.evidenciaId);
+      const q = new URLSearchParams({ solicitud: solicitudId, evidencia: estado.evidenciaId });
+      const r: ConsultaLectura = await fetch(`/api/evidencias/lectura?${q}`, { cache: "no-store" })
+        .then((x) => x.json() as Promise<ConsultaLectura>)
+        .catch(() => ({ ok: false, error: "No pudimos consultar la lectura de tu archivo. Escribe la cifra." }));
       if (r.ok) setEstado(r.estado);
       else setEstado({ ...estado, fase: "fallo", linea: r.error });
     }, SONDEO_MS);
@@ -122,7 +131,7 @@ export function PasoCifra({
         ) : estado.fase === "sugerida" && estado.bloque ? (
           <>
             <p className="text-xs text-muted">La encontramos en tu archivo. Confírmala o corrígela.</p>
-            <SugerenciaBloque bloque={estado.bloque} solicitudId={solicitudId} />
+            <SugerenciaBloque bloque={estado.bloque} solicitudId={solicitudId} periodoSolicitud={periodoSolicitud} />
           </>
         ) : (
           <>

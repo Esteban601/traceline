@@ -194,6 +194,7 @@ export function CargaPanel({
           nombreArchivo={cifraPendiente.nombreArchivo}
           unidadEsperada={unidadEsperada}
           periodoArchivo={cifraPendiente.periodo}
+          periodoSolicitud={periodoDefault || null}
           estadoInicial={cifraPendiente.estado}
         />
         <div className="flex justify-end">

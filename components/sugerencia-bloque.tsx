@@ -16,6 +16,7 @@ import type { Tono } from "@/lib/estados";
 // fuente como enlace que abre la evidencia en su página (o dice hoja y celda),
 // la conversión con su factor y los candidatos desplegables. Con
 // `sin_hallazgo` dice que la evidencia no trae la cifra o no cubre el requisito.
+// Ya decidida, va plegada en una línea secundaria (SugerenciaDecidida).
 //
 // Los botones solo aparecen si `puedeDecidir` (la regla de la base: quien
 // captura decide; el auditor nunca). Aunque alguien forzara el formulario, la
@@ -67,13 +68,61 @@ function mostrada(l: LecturaVista): { valor: number; unidad: string } {
   return l.conversion ? { valor: l.conversion.valor, unidad: l.conversion.unidad } : { valor: l.valor, unidad: l.unidad };
 }
 
-export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugerencia; solicitudId: string }) {
+/**
+ * Una sugerencia ya decidida va plegada y en secundario: la cifra que cuenta es la
+ * vigente del historial, no la que propuso la plataforma (prueba de Esteban en
+ * traceline-dev, 26/10). «Sugerencia corregida: 4,080 → 546 kWh».
+ */
+function SugerenciaDecidida({ s }: { s: NonNullable<BloqueSugerencia["sugerencia"]> }) {
+  const d = s.decision!;
+  const p = s.principal ? mostrada(s.principal) : null;
+  const propuesta = p ? `${fmt.format(p.valor)} ${p.unidad}` : null;
+  const resumen =
+    s.tipo === "texto"
+      ? s.estado === "confirmada" ? "Extracto sugerido confirmado" : s.estado === "corregida" ? "Extracto sugerido corregido" : "Extracto sugerido rechazado"
+      : s.estado === "confirmada"
+        ? `Sugerencia confirmada${propuesta ? `: ${propuesta}` : ""}`
+        : s.estado === "corregida"
+          ? `Sugerencia corregida${p && d.valorFinal !== null ? `: ${fmt.format(p.valor)} → ${fmt.format(d.valorFinal)} ${d.unidadFinal ?? p.unidad}` : ""}`
+          : `Sugerencia rechazada${propuesta ? `: ${propuesta}` : ""}`;
+  return (
+    <details className="group rounded-xl border border-line bg-surface px-3.5 py-2 text-xs text-muted" data-testid="sugerencia-decidida">
+      <summary className="cursor-pointer select-none">{resumen}</summary>
+      <div className="mt-2 space-y-1 leading-relaxed">
+        {s.principal ? (
+          <p>
+            Propuesta de la plataforma sobre la versión {s.evidenciaVersion}
+            {s.principal.periodo ? `, periodo ${s.principal.periodo}` : ""}. Fuente:{" "}
+            <Fuente evidenciaId={s.evidenciaId} fuente={s.principal.fuente} />
+            {s.principal.cita ? <> · «{s.principal.cita}»</> : null}
+          </p>
+        ) : null}
+        <p>
+          {s.estado === "confirmada" ? "Confirmada" : s.estado === "corregida" ? "Corregida" : "Rechazada"}
+          {d.quien ? ` por ${d.quien}` : ""} el {fmtFecha.format(new Date(d.cuando))}
+          {d.motivoRechazo ? ` · motivo: ${d.motivoRechazo}` : ""}
+        </p>
+      </div>
+    </details>
+  );
+}
+
+export function SugerenciaBloque({
+  bloque,
+  solicitudId,
+  periodoSolicitud = null,
+}: {
+  bloque: BloqueSugerencia;
+  solicitudId: string;
+  /** El periodo que pide la solicitud (el ejercicio del reporte). Corregir lo propone por defecto. */
+  periodoSolicitud?: string | null;
+}) {
   const s = bloque.sugerencia;
   const toast = useToast();
   const [estado, accion, pendiente] = useActionState(decidirSugerencia, inicial);
   const [modo, setModo] = useState<null | "corregir" | "rechazar">(null);
-  const [precarga, setPrecarga] = useState<{ valor: string; unidad: string; periodo: string; extracto: string }>({
-    valor: "", unidad: "", periodo: "", extracto: "",
+  const [precarga, setPrecarga] = useState<{ valor: string; unidad: string; periodo: string; periodoArchivo: string; extracto: string }>({
+    valor: "", unidad: "", periodo: "", periodoArchivo: "", extracto: "",
   });
 
   // Cada resultado se anuncia una sola vez, aunque el componente se vuelva a pintar.
@@ -90,16 +139,19 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
   }, [estado, toast]);
 
   if (!s) return null;
+  if (s.decision && s.estado !== "sugerida") return <SugerenciaDecidida s={s} />;
   const esTexto = s.tipo === "texto";
   const titulo = esTexto ? "Extracto sugerido" : "Valor sugerido";
   const decidible = bloque.puedeDecidir && s.estado === "sugerida";
 
   const abrirCorreccion = (l: LecturaVista | null) => {
     if (esTexto) {
-      setPrecarga({ valor: "", unidad: "", periodo: "", extracto: s.extracto ?? "" });
+      setPrecarga({ valor: "", unidad: "", periodo: "", periodoArchivo: "", extracto: s.extracto ?? "" });
     } else if (l) {
       const m = mostrada(l);
-      setPrecarga({ valor: String(m.valor), unidad: m.unidad, periodo: l.periodo ?? "", extracto: "" });
+      // El periodo se propone igual al de la solicitud; el de la cifra del archivo
+      // se muestra al lado y nunca se hereda sin verse.
+      setPrecarga({ valor: String(m.valor), unidad: m.unidad, periodo: periodoSolicitud || l.periodo || "", periodoArchivo: l.periodo ?? "", extracto: "" });
     }
     setModo("corregir");
   };
@@ -210,19 +262,6 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
         </div>
       ) : null}
 
-      {/* ---------- Decisión tomada ---------- */}
-      {s.decision ? (
-        <p className="mt-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink">
-          {s.estado === "confirmada" ? "Confirmada" : s.estado === "corregida" ? "Corregida" : "Rechazada"}
-          {s.decision.quien ? ` por ${s.decision.quien}` : ""} el {fmtFecha.format(new Date(s.decision.cuando))}
-          {s.estado === "corregida" && s.decision.valorFinal !== null
-            ? ` · quedó ${fmt.format(s.decision.valorFinal)} ${s.decision.unidadFinal ?? ""}`
-            : ""}
-          {s.estado === "corregida" && s.decision.extractoFinal ? " · con el texto corregido" : ""}
-          {s.decision.motivoRechazo ? ` · motivo: ${s.decision.motivoRechazo}` : ""}
-        </p>
-      ) : null}
-
       {/* ---------- Botones (solo quien decide) ---------- */}
       {decidible ? (
         <div className="mt-4 space-y-3">
@@ -287,6 +326,11 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
                       key={`p-${precarga.periodo}`}
                       className="mt-1 h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-teal/40"
                     />
+                    {precarga.periodoArchivo && precarga.periodoArchivo !== precarga.periodo ? (
+                      <span className="mt-1 block text-xs text-ambar" data-testid="periodo-archivo">
+                        La cifra del archivo es de {precarga.periodoArchivo}.
+                      </span>
+                    ) : null}
                   </label>
                 </div>
               )}

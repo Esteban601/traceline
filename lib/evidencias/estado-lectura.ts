@@ -46,13 +46,18 @@ export const ESPERA_MAX_S = 90;
 
 const LINEAS: Partial<Record<FaseLectura, string>> = {
   tarda: "La lectura de tu archivo sigue en curso. Escribe la cifra o vuelve en unos minutos para confirmar la que encontremos.",
-  sin_hallazgo: "No encontramos la cifra en tu archivo. Escríbela tú.",
   rechazada: "Rechazaste la cifra que encontramos. Escríbela tú.",
   apagada: "La lectura automática de archivos no está activa para tu empresa. Escribe la cifra.",
   tope: "Este mes ya se usaron todas las lecturas automáticas de tu empresa. Escribe la cifra.",
   fallo: "No pudimos leer tu archivo automáticamente. Escribe la cifra.",
   sin_lectura: "Escribe la cifra que respalda este archivo.",
 };
+
+/** Sin hallazgo, con la unidad de la solicitud en la oración (prueba de Esteban en traceline-dev, 26/10). */
+export function lineaSinHallazgo(unidad: string | null): string {
+  const que = unidad?.trim() ? `una cifra en ${unidad.trim()}` : "la cifra";
+  return `No encontramos ${que} en este archivo. Puedes escribir la cifra aquí.`;
+}
 
 export async function estadoDeLectura(
   db: Db,
@@ -77,8 +82,9 @@ export async function estadoDeLectura(
     const bloque = await cargarSugerencia(db, solicitud, evidencia);
     const s = bloque.sugerencia;
     if (s?.estado === "sugerida" && s.principal) return con("sugerida", { segundos, bloque });
-    if (s?.estado === "sugerida") return con("sin_hallazgo", { segundos, bloque });
-    if (s?.estado === "sin_hallazgo") return con("sin_hallazgo", { segundos, bloque, linea: [LINEAS.sin_hallazgo, s.motivo].filter(Boolean).join(" ") });
+    const sinHallazgo = lineaSinHallazgo(solicitud.unidad_esperada);
+    if (s?.estado === "sugerida") return con("sin_hallazgo", { segundos, bloque, linea: sinHallazgo });
+    if (s?.estado === "sin_hallazgo") return con("sin_hallazgo", { segundos, bloque, linea: [sinHallazgo, s.motivo].filter(Boolean).join(" ") });
     if (s?.estado === "rechazada") return con("rechazada", { segundos });
     const { count: fallidas } = await db.from("sugerencias_captura").select("id", { count: "exact", head: true }).eq("evidencia_id", evidencia.id).eq("estado", "fallida");
     if ((fallidas ?? 0) > 0) return con("fallo", { segundos });

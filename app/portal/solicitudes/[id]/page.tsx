@@ -279,6 +279,27 @@ export default async function SolicitudPage({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
+                    {/* La cifra vigente va grande y primero; la entrega, debajo
+                        (prueba de Esteban en traceline-dev, 26/10). Misma verdad
+                        que la frase de la entrega, y por la misma regla: la cifra
+                        viaja pegada a esa evidencia, así que «Reportaste» solo vale
+                        si la entrega es de quien mira. Con la carga de IRStrat era
+                        falso; con el JEFE DE ÁREA —que ve las cifras de su gente—
+                        también. */}
+                    {capturasEv.filter((c) => c.confirmado).map((c) => (
+                      <div key={c.id} className="mb-2" data-testid={vigente ? "cifra-vigente" : undefined}>
+                        <p className="text-xs text-muted">
+                          {ev.cargado_por_staff || ev.subido_por !== perfil.id ? "Cifra registrada" : "Reportaste"}
+                        </p>
+                        <p className="text-ink">
+                          <span className="font-display text-2xl font-semibold tabular-nums">
+                            {fmtNum.format(c.valor)}
+                          </span>{" "}
+                          <span className="text-base">{c.unidad}</span>
+                          {c.periodo ? <span className="text-sm text-muted"> · periodo {c.periodo}</span> : null}
+                        </p>
+                      </div>
+                    ))}
                     {/* Frase, no metadata. Y la frase tiene que decir la verdad de
                         QUIÉN entregó: «Entregaste» solo si la carga es de quien está
                         mirando. Con IRStrat cargando en nombre del área era falso, y
@@ -319,26 +340,11 @@ export default async function SolicitudPage({
                       .
                     </p>
 
-                    {capturasEv.map((c) => (
+                    {capturasEv.filter((c) => !c.confirmado).map((c) => (
                       <p key={c.id} className="mt-1.5 text-sm text-ink">
-                        {/* Misma verdad que la frase de arriba, y por la misma
-                            regla: la cifra viaja pegada a esa evidencia, así que
-                            «Reportaste» solo vale si la entrega es de quien mira.
-                            Con la carga de IRStrat era falso; con el JEFE DE ÁREA
-                            —que ve las cifras de su gente— también. */}
-                        <span className="text-muted">
-                          {ev.cargado_por_staff || ev.subido_por !== perfil.id
-                            ? "Cifra registrada: "
-                            : "Reportaste: "}
-                        </span>
-                        <span className="font-semibold tabular-nums">
-                          {fmtNum.format(c.valor)}
-                        </span>{" "}
-                        <span>{c.unidad}</span>
+                        <span className="font-semibold tabular-nums">{fmtNum.format(c.valor)}</span> <span>{c.unidad}</span>
                         {c.periodo ? <span className="text-muted"> ({c.periodo})</span> : null}
-                        {!c.confirmado && (
-                          <span className="text-muted"> · por confirmar</span>
-                        )}
+                        <span className="text-muted"> · por confirmar</span>
                       </p>
                     ))}
 
@@ -382,7 +388,7 @@ export default async function SolicitudPage({
                 {/* Con la cifra pendiente, la sugerencia va en el paso 3, no aquí. */}
                 {vigente && bloqueSugerencia.sugerencia && !cifraPendiente ? (
                   <div className="mt-4">
-                    <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
+                    <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} periodoSolicitud={reporte?.ejercicio != null ? String(reporte.ejercicio) : null} />
                   </div>
                 ) : null}
 

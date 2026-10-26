@@ -3,37 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { esAuditor, esStaff, getPerfilActual } from "@/lib/data";
-import { estadoDeLectura, type EstadoLectura } from "@/lib/evidencias/estado-lectura";
 import { evidenciasConCifra } from "@/lib/evidencias/con-cifra";
 
 // =============================================================================
-// CARGA EN DOS MOMENTOS: CONSULTA DE LA LECTURA Y CIFRA MANUAL (encargo
-// 2026-10-26-carga-lectura-primero). Las usan el portal y el panel.
+// CARGA EN DOS MOMENTOS: CIFRA MANUAL (encargo 2026-10-26-carga-lectura-
+// primero). La usan el portal y el panel.
 //
-//   · consultarLectura: lo que la pantalla sondea cada 4 s después de «Subir y
-//     leer», para la última evidencia de la solicitud.
 //   · capturarCifra: el paso 3 manual, cuando no hay sugerencia que confirmar
 //     (lectura apagada, tope, fallo, sin hallazgo, rechazada o más de 90 s).
+//     El sondeo de la lectura va por GET /api/evidencias/lectura, no aquí.
 //     La sugerida se confirma o corrige con fn_decidir_sugerencia, no aquí.
 //
 // Una evidencia tiene a lo más UNA cifra confirmada: la acción lo comprueba, la
 // generación de la sugerencia no sugiere sobre una evidencia con cifra, y
 // fn_decidir_sugerencia responde 409 si ya la hay.
 // =============================================================================
-
-export type ConsultaLectura = { ok: true; estado: EstadoLectura } | { ok: false; error: string };
-
-export async function consultarLectura(solicitudId: string, evidenciaId: string): Promise<ConsultaLectura> {
-  const perfil = await getPerfilActual();
-  if (!perfil) return { ok: false, error: "Sesión no válida." };
-  const db = await createClient();
-  const [{ data: sol }, { data: ev }] = await Promise.all([
-    db.from("solicitudes").select("id, unidad_esperada").eq("id", solicitudId).maybeSingle(),
-    db.from("evidencias").select("id, nombre_original, solicitud_id").eq("id", evidenciaId).maybeSingle(),
-  ]);
-  if (!sol || !ev || ev.solicitud_id !== solicitudId) return { ok: false, error: "No se encontró la evidencia o no tienes acceso." };
-  return { ok: true, estado: await estadoDeLectura(db, sol, ev) };
-}
 
 export type CifraState = { ok: boolean; error: string | null; mensaje: string | null };
 
