@@ -1,6 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.44** · 25 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.45** · 26 de octubre de 2026.
+
+**Cambios respecto a 0.44** (encargo 2026-10-26-carga-lectura-primero): §10, el registro de v42 agrega la carga en dos
+momentos, la corrección de la lectura de escaneados y la regla de total frente a parciales (`sug-num-3`), la tercera
+migración (`20261026120000`) y la comparación de privilegios de `service_role` antes de migrar.
 
 **Cambios respecto a 0.43** (encargo 2026-10-24-deuda-s2-formato, Fase 4): §10, registro de v42 (preparado; staging
 después de la lectura externa), con el cambio de porcentajes de Cobertura y la regeneración completa de respuestas.
@@ -1656,8 +1660,17 @@ release a staging se anota aquí cuando ocurra, después de la lectura externa d
 síntesis; «No revelado · alivio C4» en las filas 433 y 437; voz en tercera persona obligatoria en las respuestas.
 
 **Migraciones** (las ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`, en orden):
-`20261024120000_catalogo_s2_21a` y `20261024130000_catalogo_padres_fase3`. Solo filas del catálogo, idempotentes, con
-la barrera del auditor. Antes y después, foto con `scripts/despliegue/foto-cobertura.mjs --destino staging` y
+`20261024120000_catalogo_s2_21a`, `20261024130000_catalogo_padres_fase3` y
+`20261026120000_decidir_sugerencia_sin_doble_captura`. Las dos primeras son solo filas del catálogo, idempotentes, con la
+barrera del auditor. La tercera reemplaza el cuerpo de `fn_decidir_sugerencia` con la misma firma (aditiva, OK de
+Esteban del 26/10): responde 409 «Esta evidencia ya tiene una cifra confirmada.» si la evidencia ya tiene cifra, y agrega
+`grant select on capturas_valor to service_role`.
+
+**Antes de migrar, privilegios de `service_role`:** se corre `scripts/despliegue/privilegios-service-role.sql` (solo
+lectura) contra staging y se compara con dev, donde las 37 tablas de `public` tienen los 7 privilegios (consulta del
+26/10). Si staging no tiene SELECT de `service_role` sobre `capturas_valor`, el `grant` de la tercera migración sí cambia
+algo ahí, y se anota en este registro. Si falta otro privilegio que el código usa con service role, se detiene el
+despliegue y se avisa. Antes y después, foto con `scripts/despliegue/foto-cobertura.mjs --destino staging` y
 comparación contra la diferencia esperada escrita antes: los 5 códigos nuevos en todas las emisoras, sin solicitudes y
 «sin solicitud»; ninguna otra celda emisora × código cambia.
 
@@ -1695,9 +1708,29 @@ regeneró solo, después de dar al generador el hecho de transparencia como pres
 El costo del documento (`documentos_generados.costo_usd`) queda en 11.4060: suma los costos vigentes de sus bloques, con
 el del bloque 10 nuevo en lugar del primero (0.3387).
 
+**Carga en dos momentos y lectura de escaneados** (encargo `docs/encargos/2026-10-26-carga-lectura-primero.md`, en
+`main` desde el 26/10):
+- **Carga:** archivo y periodo → «Subir y leer» → la pantalla consulta la lectura (`GET /api/evidencias/lectura`) hasta
+  90 s → paso 3 prellenado con cifra, unidad, periodo, fuente y cita (Confirmar / Corregir), o el paso 3 manual con la
+  línea de por qué no hay sugerencia. Igual en el panel. Una evidencia tiene a lo más una cifra confirmada: no se sugiere
+  sobre una evidencia con cifra, ni al generar ni al guardar, y «por decidir» no la cuenta.
+- **Corrección de la lectura de escaneados.** Hasta v41, el transcriptor de visión podía anotar una lectura parcial bajo
+  una línea [ilegible] (el 26/10 anotó «se alcanza a leer "46,350 kWh"» en una factura cuyo total viene encimado), y esa
+  nota podía salir como cifra principal con confianza media. Desde v42 el transcriptor no anota lecturas parciales, y una
+  línea [ilegible] nunca produce principal: se relee la página a más resolución (cuenta en el tope mensual) y, si sigue
+  ilegible, la sugerencia es «sin hallazgo».
+- **Regla de total frente a parciales (`sug-num-3`):** la principal es la cifra que cubre el periodo de la solicitud (el
+  total del año); una fila parcial (un mes, una planta) nunca lo es y va como alternativa. Sin total, «sin hallazgo»: «El
+  total del periodo no se distingue en el archivo. Las cifras parciales aparecen abajo solo como referencia.», con las
+  parciales de referencia, sin prellenar. «Usar esta cifra» en una parcial fija su periodo y avisa cuál pide la
+  solicitud.
+- **Sin `loading.tsx`** en `/admin`, `/portal` y `/portal/solicitudes/[id]`: al navegar ya no aparece el esqueleto gris.
+  Es el parche de una carrera de Next 15.5.20 que solo se reprodujo en local. El encargo siguiente
+  `actualizar-next-y-restaurar-loading` decide si vuelven.
+
 **Orden previsto:** merge de `dev/ajustes-sep26` → `main` (hecho el 25/10, ver el encargo); v42 en `traceline-dev`
 y demo v4; lectura externa; foto «antes» en staging; migraciones (Esteban); `git push heroku main`; foto «después»;
-verificación y registro aquí.
+verificación y registro aquí. Antes de las migraciones, la comparación de privilegios de `service_role`.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 

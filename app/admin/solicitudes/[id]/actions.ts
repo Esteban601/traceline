@@ -462,31 +462,8 @@ export async function subirEvidenciaPanel(
   // del portal. Si no termina, la recoge el cron /api/evidencias/procesar.
   after(() => procesarLecturaDeEvidencia(ev.id).then(() => undefined));
 
-  // Captura de valor si la solicitud es cuantitativa y se dio un valor.
-  let avisoCaptura: string | null = null;
-  if (sol.es_cuantitativa) {
-    const valorRaw = String(formData.get("valor") ?? "").trim();
-    if (valorRaw !== "") {
-      const valor = Number(valorRaw.replace(/,/g, ""));
-      const unidad = String(formData.get("unidad") ?? "").trim();
-      const periodoCaptura = String(formData.get("periodo_captura") ?? "").trim();
-      if (Number.isFinite(valor) && unidad) {
-        const { error: capErr } = await db.from("capturas_valor").insert({
-          solicitud_id: solicitudId,
-          evidencia_id: ev.id,
-          valor,
-          unidad,
-          periodo: periodoCaptura || periodoCubierto,
-          capturado_por: perfil.id,
-          confirmado: true,
-          justificacion: justificacion || null,
-        });
-        if (capErr) avisoCaptura = `la captura de valor falló: ${capErr.message}`;
-      } else {
-        avisoCaptura = "el valor o la unidad no eran válidos y no se capturó la cifra.";
-      }
-    }
-  }
+  // La cifra ya no viaja con el archivo (encargo carga-lectura-primero): va en el
+  // paso 3, confirmando la sugerida o con capturarCifra (lib/evidencias/acciones-lectura.ts).
 
   revalidatePath(`/admin/solicitudes/${solicitudId}`);
   revalidatePath("/admin");
@@ -498,7 +475,7 @@ export async function subirEvidenciaPanel(
   return {
     ok: true,
     version: ev.version,
-    error: avisoCaptura ? `Evidencia v${ev.version} registrada, pero ${avisoCaptura}` : null,
+    error: null,
     mensaje: `Evidencia v${ev.version} registrada.${marca}`,
   };
 }
