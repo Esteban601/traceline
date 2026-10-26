@@ -69,6 +69,9 @@ export const ORACION_E5 =
 /** El alcance del cumplimiento con el alivio E5, para la declaración de NIIF S1 72 (redacción de la casa). */
 export const ALCANCE_E5 =
   "En este primer periodo anual de aplicación, el cumplimiento comprende la información sobre los riesgos y oportunidades relacionados con el clima, en el alcance que permite la exención del párrafo E5 de la NIIF S1.";
+/** El E4 en la declaración de NIIF S1 72, después del alcance del E5: «En este primer periodo…» una sola vez (Esteban, Fase 3). */
+export const E4_EN_DECLARACION =
+  "Asimismo, se acoge a la exención del párrafo E4 de la NIIF S1 y publica su información financiera relacionada con la sostenibilidad después de sus estados financieros.";
 
 /** La declaración de cumplimiento del bloque 2 aprobado: su párrafo, tal cual (bloque de plantilla, sin hechos). */
 export function declaracionDeCumplimiento(textoBloque2: string | null): string | null {
@@ -141,7 +144,7 @@ const B65C_EFECTOS = [
   (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa`,
   (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa`,
   (de: string) => `cómo ${de} han afectado a los flujos de efectivo durante el periodo sobre el que se informa`,
-  (de: string) => `los efectos financieros previstos de ${de} sobre la situación financiera, el rendimiento y los flujos de efectivo a corto, mediano y largo plazo`,
+  (de: string) => `los efectos financieros previstos de ${de} sobre la situación financiera, el rendimiento y los flujos de efectivo a corto, mediano y largo plazo, incluidos los planes de disposición de activos (NIIF S2 16(c)) si los hechos los mencionan`,
   (de: string) => `para cuáles de ${de} existe un riesgo significativo de un ajuste material en los importes en libros de los activos y pasivos durante el siguiente periodo`,
 ];
 /** Lo que cada una de las cinco celdas tiene que nombrar (validador). */
@@ -472,7 +475,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     if (codigo === "NIIF S1 72") {
       const decl = declaracionDeCumplimiento(porBloque.get(2)?.texto ?? null);
       if (!decl) return { codigo, via: "regla", estado: "pendiente", texto: "[Pendiente: declaración explícita y sin reservas de cumplimiento con NIIF S1 y NIIF S2 — sección Declaración de cumplimiento]" };
-      return { codigo, via: "regla", estado: "respuesta", texto: [decl, alivios.E5 ? ALCANCE_E5 : null, alivios.E4 ? ORACION_E4 : null].filter(Boolean).join(" ") };
+      return { codigo, via: "regla", estado: "respuesta", texto: [decl, alivios.E5 ? ALCANCE_E5 : null, alivios.E4 ? (alivios.E5 ? E4_EN_DECLARACION : ORACION_E4) : null].filter(Boolean).join(" ") };
     }
     if (exentos.has(codigo)) {
       const alivio = Object.keys(alivios).find((k) => TITULO_ALIVIO[k]) ?? "C4";
@@ -790,6 +793,9 @@ async function responderBloque(
       if (b65 >= 0) {
         const efecto = B65C_EFECTO_RE[b65 % 5];
         if (!efecto.re.test(g.texto)) errores.push(`no nombra su efecto (${efecto.nombre}); esta celda responde solo ese efecto`);
+        // Ajuste de Esteban (Fase 3): los planes de disposición de activos (16(c)) van en los efectos previstos, no en
+        // el riesgo de ajuste material.
+        if (b65 % 5 === 4 && /disposici[oó]n de activos|reubicaci[oó]n/i.test(g.texto)) errores.push("menciona planes de disposición de activos; van en la celda de efectos previstos (NIIF S2 16(c)), no en la del riesgo de ajuste material");
         // Por oración: una oración que NO nombra el efecto de esta celda y comparte ≥ 70 % de sus palabras con una
         // oración de otra celda del inciso (la declaración general copiada). Dos negaciones paralelas, cada una con su
         // efecto («…en su situación financiera», «…en su rendimiento financiero»), no son repetición.
