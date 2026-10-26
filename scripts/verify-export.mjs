@@ -18,7 +18,7 @@
 //   · las REGLAS DURAS: una celda de dato NO validado queda vacía y su fila lleva
 //     la nota de brecha correspondiente; un objetivo se puede seguir a través de
 //     las 4 hojas S2 33-36 y sus secciones vacías marcan 'Sección pendiente';
-//     un cuestionario a medias muestra 'Pendiente en plataforma' en las preguntas
+//     un cuestionario a medias muestra el marcador «Pendiente: …» en las preguntas
 //     sin responder.
 //
 // Requiere el server corriendo (pnpm dev o pnpm start) y el demo POBLADO: desde
@@ -362,7 +362,8 @@ async function main() {
     const textos = [];
     ley?.eachRow((row) => row.eachCell((c) => textos.push(String(c.value ?? ""))));
     ok(!!ley && textos.some((t) => /capturas validadas/.test(t)) && textos.some((t) => /APROBADO/.test(t)), "hoja «Leyenda»: hojas de datos y columna «Respuesta»");
-    ok(textos.some((t) => t === "C3, C4, E5"), "la Leyenda dice los alivios vigentes del reporte: C3, C4, E5");
+    // Todos los alivios vigentes, en el orden del catálogo (antes una lista fija sin E4).
+    ok(textos.some((t) => t === "E4, E5, C3, C4"), "la Leyenda dice los alivios vigentes del reporte, con E4: E4, E5, C3, C4");
   }
 
   // ---------------------------------------------------------------------------
@@ -371,7 +372,9 @@ async function main() {
   const c22bi = wb.getWorksheet("NIIF S2 22(b)(i)");
   const c22bii = wb.getWorksheet("NIIF S2 22(b)(ii)");
   const c36e = wb.getWorksheet("NIIF S2 36(e)(i)-(iv)");
-  const PEND = "Pendiente en plataforma";
+  // Marcador de pendiente en texto plano (CLAUDE.md §5); antes «Pendiente en plataforma».
+  const PEND = (hoja) => `Pendiente: respuesta de la emisora a esta pregunta — cuestionario ${hoja}`;
+  const NO_APLICA_36E = "No aplica. La Compañía no prevé usar créditos de carbono para alcanzar sus objetivos de emisiones.";
 
   console.log("\nCuestionarios — S2 22(b)(i) (completo 8/8; booleano + enumeración):");
   ok(
@@ -396,8 +399,8 @@ async function main() {
     "S2 22(b)(i): A10 (alcance) incluye el ejemplo oficial y B10 tiene respuesta"
   );
   let pendBi = false;
-  for (let r = 3; r <= 10; r++) if (cellText(c22bi, `D${r}`) === PEND) pendBi = true;
-  ok(!pendBi, "S2 22(b)(i): sin brechas 'Pendiente en plataforma' (completo 8/8)");
+  for (let r = 3; r <= 10; r++) if (/^Pendiente/.test(cellText(c22bi, `D${r}`))) pendBi = true;
+  ok(!pendBi, "S2 22(b)(i): sin brechas «Pendiente: …» (completo 8/8)");
 
   console.log("\nCuestionarios — S2 22(b)(ii) (a medias 4/6, muestra brechas):");
   ok(cellText(c22bii, "B3").length > 0, "S2 22(b)(ii): B3 tiene respuesta");
@@ -406,8 +409,8 @@ async function main() {
     "S2 22(b)(ii): A5 (variables) incluye los ejemplos oficiales"
   );
   ok(
-    cellText(c22bii, "D7") === PEND && cellText(c22bii, "D8") === PEND,
-    "S2 22(b)(ii): D7 y D8 (preguntas 5 y 6) = 'Pendiente en plataforma'"
+    cellText(c22bii, "D7") === PEND("NIIF S2 22(b)(ii)") && cellText(c22bii, "D8") === PEND("NIIF S2 22(b)(ii)"),
+    "S2 22(b)(ii): D7 y D8 (preguntas 5 y 6) = «Pendiente: respuesta de la emisora a esta pregunta — cuestionario …»"
   );
   ok(cellText(c22bii, "B7") === "", "S2 22(b)(ii): B7 (pregunta 5 sin responder) VACÍA");
 
@@ -422,11 +425,11 @@ async function main() {
     cellText(c36e, "A7").includes("permanencia de la compensación de carbono"),
     "S2 36(e): A7 (P5) incluye el ejemplo oficial"
   );
+  // 36(e) en un solo estado (encargo formato-afirmaciones-y-voz): el documento aprobado dice que no aplica, así que
+  // las preguntas sin captura dicen lo mismo que la columna de respuestas, sin brecha.
   ok(
-    cellText(c36e, "D5") === PEND &&
-      cellText(c36e, "D6") === PEND &&
-      cellText(c36e, "D7") === PEND,
-    "S2 36(e): D5-D7 (preguntas 3-5 sin responder) = 'Pendiente en plataforma'"
+    ["B5", "B6", "B7"].every((c) => cellText(c36e, c) === NO_APLICA_36E) && ["D5", "D6", "D7"].every((c) => cellText(c36e, c) === ""),
+    "S2 36(e): P3-P5 sin captura = el «no aplica» del documento aprobado, sin brecha"
   );
 
   // Pie [DEMO] en las hojas llenadas.

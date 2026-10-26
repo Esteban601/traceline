@@ -74,7 +74,7 @@ try {
   ok(a.c("Leyenda", "B9") === "Ninguno vigente en este ejercicio.", "la Leyenda: ningún alivio vigente");
 
   console.log("\n2. C3, C4 y E5 en el primer año de adopción");
-  regimen(ejercicio, { C3: true, C4: true, E5: true });
+  regimen(ejercicio, { E4: true, C3: true, C4: true, E5: true });
   const b = await libro();
   ok(b.c("NIIF S2 29(a)(i)", "C5") === NR("C4") && b.c("NIIF S2 29(a)(i)", "D5") === NR("C4"), "C4: Alcance 3 total no se revela");
   let cat = true;
@@ -88,7 +88,7 @@ try {
   const climaticos = psql(`select string_agg(replace(nombre, '[DEMO] ', ''), '|') from objetivos where reporte_id=${lit(REPORTE)} and activo and ambito='climatico'`).split("|");
   ok(!b.c("NIIF S1 51", "A4").startsWith("No revelado") && climaticos.includes(b.c("NIIF S1 51", "A4")) && !b.todas.some((t) => t === NR("E5")), "E5: NIIF S1 51 lleva solo objetivos climáticos, sin «No revelado · alivio E5»");
   ok(/párrafo E5/.test(b.c("NIIF S1 46-50", "A2")) && b.c("NIIF S1 46-50", "B6") !== "", "E5: NIIF S1 46-50 con la oración del alivio y las instancias de métricas");
-  ok(b.c("Leyenda", "B9") === "C3, C4, E5" && b.todas.some((t) => t.includes("NIIF S2 C4")), "la Leyenda lista los alivios vigentes y explica cada uno");
+  ok(b.c("Leyenda", "B9") === "E4, E5, C3, C4" && b.todas.some((t) => t.includes("NIIF S2 C4")), "la Leyenda lista TODOS los alivios vigentes, con E4, en el orden del catálogo, y explica cada uno");
 
   console.log("\n3. Los mismos alivios en un año subsecuente no aplican");
   regimen(ejercicio - 1, { C3: true, C4: true, E5: true });

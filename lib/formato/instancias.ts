@@ -84,7 +84,7 @@ export function instanciasDeMetricas(x: InsumosInstancias): { riesgos: Instancia
     // Captura del ejercicio sin capital: la emisora no asignó capital (decisión de Esteban, cuarta lectura): se
     // declara en negativo. Sin la cifra que pide otra métrica, no hay datos que publicar (regla 8): vacía.
     if (!cifras.length) return capital ? `«${limpio(r.nombre)}»: Sin despliegue de capital asignado en ${x.ejercicio}.` : "";
-    return `«${limpio(r.nombre)}»: ${[`${cifras.join(", ")} (ejercicio ${x.ejercicio})`, v.notas?.trim() || null].filter(Boolean).join(". ")}`;
+    return `«${limpio(r.nombre)}»: ${[cifras.join(", "), v.notas?.trim() || null].filter(Boolean).join(". ")}`;
   };
   const fuentes = (r: Registro, tipo: string): Registro[] => {
     if (r.tipo === tipo) return [r];
@@ -95,13 +95,14 @@ export function instanciasDeMetricas(x: InsumosInstancias): { riesgos: Instancia
   };
   const metodo = (r: Registro, k: ClaveMetrica): string => {
     if (k === "a") {
-      const datos = x.gei.length ? `Datos: ${x.gei.join("; ")} (ejercicio ${x.ejercicio}), de capturas validadas.` : "";
+      // Voz de la emisora (encargo formato-afirmaciones-y-voz): sin «capturas validadas» ni «registros de clima».
+      const datos = x.gei.length ? `Emisiones del ejercicio ${x.ejercicio}: ${x.gei.join("; ")}.` : "";
       return [x.metodoGei, datos].filter(Boolean).join(" ");
     }
     const m = METRICAS_S2_29[k];
     const de = k === "e" ? [r] : fuentes(r, m.tipoRegistro!);
     const lineas = de.map((y) => datosDe(y, k === "e")).filter(Boolean);
-    return lineas.length ? `Cifras de los registros de clima, capturas validadas. ${lineas.join(" ")}` : "";
+    return lineas.length ? `Cifras del ejercicio ${x.ejercicio}. ${lineas.join(" ")}` : "";
   };
   const de = (tipos: string[]) =>
     x.registros

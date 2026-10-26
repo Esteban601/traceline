@@ -18,8 +18,8 @@ import {
   type RegValRow,
   noRevelado,
 } from "@/lib/reporte/ensamblar";
-import type { Alivios } from "@/lib/perfil-emisor";
-import { ORACION_E5, pendienteEnTextoPlano, sinRemision } from "@/lib/suplemento/respuestas";
+import { aliviosVigentes, type Alivios } from "@/lib/perfil-emisor";
+import { ORACION_E5, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -200,7 +200,7 @@ function escribirLeyenda(wb: ExcelJS.Workbook, alivios: Alivios): void {
     ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan las emisiones de Alcance 3, ni su total ni sus categorías."],
     ["«No revelado · alivio C3»", "Alivio transitorio del primer año (NIIF S2 C3): no se presentan comparativos del ejercicio anterior."],
     ["Alivio E5 en las hojas de NIIF S1", "Alivio transitorio del primer año (NIIF S1 E5): el informe trata solo los riesgos y oportunidades relacionados con el clima. «NIIF S1 46-50» lleva las métricas de NIIF S2 29 por riesgo y oportunidad, con la oración del alivio, y «NIIF S1 51» los objetivos climáticos: el mismo contenido que el Formato electrónico."],
-    ["Alivios de este reporte", (["C3", "C4", "E5"] as const).filter((k) => alivios[k]).join(", ") || "Ninguno vigente en este ejercicio."],
+    ["Alivios de este reporte", aliviosVigentes(alivios)],
   ];
   filas.forEach(([a, b], i) => {
     const fila = ws.getRow(i + 1);
@@ -603,14 +603,17 @@ function escribirObjetivos(
 // Pregunta sin respuesta → nota de brecha en Notas (col D). El catálogo de
 // preguntas es fijo y vive en lib/cuestionarios.ts.
 // -----------------------------------------------------------------------------
-const NOTA_CUEST_PENDIENTE = "Pendiente en plataforma";
+// Una pregunta sin respuesta: el marcador de pendiente en texto plano (CLAUDE.md §5), no «Pendiente en plataforma».
+const notaCuestPendiente = (hojaExcel: string) => `Pendiente: respuesta de la emisora a esta pregunta — cuestionario ${hojaExcel}`;
 const CUEST_FILA_INICIO = 3;
 
 
 function escribirCuestionarios(
   wb: ExcelJS.Workbook,
   respuestas: CuestRow[], // ya acotadas al reporte objetivo
-  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
+  /** El «no aplica» de 36(e) del documento aprobado: llena las preguntas sin respuesta de esa hoja. */
+  noAplica36e: string | null = null
 ): number {
   let escritas = 0;
   // Índice respuesta por (hoja, orden).
@@ -631,7 +634,7 @@ function escribirCuestionarios(
       ws.getCell(`A${fila}`).value = p.texto;
 
       const r = porClave.get(`${sec.hoja}#${p.orden}`);
-      const respuesta = r?.respuesta?.trim() || null;
+      const respuesta = r?.respuesta?.trim() || (sec.hoja === "S2 36(e)" ? noAplica36e : null);
       const tipoDato = r?.tipo_dato?.trim() || null;
       const notas = r?.notas?.trim() || null;
 
@@ -644,7 +647,7 @@ function escribirCuestionarios(
       const tipoC = p.tipoDatoLabel ?? tipoDato;
       if (tipoC) ws.getCell(`C${fila}`).value = tipoC;
       // Notas/Brechas: la nota libre si la hay; si no hay respuesta, la brecha.
-      const notaCelda = notas ?? (respuesta ? null : NOTA_CUEST_PENDIENTE);
+      const notaCelda = notas ?? (respuesta ? null : notaCuestPendiente(sec.hojaExcel));
       if (notaCelda) ws.getCell(`D${fila}`).value = notaCelda;
 
       ultimaFila = fila;
@@ -802,14 +805,18 @@ export async function GET(request: Request) {
     .maybeSingle();
   const generadorActivo = (repTenant?.tenant as unknown as { generador_activo: boolean } | null)?.generador_activo === true;
   let respuestasEscritas: { escritas: number; enPreparacion: number; hijos: number } | null = null;
+  // 36(e) en un solo estado (encargo formato-afirmaciones-y-voz): si el documento aprobado dice que no aplica, la hoja
+  // del cuestionario dice lo mismo que la columna de respuestas y el Formato electrónico.
+  let noAplica36e: string | null = null;
   if (hojaIndice && generadorActivo) {
     const { data: filasResp } = await supabase
       .from("respuestas_datapoint")
-      .select("clave, texto")
+      .select("clave, texto, estado")
       .eq("reporte_id", reporteId)
       .eq("destino", "taxonomia");
     const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
     respuestasEscritas = escribirRespuestas(hojaIndice, respuestas);
+    if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
   }
 
   const registrosEscritos = escribirRegistros(
@@ -858,7 +865,7 @@ export async function GET(request: Request) {
   escribirLeyenda(wb, reporte.aliviosVigentes);
 
   // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
-  const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas);
+  const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas, noAplica36e);
 
   // Pie discreto en cada hoja llenada. La marca [DEMO] SOLO para el tenant de
   // demostración: estampar "[DEMO]" en el entregable oficial de una emisora real

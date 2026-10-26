@@ -33,19 +33,13 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   const { data: filas } = await db.from("respuestas_datapoint").select("documento_id, destino, clave, estado, texto, hechos").eq("reporte_id", reporteId);
   if (!filas?.length) return { ok: false, status: 409, error: "El Formato electrónico se genera desde el suplemento aprobado; aún no hay un documento aprobado con sus respuestas." };
 
-  // Booleanos: ¿la respuesta se apoya en una declaración negativa?
-  const ids = [...new Set(filas.flatMap((f) => (f.hechos as string[] | null) ?? []))];
-  const negativos = new Set<string>();
-  for (let i = 0; i < ids.length; i += 100) {
-    const { data: hs } = await db.from("hechos").select("id").in("id", ids.slice(i, i + 100)).eq("tipo", "declaracion_negativa");
-    for (const h of hs ?? []) negativos.add(h.id);
-  }
+  // Los booleanos ya no se deciden por el tipo de los hechos anclados: leen el «Sí.»/«No.» de su respuesta propia
+  // (D1 del encargo formato-afirmaciones-y-voz; lib/formato/booleanos.ts).
   const respuestas: RespuestaLeida[] = filas.map((f) => ({
     destino: f.destino as "taxonomia" | "formato",
     clave: f.clave,
     estado: f.estado as RespuestaLeida["estado"],
     texto: f.texto,
-    hechosNegativos: ((f.hechos as string[] | null) ?? []).some((h) => negativos.has(h)),
   }));
 
   const [{ data: pe }, ens] = await Promise.all([

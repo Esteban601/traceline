@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { BOOLEANOS_FORMATO, clausulasDelTema, validarBooleano } from "@/lib/formato/booleanos";
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
@@ -502,6 +503,20 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       : `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
     planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: cob.hechos });
   }
+  // Booleanos del formato (D1 de Esteban, encargo formato-afirmaciones-y-voz): una respuesta propia por fila que abre
+  // con «Sí.» o «No.» y cita el hecho que contesta la pregunta. Recibe solo los hechos del código que tratan el tema
+  // de la pregunta: así no se le pide repetir una negación de otro asunto (K592: «no hace uso de C5»). Sin ninguno,
+  // no hay respuesta y la celda queda vacía (pendiente).
+  for (const b of BOOLEANOS_FORMATO) {
+    const plan = planes.find((p) => p.codigo === b.codigo);
+    const cob = plan?.via === "bloque" ? { bloque: plan.bloque, hechos: plan.hechos, estado: "cubierto" } : coberturaDe(b.codigo);
+    if (!cob || !["cubierto", "parcial"].includes(cob.estado)) continue;
+    const delTema = cob.hechos.filter((id) => clausulasDelTema(hechos.get(id)?.enunciado ?? "", b.tema).length);
+    if (!delTema.length) continue;
+    const clave = `fila:${b.fila}`;
+    descripcion.set(clave, `Pregunta de sí o no del Formato electrónico (fila ${b.fila}) de ${b.codigo}: «${b.pregunta}» La respuesta abre con «Sí.» o con «No.», que contesta exactamente esa pregunta según los hechos, y sigue con una o dos oraciones que lo sostienen, citando el hecho que trata de ${b.trata}. No contestes otra pregunta del mismo párrafo. Es una respuesta aparte de la de ${b.codigo}: en el JSON va con «codigo» exactamente «${clave}» y destino «formato».`);
+    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: delTema });
+  }
   // Conceptos del formato sin datapoint: desde su bloque aprobado, con todos los hechos de su cobertura.
   for (const c of CONCEPTOS_FORMATO_SIN_DATAPOINT) {
     const v = porBloque.get(c.bloque);
@@ -681,6 +696,13 @@ async function responderBloque(
         const k = `${p.destino}|${hijo}`;
         const repetidas = repetidasDe(finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === hijo && x.destino === p.destino)?.texto ?? ctx.previaDe?.get(k)?.texto ?? null);
         if (repetidas.length) errores.push(`repite oraciones de la respuesta de su inciso ${hijo} (${repetidas.length}); el código padre da una síntesis propia`);
+      }
+      // Booleanos (D1): «Sí.»/«No.», el hecho que contesta, y ni el resto ni la celda vecina (la respuesta del código) en contra.
+      const bool = BOOLEANOS_FORMATO.find((b) => `fila:${b.fila}` === p.codigo);
+      if (bool) {
+        const k = `taxonomia|${bool.codigo}`;
+        const vecina = finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === bool.codigo && x.destino === "taxonomia")?.texto ?? ctx.previaDe?.get(k)?.texto ?? null;
+        errores.push(...validarBooleano(g.texto, { pregunta: bool, hechos: p.hechos, citados: s.hechos, vecina: vecina ? sinRemision(vecina) : null }));
       }
       // Síntesis (84, 64): ninguna oración de la respuesta que da el detalle, sea de esta corrida o reutilizada.
       if (yo?.noRepite) {

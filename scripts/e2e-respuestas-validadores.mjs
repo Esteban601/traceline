@@ -24,7 +24,11 @@ import {
   textoNoAplicaHeredado,
   validarRespuesta,
 } from "../lib/suplemento/respuestas.ts";
+import fs from "node:fs";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
+import { TERMINOS_PLATAFORMA, glosarioDeClaudeMd, vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
+import { avisosDeCoherencia } from "../lib/formato/llenar.ts";
+import { BOOLEANOS_FORMATO, validarBooleano, valorBooleano } from "../lib/formato/booleanos.ts";
 import { numeracionConsecutiva } from "../lib/suplemento/numeracion.ts";
 import { HECHO_RAZON, hechosPrestados } from "../lib/suplemento/hechos/razones.ts";
 import { validarCobertura } from "../lib/suplemento/hechos/bloque.ts";
@@ -54,8 +58,50 @@ ok(validarRespuesta("La Compañía no identificó efectos según la evidencia va
 ok(validarRespuesta("La Compañía no identificó efectos [Pendiente: algo — campo].", "taxonomia", ctx()).some((e) => /marcador/.test(e)), "marcador [Pendiente] en un documento aprobado → rechazo");
 ok(LIMITES.taxonomia.oraciones === 4 && LIMITES.formato.oraciones === 6 && LIMITES.formato.caracteres === 900, "límites: taxonomía 4 oraciones; formato 6 oraciones y 900 caracteres");
 
+console.log("\n1b. Glosario único (CLAUDE.md §5)");
+{
+  const deClaude = glosarioDeClaudeMd(fs.readFileSync(new URL("../CLAUDE.md", import.meta.url), "utf8"));
+  ok(deClaude.length > 0 && JSON.stringify(deClaude) === JSON.stringify(TERMINOS_PLATAFORMA), `el validador y CLAUDE.md §5 dicen lo mismo (${deClaude.join(", ")})`);
+  const casos = {
+    "Cifras de los registros de clima, capturas validadas.": ["validado", "registros de clima"],
+    "Inventario GEI Alcance 1 con memoria de cálculo.": ["memoria de cálculo"],
+    "Se describe en los bloques 3 y 4.": ["bloque"],
+    "Según la plataforma, el expediente fue entregado.": ["expediente", "entregado", "plataforma"],
+    "id 3487cb77-1111-2222-3333-444455556666": ["ids"],
+  };
+  for (const [t, esperados] of Object.entries(casos)) ok(esperados.every((e) => vocabularioProhibidoEn(t).includes(e)), `detecta ${esperados.join(", ")} en «${t.slice(0, 50)}»`);
+  ok(["La validación del informe anual corre a cargo del Comité.", "Proyectos de captura de carbono.", "Intereses recibidos por 3 MDP.", "La Compañía mide sus emisiones."].every((t) => vocabularioProhibidoEn(t).length === 0), "voz legítima de la emisora: «validación», «captura», «recibidos»");
+  ok(["El objetivo ha sido validado por un tercero.", "¿Validada por tercero?", "No está validado por SBTi.", "Bloque de texto"].every((t) => vocabularioProhibidoEn(t).length === 0) && vocabularioProhibidoEn("Dato validado en la sección.").includes("validado") && vocabularioProhibidoEn("Cifra validada por IRStrat.").includes("IRStrat"), "excepciones por expresión: «validado por …» y «bloque de texto»; «validado» suelto y «por IRStrat» siguen prohibidos");
+  ok(vocabularioEnCeldaExportada("Pendiente: información de B65(e) — sin solicitud en el reporte").length === 0 && vocabularioProhibidoEn("Pendiente: información de B65(e) — sin solicitud en el reporte").length > 0, "celda exportada: el marcador en texto plano puede nombrar la solicitud (CLAUDE.md §5); en el texto del modelo, no");
+}
+
+console.log("\n1d. Booleanos del Formato (D1): «Sí.»/«No.» contra el hecho que contesta");
+{
+  const pregunta = (fila) => BOOLEANOS_FORMATO.find((b) => b.fila === fila);
+  ok(BOOLEANOS_FORMATO.length === 10 && [38, 44, 49, 134, 237, 253, 256, 313, 417, 425].every((f) => pregunta(f)), "los 10 booleanos con datapoint tienen pregunta");
+  // K38: remuneración. El hecho de tipo `politica` dice que NO forman parte: la respuesta es «No».
+  const rem = [{ local: "h1", enunciado: "Las métricas climáticas no forman parte de la remuneración variable en 2025." }];
+  ok(validarBooleano("No. Las métricas climáticas no forman parte de la remuneración variable en 2025.", { pregunta: pregunta(38), hechos: rem, citados: ["h1"], vecina: null }).length === 0, "K38: «No.» citando el hecho de la remuneración → aceptada");
+  ok(validarBooleano("Sí. Las métricas climáticas forman parte de la remuneración.", { pregunta: pregunta(38), hechos: rem, citados: ["h1"], vecina: null }).some((e) => /lo niega/.test(e)), "K38: «Sí.» con el hecho que lo niega → rechazo");
+  // K592: Protocolo GEI. El único negativo es de C5 (otra pregunta): la respuesta es «Sí».
+  const gei = [{ local: "h1", enunciado: "La Compañía no hace uso de la medida transitoria del párrafo C5: mide sus emisiones conforme al Protocolo GEI desde 2022." }];
+  ok(validarBooleano("Sí. La Compañía mide sus emisiones conforme al Protocolo GEI desde 2022.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: null }).length === 0, "K592: «Sí.» aunque el hecho niegue C5 (la negación es de otra pregunta) → aceptada");
+  ok(validarBooleano("No. No mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: null }).length > 0, "K592: «No.» contra el hecho que lo afirma → rechazo");
+  ok(validarBooleano("La Compañía mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: null }).some((e) => /abrir con/.test(e)), "sin «Sí.»/«No.» al inicio → rechazo");
+  ok(validarBooleano("Sí. Mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: [], vecina: null }).some((e) => /no cita/.test(e)), "sin citar el hecho que contesta → rechazo");
+  ok(validarBooleano("Sí. Mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: "La Compañía no mide sus emisiones conforme al Protocolo GEI." }).some((e) => /vecina/.test(e)), "la celda narrativa vecina dice lo contrario → rechazo");
+  ok(valorBooleano("Sí. Texto.") === "Sí" && valorBooleano("No. Texto.") === "No" && valorBooleano("Texto.") === null, "valorBooleano lee el «Sí.»/«No.» inicial");
+}
+
+console.log("\n1c. Aviso de coherencia de métricas por industria (D2)");
+{
+  const perfil = (m, s) => ({ perfil: { metricas_industria: m, sector_sasb: s } });
+  ok(avisosDeCoherencia(perfil("No", ["[815200] Finanzas - Bancos comerciales (FN-CB)"])).length === 1, "Perfil en «No» con sector SASB capturado → aviso en la hoja de revisión");
+  ok(avisosDeCoherencia(perfil("Sí, parcialmente", ["[815200] Finanzas - Bancos comerciales (FN-CB)"])).length === 0 && avisosDeCoherencia(perfil("No", [])).length === 0, "sin choque (otro juicio, o sin sector SASB) → sin aviso");
+}
+
 console.log("\n2. Reglas sin modelo");
-ok(respuestaDeCaptura(1240, "tCO2e", 2025) === "1,240 tCO2e (ejercicio 2025), según captura validada.", "respuesta de captura: valor, unidad, periodo");
+ok(respuestaDeCaptura(1240, "tCO2e", 2025) === "1,240 tCO2e (ejercicio 2025).", "respuesta de captura: valor, unidad y periodo, sin «captura validada»");
 const anclas = [
   { oracion: "Primera oración anclada a u2.", hechos: [{ id: "h2", hecho: "u2" }] },
   { oracion: "Oración de otro hecho.", hechos: [{ id: "h3", hecho: "u3" }] },

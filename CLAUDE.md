@@ -1,6 +1,10 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.11 · 25 de octubre de 2026.
+Versión 1.12 · 26 de octubre de 2026.
+
+**Cambios respecto a 1.11** (26 de octubre de 2026, decisión de Esteban, encargo formato-afirmaciones-y-voz):
+- §5: el glosario de vocabulario de plataforma se escribe completo y es la única fuente del validador
+  (`lib/suplemento/vocabulario.ts`). Cubre el texto del modelo y toda celda exportada, también la que arma el código.
 
 **Cambios respecto a 1.10** (25 de octubre de 2026, decisión de Esteban):
 - §5: costo y tiempo de referencia de una corrida completa del demo, medidos en el demo v4 (encargo deuda-s2-formato).
@@ -119,8 +123,15 @@ después el código.
 - Excepción solo para los Excel exportados (encargo 2026-10-13, decisión de Esteban): la base guarda el marcador con
   el formato exacto de arriba; al exportar, el Excel de taxonomía lo escribe como `Pendiente: <qué falta> — <solicitud
   o campo>` en texto plano y el Formato electrónico deja la celda vacía. Ninguna celda exportada empieza con «[».
-- El texto generado es la revelación de la emisora: sin vocabulario de plataforma (solicitud, evidencia,
-  validado, IRStrat, bloque, ids). Ids solo en `fuentes_usadas`. Juicios del emisor en `notas_revision`.
+- El texto generado es la revelación de la emisora: sin vocabulario de plataforma. Ids solo en `fuentes_usadas`.
+  Juicios del emisor en `notas_revision`.
+- **Glosario de vocabulario de plataforma** (única fuente del validador; `lib/suplemento/vocabulario.ts` debe decir
+  lo mismo y un e2e lo compara): solicitud, evidencia, expediente, entregado, recibido, validado, IRStrat,
+  plataforma, bloque, datapoint, suplemento, registros de clima, memoria de cálculo, ids. Aplica al texto del modelo
+  y a toda celda exportada (Formato electrónico y respuestas del Excel), también a la que arma el código. Fuera de
+  él, a propósito: «validación», «captura» y «recibidos», que son voz legítima de una emisora, y las expresiones de la
+  norma y de la plantilla «validado por …», la validación de un tercero (NIIF S2 34), y «bloque de texto» (tipo de dato
+  de la plantilla).
 - Prompt en dos capas: estable (con caché) y volátil. Cambiar la capa estable o el esfuerzo invalida el caché;
   se anota la versión de prompt en cada bloque.
 - Costos: cada generación se registra con tokens y costo. Referencia vigente de una corrida completa del demo: **11.15

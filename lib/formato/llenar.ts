@@ -1,7 +1,8 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
-import { ORACION_E5, pendienteEnTextoPlano, sinRemision, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { ORACION_E5, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import type { Alivios } from "@/lib/perfil-emisor";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
+import { BOOLEANOS_FORMATO, contradice, valorBooleano } from "@/lib/formato/booleanos";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 
 // =============================================================================
@@ -25,8 +26,10 @@ import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json"
 //   · text y text block → la respuesta «formato» del datapoint, o la del
 //     concepto (`fila:N`) si no tiene datapoint; las filas con el alivio E5
 //     llevan su oración fija; un pendiente deja la celda VACÍA (CLAUDE.md §5);
-//   · booleano → «No» si la respuesta es «no aplica» o se apoya en una
-//     declaración negativa; «Sí» si responde; vacío si está pendiente;
+//   · booleano → «No» si la respuesta es «no aplica»; si no, el «Sí» o «No» con
+//     que abre su respuesta propia (`fila:N`, D1 del encargo formato-
+//     afirmaciones-y-voz), si la celda narrativa vecina no lo contradice; vacío
+//     si está pendiente o no hay respuesta validada;
 //   · enumeraciones de objetivos → el atributo de cada objetivo climático;
 //   · tablas → texto por filas con la estructura de la columna O de la revisión.
 //   · lo demás → vacío y «por decidir», con la pregunta, en la hoja de revisión.
@@ -48,7 +51,7 @@ export type ConceptoMapeo = {
 
 export const CONCEPTOS_FORMATO = (mapeoFormato as unknown as { conceptos: ConceptoMapeo[] }).conceptos;
 
-export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; estado: EstadoRespuesta; texto: string | null; hechosNegativos: boolean };
+export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; estado: EstadoRespuesta; texto: string | null };
 
 export type ObjetivoFormato = { nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null };
 
@@ -88,7 +91,15 @@ export type DatosFormato = {
 };
 
 export type OrigenFormato = "iteración" | "respuesta" | "regla" | "perfil" | "alivio" | "actividad" | "datos" | "logo" | "por decidir" | "sin mapeo" | "sin respuesta" | "fuera de alcance" | "pendiente";
-export type ValorFormato = { texto: string | null; origen: OrigenFormato; nota?: string };
+export type ValorFormato = { texto: string | null; origen: OrigenFormato; nota?: string; /** La oración del E5 la antepuso el llenado. */ e5?: boolean };
+
+/**
+ * Encabezados de la plantilla 2025 bajo los que hay conceptos con el alivio E5 (filas del mapeo; en el Formato,
+ * K24, K27, K54, K83, K102, K121, K473 y K553). D4 de Esteban (encargo formato-afirmaciones-y-voz): la oración del
+ * E5 va una vez por encabezado, en la primera celda que la lleva; las celdas «no aplica · E5», cuyo contenido es la
+ * oración, la conservan.
+ */
+export const ENCABEZADOS_E5 = [24, 27, 54, 83, 102, 121, 194, 274];
 
 const NUM = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
 const entreComillas = (t: string | null) => t?.match(/«([^»]+)»/)?.[1] ?? null;
@@ -119,6 +130,14 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   const actividades = d.perfil.actividades_financieras;
 
   for (const c of conceptos) out.set(c.fila, valorDe(c));
+  // E5 una vez por encabezado: se queda en la primera celda (por fila) a la que el llenado se la antepuso.
+  const vistos = new Set<number>();
+  for (const [fila, v] of [...out.entries()].sort((a, b) => a[0] - b[0])) {
+    if (!v.e5 || !v.texto) continue;
+    const enc = ENCABEZADOS_E5.filter((e) => e <= fila).at(-1) ?? 0;
+    if (!vistos.has(enc)) vistos.add(enc);
+    else out.set(fila, { ...v, texto: v.texto.slice(ORACION_E5.length).trim(), e5: false });
+  }
   return out;
 
   function valorDe(c: ConceptoMapeo): ValorFormato {
@@ -141,7 +160,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     // La sección de una actividad que la emisora no tiene no aplica, aunque el concepto no tenga datapoint (462).
     const seccion = SECCIONES_ACTIVIDAD.find((s) => c.fila >= s.desde && c.fila <= s.hasta);
     if (seccion && actividades.length && !actividades.includes(seccion.actividad)) {
-      return { texto: `No aplica por actividad: la Compañía no participa en ${seccion.actividad.toLowerCase()} (actividades financieras del Perfil: ${actividades.join(", ")}).`, origen: "actividad" };
+      // D6: «declaradas por la emisora», no «del Perfil» (vocabulario de plataforma).
+      return { texto: `No aplica por actividad: la Compañía no participa en ${seccion.actividad.toLowerCase()} (actividades financieras declaradas por la emisora: ${actividades.join(", ")}).`, origen: "actividad" };
     }
     if (c.capa === "sin candidato") return { texto: null, origen: "sin mapeo", nota: "código pedido sin datapoint en el catálogo (lista de ampliación del catálogo)" };
     if (c.datapoint && exentos.has(c.datapoint)) return { texto: "No revelado · alivio C4", origen: "alivio" };
@@ -163,7 +183,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (c.capa === "Perfil") return deperfil(c);
 
     const tipo = c.tipo === "(sin tipo)" ? "" : c.tipo ?? "";
-    const conE5 = (t: string) => (c.alivioE5 && d.alivios.E5 && !t.includes("párrafo E5") ? `${ORACION_E5} ${t}` : t);
+    const ponE5 = (t: string) => c.alivioE5 && !!d.alivios.E5 && !t.includes("párrafo E5");
+    const conE5 = (t: string) => (ponE5(t) ? `${ORACION_E5} ${t}` : t);
 
     // Fila 62 (NIIF S2 13(b), dónde se concentran; la 63 pide zonas, instalaciones y tipos de activos): el texto del
     // modelo y, después, la concentración por código desde los registros de clima (encargo 2026-10-24; antes iba en la 64).
@@ -176,10 +197,10 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const modelo = c.datapoint ? textoDe(c.datapoint) : null;
       const texto = [modelo, lineas.join("\n")].filter(Boolean).join("\n");
       if (!texto) return { texto: null, origen: "pendiente" };
-      return { texto: conE5(texto), origen: modelo ? "respuesta" : "datos", nota: lineas.length ? "texto del bloque 13 y registros de clima, campo concentración" : undefined };
+      return { texto: conE5(texto), origen: modelo ? "respuesta" : "datos", nota: lineas.length ? "texto del bloque 13 y registros de clima, campo concentración" : undefined, e5: ponE5(texto) };
     }
     // Fila 285: la declaración de cumplimiento, del bloque 2 aprobado (plantilla, sin hechos).
-    if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "párrafo del bloque 2 aprobado, tal cual" } : { texto: null, origen: "pendiente" };
+    if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "párrafo del bloque 2 aprobado, tal cual", e5: ponE5(d.declaracion) } : { texto: null, origen: "pendiente" };
     // Fila 286: ¿cumple con todos los requerimientos, explícitamente y sin reservas?
     // Regla 1 de Esteban: «Sí» solo con cero pendientes y cero «parcial» en la cobertura aprobada; si no, «No» y qué falta.
     if (c.fila === 286) {
@@ -197,14 +218,22 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const r = resp("formato", clave) ?? resp("taxonomia", clave);
       if (!r || !r.texto) return { texto: null, origen: c.datapoint ? "pendiente" : "por decidir" };
       if (r.estado === "pendiente") return { texto: null, origen: "pendiente" };
-      return { texto: conE5(pendienteEnTextoPlano(r.destino === "taxonomia" ? sinRemision(r.texto) : r.texto)), origen: "respuesta" };
+      const t = pendienteEnTextoPlano(r.destino === "taxonomia" ? sinRemision(r.texto) : r.texto);
+      return { texto: conE5(t), origen: "respuesta", e5: ponE5(t) };
     }
     if (tipo === "booleano" && c.datapoint) {
       const r = resp("taxonomia", c.datapoint);
       if (!r || r.estado === "pendiente") return { texto: null, origen: "pendiente" };
       // Regla 2: sin un hecho que lo responda (el E5 lo deja sin respuesta propia), vacío en el formato.
       if (r.estado === "no_aplica") return r.texto?.includes("párrafo E5") ? { texto: null, origen: "pendiente" } : { texto: "No", origen: "respuesta" };
-      return { texto: r.hechosNegativos ? "No" : "Sí", origen: "respuesta" };
+      // D1: la respuesta propia de la fila abre con «Sí.» o «No.» (validada al generarla contra el hecho que contesta).
+      // Aquí se vuelve a comprobar contra la celda narrativa vecina: si la contradice, no se escribe.
+      const pregunta = BOOLEANOS_FORMATO.find((b) => b.fila === c.fila);
+      const propia = resp("formato", `fila:${c.fila}`);
+      const valor = pregunta && propia?.estado === "respuesta" ? valorBooleano(propia.texto) : null;
+      if (!pregunta || !valor) return { texto: null, origen: "pendiente", nota: "sin respuesta de sí o no validada contra el hecho que contesta" };
+      if (contradice(valor, textoDe(c.datapoint), pregunta.tema)) return { texto: null, origen: "pendiente", nota: `la respuesta narrativa de ${c.datapoint} contradice el «${valor}»` };
+      return { texto: valor, origen: "respuesta" };
     }
     // Regla 8: una cifra que no está en capturas no se deriva.
     if (tipo === "porcentaje") return { texto: null, origen: "pendiente", nota: "cifra sin captura" };
@@ -234,7 +263,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (c.fila === 200 || c.fila === 219) return porObjetivo("origen");
     if (c.fila === 263 || c.fila === 265) {
       const r = resp("taxonomia", "NIIF S2 36 (e)(i)a(iv)");
-      return r?.estado === "no_aplica" ? { texto: "No aplica: la Compañía no prevé usar créditos de carbono para alcanzar sus objetivos.", origen: "regla" } : { texto: null, origen: "por decidir" };
+      // 36(e) en un solo estado: el mismo texto que la columna de respuestas y la hoja del cuestionario del Excel.
+      return r?.estado === "no_aplica" ? { texto: textoNoAplicaHeredado("NIIF S2 36 (e)"), origen: "regla" } : { texto: null, origen: "por decidir" };
     }
     return { texto: null, origen: "por decidir" };
   }
@@ -304,6 +334,20 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     }
     return { texto: null, origen: "por decidir" };
   }
+}
+
+/**
+ * Avisos de coherencia para la hoja de revisión de IRStrat (no se entregan a la emisora). D2 de Esteban (encargo
+ * formato-afirmaciones-y-voz): el Perfil dice que las métricas por industria NO podrían satisfacer los requerimientos
+ * (filas 364, 387 y 410) y, a la vez, la emisora tiene sector SASB capturado: es un juicio de la emisora, pero se
+ * revisa antes de presentar.
+ */
+export function avisosDeCoherencia(d: DatosFormato): string[] {
+  const avisos: string[] = [];
+  if (d.perfil.metricas_industria === "No" && d.perfil.sector_sasb.length) {
+    avisos.push(`Métricas por industria en «No» (filas 364, 387 y 410) con sector SASB capturado (${d.perfil.sector_sasb.join("; ")}): confirmar el juicio de la emisora en el Perfil.`);
+  }
+  return avisos;
 }
 
 // =============================================================================

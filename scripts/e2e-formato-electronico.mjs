@@ -30,7 +30,9 @@ import ExcelJS from "exceljs";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { celdasConCorchete, opcionesDeListas, validarImagenesEnCelda } from "../lib/formato/xlsx-xml.ts";
-import { primeraPersonaPlural } from "../lib/suplemento/respuestas.ts";
+import { ORACION_E5, primeraPersonaPlural } from "../lib/suplemento/respuestas.ts";
+import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
+import { ENCABEZADOS_E5 } from "../lib/formato/llenar.ts";
 
 const BASE = process.argv[2] || "http://localhost:3016";
 const URL_SB = "http://127.0.0.1:54321";
@@ -142,7 +144,15 @@ try {
     const ks = [...est.matchAll(/<c r="K(\d+)"[^>]*><is><t[^>]*>([\s\S]*?)<\/t><\/is>/g)].map((m) => desescapar(m[2]));
     const opciones = opcionesDeListas(await z.file("xl/sharedStrings.xml").async("string"));
     ok(celdasConCorchete(est, "K", opciones).length === 0 && !ks.some((t) => /\[Pendiente/.test(t)), "ninguna celda K con «[Pendiente» ni con «[» fuera de una opción de lista del formato");
-    ok(!ks.some((t) => /suplemento|solicitud|evidencia|IRStrat/i.test(t)), "ninguna celda K con vocabulario de plataforma (suplemento, solicitud, evidencia, IRStrat)");
+    // El glosario oficial (CLAUDE.md §5, lib/suplemento/vocabulario.ts); esta prueba no tiene lista propia.
+    const conVocabulario = ks.filter((t) => vocabularioEnCeldaExportada(t).length);
+    ok(conVocabulario.length === 0, `ninguna celda K con vocabulario de plataforma del glosario de CLAUDE.md §5${conVocabulario.length ? ` (${conVocabulario.length}: ${conVocabulario.slice(0, 2).map((t) => t.slice(0, 60)).join(" | ")})` : ""}`);
+    // D4: la oración del E5 una vez por encabezado de la plantilla (más las celdas «no aplica · E5», que la conservan).
+    const filasK = [...est.matchAll(/<c r="K(\d+)"[^>]*><is><t[^>]*>([\s\S]*?)<\/t><\/is>/g)].map((m) => ({ fila: Number(m[1]), t: desescapar(m[2]) }));
+    const conPrefijo = filasK.filter((x) => x.t.startsWith(`${ORACION_E5} `) && !/se revela conforme a/.test(x.t));
+    const encDe = (kFila) => { const f = kFila > 185 ? kFila - 279 : kFila; return ENCABEZADOS_E5.filter((e) => e <= f).at(-1); };
+    const porEncabezado = conPrefijo.reduce((a, x) => ((a[encDe(x.fila)] = (a[encDe(x.fila)] ?? 0) + 1), a), {});
+    ok(conPrefijo.length > 0 && Object.values(porEncabezado).every((n) => n === 1), `oración del E5 una vez por encabezado (${conPrefijo.map((x) => `K${x.fila}`).join(", ")})`);
     ok(!ks.some((t) => primeraPersonaPlural(t).length), "ninguna celda K en primera persona del plural (tercera persona, «la Compañía»)");
     const libro = await z.file("xl/workbook.xml").async("string");
     ok(/<sheet name="Leyenda"/.test(libro) && /<sheet name="Métricas SASB"/.test(libro), "hojas «Leyenda» y «Métricas SASB»");
