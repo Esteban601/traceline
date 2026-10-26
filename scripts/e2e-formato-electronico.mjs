@@ -184,11 +184,13 @@ try {
     const v = (c) => (c.value == null ? "" : typeof c.value === "object" && c.value.richText ? c.value.richText.map((x) => x.text).join("") : String(c.value));
     const delExcel = [];
     hoja.eachRow((row, n) => {
-      if (n < 6 || !v(row.getCell(2)) || /^OPORTUNIDADES|^RIESGOS/.test(v(row.getCell(1)))) return;
+      // Sin fila de título ni separadoras (26/10): el encabezado ocupa las filas 1 y 2.
+      if (n < 3 || !v(row.getCell(2))) return;
       delExcel.push([v(row.getCell(1)), v(row.getCell(2)), v(row.getCell(10)), v(row.getCell(11))].join(" | "));
     });
     ok(delFormato.length > 0 && JSON.stringify(delFormato) === JSON.stringify(delExcel), `las mismas ${delFormato.length} instancias (riesgo, métrica, verificación, método) en el Formato y en la taxonomía (${delExcel.length})`);
-    ok(/párrafo E5/.test(v(hoja.getCell("A2"))) && !delExcel.some((x) => /No revelado/.test(x)), "la hoja lleva la oración del E5 y ningún «No revelado · alivio E5»");
+    // La oración del E5 ya no va suelta en la hoja (es una nota): va en los encabezados de pilar de la taxonomía.
+    ok(!/párrafo E5/.test(v(hoja.getCell("A1"))) && !delExcel.some((x) => /No revelado/.test(x)), "la hoja sin la oración del E5 suelta y sin ningún «No revelado · alivio E5»");
   }
 
   console.log("\n4. Generador apagado");

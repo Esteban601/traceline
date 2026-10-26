@@ -27,7 +27,7 @@ import {
 import fs from "node:fs";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
 import { TERMINOS_PLATAFORMA, glosarioDeClaudeMd, vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
-import { avisosDeCoherencia } from "../lib/formato/llenar.ts";
+import { avisosDeCoherencia, booleanosVaciosPorContradiccion, llenarFormato } from "../lib/formato/llenar.ts";
 import { BOOLEANOS_FORMATO, validarBooleano, valorBooleano } from "../lib/formato/booleanos.ts";
 import { numeracionConsecutiva } from "../lib/suplemento/numeracion.ts";
 import { HECHO_RAZON, hechosPrestados } from "../lib/suplemento/hechos/razones.ts";
@@ -91,6 +91,19 @@ console.log("\n1d. Booleanos del Formato (D1): «Sí.»/«No.» contra el hecho 
   ok(validarBooleano("Sí. Mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: [], vecina: null }).some((e) => /no cita/.test(e)), "sin citar el hecho que contesta → rechazo");
   ok(validarBooleano("Sí. Mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: "La Compañía no mide sus emisiones conforme al Protocolo GEI." }).some((e) => /vecina/.test(e)), "la celda narrativa vecina dice lo contrario → rechazo");
   ok(valorBooleano("Sí. Texto.") === "Sí" && valorBooleano("No. Texto.") === "No" && valorBooleano("Texto.") === null, "valorBooleano lee el «Sí.»/«No.» inicial");
+}
+
+console.log("\n1e. Booleano vacío por contradicción: el informe lo lista con fila, valor y oración");
+{
+  const base = { ejercicio: 2025, primerAnio: true, alivios: {}, perfil: { denominacion_formal: null, clave_cotizacion: null, tipo_instrumento: null, fiduciario: null, numero_fideicomiso: null, hechos_posteriores: null, actividades_financieras: [], sector_sasb: [], metricas_industria: null }, hayLogo: false, gei: [], registros: [], objetivos: [], cuestionarios: {}, declaraCumplimiento: false, declaracion: null, cumplimiento: { parciales: [], pendientes: 0 } };
+  const conceptos = [{ fila: 313, seccion: "x", tipo: "booleano", clasificacion: "concepto", capa: "1 · fuente", datapoint: "NIIF S2 29 (a)(ii)", bloque: 27, regla: null, alivioE5: false, respondidaEnReferencia: true }];
+  const respuestas = [
+    { destino: "taxonomia", clave: "NIIF S2 29 (a)(ii)", estado: "respuesta", texto: "La Compañía no mide sus emisiones conforme al Protocolo GEI." },
+    { destino: "formato", clave: "fila:313", estado: "respuesta", texto: "Sí. La Compañía mide conforme al Protocolo GEI." },
+  ];
+  const valores = llenarFormato({ ...base, respuestas }, conceptos);
+  const lista = booleanosVaciosPorContradiccion(valores);
+  ok(valores.get(313).texto === null && lista.length === 1 && lista[0].celda === "K592" && lista[0].valor === "Sí" && /no mide sus emisiones conforme al Protocolo GEI/.test(lista[0].oracion), `K592 vacío y listado: ${JSON.stringify(lista[0] ?? {})}`);
 }
 
 console.log("\n1c. Aviso de coherencia de métricas por industria (D2)");

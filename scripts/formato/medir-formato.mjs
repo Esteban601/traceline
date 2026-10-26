@@ -10,7 +10,7 @@
 // cuántas celdas K llevan la oración del alivio E5 y cuáles, y las celdas con
 // vocabulario de plataforma según el glosario oficial (lib/suplemento/
 // vocabulario.ts, el de CLAUDE.md §5), en el Formato (columna K) y en el Excel
-// de taxonomía (toda celda de texto fuera de la fila 1 y de la hoja «Leyenda»), con
+// de taxonomía (toda celda de texto fuera de la fila 1; ninguna hoja se excluye), con
 // la excepción de CLAUDE.md §5 para el marcador «Pendiente: …» en texto plano.
 // =============================================================================
 import ExcelJS from "exceljs";
@@ -42,8 +42,7 @@ console.log(`\n== Vocabulario de plataforma en el Formato (columna K): ${vocForm
 const wt = new ExcelJS.Workbook();
 await wt.xlsx.readFile(taxonomia);
 const vocTax = [];
-// La hoja «Leyenda» explica el entregable (de dónde sale cada cosa); no es respuesta de la emisora.
-for (const ws of wt.worksheets.filter((w) => w.name !== "Leyenda")) {
+for (const ws of wt.worksheets) {
   ws.eachRow((row, n) => {
     if (n === 1) return;
     row.eachCell((cell) => {

@@ -2,7 +2,7 @@ import { datapointsExentos } from "@/lib/suplemento/bloques";
 import { ORACION_E5, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import type { Alivios } from "@/lib/perfil-emisor";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
-import { BOOLEANOS_FORMATO, contradice, valorBooleano } from "@/lib/formato/booleanos";
+import { BOOLEANOS_FORMATO, clausulasDelTema, contradice, valorBooleano } from "@/lib/formato/booleanos";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 
 // =============================================================================
@@ -91,7 +91,15 @@ export type DatosFormato = {
 };
 
 export type OrigenFormato = "iteración" | "respuesta" | "regla" | "perfil" | "alivio" | "actividad" | "datos" | "logo" | "por decidir" | "sin mapeo" | "sin respuesta" | "fuera de alcance" | "pendiente";
-export type ValorFormato = { texto: string | null; origen: OrigenFormato; nota?: string; /** La oración del E5 la antepuso el llenado. */ e5?: boolean };
+export type ValorFormato = {
+  texto: string | null;
+  origen: OrigenFormato;
+  nota?: string;
+  /** La oración del E5 la antepuso el llenado. */
+  e5?: boolean;
+  /** Booleano que quedó vacío porque la celda narrativa vecina contradice su valor (D1). */
+  contradiccion?: { valor: "Sí" | "No"; oracion: string };
+};
 
 /**
  * Encabezados de la plantilla 2025 bajo los que hay conceptos con el alivio E5 (filas del mapeo; en el Formato,
@@ -232,7 +240,11 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const propia = resp("formato", `fila:${c.fila}`);
       const valor = pregunta && propia?.estado === "respuesta" ? valorBooleano(propia.texto) : null;
       if (!pregunta || !valor) return { texto: null, origen: "pendiente", nota: "sin respuesta de sí o no validada contra el hecho que contesta" };
-      if (contradice(valor, textoDe(c.datapoint), pregunta.tema)) return { texto: null, origen: "pendiente", nota: `la respuesta narrativa de ${c.datapoint} contradice el «${valor}»` };
+      const vecina = textoDe(c.datapoint);
+      if (contradice(valor, vecina, pregunta.tema)) {
+        const oracion = clausulasDelTema(vecina ?? "", pregunta.tema)[0]?.texto ?? "";
+        return { texto: null, origen: "pendiente", nota: `contradicción: valor propuesto «${valor}»; la respuesta de ${c.datapoint} dice «${oracion}»`, contradiccion: { valor, oracion } };
+      }
       return { texto: valor, origen: "respuesta" };
     }
     // Regla 8: una cifra que no está en capturas no se deriva.
@@ -334,6 +346,19 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     }
     return { texto: null, origen: "por decidir" };
   }
+}
+
+/** Fila del mapeo → celda K del Formato exportado (las filas > 185 se desplazan 279 por las métricas iteradas). */
+export const celdaK = (fila: number) => `K${fila > 185 ? fila + 279 : fila}`;
+
+/**
+ * Booleanos que quedaron vacíos porque la respuesta narrativa de su código los contradice: fila, celda, valor
+ * propuesto y la oración que lo contradijo. Para el informe del validador (hoja de revisión y log de la descarga).
+ */
+export function booleanosVaciosPorContradiccion(valores: Map<number, ValorFormato>): { fila: number; celda: string; valor: "Sí" | "No"; oracion: string }[] {
+  return [...valores.entries()]
+    .filter(([, v]) => v.contradiccion)
+    .map(([fila, v]) => ({ fila, celda: celdaK(fila), valor: v.contradiccion!.valor, oracion: v.contradiccion!.oracion }));
 }
 
 /**

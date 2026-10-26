@@ -121,28 +121,17 @@ async function descargar(ctx, url) {
 }
 
 /**
- * ¿El libro lleva la marca [DEMO] en algún pie?
- *
- * Recorre SOLO las filas que existen (`eachRow`) y solo la columna A, donde va el
- * pie. Un barrido por índice (`getCell("A" + r)` hasta rowCount) materializa cada
- * celda que toca: en las hojas grandes de la plantilla eso se lleva el heap de
- * Node por delante — costó una corrida.
+ * ¿El libro lleva la marca [DEMO]? Desde el 26/10 (regla de Esteban: el Excel de taxonomía lleva solo preguntas y
+ * respuestas) la marca no va en un pie sino en las propiedades del archivo (título y asunto). Ninguna celda la
+ * lleva.
  */
 async function libroConMarcaDemo(buf) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buf);
-  let marca = false;
-  wb.eachSheet((ws) => {
-    if (marca) return;
-    ws.eachRow({ includeEmpty: false }, (row) => {
-      if (marca) return;
-      const v = row.getCell(1).value;
-      if (v == null) return;
-      const s = typeof v === "object" ? JSON.stringify(v) : String(v);
-      if (s.includes("[DEMO]")) marca = true;
-    });
-  });
-  return marca;
+  let enCelda = false;
+  wb.eachSheet((ws) => ws.eachRow({ includeEmpty: false }, (row) => row.eachCell((c) => { if (String(typeof c.value === "object" ? JSON.stringify(c.value) : c.value).includes("[DEMO]")) enCelda = true; })));
+  if (enCelda) throw new Error("una celda del libro lleva [DEMO]: la marca va en las propiedades del archivo");
+  return `${wb.title ?? ""} ${wb.subject ?? ""}`.includes("[DEMO]");
 }
 
 // =============================================================================

@@ -25,7 +25,7 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { createServerClient } from "@supabase/ssr";
 import { insumosDelFormato } from "../../lib/formato/datos.ts";
-import { avisosDeCoherencia, llenarFormato, CONCEPTOS_FORMATO } from "../../lib/formato/llenar.ts";
+import { avisosDeCoherencia, booleanosVaciosPorContradiccion, llenarFormato, CONCEPTOS_FORMATO } from "../../lib/formato/llenar.ts";
 
 const [reporte, salida, plantilla, exportado] = process.argv.slice(2);
 if (!reporte || !salida) { console.error("Uso: revision-formato.mjs <reporte> <salida.xlsx>"); process.exit(2); }
@@ -82,7 +82,12 @@ ws.columns = [
   { header: "Nota", key: "nota", width: 50 },
 ];
 // Avisos de coherencia (D2 del encargo formato-afirmaciones-y-voz): juicios del Perfil que chocan con otros datos.
-const avisos = avisosDeCoherencia(ins.datos);
+// Y los booleanos que quedaron vacíos porque la celda narrativa vecina contradice su valor (D1): fila, celda, valor
+// propuesto y la oración que lo contradijo.
+const avisos = [
+  ...avisosDeCoherencia(ins.datos),
+  ...booleanosVaciosPorContradiccion(valores).map((b) => `Booleano vacío en ${b.celda} (fila ${b.fila}): valor propuesto «${b.valor}», contradicho por «${b.oracion}».`),
+];
 const av = wb.addWorksheet("Avisos");
 av.columns = [{ header: "Aviso", key: "aviso", width: 140 }];
 for (const aviso of avisos) av.addRow({ aviso });

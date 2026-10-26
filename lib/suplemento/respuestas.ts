@@ -65,6 +65,10 @@ export const LIMITES: Record<Destino, { oraciones: number; caracteres: number | 
 export const ORACION_E5 =
   "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E5 de la NIIF S1 y revela únicamente información sobre los riesgos y oportunidades relacionados con el clima.";
 
+/** Oración fija del alivio E4 (redacción de la casa): va en la respuesta de la declaración de cumplimiento del Excel. */
+export const ORACION_E4 =
+  "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E4 de la NIIF S1 y publica su información financiera relacionada con la sostenibilidad después de sus estados financieros.";
+
 /**
  * «No aplica» heredado, en voz de la emisora. El motivo de noAplicaHeredado es
  * para el revisor (nombra el cuestionario y dice «la emisora»); el Excel publica.

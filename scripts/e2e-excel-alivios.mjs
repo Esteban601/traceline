@@ -65,30 +65,42 @@ const genAntes = psql(`select generador_activo || '|' || generaciones_mes_max fr
 const ejercicio = Number(psql(`select ejercicio from reportes where id=${lit(REPORTE)}`));
 const docs = [];
 try {
+  // Solo preguntas y respuestas (regla de Esteban del 26/10): sin hoja «Leyenda» ni notas; los alivios se
+  // enuncian dentro de las respuestas (E5 en los encabezados de pilar de S1, E4 en la declaración de cumplimiento,
+  // C3 y C4 en la cifra que los invocan). Sin fila de título, las filas se buscan por etiqueta.
+  const filaDe = (ws, t, col = 1) => { let f = 0; ws.eachRow((row, n) => { if (!f && texto(row.getCell(col).value).replace(/\s+/g, " ").trim() === t) f = n; }); return f; };
+  const E5 = "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E5 de la NIIF S1";
+
   console.log("\n1. Sin alivios: el libro sale como siempre");
   regimen(ejercicio, {});
   const a = await libro();
+  const ga = a.wb.getWorksheet("NIIF S2 29(a)(i)");
   ok(!a.todas.some((t) => t.startsWith("No revelado")), "ninguna celda «No revelado»");
-  ok(a.c("NIIF S2 29(a)(vi)(1)", "B4") !== NR("C4") && a.c("NIIF S2 29(a)(i)", "D3") !== NR("C3"), "Alcance 3 y la columna del año anterior, con su dato o su causa");
-  ok(a.c("NIIF S1 51", "A4").length > 0 && !a.c("NIIF S1 51", "A4").startsWith("No revelado"), "NIIF S1 51 con sus objetivos");
-  ok(a.c("Leyenda", "B9") === "Ninguno vigente en este ejercicio.", "la Leyenda: ningún alivio vigente");
+  ok(a.c("NIIF S2 29(a)(vi)(1)", "B3") !== NR("C4") && a.c("NIIF S2 29(a)(i)", `D${filaDe(ga, "Alcance 1")}`) !== NR("C3"), "Alcance 3 y la columna del año anterior, con su dato o su marcador");
+  ok(a.c("NIIF S1 51", "A2").length > 0 && !a.c("NIIF S1 51", "A2").startsWith("No revelado"), "NIIF S1 51 con sus objetivos");
+  ok(!a.wb.getWorksheet("Leyenda") && !a.todas.some((t) => t.startsWith(E5)), "sin «Leyenda» y sin la oración del E5 en ninguna celda");
 
-  console.log("\n2. C3, C4 y E5 en el primer año de adopción");
+  console.log("\n2. C3, C4, E4 y E5 en el primer año de adopción");
   regimen(ejercicio, { E4: true, C3: true, C4: true, E5: true });
   const b = await libro();
-  ok(b.c("NIIF S2 29(a)(i)", "C5") === NR("C4") && b.c("NIIF S2 29(a)(i)", "D5") === NR("C4"), "C4: Alcance 3 total no se revela");
-  let cat = true;
-  for (let r = 4; r <= 18; r++) if (b.c("NIIF S2 29(a)(vi)(1)", `B${r}`) !== NR("C4") || b.c("NIIF S2 29(a)(vi)(1)", `D${r}`) !== "") cat = false;
-  ok(cat, "C4: las 15 categorías de Alcance 3, sin nota de brecha");
-  ok(b.c("NIIF S2 29(a)(i)", "D3") === NR("C3") && b.c("NIIF S2 29(a)(i)", "D4") === NR("C3"), "C3: la columna del año anterior de Alcance 1 y 2");
-  ok(!/\(\d{4}\)/.test(b.c("NIIF S2 29(a)(i)", "E3")), "C3: el año anterior no aparece como brecha en la nota");
-  const regHoja = ["NIIF S2 29(c)", "NIIF S2 29(b)", "NIIF S2 29(d)"].find((h) => b.c(h, "A5"));
-  ok(!!regHoja && b.c(regHoja, "H5") === NR("C3"), `C3: los registros de clima tampoco muestran el año anterior (${regHoja} H5)`);
+  const gb = b.wb.getWorksheet("NIIF S2 29(a)(i)");
+  const [f1, f2, f3] = ["Alcance 1", "Alcance 2", "Alcance 3"].map((x) => filaDe(gb, x));
+  ok(b.c("NIIF S2 29(a)(i)", `C${f3}`) === NR("C4") && b.c("NIIF S2 29(a)(i)", `D${f3}`) === NR("C4"), "C4: Alcance 3 total no se revela, en su celda");
+  let cat = 0;
+  b.wb.getWorksheet("NIIF S2 29(a)(vi)(1)").eachRow((row, n) => { if (/^Categoría \d/.test(texto(row.getCell(1).value)) && b.c("NIIF S2 29(a)(vi)(1)", `B${n}`) === NR("C4") && b.c("NIIF S2 29(a)(vi)(1)", `C${n}`) === NR("C4")) cat++; });
+  ok(cat === 15, `C4: las 15 categorías de Alcance 3 en su celda (${cat})`);
+  ok(b.c("NIIF S2 29(a)(i)", `D${f1}`) === NR("C3") && b.c("NIIF S2 29(a)(i)", `D${f2}`) === NR("C3"), "C3: la columna del año anterior de Alcance 1 y 2");
+  const regHoja = ["NIIF S2 29(c)", "NIIF S2 29(b)", "NIIF S2 29(d)"].find((h) => b.c(h, "A4"));
+  ok(!!regHoja && b.c(regHoja, "H4") === NR("C3"), `C3: los registros de clima tampoco muestran el año anterior (${regHoja} H4)`);
   // E5 (decisión de Esteban, 14 de octubre): las hojas de S1 llevan la información sobre clima, la misma del Formato.
   const climaticos = psql(`select string_agg(replace(nombre, '[DEMO] ', ''), '|') from objetivos where reporte_id=${lit(REPORTE)} and activo and ambito='climatico'`).split("|");
-  ok(!b.c("NIIF S1 51", "A4").startsWith("No revelado") && climaticos.includes(b.c("NIIF S1 51", "A4")) && !b.todas.some((t) => t === NR("E5")), "E5: NIIF S1 51 lleva solo objetivos climáticos, sin «No revelado · alivio E5»");
-  ok(/párrafo E5/.test(b.c("NIIF S1 46-50", "A2")) && b.c("NIIF S1 46-50", "B6") !== "", "E5: NIIF S1 46-50 con la oración del alivio y las instancias de métricas");
-  ok(b.c("Leyenda", "B9") === "E4, E5, C3, C4" && b.todas.some((t) => t.includes("NIIF S2 C4")), "la Leyenda lista TODOS los alivios vigentes, con E4, en el orden del catálogo, y explica cada uno");
+  ok(!b.c("NIIF S1 51", "A2").startsWith("No revelado") && climaticos.includes(b.c("NIIF S1 51", "A2")) && !b.todas.some((t) => t === NR("E5")), "E5: NIIF S1 51 lleva solo objetivos climáticos, sin «No revelado · alivio E5»");
+  ok(b.c("NIIF S1 46-50", "B3") !== "", "E5: NIIF S1 46-50 con las instancias de métricas");
+  const tb = b.wb.getWorksheet("Taxonomía NIIF S1 S2");
+  const pilares = [];
+  tb.eachRow((row, n) => { if (n > 1 && !texto(row.getCell(1).value) && texto(row.getCell(3).value).startsWith(E5)) pilares.push(texto(row.getCell(2).value)); });
+  ok(["Gobernanza (S1)", "Estrategia", "Gestión del riesgo", "Métricas y Objetivos"].every((x) => pilares.includes(x)), `E5: en los encabezados de pilar de NIIF S1 (${pilares.join(", ")})`);
+  ok(!b.wb.getWorksheet("Leyenda") && !b.todas.some((t) => /^(E4, )?E5, C3, C4$/.test(t)), "sin «Leyenda»: los alivios no van en una nota");
 
   console.log("\n3. Los mismos alivios en un año subsecuente no aplican");
   regimen(ejercicio - 1, { C3: true, C4: true, E5: true });
@@ -105,8 +117,8 @@ try {
   const d = await libro();
   const hoja = d.wb.getWorksheet("Taxonomía NIIF S1 S2");
   let fila = null;
-  hoja.eachRow((row, n) => { if (texto(row.getCell(2).value).replace(/\s+/g, " ").trim() === "NIIF S2 B65 inciso (e)" && fila == null) fila = n; });
-  ok(d.c("Taxonomía NIIF S1 S2", `E${fila}`) === "Pendiente: información que responda NIIF S2 B65 inciso (e) — sin solicitud en el reporte", `fila ${fila} (B65(e)): «Pendiente: …» en texto plano`);
+  hoja.eachRow((row, n) => { if (texto(row.getCell(1).value).replace(/\s+/g, " ").trim() === "NIIF S2 B65 inciso (e)" && fila == null) fila = n; });
+  ok(d.c("Taxonomía NIIF S1 S2", `C${fila}`) === "Pendiente: información que responda NIIF S2 B65 inciso (e) — sin solicitud en el reporte", `fila ${fila} (B65(e)): «Pendiente: …» en texto plano`);
   ok(!d.todas.some((t) => t.startsWith("[")), "ninguna celda del libro empieza con «[»");
   ok(psql(`select texto from respuestas_datapoint where documento_id=${lit(doc)}`).startsWith("[Pendiente: "), "la base conserva el marcador con el formato de §5");
 

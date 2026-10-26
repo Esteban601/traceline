@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { bloquesIterados, llenarFormato } from "@/lib/formato/llenar";
+import { bloquesIterados, booleanosVaciosPorContradiccion, llenarFormato } from "@/lib/formato/llenar";
 import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
 import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, leyendaDelFormato } from "@/lib/formato/plantilla";
@@ -47,6 +47,10 @@ export async function GET(request: Request) {
   if (!ins.ok) return NextResponse.json({ error: ins.error }, { status: ins.status });
   const { ens, datos } = ins;
   const valores = llenarFormato(datos);
+  // Informe del validador (D1): booleanos que quedaron vacíos porque la respuesta narrativa los contradice.
+  for (const b of booleanosVaciosPorContradiccion(valores)) {
+    console.warn(`[export-formato] reporte=${reporteId} booleano vacío ${b.celda} (fila ${b.fila}): valor propuesto «${b.valor}», contradicho por «${b.oracion}»`);
+  }
 
   try {
     const { data: blob, error } = await createAdminClient().storage.from("documentos").download(RUTA_PLANTILLA_FORMATO);

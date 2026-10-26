@@ -73,6 +73,17 @@ const cellText = (ws, addr) => {
   return v == null ? "" : String(v);
 };
 
+const cellTextC = (c) => {
+  let v = c.value;
+  if (v && typeof v === "object") v = v.richText ? v.richText.map((t) => t.text).join("") : v.result !== undefined ? v.result : "";
+  return v == null ? "" : String(v);
+};
+/** Primera fila cuya columna `col` dice `texto` (0 si no la hay). */
+const filaDe = (ws, texto, col = "A") => {
+  for (let f = 1; f <= ws.rowCount; f++) if (cellText(ws, `${col}${f}`).trim() === texto) return f;
+  return 0;
+};
+
 /** Pide el export de un reporte concreto y devuelve la respuesta + su cuerpo. */
 async function pedirExport(cookie, reporteId) {
   const url = `${BASE_URL}/admin/cobertura/export-taxonomia?reporte=${reporteId}`;
@@ -188,108 +199,78 @@ async function main() {
   const sTransicion = wb.getWorksheet("NIIF S2 29(b)");
   const s29d = wb.getWorksheet("NIIF S2 29(d)");
 
-  console.log("\nGEI 29(a)(i) — nota por celda-año (año validado y lleno + año sin evidencia):");
-  ok(cellText(gei1, "A3") === "Alcance 1", "A3 = 'Alcance 1'");
-  // Alcance 1: 2025 VALIDADO y lleno, 2024 SIN captura → celda vacía. La cifra
-  // cambió de 400,000 a 1,240 al pasar el demo de industrial a grupo financiero
-  // (scripts/poblar-demo.mjs): son 118 sucursales y una flota, no una planta.
-  ok(Number(cellText(gei1, "C3")) === 1240, "C3 (Alcance 1, 2025 validado) = 1240");
-  // ALIVIOS (especificación 0.41, §6.1): el demo es primer año de adopción con
-  // C3, C4 y E5 vigentes. Sin comparativos (C3): la columna 2024 dice «No
-  // revelado · alivio C3» y no genera nota de brecha; sin Alcance 3 (C4).
-  // Las causas por año (pendiente / sin evidencia) las ejercita el segundo
-  // tenant y scripts/e2e-excel-alivios.mjs, sin alivios.
-  ok(cellText(gei1, "D3") === "No revelado · alivio C3", "D3 (Alcance 1, 2024) = 'No revelado · alivio C3'");
-  ok(cellText(gei1, "E3") === "", "E3 nota VACÍA: un año que el alivio deja fuera no es una brecha");
-  ok(
-    Number(cellText(gei1, "C4")) > 0 &&
-      cellText(gei1, "D4") === "No revelado · alivio C3" &&
-      cellText(gei1, "E4") === "",
-    "Alcance 2: 2025 lleno, 2024 «No revelado · alivio C3», nota de fila VACÍA"
-  );
-  ok(
-    cellText(gei1, "C5") === "No revelado · alivio C4" && cellText(gei1, "D5") === "No revelado · alivio C4",
-    "Alcance 3 total: «No revelado · alivio C4» en los dos años"
-  );
-
-  // El origen de TODAS las solicitudes del demo es 'irstrat' (backfill de la
-  // migración), así que ninguna nota lleva la salvedad de validación interna. Si
-  // apareciera, el rol admin-cliente habría cambiado el entregable de referencia.
+  // SOLO PREGUNTAS Y RESPUESTAS (regla de Esteban del 26/10, encargo formato-afirmaciones-y-voz): sin hoja
+  // «Leyenda», sin filas de título, sin pies, sin columnas «Notas / Brechas» ni «Tipo de dato». Las filas cambian
+  // con los datos (se quitan separadoras y filas vacías), así que se busca por etiqueta, no por dirección.
+  console.log("\nSolo preguntas y respuestas:");
+  ok(!wb.getWorksheet("Leyenda"), "sin hoja «Leyenda»");
   {
-    const notasDemo = [];
-    wb.eachSheet((ws) =>
-      ws.eachRow((row) =>
-        row.eachCell((c) => {
-          if (typeof c.value === "string") notasDemo.push(c.value);
-        })
-      )
-    );
-    ok(
-      !notasDemo.some((t) => t.includes("validación interna del cliente")),
-      "ninguna celda del demo lleva '(validación interna del cliente)': sus validaciones son todas de IRStrat"
-    );
-    ok(
-      !notasDemo.some((t) => /perímetro de la división/i.test(t)),
-      "ni nota de alcance: el demo no tiene salvedad de perímetro que declarar"
-    );
-    ok(cellText(gei1, "E3") === "", "y su celda de notas sigue vacía");
+    const textos = [];
+    wb.eachSheet((ws) => ws.eachRow((row) => row.eachCell((c) => textos.push(cellTextC(c)))));
+    ok(!textos.some((t) => /Generado por|\[DEMO\]/.test(t)), "sin pie «Generado por … [DEMO]» en ninguna hoja");
+    ok(!textos.some((t) => /^(Notas \/ Brechas|Notas|Tipo de dato|Sección|UN SDG)$/.test(t)), "sin columnas auxiliares («Notas / Brechas», «Tipo de dato», «Sección», «UN SDG»)");
+    ok(!textos.some((t) => /^(RIESGOS|OPORTUNIDADES|Riesgos|Oportunidades)$/.test(t)), "sin filas separadoras");
+    ok(!textos.some((t) => /^Sin datos del ejercicio$|en plataforma/.test(t)), "sin notas «Sin datos del ejercicio» ni «… en plataforma»");
+    ok(hojas.every((h) => !/ — /.test(cellText(wb.getWorksheet(h), "A1"))), "sin fila de título: la fila 1 de cada hoja es su encabezado");
   }
-
-  console.log("\nGEI 29(a)(vi)(1) — causas por año (pendiente vs sin evidencia):");
+  const tax = wb.getWorksheet("Taxonomía NIIF S1 S2");
+  ok(cellText(tax, "A1") === "Contenido" && cellText(tax, "B1") === "Requerimientos" && cellText(tax, "C1") === "Respuesta" && tax.columnCount === 3, "Taxonomía: tres columnas, código, requisito y respuesta");
   {
-    // C4: ninguna categoría de Alcance 3 se exporta, ni su nota de brecha.
-    let todas = true;
-    for (let r = 4; r <= 18; r++) {
-      if (cellText(geiVi, `B${r}`) !== "No revelado · alivio C4" || cellText(geiVi, `C${r}`) !== "No revelado · alivio C4" || cellText(geiVi, `D${r}`) !== "") todas = false;
-    }
-    ok(todas, "las 15 categorías de Alcance 3: «No revelado · alivio C4» en los dos años y sin nota de brecha");
+    const E5 = "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E5 de la NIIF S1";
+    const pilares = [];
+    let conE5 = 0;
+    tax.eachRow((row, f) => {
+      if (f === 1) return;
+      const c = cellText(tax, `C${f}`);
+      if (c.startsWith(E5)) conE5++;
+      if (!cellText(tax, `A${f}`) && c.startsWith(E5)) pilares.push(cellText(tax, `B${f}`));
+    });
+    ok(conE5 === pilares.length && ["Gobernanza (S1)", "Estrategia", "Gestión del riesgo", "Métricas y Objetivos", "Declaración de cumplimiento"].every((p) => pilares.includes(p)), `E5 solo en los encabezados de pilar de NIIF S1 (${pilares.join(", ")})`);
+    const f72 = filaDe(tax, "NIIF S1 72");
+    ok(!!f72 && /párrafo E4 de la NIIF S1/.test(cellText(tax, `C${f72}`)), "E4 enunciado en la respuesta de la declaración de cumplimiento (NIIF S1 72)");
   }
 
-  console.log("\nRegistros de clima (v2: horizonte multi + capital en tres):");
-  ok(cellText(s10, "A4").length > 0, "S2 10: A4 tiene un riesgo");
-  ok(cellText(s10, "C4").length > 0, "S2 10: C4 tiene tipo");
-  // Horizonte multi-enum: el primer riesgo cubre varios plazos (lista con '; ').
-  ok(
-    cellText(s10, "D4").includes("Corto plazo") && cellText(s10, "D4").includes("Mediano plazo"),
-    "S2 10: D4 lista varios horizontes"
-  );
-  ok(cellText(sFisicos, "A5").length > 0, "S2 29(c) [físicos]: A5 tiene riesgo físico");
-  ok(
-    cellText(sFisicos, "B5").includes("Corto plazo") && cellText(sFisicos, "B5").includes("Mediano plazo"),
-    "S2 29(c) [físicos]: B5 lista varios horizontes"
-  );
-  ok(Number(cellText(sFisicos, "C5")) > 0, "S2 29(c) [físicos]: C5 (cantidad 2025) tiene número");
-  // Despliegue de capital en 3 sub-filas (etiqueta E + valor F), bloque del 1er registro.
-  ok(
-    cellText(sFisicos, "E5") === "Cantidad de gasto de capital",
-    "S2 29(c) [físicos]: E5 = 'Cantidad de gasto de capital'"
-  );
-  ok(Number(cellText(sFisicos, "F5")) > 0, "S2 29(c) [físicos]: F5 (gasto de capital 2025) tiene número");
-  ok(
-    cellText(sFisicos, "E6") === "Cantidad de financiación",
-    "S2 29(c) [físicos]: E6 = 'Cantidad de financiación' (sub-fila 2)"
-  );
-  ok(
-    cellText(sFisicos, "E7") === "Cantidad de inversión",
-    "S2 29(c) [físicos]: E7 = 'Cantidad de inversión' (sub-fila 3)"
-  );
-  ok(cellText(sTransicion, "A5").length > 0, "S2 29(b) [transición]: A5 tiene riesgo de transición");
-  ok(cellText(s29d, "A5").length > 0, "S2 29(d): A5 tiene oportunidad");
-
-  // Regla dura registros: la oportunidad sin valores muestra 'Sin datos del ejercicio'.
-  // Con bloques de 3 filas, la brecha va en la fila de inicio del bloque (col C).
-  // El demo financiero da valores 2025 a las DOS oportunidades, así que ya no hay
-  // registro con la brecha. El assert se invierte: lo que hay que comprobar
-  // ahora es que ninguna fila la muestre, porque una brecha aquí significaría
-  // que se perdieron valores que sí están capturados.
-  let sinDatos = false;
-  for (let r = 5; r <= 20; r++) {
-    if (cellText(s29d, `C${r}`) === "Sin datos del ejercicio") sinDatos = true;
+  console.log("\nGEI 29(a)(i) — la cifra y su alivio en la misma celda:");
+  ok(cellText(gei1, "A1") === "Categoría" && cellText(gei1, "C1") === "2025" && gei1.columnCount === 4, "29(a)(i): encabezado Categoría · Unidad · 2025 · 2024, sin notas");
+  const fA1 = filaDe(gei1, "Alcance 1"), fA2 = filaDe(gei1, "Alcance 2"), fA3 = filaDe(gei1, "Alcance 3");
+  // La cifra cambió de 400,000 a 1,240 al pasar el demo de industrial a grupo financiero (scripts/poblar-demo.mjs).
+  ok(Number(cellText(gei1, `C${fA1}`)) === 1240, "Alcance 1, 2025 validado = 1240");
+  // ALIVIOS: primer año con C3, C4 y E5. C3: la columna 2024 dice «No revelado · alivio C3»; C4: sin Alcance 3.
+  ok(cellText(gei1, `D${fA1}`) === "No revelado · alivio C3" && Number(cellText(gei1, `C${fA2}`)) > 0 && cellText(gei1, `D${fA2}`) === "No revelado · alivio C3", "Alcances 1 y 2: 2024 «No revelado · alivio C3»");
+  ok(cellText(gei1, `C${fA3}`) === "No revelado · alivio C4" && cellText(gei1, `D${fA3}`) === "No revelado · alivio C4", "Alcance 3 total: «No revelado · alivio C4» en los dos años");
+  {
+    const textos = [];
+    wb.eachSheet((ws) => ws.eachRow((row) => row.eachCell((c) => textos.push(cellTextC(c)))));
+    ok(!textos.some((t) => t.includes("validación interna del cliente")), "ninguna celda lleva '(validación interna del cliente)'");
   }
-  ok(!sinDatos, "S2 29(d): ningún registro con 'Sin datos del ejercicio' (las dos oportunidades tienen 2025)");
+
+  console.log("\nGEI 29(a)(vi)(1) — categorías de Alcance 3:");
+  {
+    let n = 0, todas = true;
+    geiVi.eachRow((row, f) => {
+      if (!/^Categoría \d/.test(cellText(geiVi, `A${f}`))) return;
+      n++;
+      if (cellText(geiVi, `B${f}`) !== "No revelado · alivio C4" || cellText(geiVi, `C${f}`) !== "No revelado · alivio C4") todas = false;
+    });
+    ok(n === 15 && todas && geiVi.columnCount === 3, `las 15 categorías: «No revelado · alivio C4» en los dos años, sin columna de notas (${n})`);
+  }
+
+  console.log("\nRegistros de clima (horizonte multi + capital en tres):");
+  ok(cellText(s10, "A2").length > 0 && cellText(s10, "C2").length > 0, "S2 10: el primer riesgo con su tipo, justo bajo el encabezado");
+  ok(cellText(s10, "D2").includes("Corto plazo") && cellText(s10, "D2").includes("Mediano plazo"), "S2 10: D2 lista varios horizontes");
+  const fFis = filaDe(sFisicos, "Huracanes e inundaciones en la red del sureste");
+  ok(!!fFis && cellText(sFisicos, `B${fFis}`).includes("Corto plazo") && Number(cellText(sFisicos, `C${fFis}`)) > 0, "S2 29(c) [físicos]: el riesgo con horizontes y cantidad 2025");
+  ok(cellText(sFisicos, `E${fFis}`) === "Cantidad de gasto de capital" && Number(cellText(sFisicos, `F${fFis}`)) > 0, "S2 29(c): gasto de capital 2025 (etiqueta E + valor F)");
+  ok(cellText(sFisicos, `E${fFis + 1}`) === "Cantidad de financiación" && cellText(sFisicos, `E${fFis + 2}`) === "Cantidad de inversión", "S2 29(c): sub-filas de financiación e inversión");
+  ok(cellText(sTransicion, "A4").length > 0 && cellText(s29d, "A4").length > 0, "S2 29(b) y 29(d): el primer registro bajo el encabezado de tres filas");
+  {
+    let sinDatos = false;
+    s29d.eachRow((row, f) => { if (/^Pendiente: cifras/.test(cellText(s29d, `C${f}`))) sinDatos = true; });
+    ok(!sinDatos, "S2 29(d): ningún registro con «Pendiente: cifras …» (las dos oportunidades tienen 2025)");
+  }
 
   // ---------------------------------------------------------------------------
-  // Objetivos (Sprint 3) — 5 hojas: S1 51 + S2 33/34/35/36(a)-(d).
+  // Objetivos — 5 hojas: S1 51 + S2 33/34/35/36(a)-(d). Fila 2 = primer objetivo.
   // ---------------------------------------------------------------------------
   const s51 = wb.getWorksheet("NIIF S1 51");
   const s33 = wb.getWorksheet("NIIF S2 33");
@@ -298,149 +279,57 @@ async function main() {
   const s36 = wb.getWorksheet("NIIF S2 36(a)-(d)");
 
   console.log("\nObjetivos — S2 33 (definición climática, tipos oficiales):");
-  ok(cellText(s33, "A3").length > 0, "S2 33: A3 tiene un objetivo climático");
-  ok(
-    cellText(s33, "B3") === "Objetivo de emisiones de gases de efecto invernadero",
-    "S2 33: B3 (tipo) = 'Objetivo de emisiones de gases de efecto invernadero'"
-  );
-  ok(cellText(s33, "I3") === "Absoluto", "S2 33: I3 (tipo de objetivo) = 'Absoluto'");
-  // El objetivo de intensidad del demo industrial desapareció: el grupo financiero
-  // tiene tres objetivos y el segundo es la cartera sostenible, que es relativo.
-  ok(cellText(s33, "I4") === "Relativo", "S2 33: I4 (tipo de objetivo) = 'Relativo'");
+  ok(cellText(s33, "A2").length > 0 && cellText(s33, "B2") === "Objetivo de emisiones de gases de efecto invernadero", "S2 33: el primer objetivo y su tipo oficial");
+  ok(cellText(s33, "I2") === "Absoluto" && cellText(s33, "I3") === "Relativo", "S2 33: tipos de objetivo Absoluto y Relativo");
+  ok(s33.columnCount === 10, "S2 33: diez columnas, sin «Notas / Brechas»");
 
   console.log("\nObjetivos — trazabilidad + tipos oficiales S2 34/36:");
-  const a3 = cellText(s33, "A3");
-  ok(
-    a3.length > 0 &&
-      cellText(s34, "A3") === a3 &&
-      cellText(s35, "A3") === a3 &&
-      cellText(s36, "A3") === a3,
-    "el objetivo de la fila 3 es el mismo en S2 33/34/35/36"
-  );
-  // La fila 3 es el objetivo de reducción de emisiones y la 4 el de cartera
-  // sostenible; ninguno tiene validación por tercero. El valor «Verdadero» del
-  // booleano se sigue probando en S2 22(b)(i) B5.
-  ok(cellText(s34, "B3") === "Falso", "S2 34: B3 (validación por tercero) = 'Falso' (booleano)");
-  // 'Falso' desde el 8 de octubre de 2026: la opinión de segunda parte cubre el marco de bonos verdes, no el
-  // objetivo de cartera sostenible (tercera revisión externa, B; poblar-demo.mjs).
-  ok(cellText(s34, "B4") === "Falso", "S2 34: B4 (validación por tercero) = 'Falso' (booleano)");
-  ok(cellText(s35, "B3").length > 0, "S2 35: B3 (resultados) del objetivo completo lleno");
-  ok(
-    cellText(s36, "B3").includes("Dióxido de carbono (CO2)"),
-    "S2 36: B3 (gases) lista los gases oficiales (multi-enum)"
-  );
-  ok(cellText(s36, "C3") === "Alcance 1; Alcance 2", "S2 36: C3 (alcances) = 'Alcance 1; Alcance 2'");
-  ok(
-    cellText(s36, "D3") === "Emisiones brutas de gases de efecto invernadero",
-    "S2 36: D3 (bruto/neto) usa el valor oficial completo"
-  );
-  ok(cellText(s36, "E3") === "Falso", "S2 36: E3 (enfoque descarbonización) = 'Falso' (booleano)");
+  const a2 = cellText(s33, "A2");
+  ok(a2.length > 0 && cellText(s34, "A2") === a2 && cellText(s35, "A2") === a2 && cellText(s36, "A2") === a2, "el objetivo de la fila 2 es el mismo en S2 33/34/35/36");
+  // Ningún objetivo tiene validación por tercero; «Verdadero» se prueba en S2 22(b)(i).
+  ok(cellText(s34, "B2") === "Falso" && cellText(s34, "B3") === "Falso", "S2 34: validación por tercero «Falso» (booleano)");
+  ok(cellText(s35, "B2").length > 0, "S2 35: resultados del objetivo completo");
+  ok(cellText(s36, "B2").includes("Dióxido de carbono (CO2)") && cellText(s36, "C2") === "Alcance 1; Alcance 2" && cellText(s36, "D2") === "Emisiones brutas de gases de efecto invernadero" && cellText(s36, "E2") === "Falso", "S2 36: gases, alcances, bruto/neto y enfoque con valores oficiales");
+  ok(cellText(s34, "A5") === "" && cellText(s35, "A5") === "" && cellText(s36, "A5") === "", "sin cuarto objetivo: nada inventado después del tercero");
 
-  console.log("\nObjetivos — la fila 5 ya no existe (el demo financiero tiene tres):");
-  // El objetivo sin ficha que marcaba la brecha (energía renovable, fila 5) era
-  // del demo industrial. El grupo financiero tiene TRES objetivos y los tres
-  // llevan ficha completa, así que la fila 5 queda vacía.
-  //
-  // CON ESTO EL FIXTURE DEJA DE EJERCITAR la nota 'Sección pendiente en
-  // plataforma': ningún objetivo del demo financiero la produce. Queda anotado
-  // aquí para que no se descubra el día que se rompa. Lo que sí se comprueba es
-  // que las filas sobrantes queden VACÍAS y no con contenido inventado.
-  ok(cellText(s34, "F5") === "", "S2 34: F5 vacía (no hay cuarto objetivo)");
-  ok(cellText(s35, "D5") === "", "S2 35: D5 vacía (no hay cuarto objetivo)");
-  ok(cellText(s36, "F5") === "", "S2 36: F5 vacía (no hay cuarto objetivo)");
-
-  console.log("\nObjetivos — S1 51 (secciones Riesgos / Oportunidades):");
-  // E5 (decisión de Esteban, 14 de octubre): las hojas de S1 llevan la información sobre clima, la misma del
-  // Formato electrónico: S1 51 los objetivos climáticos; S1 46-50 las métricas de NIIF S2 29 por riesgo.
-  ok(cellText(s51, "A4") === "Reducción de emisiones de Alcances 1 y 2" && cellText(s51, "H4").length > 0, "S1 51: A4 el primer objetivo climático, con resultados");
-  ok(cellText(s51, "A14") === "Cartera sostenible", "S1 51: Oportunidades con el objetivo climático de cartera sostenible");
-  ok(!/No revelado/.test(cellText(s51, "A4") + cellText(s51, "A14")), "S1 51: ningún «No revelado · alivio E5»");
+  console.log("\nObjetivos — S1 51 y métricas S1 46-50:");
+  // E5: las hojas de S1 llevan la información sobre clima, la misma del Formato electrónico.
+  ok(cellText(s51, "A2") === "Reducción de emisiones de Alcances 1 y 2" && cellText(s51, "H2").length > 0, "S1 51: el primer objetivo climático, con resultados");
+  ok(filaDe(s51, "Cartera sostenible") > 0, "S1 51: el objetivo climático de cartera sostenible");
   const s4650 = wb.getWorksheet("NIIF S1 46-50");
-  ok(/párrafo E5/.test(cellText(s4650, "A2")) && cellText(s4650, "A6").length > 0 && /NIIF S2 párrafo 29/.test(cellText(s4650, "D6")), "S1 46-50: oración del E5 e instancias de métricas de NIIF S2 29 por riesgo");
-  {
-    const ley = wb.getWorksheet("Leyenda");
-    const textos = [];
-    ley?.eachRow((row) => row.eachCell((c) => textos.push(String(c.value ?? ""))));
-    ok(!!ley && textos.some((t) => /capturas validadas/.test(t)) && textos.some((t) => /APROBADO/.test(t)), "hoja «Leyenda»: hojas de datos y columna «Respuesta»");
-    // Todos los alivios vigentes, en el orden del catálogo (antes una lista fija sin E4).
-    ok(textos.some((t) => t === "E4, E5, C3, C4"), "la Leyenda dice los alivios vigentes del reporte, con E4: E4, E5, C3, C4");
-  }
+  ok(cellText(s4650, "A3").length > 0 && /NIIF S2 párrafo 29/.test(cellText(s4650, "D3")) && !/párrafo E5/.test(cellText(s4650, "A1")), "S1 46-50: instancias de métricas de NIIF S2 29 bajo el encabezado de dos filas, sin la oración del E5 suelta");
 
   // ---------------------------------------------------------------------------
-  // Cuestionarios narrativos (Sprint 4) — 3 hojas: 22(b)(i)/(ii) y 36(e).
+  // Cuestionarios — 3 hojas: 22(b)(i)/(ii) y 36(e). Dos columnas: pregunta y respuesta.
   // ---------------------------------------------------------------------------
   const c22bi = wb.getWorksheet("NIIF S2 22(b)(i)");
   const c22bii = wb.getWorksheet("NIIF S2 22(b)(ii)");
   const c36e = wb.getWorksheet("NIIF S2 36(e)(i)-(iv)");
-  // Marcador de pendiente en texto plano (CLAUDE.md §5); antes «Pendiente en plataforma».
+  // Marcador de pendiente en texto plano (CLAUDE.md §5), en la celda de la respuesta.
   const PEND = (hoja) => `Pendiente: respuesta de la emisora a esta pregunta — cuestionario ${hoja}`;
   const NO_APLICA_36E = "No aplica. La Compañía no prevé usar créditos de carbono para alcanzar sus objetivos de emisiones.";
+  for (const ws of [c22bi, c22bii, c36e]) ok(ws.columnCount === 2 && cellText(ws, "B1") === "Respuesta", `${ws.name}: dos columnas, pregunta y respuesta`);
 
-  console.log("\nCuestionarios — S2 22(b)(i) (completo 8/8; booleano + enumeración):");
-  ok(
-    cellText(c22bi, "A3").includes("cómo y cuándo"),
-    "S2 22(b)(i): A3 = pregunta inicial 'cómo y cuándo'"
-  );
-  ok(cellText(c22bi, "B3").length > 0, "S2 22(b)(i): B3 tiene respuesta");
-  ok(cellText(c22bi, "B5") === "Verdadero", "S2 22(b)(i): B5 (booleano) = 'Verdadero'");
-  ok(cellText(c22bi, "C5") === "Booleano", "S2 22(b)(i): C5 (tipo de dato) = 'Booleano'");
-  ok(
-    cellText(c22bi, "B6").includes("Riesgos físicos") &&
-      cellText(c22bi, "B6").includes("Riesgos de transición"),
-    "S2 22(b)(i): B6 (enumeración) lista ambos tipos de riesgo"
-  );
-  ok(cellText(c22bi, "C6") === "Enumeración", "S2 22(b)(i): C6 (tipo de dato) = 'Enumeración'");
-  ok(
-    cellText(c22bi, "B9") === "Corto plazo; Mediano plazo; Largo plazo",
-    "S2 22(b)(i): B9 (horizontes) = enumeración de los 3 plazos"
-  );
-  ok(
-    cellText(c22bi, "A10").includes("(por ejemplo") && cellText(c22bi, "B10").length > 0,
-    "S2 22(b)(i): A10 (alcance) incluye el ejemplo oficial y B10 tiene respuesta"
-  );
-  let pendBi = false;
-  for (let r = 3; r <= 10; r++) if (/^Pendiente/.test(cellText(c22bi, `D${r}`))) pendBi = true;
-  ok(!pendBi, "S2 22(b)(i): sin brechas «Pendiente: …» (completo 8/8)");
+  console.log("\nCuestionarios — S2 22(b)(i) (completo 8/8):");
+  ok(cellText(c22bi, "A2").includes("cómo y cuándo") && cellText(c22bi, "B2").length > 0, "S2 22(b)(i): la pregunta inicial y su respuesta");
+  ok(cellText(c22bi, "B4") === "Verdadero", "S2 22(b)(i): el booleano = «Verdadero»");
+  ok(cellText(c22bi, "B5").includes("Riesgos físicos") && cellText(c22bi, "B5").includes("Riesgos de transición"), "S2 22(b)(i): la enumeración lista ambos tipos de riesgo");
+  ok(cellText(c22bi, "B8") === "Corto plazo; Mediano plazo; Largo plazo", "S2 22(b)(i): horizontes = los 3 plazos");
+  ok(cellText(c22bi, "A9").includes("(por ejemplo") && cellText(c22bi, "B9").length > 0, "S2 22(b)(i): alcance con el ejemplo oficial y respuesta");
+  {
+    let pend = false;
+    c22bi.eachRow((row, f) => { if (/^Pendiente/.test(cellText(c22bi, `B${f}`))) pend = true; });
+    ok(!pend, "S2 22(b)(i): sin «Pendiente: …» (completo 8/8)");
+  }
 
-  console.log("\nCuestionarios — S2 22(b)(ii) (a medias 4/6, muestra brechas):");
-  ok(cellText(c22bii, "B3").length > 0, "S2 22(b)(ii): B3 tiene respuesta");
-  ok(
-    cellText(c22bii, "A5").includes("patrones climáticos locales"),
-    "S2 22(b)(ii): A5 (variables) incluye los ejemplos oficiales"
-  );
-  ok(
-    cellText(c22bii, "D7") === PEND("NIIF S2 22(b)(ii)") && cellText(c22bii, "D8") === PEND("NIIF S2 22(b)(ii)"),
-    "S2 22(b)(ii): D7 y D8 (preguntas 5 y 6) = «Pendiente: respuesta de la emisora a esta pregunta — cuestionario …»"
-  );
-  ok(cellText(c22bii, "B7") === "", "S2 22(b)(ii): B7 (pregunta 5 sin responder) VACÍA");
+  console.log("\nCuestionarios — S2 22(b)(ii) (a medias 4/6):");
+  ok(cellText(c22bii, "B2").length > 0 && cellText(c22bii, "A4").includes("patrones climáticos locales"), "S2 22(b)(ii): respuesta y pregunta con los ejemplos oficiales");
+  ok(cellText(c22bii, "B6") === PEND("NIIF S2 22(b)(ii)") && cellText(c22bii, "B7") === PEND("NIIF S2 22(b)(ii)"), "S2 22(b)(ii): preguntas 5 y 6 con el marcador de pendiente en la respuesta");
 
-  console.log("\nCuestionarios — S2 36(e) (2 de 5; P3/P4 enum único, P5 con ejemplo):");
-  ok(cellText(c36e, "A3").length > 0, "S2 36(e): A3 conserva la pregunta impresa");
-  ok(cellText(c36e, "B3").length > 0, "S2 36(e): B3 tiene respuesta");
-  ok(
-    cellText(c36e, "C5") === "Enumeración",
-    "S2 36(e): C5 (P3 tipo de dato) = 'Enumeración'"
-  );
-  ok(
-    cellText(c36e, "A7").includes("permanencia de la compensación de carbono"),
-    "S2 36(e): A7 (P5) incluye el ejemplo oficial"
-  );
-  // 36(e) en un solo estado (encargo formato-afirmaciones-y-voz): el documento aprobado dice que no aplica, así que
-  // las preguntas sin captura dicen lo mismo que la columna de respuestas, sin brecha.
-  ok(
-    ["B5", "B6", "B7"].every((c) => cellText(c36e, c) === NO_APLICA_36E) && ["D5", "D6", "D7"].every((c) => cellText(c36e, c) === ""),
-    "S2 36(e): P3-P5 sin captura = el «no aplica» del documento aprobado, sin brecha"
-  );
-
-  // Pie [DEMO] en las hojas llenadas.
-  const conPie = hojas.filter((h) => {
-    const ws = wb.getWorksheet(h);
-    for (let r = 1; r <= (ws.rowCount || 0) + 3; r++) {
-      if (cellText(ws, `A${r}`).includes("[DEMO]")) return true;
-    }
-    return false;
-  });
-  ok(conPie.length === 14, `pie [DEMO] en las 14 hojas (encontrado en ${conPie.length})`);
+  console.log("\nCuestionarios — S2 36(e) (un solo estado):");
+  ok(cellText(c36e, "A2").length > 0 && cellText(c36e, "B2").length > 0, "S2 36(e): la pregunta impresa y su respuesta capturada");
+  ok(cellText(c36e, "A6").includes("permanencia de la compensación de carbono"), "S2 36(e): P5 con el ejemplo oficial");
+  ok(["B4", "B5", "B6"].every((c) => cellText(c36e, c) === NO_APLICA_36E), "S2 36(e): P3-P5 sin captura = el «no aplica» del documento aprobado");
 
   // ===========================================================================
   // B) SEGUNDO TENANT — un cliente real con datos mínimos.
@@ -477,43 +366,20 @@ async function main() {
       const gVi = wb2.getWorksheet("NIIF S2 29(a)(vi)(1)");
       ok(!!g1 && !!gVi, "las dos hojas GEI existen en el libro del segundo tenant");
 
-      // Las etiquetas son de la PLANTILLA: no dependen del cliente.
-      ok(cellText(g1, "A3") === "Alcance 1", "etiqueta A3 = 'Alcance 1' (viene del mapeo)");
-      ok(
-        cellText(gVi, "A8") === "Categoría 5-Residuos generados en las operaciones",
-        "etiqueta de la categoría 5 escrita desde el catálogo de rubros"
-      );
-
-      // Su ÚNICA solicitud validada llena su celda del ejercicio del reporte.
-      ok(
-        Number(cellText(g1, "C3")) === 1234.5,
-        `C3 (Alcance 1, ${fixture.ejercicio} validado) = 1234.5 — año RELATIVO resuelto`
-      );
-      // AÑO COMPARATIVO: con captura validada del año anterior, la columna se
-      // LLENA. Es la garantía que pide el import del histórico: llenar las
-      // columnas que hoy dicen 'Sin evidencia (AAAA)' donde ya haya captura
-      // validada de ese año.
-      ok(
-        Number(cellText(g1, "D3")) === fixture.valorComparativo,
-        `D3 (Alcance 1, ${fixture.ejercicio - 1} validado) = ${fixture.valorComparativo} — la columna comparativa se llena`
-      );
-      // Y sin huecos en la fila, la celda de notas queda VACÍA: la nota de brecha
-      // desaparece sola cuando el hueco se cierra.
-      ok(
-        cellText(g1, "E3") === "",
-        `E3 sin nota de brecha: la fila del Alcance 1 quedó completa (${fixture.ejercicio - 1} y ${fixture.ejercicio})`
-      );
-
-      // Rubros mapeados que este reporte NO pide: causa NUEVA y distinta.
-      ok(
-        cellText(g1, "C4") === "" && cellText(g1, "E4") === "Sin solicitud en el reporte",
-        "Alcance 2 sin solicitud → celda vacía y nota 'Sin solicitud en el reporte'"
-      );
-      ok(
-        cellText(gVi, "D4") === "Sin solicitud en el reporte" &&
-          cellText(gVi, "D18") === "Sin solicitud en el reporte",
-        "las 15 categorías de Alcance 3 marcan 'Sin solicitud en el reporte'"
-      );
+      // Las etiquetas son de la PLANTILLA: no dependen del cliente. Sin fila de título: la 2 es el Alcance 1.
+      const sinSol = (anio) => `Pendiente: cifra de ${anio} — sin solicitud en el reporte`;
+      ok(cellText(g1, "A2") === "Alcance 1", "etiqueta A2 = 'Alcance 1' (viene del mapeo)");
+      ok(filaDe(gVi, "Categoría 5-Residuos generados en las operaciones") > 0, "etiqueta de la categoría 5 escrita desde el catálogo de rubros");
+      // Su ÚNICA solicitud validada llena su celda del ejercicio del reporte, y la comparativa con su captura.
+      ok(Number(cellText(g1, "C2")) === 1234.5, `C2 (Alcance 1, ${fixture.ejercicio} validado) = 1234.5 — año RELATIVO resuelto`);
+      ok(Number(cellText(g1, "D2")) === fixture.valorComparativo, `D2 (Alcance 1, ${fixture.ejercicio - 1} validado) = ${fixture.valorComparativo} — la columna comparativa se llena`);
+      // Rubros que este reporte NO pide: el marcador de pendiente EN la celda de la cifra (no una nota).
+      ok(cellText(g1, "C3") === sinSol(fixture.ejercicio) && cellText(g1, "D3") === sinSol(fixture.ejercicio - 1), "Alcance 2 sin solicitud → «Pendiente: cifra de AAAA — sin solicitud en el reporte» en cada año");
+      {
+        let n = 0;
+        gVi.eachRow((row, f) => { if (/^Categoría \d/.test(cellText(gVi, `A${f}`)) && cellText(gVi, `B${f}`) === sinSol(fixture.ejercicio)) n++; });
+        ok(n === 15, `las 15 categorías de Alcance 3 con el marcador «sin solicitud en el reporte» (${n})`);
+      }
 
       // AISLAMIENTO: ni un dato del demo se cuela en el libro del otro cliente.
       const textoLibro = [];
@@ -588,31 +454,16 @@ async function main() {
     const c10 = wb3.getWorksheet("NIIF S2 10");
     const c51 = wb3.getWorksheet("NIIF S1 51");
 
-    // GEI Alcance 1 de Materiales: Elementia 83,189.803 + Fortaleza 2,560,257.
+    // GEI Alcance 1 de Materiales: Elementia 83,189.803 + Fortaleza 2,560,257. Sin fila de título: la 2.
     ok(
-      Math.abs(Number(cellText(c1, "C3")) - 2643446.803) < 0.01,
-      `Alcance 1 2025 = suma real de Materiales (${cellText(c1, "C3")})`
+      Math.abs(Number(cellText(c1, "C2")) - 2643446.803) < 0.01,
+      `Alcance 1 2025 = suma real de Materiales (${cellText(c1, "C2")})`
     );
-    // COMPARATIVO 2024 de la plantilla oficial. Sigue vacío DESPUÉS del import del
-    // histórico, y la razón está medida más abajo: la celda la alimenta la
-    // solicitud de Materiales (Elementia + Fortaleza) y ninguno de los documentos
-    // históricos entregados cubre a Materiales — el Reporte Anual Ambiental 2024
-    // cubre CICSA, Condumex, CIDEC y corporativo. Llenarla con las cifras de esos
-    // sectores empalmaría dos perímetros distintos en la misma fila comparativa.
-    const notaAlcance = cellText(c1, "E3");
-    ok(
-      cellText(c1, "D3") === "" && notaAlcance.startsWith("Sin evidencia (2024)"),
-      "2024 vacío con su causa: el histórico entregado no cubre a Materiales, que es quien alimenta la celda"
-    );
-    // DECISIÓN DE PERÍMETRO: en vez de mover el rubro (lo que cambiaría una cifra ya
-    // validada), la celda de Notas/Brechas DECLARA qué comprende el Alcance 1. La
-    // nota se AGREGA a la brecha; si la reemplazara, se perdería el hueco de 2024.
-    ok(
-      /perímetro de la división Materiales/i.test(notaAlcance) &&
-        /Elementia/i.test(notaAlcance) &&
-        /Fortaleza/i.test(notaAlcance),
-      `la nota declara el perímetro de la cifra ("${notaAlcance.slice(0, 96)}…")`
-    );
+    // COMPARATIVO 2024: sigue sin cifra después del import del histórico, porque ninguno de los documentos
+    // históricos cubre a Materiales (ver abajo). Desde el 26/10 la causa va como marcador EN la celda. La nota de
+    // perímetro («perímetro de la división Materiales: Elementia y Fortaleza») ya no se exporta: el libro lleva
+    // solo preguntas y respuestas (regla de Esteban); queda en la solicitud y debe decirlo la respuesta narrativa.
+    ok(/^Pendiente: cifra de 2024 — solicitud «/.test(cellText(c1, "D2")), "2024 con su marcador de pendiente en la celda: el histórico no cubre a Materiales");
 
     // Y se comprueba que la causa es esa y no que el histórico no corrió: el
     // reporte SÍ tiene capturas 2024, solo no en la solicitud del rubro.
@@ -643,19 +494,19 @@ async function main() {
     }
     // Rubros que el reporte de Carso no pide: causa propia, distinta.
     ok(
-      cellText(c1, "E4") === "Sin solicitud en el reporte" &&
-        cellText(c1, "E5") === "Sin solicitud en el reporte",
-      "Alcances 2 y 3 marcan 'Sin solicitud en el reporte'"
+      cellText(c1, "C3") === "Pendiente: cifra de 2025 — sin solicitud en el reporte" &&
+        cellText(c1, "C4") === "Pendiente: cifra de 2025 — sin solicitud en el reporte",
+      "Alcances 2 y 3 con el marcador «sin solicitud en el reporte»"
     );
 
     // Contenido del informe: riesgos y objetivos reales de Carso.
     ok(
-      /Eventos climáticos físicos/.test(cellText(c10, "A4")),
-      `registro de clima real en S2 10 ("${cellText(c10, "A4").slice(0, 40)}…")`
+      /Eventos climáticos físicos/.test(cellText(c10, "A2")),
+      `registro de clima real en S2 10 ("${cellText(c10, "A2").slice(0, 40)}…")`
     );
     ok(
-      /Fortalecimiento de la gestión ambiental/.test(cellText(c51, "A4")),
-      `objetivo real en S1 51 ("${cellText(c51, "A4").slice(0, 40)}…")`
+      filaDe(c51, "Fortalecimiento de la gestión ambiental") > 0 || /Fortalecimiento de la gestión ambiental/.test(cellText(c51, "A2")),
+      `objetivo real en S1 51 ("${cellText(c51, "A2").slice(0, 40)}…")`
     );
 
     const todoCarso = [];
