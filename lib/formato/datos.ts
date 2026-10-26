@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { declaracionDeCumplimiento } from "@/lib/suplemento/respuestas";
 import type { Database } from "@/lib/database.types";
 import { ensamblarReporte, type Ensamblado } from "@/lib/reporte/ensamblar";
 import { regimenDe } from "@/lib/perfil-emisor";
@@ -80,7 +81,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
     const { data: b2 } = await db.from("documentos_bloques_versiones").select("texto").eq("id", aprobadas["2"].id).maybeSingle();
     declaraCumplimiento = /de conformidad con las Normas NIIF S1 y (?:NIIF )?S2/i.test(b2?.texto ?? "");
     // La declaración es la oración del bloque 2 que la hace, tal cual (bloque de plantilla, sin hechos).
-    declaracion = (b2?.texto ?? "").split(/\n+/).map((p) => p.trim()).find((p) => /de conformidad con las Normas NIIF S1/i.test(p)) ?? null;
+    declaracion = declaracionDeCumplimiento(b2?.texto ?? null);
   }
   // Instancias de métricas NIIF S1 46–50: la misma fuente que la hoja «NIIF S1 46-50» del Excel de taxonomía.
   const metodoGei = respuestas.find((r) => r.clave === "NIIF S2 29 (a)(iii)" && r.destino === "formato" && r.estado === "respuesta")?.texto

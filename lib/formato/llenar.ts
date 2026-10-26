@@ -247,7 +247,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (/^enumeración/.test(tipo)) return enumeracion(c);
 
     if (/^text/.test(tipo) || !tipo || narrativo) {
-      const clave = c.datapoint ?? `fila:${c.fila}`;
+      // Una respuesta propia de la celda (`fila:N`: B65(c) por efecto, síntesis) manda sobre la del código.
+      const clave = resp("formato", `fila:${c.fila}`) ? `fila:${c.fila}` : c.datapoint ?? `fila:${c.fila}`;
       const r = resp("formato", clave) ?? resp("taxonomia", clave);
       if (!r || !r.texto) return { texto: null, origen: c.datapoint ? "pendiente" : "por decidir" };
       if (r.estado === "pendiente") return { texto: null, origen: "pendiente" };

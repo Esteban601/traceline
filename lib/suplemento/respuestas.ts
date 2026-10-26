@@ -66,6 +66,15 @@ export const LIMITES: Record<Destino, { oraciones: number; caracteres: number | 
 export const ORACION_E5 =
   "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E5 de la NIIF S1 y revela únicamente información sobre los riesgos y oportunidades relacionados con el clima.";
 
+/** El alcance del cumplimiento con el alivio E5, para la declaración de NIIF S1 72 (redacción de la casa). */
+export const ALCANCE_E5 =
+  "En este primer periodo anual de aplicación, el cumplimiento comprende la información sobre los riesgos y oportunidades relacionados con el clima, en el alcance que permite la exención del párrafo E5 de la NIIF S1.";
+
+/** La declaración de cumplimiento del bloque 2 aprobado: su párrafo, tal cual (bloque de plantilla, sin hechos). */
+export function declaracionDeCumplimiento(textoBloque2: string | null): string | null {
+  return (textoBloque2 ?? "").split(/\n+/).map((p) => p.trim()).find((p) => /de conformidad con las Normas NIIF S1/i.test(p)) ?? null;
+}
+
 /** Oración fija del alivio E4 (redacción de la casa): va en la respuesta de la declaración de cumplimiento del Excel. */
 export const ORACION_E4 =
   "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E4 de la NIIF S1 y publica su información financiera relacionada con la sostenibilidad después de sus estados financieros.";
@@ -123,12 +132,42 @@ export const DATAPOINTS_FORMATO_TEXTO: Set<string> = new Set(
  * de NIIF S2 16(d). Cada uno se redacta con su enfoque, en dos oraciones, desde
  * los hechos de la cobertura de ese datapoint; nunca se copian ni se remiten.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string }[] = [
+/**
+ * B65(c) por celda (encargo formato-afirmaciones-y-voz, Fase 3): las cinco celdas de efectos financieros de cada tipo
+ * (transición, físicos, oportunidades), cada una con su efecto y sin repetir oraciones entre ellas. Suman a los hechos
+ * del código los del bloque 10 que remiten al bloque del tipo y las declaraciones negativas generales del bloque 10.
+ */
+const B65C_EFECTOS = [
+  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa`,
+  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa`,
+  (de: string) => `cómo ${de} han afectado a los flujos de efectivo durante el periodo sobre el que se informa`,
+  (de: string) => `los efectos financieros previstos de ${de} sobre la situación financiera, el rendimiento y los flujos de efectivo a corto, mediano y largo plazo`,
+  (de: string) => `para cuáles de ${de} existe un riesgo significativo de un ajuste material en los importes en libros de los activos y pasivos durante el siguiente periodo`,
+];
+/** Lo que cada una de las cinco celdas tiene que nombrar (validador). */
+const B65C_EFECTO_RE = [
+  { nombre: "la situación financiera", re: /situaci[oó]n financiera|activos?|pasivos?|patrimonio|balance/i },
+  { nombre: "el rendimiento financiero", re: /rendimiento|ingresos?|gastos?|resultados?|margen/i },
+  { nombre: "los flujos de efectivo", re: /flujos? de efectivo/i },
+  { nombre: "los efectos previstos", re: /previst|se espera|prev[eé]|podr[ií]a|plazo/i },
+  { nombre: "el riesgo de ajuste material", re: /ajuste material|importes? en libros/i },
+];
+const B65C_TIPOS = [
+  { inciso: "b", bloque: 34, desplazamiento: 0, de: "los riesgos de transición relacionados con el clima" },
+  { inciso: "c", bloque: 35, desplazamiento: 23, de: "los riesgos físicos relacionados con el clima" },
+  { inciso: "d", bloque: 36, desplazamiento: 46, de: "las oportunidades relacionadas con el clima" },
+];
+export const CONCEPTOS_B65C: { fila: number; codigo: string; enfoque: string; prestadosDe: number }[] = B65C_TIPOS.flatMap((t) =>
+  [354, 356, 358, 360, 361].map((f, i) => ({ fila: f + t.desplazamiento, codigo: `NIIF S2 29 (${t.inciso}) · B65 (c)`, enfoque: B65C_EFECTOS[i](t.de), prestadosDe: t.bloque }))
+);
+
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number }[] = [
   { fila: 97, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre el rendimiento financiero (resultados, margen, ingresos y gastos)" },
   { fila: 99, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre los flujos de efectivo (entradas y salidas de efectivo, como ahorros, gastos o desembolsos)" },
   // Encargo 2026-10-24-deuda-s2-formato, decisiones (b) y (c): síntesis que no repiten la fila que da el detalle.
   { fila: 84, codigo: "NIIF S2 16(a)", noRepite: "NIIF S2 16(a)", enfoque: "una síntesis de los efectos financieros actuales: si hubo efectos que reconocer y dónde, sin el detalle de importes por partida, que va en la fila 85" },
   { fila: 64, codigo: "NIIF S2 14 (a)(i)a(v)", noRepite: "NIIF S2 14 (a)(i)a(v)", enfoque: "una síntesis de cómo la estrategia y la toma de decisiones responden a los riesgos y oportunidades relacionados con el clima, sin el detalle de cambios, esfuerzos y planes, que va en la fila 65" },
+  ...CONCEPTOS_B65C,
 ];
 const FILAS_CON_ENFOQUE = new Set(CONCEPTOS_FORMATO_CON_ENFOQUE.map((c) => c.fila));
 
@@ -164,6 +203,16 @@ export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; pa
 export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
   // La razón de que no haya cifras: emisora.compromiso_transparencia_limitaciones (decisión de Esteban, Fase 3).
   "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, HECHO_RAZON["NIIF S2 21(a)"].clave],
+};
+
+/**
+ * Alta posterior a la aprobación, por CONTENIDO: los hechos vigentes del bloque dueño cuyo enunciado trata lo que pide
+ * el requisito. Las claves cambian de un libro a otro; el contenido no. B65(e), conexiones con los estados financieros
+ * (Fase 3 del encargo formato-afirmaciones-y-voz): dónde se registraron los efectos (capitalización, gasto), los
+ * ajustes reconocidos o no y la estimación sujeta a ajuste material.
+ */
+export const HECHOS_POR_ENUNCIADO: Record<string, RegExp> = {
+  "NIIF S2 B65 inciso (e)": /capitaliz|registr\w* como gasto|gasto de operaci|estimaci[oó]n preventiva|importes? (?:en libros|de los estados financieros)|reconocer ajustes/i,
 };
 
 // HECHO_RAZON (la razón de un requisito que está en un hecho concreto) vive en hechos/razones.ts: la misma
@@ -294,7 +343,7 @@ export function textoNoAplicaE5(parS2: string | null): string {
 type Cobertura = { codigo: string; estado: string; bloque: number | null; hechos: string[]; comentario?: string };
 type Ancla = { oracion: string; hechos: { id: string; hecho: string | null }[] };
 type VersionAprobada = { numero: number; version: number; texto: string; cobertura: Cobertura[]; anclas: Ancla[]; libro_id: string | null };
-type HechoLibro = { id: string; clave: string; libro_id: string; tipo: string; enunciado: string; extracto: string; valor: number | null; unidad: string | null; estado: string };
+type HechoLibro = { id: string; clave: string; libro_id: string; tipo: string; enunciado: string; extracto: string; valor: number | null; unidad: string | null; estado: string; bloque_dueno: number | null; bloques_referencia: number[] | null };
 type Previa = {
   documento_id: string;
   destino: Destino; clave: string; texto: string | null; bloque: number | null; bloque_version: number | null; prompt_version: string | null;
@@ -302,7 +351,7 @@ type Previa = {
 };
 
 type Plan =
-  | { codigo: string; via: "regla"; estado: "no_aplica" | "pendiente"; texto: string; notas?: string[] }
+  | { codigo: string; via: "regla"; estado: "no_aplica" | "pendiente" | "respuesta"; texto: string; notas?: string[] }
   | { codigo: string; via: "captura"; texto: string; valor: Record<string, unknown> }
   | { codigo: string; via: "bloque"; bloque: number; hechos: string[] };
 
@@ -361,7 +410,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   const libros = [...new Set([...porBloque.values()].map((v) => v.libro_id).filter((x): x is string => !!x))];
   const hechos = new Map<string, HechoLibro>();
   for (const l of libros) {
-    const { data } = await db.from("hechos").select("id, clave, libro_id, tipo, enunciado, extracto, valor, unidad, estado").eq("libro_id", l);
+    const { data } = await db.from("hechos").select("id, clave, libro_id, tipo, enunciado, extracto, valor, unidad, estado, bloque_dueno, bloques_referencia").eq("libro_id", l);
     for (const h of data ?? []) hechos.set(h.id, h as HechoLibro);
   }
   const glosario: EntradaGlosario[] = leerGlosario(perfil?.glosario);
@@ -418,6 +467,13 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   };
 
   const planDe = (codigo: string): Plan => {
+    // NIIF S1 72: la declaración de cumplimiento real (Fase 3; nunca «No aplica»): la del bloque 2 aprobado, con el
+    // alcance del E5 y el E4 si están vigentes. Sin declaración en el bloque 2, pendiente.
+    if (codigo === "NIIF S1 72") {
+      const decl = declaracionDeCumplimiento(porBloque.get(2)?.texto ?? null);
+      if (!decl) return { codigo, via: "regla", estado: "pendiente", texto: "[Pendiente: declaración explícita y sin reservas de cumplimiento con NIIF S1 y NIIF S2 — sección Declaración de cumplimiento]" };
+      return { codigo, via: "regla", estado: "respuesta", texto: [decl, alivios.E5 ? ALCANCE_E5 : null, alivios.E4 ? ORACION_E4 : null].filter(Boolean).join(" ") };
+    }
     if (exentos.has(codigo)) {
       const alivio = Object.keys(alivios).find((k) => TITULO_ALIVIO[k]) ?? "C4";
       return { codigo, via: "regla", estado: "no_aplica", texto: `No aplica. ${TITULO_ALIVIO[alivio]}` };
@@ -447,6 +503,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     if (cob?.estado === "sin_cobertura" && HECHOS_POR_CLAVE[codigo]) {
       const porClave = hechosPorClave(HECHOS_POR_CLAVE[codigo], porBloque.get(cob.bloque)?.libro_id);
       if (porClave.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: porClave };
+    }
+    // …o por contenido, entre los hechos del bloque dueño.
+    if (cob?.estado === "sin_cobertura" && HECHOS_POR_ENUNCIADO[codigo]) {
+      const libro = porBloque.get(cob.bloque)?.libro_id;
+      const porEnunciado = [...hechos.values()]
+        .filter((x) => x.estado === "vigente" && x.libro_id === libro && x.bloque_dueno === cob.bloque && HECHOS_POR_ENUNCIADO[codigo].test(x.enunciado))
+        .map((x) => x.id);
+      if (porEnunciado.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: porEnunciado };
     }
     if (cob) {
       const b = BLOQUES.find((x) => x.numero === cob.bloque);
@@ -500,16 +564,28 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // El bloque y los hechos del código: los de su plan (un padre los reúne de sus incisos) o los de su cobertura.
     const plan = planes.find((p) => p.codigo === c.codigo);
     const cob = plan?.via === "bloque" ? { bloque: plan.bloque, hechos: plan.hechos, estado: "cubierto" } : coberturaDe(c.codigo);
-    if (!cob || !cob.hechos.length || !["cubierto", "parcial"].includes(cob.estado)) continue;
+    // B65(c): más los hechos del bloque 10 que remiten al bloque del tipo y sus declaraciones negativas generales
+    // (sin referencias), uno por enunciado.
+    const prestados = c.prestadosDe == null ? [] : (() => {
+      const vistos = new Set<string>();
+      return [...hechos.values()]
+        .filter((x) => x.estado === "vigente" && x.bloque_dueno === 10 && x.libro_id === porBloque.get(10)?.libro_id)
+        .filter((x) => (x.bloques_referencia ?? []).includes(c.prestadosDe!) || (x.tipo === "declaracion_negativa" && !(x.bloques_referencia ?? []).length))
+        .filter((x) => !vistos.has(x.enunciado) && vistos.add(x.enunciado))
+        .map((x) => x.id);
+    })();
+    if (!cob || !["cubierto", "parcial"].includes(cob.estado) || !(cob.hechos.length + prestados.length)) continue;
     const clave = `fila:${c.fila}`;
     const otras = [
       ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((x) => x.codigo === c.codigo && x.fila !== c.fila && !x.noRepite).map((x) => `la fila ${x.fila}`),
       ...(c.noRepite ? [`la respuesta de ${c.noRepite}`] : []),
     ];
-    descripcion.set(clave, c.noRepite
+    descripcion.set(clave, c.prestadosDe != null
+      ? `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en una o dos oraciones, y nombra explícitamente ${B65C_EFECTO_RE[CONCEPTOS_B65C.findIndex((x) => x.fila === c.fila) % 5].nombre}. Si los hechos no muestran ese efecto, dilo en una oración breve sobre ese efecto, apoyada en el hecho que lo declara; no repitas la declaración general de que no se identificaron efectos que reconocer, que ya da otra celda del inciso. No compartas ninguna oración con ${otras.join(", ")}, que responden los otros efectos del mismo inciso, ni describas dónde se concentra la exposición. Sin cifras que no estén en los hechos.`
+      : c.noRepite
       ? `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en una o dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que da el detalle en otra fila. Sin cifras que no estén en los hechos.`
       : `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
-    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: cob.hechos });
+    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...cob.hechos, ...prestados])] });
   }
   // Booleanos del formato (D1 de Esteban, encargo formato-afirmaciones-y-voz): una respuesta propia por fila que abre
   // con «Sí.» o «No.» y cita el hecho que contesta la pregunta. Recibe solo los hechos del código que tratan el tema
@@ -651,8 +727,10 @@ async function responderBloque(
   // Versión de prompt CON FIRMA del pedido (encargo deuda-s2-formato, Fase 3): la descripción del requisito y
   // los hechos que recibe. Una respuesta previa solo se reutiliza si su pedido es el mismo; si cambia la
   // descripción (una síntesis nueva) o los hechos (un padre que suma claves), se genera de nuevo.
+  // También el TEXTO de los hechos (encargo formato-afirmaciones-y-voz, Fase 3): si un enunciado cambia (p. ej. el
+  // concepto publicable de una cifra), la respuesta que lo citaba se vuelve a pedir.
   const promptDe = (p: Pedido) =>
-    `${PROMPT_RESPUESTAS}·${createHash("sha256").update(`${ctx.descripcion.get(p.codigo) ?? ""}|${[...p.uuids].sort().join(",")}`).digest("hex").slice(0, 10)}`;
+    `${PROMPT_RESPUESTAS}·${createHash("sha256").update(`${ctx.descripcion.get(p.codigo) ?? ""}|${[...p.uuids].sort().join(",")}|${p.hechos.map((h) => h.enunciado).sort().join("\n")}`).digest("hex").slice(0, 10)}`;
   let uso: Uso = { ...USO_CERO };
   const finales = new Map<string, { texto: string; citados: string[]; origen: OrigenRespuesta; notas: string[] }>();
   const clave = (p: { codigo: string; destino: Destino }) => `${p.destino}|${p.codigo}`;
@@ -663,12 +741,13 @@ async function responderBloque(
     const prev = ctx.previaDe?.get(clave(p));
     // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe. Los requisitos que se
     // responden por clave de hechos (HECHOS_POR_CLAVE) no se reutilizan: sus hechos cambian sin que cambie el bloque.
-    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo]) reutilizadas.set(clave(p), prev);
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo]) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;
   const motivos = new Map<string, string[]>();
-  for (let intento = 1; intento <= 2 && pendientes.length && ctx.apiKey; intento++) {
+  // Tres intentos: el segundo y el tercero reciben el motivo del rechazo (B65(c) por celda lo necesita, Fase 3).
+  for (let intento = 1; intento <= 3 && pendientes.length && ctx.apiKey; intento++) {
     let salida: Salida[] = [];
     try {
       const r = await llamar(v, titulo, pendientes, ctx, motivos, ctx.apiKey);
@@ -687,6 +766,7 @@ async function responderBloque(
         continue;
       }
       const g = aplicarGlosario(s.texto.trim(), ctx.glosario);
+      const notasExtra: string[] = [];
       const errores = validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: v.texto, hechos: p.hechos, citados: s.hechos });
       const razon = HECHO_RAZON[p.codigo];
       const deLaRazon = razon ? p.hechos.filter((h) => razon.clave.test(ctx.hechos.get(h.id)?.clave ?? "")) : [];
@@ -704,6 +784,33 @@ async function responderBloque(
         const k = `${p.destino}|${hijo}`;
         const repetidas = repetidasDe(finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === hijo && x.destino === p.destino)?.texto ?? ctx.previaDe?.get(k)?.texto ?? null);
         if (repetidas.length) errores.push(`repite oraciones de la respuesta de su inciso ${hijo} (${repetidas.length}); el código padre da una síntesis propia`);
+      }
+      // B65(c) por celda: nombra su efecto y no se parece (≥ 70 % de las palabras) a otra celda del mismo inciso.
+      const b65 = CONCEPTOS_B65C.findIndex((c) => `fila:${c.fila}` === p.codigo);
+      if (b65 >= 0) {
+        const efecto = B65C_EFECTO_RE[b65 % 5];
+        if (!efecto.re.test(g.texto)) errores.push(`no nombra su efecto (${efecto.nombre}); esta celda responde solo ese efecto`);
+        // Por oración: una oración que NO nombra el efecto de esta celda y comparte ≥ 70 % de sus palabras con una
+        // oración de otra celda del inciso (la declaración general copiada). Dos negaciones paralelas, cada una con su
+        // efecto («…en su situación financiera», «…en su rendimiento financiero»), no son repetición.
+        const palabras = (t: string) => new Set(t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+        const parecidas = (a: string, b: string) => {
+          const [x, y] = [palabras(a), palabras(b)];
+          const comunes = [...x].filter((w) => y.has(w)).length;
+          return Math.min(x.size, y.size) >= 4 && comunes / Math.min(x.size, y.size) >= 0.7;
+        };
+        const hermanas = CONCEPTOS_B65C.filter((c) => c.codigo === CONCEPTOS_B65C[b65].codigo && c.fila < CONCEPTOS_B65C[b65].fila)
+          .map((c) => ({ fila: c.fila, texto: finales.get(`formato|fila:${c.fila}`)?.texto ?? reutilizadas.get(`formato|fila:${c.fila}`)?.texto ?? "" }));
+        const repetida = (o: string) => !efecto.re.test(o) && hermanas.some((h) => oracionesDe(h.texto).some((q) => parecidas(o, q)));
+        // La declaración general repetida se retira si lo que queda responde el efecto de la celda; si no, se rechaza.
+        const propias = oracionesDe(g.texto).filter((o) => !repetida(o));
+        if (propias.length && propias.length < oracionesDe(g.texto).length && efecto.re.test(propias.join(" "))) {
+          g.texto = propias.join(" ");
+          notasExtra.push("Se retiró una oración que repetía la de otra celda del inciso.");
+        } else if (propias.length < oracionesDe(g.texto).length) {
+          const filas = hermanas.filter((h) => oracionesDe(g.texto).some((o) => repetida(o) && oracionesDe(h.texto).some((q) => parecidas(o, q)))).map((h) => h.fila);
+          errores.push(`repite casi igual una oración de la fila ${filas.join(" y ")}; responde solo ${efecto.nombre}, en una oración propia`);
+        }
       }
       // Booleanos (D1): «Sí.»/«No.», el hecho que contesta, y ni el resto ni la celda vecina (la respuesta del código) en contra.
       const bool = BOOLEANOS_FORMATO.find((b) => `fila:${b.fila}` === p.codigo);
@@ -724,7 +831,7 @@ async function responderBloque(
         siguientes.push(p);
         continue;
       }
-      const notas = g.cambios.map((c) => `Glosario: «${c.variante}» → «${c.canonico}» (${c.veces}).`);
+      const notas = [...g.cambios.map((c) => `Glosario: «${c.variante}» → «${c.canonico}» (${c.veces}).`), ...notasExtra];
       if (intento > 1) notas.push(`Aceptada en el reintento; el primer intento falló: ${(motivos.get(clave(p)) ?? []).join("; ")}`);
       finales.set(clave(p), { texto: g.texto, citados: s.hechos, origen: "modelo", notas });
     }
@@ -757,6 +864,12 @@ async function responderBloque(
       continue;
     }
     let f = finales.get(clave(p));
+    // B65(c) por celda: sin respuesta validada, la celda queda pendiente (vacía en el Formato); las oraciones del
+    // bloque no responden el efecto de la celda.
+    if (!f && CONCEPTOS_B65C.some((c) => `fila:${c.fila}` === p.codigo)) {
+      filas.push({ ...{ destino: p.destino, clave: p.codigo, tipo_campo: "text block" as const, valor: null, bloque: v.numero, bloque_version: v.version, hechos: [], modelo: null, prompt_version: promptDe(p), uso: USO_CERO, costo_usd: 0 }, estado: "pendiente", origen: "bloque", texto: null, notas: [`Sin respuesta: el modelo no pasó los validadores: ${(motivos.get(clave(p)) ?? ["sin llave del modelo"]).join("; ")}`] });
+      continue;
+    }
     if (!f) {
       // Respaldo sin modelo: las oraciones del bloque aprobado ancladas a estos hechos.
       const max = LIMITES[p.destino].oraciones;
