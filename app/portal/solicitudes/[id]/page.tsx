@@ -20,12 +20,13 @@ import {
   puedeDeclinar,
   puedeRetomar,
 } from "@/lib/difusion";
-import { UploadEvidencia } from "./upload-evidencia";
+import { UploadEvidencia, type CifraPendiente } from "./upload-evidencia";
 import { ComentarioForm } from "./comentario-form";
 import { VBAreaJefe } from "./vb-area-jefe";
 import { NoAplica } from "./no-aplica";
 import { SugerenciaBloque } from "@/components/sugerencia-bloque";
 import { cargarSugerencia } from "@/lib/evidencias/sugerencia-vista";
+import { estadoDeLectura } from "@/lib/evidencias/estado-lectura";
 
 export const metadata: Metadata = { title: "Solicitud" };
 
@@ -141,6 +142,20 @@ export default async function SolicitudPage({
   // y ofrecer el formulario sería invitar a un error.
   const fueraDeJuego = sol.declinada || sol.desactivada;
   const esperaEvidencia = accion.esperaCarga && !reporteCongelado && !fueraDeJuego;
+  // CARGA EN DOS MOMENTOS (encargo carga-lectura-primero): la última evidencia de
+  // una solicitud cuantitativa sin cifra confirmada pide su cifra en el paso 3,
+  // leída por la plataforma o escrita. Mientras falte, la carga es protagonista.
+  const ultima = evs[0] ?? null;
+  const cifraPendiente: CifraPendiente | null =
+    sol.es_cuantitativa && ultima && !reporteCongelado && !fueraDeJuego && !caps.some((c) => c.evidencia_id === ultima.id && c.confirmado)
+      ? {
+          evidenciaId: ultima.id,
+          nombreArchivo: ultima.nombre_original,
+          periodo: ultima.periodo_cubierto,
+          estado: await estadoDeLectura(supabase, { id: sol.id, unidad_esperada: sol.unidad_esperada }, ultima),
+        }
+      : null;
+  const cargaProtagonista = esperaEvidencia || !!cifraPendiente;
   const tAccion = TONO_CLASSES[accion.tono];
 
   // LAS DOS VERIFICACIONES: el visto bueno del área y la validación final. Se
@@ -197,14 +212,18 @@ export default async function SolicitudPage({
   const bloqueCarga = (
     <div className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
       <h2 className="font-display text-lg font-semibold text-ink">
-        {estado === "observaciones"
+        {cifraPendiente
+          ? "Confirma la cifra de tu archivo"
+          : estado === "observaciones"
           ? "Corrige y vuelve a enviar"
           : esperaEvidencia
             ? "Sube tu información"
             : "¿Necesitas actualizar algo?"}
       </h2>
       <p className="mt-1 text-sm text-muted">
-        {esperaEvidencia
+        {cifraPendiente
+          ? "Tu archivo ya quedó guardado. Falta la cifra que respalda."
+          : esperaEvidencia
           ? "Adjunta el archivo que respalda esta solicitud. Cada carga guarda una versión nueva; la anterior se conserva."
           : "Puedes cargar una versión nueva si algo cambió. La anterior se conserva."}
       </p>
@@ -218,6 +237,7 @@ export default async function SolicitudPage({
           estado={estado}
           tieneVersionPrevia={evs.length > 0}
           fechaCongelamiento={reporte?.fecha_congelamiento ?? null}
+          cifraPendiente={cifraPendiente}
         />
       </div>
     </div>
@@ -359,7 +379,8 @@ export default async function SolicitudPage({
                   </a>
                 </div>
 
-                {vigente && bloqueSugerencia.sugerencia ? (
+                {/* Con la cifra pendiente, la sugerencia va en el paso 3, no aquí. */}
+                {vigente && bloqueSugerencia.sugerencia && !cifraPendiente ? (
                   <div className="mt-4">
                     <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
                   </div>
@@ -558,7 +579,7 @@ export default async function SolicitudPage({
 
       <MarcasVerificacion verificaciones={verificaciones} />
 
-      {esperaEvidencia ? (
+      {cargaProtagonista ? (
         <div className="space-y-10">
           {/* Protagonista: la carga */}
           {bloqueCarga}

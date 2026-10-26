@@ -103,16 +103,28 @@ async function cargarPorPortal(page, solicitudId, { archivo, valor, unidad }) {
   });
   await page.waitForTimeout(400);
   await page.fill("#periodo", "2027");
-  const v = page.locator("#valor");
-  if ((await v.count()) > 0 && valor != null) await v.fill(String(valor));
-  const u = page.locator("#unidad");
-  if ((await u.count()) > 0 && unidad && (await u.inputValue()) === "") await u.fill(unidad);
   const just = page.locator("#justificacion");
   if (await just.count()) {
     await just.fill("Reemplazo de la versión anterior con el desglose completo (e2e).");
   }
-  await page.getByRole("button", { name: /^(Enviar|Reenviar)$/ }).click();
+  await page.getByRole("button", { name: /^(Enviar|Reenviar|Subir y leer)$/ }).click();
   await page.waitForTimeout(4500);
+  if (valor != null) await cifraManual(page, valor, unidad);
+}
+
+// La cifra va DESPUÉS del archivo (encargo carga-lectura-primero): paso 3 manual.
+// Sin lectura (bandera apagada) aparece de inmediato; con lectura y sin llave del
+// modelo, se elige «Prefiero escribirla». En una solicitud de texto no hay paso 3.
+async function cifraManual(page, valor, unidad) {
+  const form = page.locator('[data-testid="paso3-manual"]');
+  const yo = page.getByRole("button", { name: "Prefiero escribirla" });
+  await Promise.race([form.waitFor({ timeout: 20000 }), yo.waitFor({ timeout: 20000 })]).catch(() => {});
+  if (!(await form.count()) && (await yo.count())) await yo.click();
+  if (!(await form.count())) return;
+  await page.fill("#cifra-valor", String(valor));
+  if (unidad && (await page.inputValue("#cifra-unidad")) === "") await page.fill("#cifra-unidad", unidad);
+  await page.getByRole("button", { name: "Guardar cifra" }).click();
+  await page.waitForTimeout(3000);
 }
 
 // =============================================================================

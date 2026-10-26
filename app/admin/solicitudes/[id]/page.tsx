@@ -26,6 +26,8 @@ import { AccionesStaff } from "./acciones-staff";
 import { CargaPanel } from "./carga-panel";
 import { SugerenciaBloque } from "@/components/sugerencia-bloque";
 import { cargarSugerencia } from "@/lib/evidencias/sugerencia-vista";
+import { estadoDeLectura } from "@/lib/evidencias/estado-lectura";
+import type { CifraPendientePanel } from "./carga-panel";
 import { EliminarSolicitud } from "./eliminar-solicitud";
 import { Timeline, type EventoBitacora } from "./timeline";
 import { MarcasVerificacion } from "@/components/marcas-verificacion";
@@ -66,6 +68,7 @@ type CapturaRow = {
   periodo: string | null;
   confirmado: boolean;
   created_at: string;
+  evidencia_id: string;
   evidencia: { version: number } | null;
   capturado: { nombre: string } | null;
 };
@@ -147,7 +150,7 @@ export default async function SolicitudStaffPage({
     supabase
       .from("capturas_valor")
       .select(
-        "id, valor, unidad, periodo, confirmado, created_at, evidencia:evidencias!capturas_valor_evidencia_id_fkey(version), capturado:perfiles_usuario!capturas_valor_capturado_por_fkey(nombre)"
+        "id, valor, unidad, periodo, confirmado, created_at, evidencia_id, evidencia:evidencias!capturas_valor_evidencia_id_fkey(version), capturado:perfiles_usuario!capturas_valor_capturado_por_fkey(nombre)"
       )
       .eq("solicitud_id", id)
       .order("created_at", { ascending: false }),
@@ -352,6 +355,19 @@ export default async function SolicitudStaffPage({
     { id: sol.id, unidad_esperada: sol.unidad_esperada },
     ultimaEv ? { id: ultimaEv.id, nombre_original: ultimaEv.nombre_original } : null
   );
+  // CARGA EN DOS MOMENTOS (encargo carga-lectura-primero): la última evidencia de
+  // una solicitud cuantitativa sin cifra confirmada pide su cifra en el paso 3 de
+  // la carga; ahí va la sugerencia, no en «Acción ahora». El auditor no carga.
+  const cifraPendiente: CifraPendientePanel | null =
+    !soyAuditor && (!soyStaff || tenantSol?.staff_puede_cargar) && sol.es_cuantitativa && ultimaEv && estado !== "congelado" && !sol.declinada && !sol.desactivada &&
+    !caps.some((c) => c.evidencia_id === ultimaEv.id && c.confirmado)
+      ? {
+          evidenciaId: ultimaEv.id,
+          nombreArchivo: ultimaEv.nombre_original,
+          periodo: ultimaEv.periodo_cubierto,
+          estado: await estadoDeLectura(supabase, { id: sol.id, unidad_esperada: sol.unidad_esperada }, ultimaEv),
+        }
+      : null;
   // Cifra vigente: la confirmada más reciente; si ninguna, la última capturada.
   const capVigente = caps.find((c) => c.confirmado) ?? caps[0] ?? null;
   const ultimaObs = [...coms].reverse().find((c) => c.es_observacion) ?? null;
@@ -616,7 +632,7 @@ export default async function SolicitudStaffPage({
         <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0 space-y-4">
             {contexto}
-            <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
+            {cifraPendiente ? null : <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />}
             {/* Carga de evidencia desde el panel. Para el administrador del
                 cliente siempre está; para el staff, solo si el cliente tiene el
                 toggle encendido — apagado se muestra en gris y bloqueada. */}
@@ -630,6 +646,7 @@ export default async function SolicitudStaffPage({
               estado={estado}
               comoStaff={soyStaff}
               habilitada={tenantSol?.staff_puede_cargar ?? false}
+              cifraPendiente={cifraPendiente}
             />
           </div>
           <div className="lg:border-l lg:border-line lg:pl-6">

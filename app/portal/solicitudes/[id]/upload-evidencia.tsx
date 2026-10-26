@@ -9,6 +9,8 @@ import { fmtDiaLargo } from "@/lib/fechas";
 import type { EstadoSolicitud } from "@/lib/estados";
 import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
 import { subirArchivoFirmado } from "@/lib/evidencias/subir-archivo";
+import { PasoCifra } from "@/components/paso-cifra";
+import type { EstadoLectura } from "@/lib/evidencias/estado-lectura";
 
 const initial: SubirState = { ok: false, error: null };
 
@@ -20,6 +22,12 @@ function tamano(bytes: number): string {
 
 const inputClass =
   "h-11 w-full rounded-xl border border-line bg-crema/40 px-3.5 text-sm text-ink outline-none transition duration-150 placeholder:text-muted/70 focus:border-teal/50 focus:bg-surface";
+
+/**
+ * La última evidencia de una solicitud cuantitativa sin cifra confirmada: el paso 3 va después de subir
+ * (encargo carga-lectura-primero). Lo calcula la página desde la base.
+ */
+export type CifraPendiente = { evidenciaId: string; nombreArchivo: string; periodo: string | null; estado: EstadoLectura };
 
 /** Paso numerado dentro de la misma tarjeta (no wizard de páginas). */
 // Ancho del carril de contenido = círculo (size-8 = 2rem) + gap-4 (1rem) = 3rem.
@@ -61,6 +69,7 @@ export function UploadEvidencia({
   estado,
   tieneVersionPrevia,
   fechaCongelamiento,
+  cifraPendiente = null,
 }: {
   solicitudId: string;
   esCuantitativa: boolean;
@@ -70,6 +79,7 @@ export function UploadEvidencia({
   estado: EstadoSolicitud;
   tieneVersionPrevia: boolean;
   fechaCongelamiento?: string | null;
+  cifraPendiente?: CifraPendiente | null;
 }) {
   const periodoDefault = reporteEjercicio != null ? String(reporteEjercicio) : "";
   const [state, formAction, pending] = useActionState(subirEvidencia, initial);
@@ -81,11 +91,8 @@ export function UploadEvidencia({
   // Área: pre-llenada con el área del usuario, mostrada como texto con 'cambiar'.
   const [area, setArea] = useState(areaUsuario ?? "");
   const [areaEditable, setAreaEditable] = useState(!areaUsuario);
-  const [valor, setValor] = useState("");
-  const [unidad, setUnidad] = useState(unidadEsperada ?? "");
-  // Periodo de la captura: hereda del paso 2 salvo que el usuario lo cambie.
-  const [periodoCaptura, setPeriodoCaptura] = useState("");
-  const [capturaEditable, setCapturaEditable] = useState(false);
+  // Con la cifra de la última evidencia pendiente, la tarjeta muestra el paso 3; el formulario, a petición.
+  const [otraVersion, setOtraVersion] = useState(false);
   const [justificacion, setJustificacion] = useState("");
   // El archivo viaja directo a storage antes de la acción: mientras sube, el
   // botón queda ocupado igual que mientras se registra.
@@ -97,20 +104,19 @@ export function UploadEvidencia({
   const bloqueado = congelado;
   const justObligatoria = validado;
   const mostrarJustificacion = justObligatoria || tieneVersionPrevia;
-  // Periodo efectivo de la captura (heredado o el editado).
-  const periodoCapturaEfectivo = capturaEditable ? periodoCaptura : periodo;
 
   useEffect(() => {
     if (state.ok) {
       setFile(null);
       setPeriodo(periodoDefault);
-      setValor("");
-      setPeriodoCaptura("");
-      setCapturaEditable(false);
       setJustificacion("");
+      setOtraVersion(false);
       if (inputRef.current) inputRef.current.value = "";
-      toast.success("Listo — recibimos tu archivo. Queda como la versión vigente.");
-      if (state.error) toast.error(state.error); // captura parcial
+      toast.success(
+        esCuantitativa
+          ? "Listo — recibimos tu archivo. Ahora lo leemos para proponerte la cifra."
+          : "Listo — recibimos tu archivo. Queda como la versión vigente."
+      );
     } else if (state.error) {
       toast.error(state.error);
     }
@@ -176,12 +182,37 @@ export function UploadEvidencia({
     fd.set("periodo_cubierto", periodo);
     fd.set("area_origen", area);
     fd.set("justificacion", justificacion);
-    if (esCuantitativa) {
-      fd.set("valor", valor);
-      fd.set("unidad", unidad);
-      fd.set("periodo_captura", periodoCapturaEfectivo);
-    }
     startTransition(() => formAction(fd));
+  }
+
+  // Segundo momento: el archivo ya está; falta su cifra (leída o escrita).
+  if (cifraPendiente && !otraVersion) {
+    return (
+      <div className="space-y-8" data-testid="carga-segundo-momento">
+        <Paso n={1} titulo="Tu archivo">
+          <p className="text-sm text-ink">
+            <span className="font-medium">{cifraPendiente.nombreArchivo}</span>{" "}
+            <span className="text-muted">· recibido</span>
+          </p>
+        </Paso>
+        <Paso n={2} titulo="Periodo que cubre">
+          <p className="text-sm text-ink">{cifraPendiente.periodo ?? "—"}</p>
+        </Paso>
+        <PasoCifra
+          solicitudId={solicitudId}
+          nombreArchivo={cifraPendiente.nombreArchivo}
+          unidadEsperada={unidadEsperada}
+          periodoArchivo={cifraPendiente.periodo}
+          estadoInicial={cifraPendiente.estado}
+        />
+        <div className="flex gap-4">
+          <span className="size-8 shrink-0" aria-hidden />
+          <button type="button" onClick={() => setOtraVersion(true)} className="text-xs font-medium text-teal underline-offset-2 hover:underline">
+            Subir otra versión del archivo
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -306,77 +337,6 @@ export function UploadEvidencia({
         </div>
       </Paso>
 
-      {/* Paso 3 — La cifra (solo cuantitativas) */}
-      {esCuantitativa && (
-        <Paso
-          n={3}
-          titulo="La cifra que reportas"
-          ayuda="Escribe el dato principal que respalda este archivo."
-        >
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor="valor" className="block text-xs font-medium text-muted">
-                Dato
-              </label>
-              <input
-                id="valor"
-                inputMode="decimal"
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                placeholder="0"
-                className={cn(inputClass, "w-36")}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="unidad" className="block text-xs font-medium text-muted">
-                Unidad
-              </label>
-              <input
-                id="unidad"
-                value={unidad}
-                onChange={(e) => setUnidad(e.target.value)}
-                placeholder="Ej. kWh"
-                className={cn(inputClass, "w-32")}
-              />
-            </div>
-          </div>
-          {/* El periodo de la captura se hereda del paso 2 (editable tras 'cambiar'). */}
-          <div className="mt-2.5 text-xs text-muted">
-            {capturaEditable ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <label htmlFor="periodo_captura" className="font-medium text-ink">
-                  Periodo de la cifra
-                </label>
-                <input
-                  id="periodo_captura"
-                  value={periodoCaptura}
-                  onChange={(e) => setPeriodoCaptura(e.target.value)}
-                  placeholder="Ej. 2025"
-                  className={cn(inputClass, "h-9 w-32")}
-                />
-              </div>
-            ) : (
-              <span>
-                Corresponde al periodo{" "}
-                <span className="font-medium text-ink">
-                  {periodo.trim() || "que indiques arriba"}
-                </span>{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPeriodoCaptura(periodo);
-                    setCapturaEditable(true);
-                  }}
-                  className="font-medium text-teal underline-offset-2 hover:underline"
-                >
-                  cambiar
-                </button>
-              </span>
-            )}
-          </div>
-        </Paso>
-      )}
-
       {/* Justificación: obligatoria si validado, opcional si hay versión previa */}
       {mostrarJustificacion && (
         <div
@@ -426,7 +386,7 @@ export function UploadEvidencia({
         <span className="size-8 shrink-0" aria-hidden />
         <div className="flex flex-1 justify-end">
           <Button type="submit" loading={pending || subiendo} disabled={!file}>
-            {estado === "observaciones" ? "Reenviar" : "Enviar"}
+            {esCuantitativa ? "Subir y leer" : estado === "observaciones" ? "Reenviar" : "Enviar"}
           </Button>
         </div>
       </div>

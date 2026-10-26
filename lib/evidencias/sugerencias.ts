@@ -4,6 +4,7 @@ import type { Json } from "@/lib/database.types";
 import type { Contenido } from "./extraer";
 import { MODELO_SUGERENCIA, PROMPT_SUGERENCIA_VERSION, sugerirNumerica } from "./sugerir";
 import { lecturasDelMes, mensajeTope } from "./tope";
+import { evidenciasConCifra } from "./con-cifra";
 import { PROMPT_TEXTO_VERSION, sugerirTexto } from "./sugerir-texto";
 
 // =============================================================================
@@ -26,6 +27,15 @@ import { PROMPT_TEXTO_VERSION, sugerirTexto } from "./sugerir-texto";
 // =============================================================================
 
 export type ResultadoGeneracion = { contenidoId: string; estado: string; detalle?: string; sugerenciaId?: string };
+
+/**
+ * ¿La evidencia ya tiene una cifra confirmada? (encargo carga-lectura-primero). Con cifra no se sugiere: ni al
+ * generar ni al guardar, porque el modelo tarda y la cifra manual del paso 3 puede entrar mientras tanto. La base
+ * lo vuelve a comprobar al decidir (fn_decidir_sugerencia).
+ */
+export async function tieneCifraConfirmada(db: ReturnType<typeof createAdminClient>, evidenciaId: string): Promise<boolean> {
+  return (await evidenciasConCifra(db, [evidenciaId])).has(evidenciaId);
+}
 
 /** Deja `obsoleta` lo sugerido sobre versiones anteriores de la evidencia. */
 export async function obsoletarAnteriores(solicitudId: string, version: number): Promise<number> {
@@ -157,7 +167,10 @@ export async function generarSugerencia(
     return fin(t.estado, t.error ?? undefined, nueva.id);
   }
 
+  if (await tieneCifraConfirmada(db, fila.evidencia_id)) return fin("con_cifra", "la evidencia ya tiene una cifra confirmada");
   const r = await sugerirNumerica(paraSugerir, contenido, fila.nombre_original);
+  // Otra vez al guardar: la cifra manual pudo entrar mientras el modelo leía.
+  if (await tieneCifraConfirmada(db, fila.evidencia_id)) return fin("con_cifra", "la evidencia recibió una cifra confirmada mientras se leía");
   await obsoletarViva();
 
   const p = r.principal;

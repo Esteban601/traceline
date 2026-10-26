@@ -124,6 +124,14 @@ escribirla antes. Si la lectura no da una cifra, ve por qué y la escribe.
 Lo descrito en §0. **Migración:** una, aditiva por reemplazo de cuerpo (firma igual, idempotente, sin tablas nuevas,
 así que no lleva barrera).
 
+Agregado el 26/10 con el OK al Paso 0:
+- La comprobación de cifra confirmada también **al guardar** la sugerencia, no solo al generarla. El modelo tarda, y
+  la cifra manual puede entrar mientras tanto.
+- «Por decidir», en la portada del portal y en el resumen diario, excluye las evidencias que ya tienen cifra
+  confirmada.
+- Cuando `fn_decidir_sugerencia` responde 409, la pantalla dice «Esta evidencia ya tiene una cifra confirmada».
+- Dudas 1 y 2 de §0: como se propusieron.
+
 ## 3. Qué toca y qué no
 
 - **Toca:** los archivos de §0; la migración en el stack local y, después del OK, en el dev de Esteban.
@@ -159,3 +167,5 @@ así que no lleva barrera).
 | Fecha | Qué pasó | Decisión |
 |---|---|---|
 | 26/10/2026 | Encargo escrito; Paso 0 | Decisiones de partida de Esteban: el registro y el trigger, al subir; las cinco líneas caen al manual; sin doble captura; el panel, con el mismo flujo. PR después de la prueba en `traceline-dev` |
+| 26/10/2026 | OK al Paso 0 | Dudas 1 y 2 como se propusieron. Alcance agregado (§2): la guarda también al guardar la sugerencia, «por decidir» sin evidencias con cifra y el mensaje del 409 |
+| 26/10/2026 | Fase 1: implementación y e2e en el stack local, migración aplicada solo en local | `e2e-carga-lectura-primero` 39 de 39, dos corridas seguidas. `e2e-difusion`, `e2e-vb-area`, `e2e-admin-cliente` y `e2e-jefe-sube-evidencia` en verde, con la cifra en el paso 3 manual. `verify:export` en verde contra dev (rama en :3017). `tsc` limpio; `eslint` sin errores (3 avisos previos, en archivos que no se tocaron). `e2e-captura-sugerida`: falla la aserción del Excel de la solicitud de Alcance 3 categoría 15. Probablemente es previa: con C4, esa celda no muestra la cifra; no se comprobó. `e2e-captura-sugerida-ui` no se corrió: necesita la llave del modelo. **Hallazgo:** en el stack local, `service_role` no tiene SELECT sobre `capturas_valor`, y la consulta con `head` devolvía «sin cifra» sin error. En dev el permiso existe. La migración agrega el `grant` (no-op en dev y staging), y las consultas fallan cerradas. **Parada:** SQL de la migración antes de aplicarla en dev |

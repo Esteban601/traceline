@@ -85,7 +85,7 @@ try {
   await op.fill("#periodo", "2025");
   const area = op.locator('input[placeholder="Ej. Operaciones"]');
   if (await area.count()) await area.first().fill("Operaciones");
-  await op.getByRole("button", { name: /^(Enviar|Reenviar)$/ }).click();
+  await op.getByRole("button", { name: /^(Enviar|Reenviar|Subir y leer)$/ }).click();
   await op.getByText(/recibimos tu archivo/i).first().waitFor({ timeout: 60000 }).catch(() => {});
   ok(subidas.length === 1, `el archivo viajó directo a storage con URL firmada (${subidas.length} subida firmada)`);
   const { data: evs } = await staff.from("evidencias").select("id, version, nombre_original").eq("solicitud_id", sol.id);

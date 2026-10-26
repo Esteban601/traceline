@@ -468,10 +468,9 @@ async function main() {
       buffer: Buffer.from("periodo,valor\n2027,777\n", "utf8"),
     });
     await areaUI.page.fill("#periodo", String(FIXTURE.ejercicio));
-    await areaUI.page.fill("#valor", String(FIXTURE.valorInterno));
-    await areaUI.page.fill("#unidad", "tCO2e");
-    await areaUI.page.getByRole("button", { name: /^(Enviar|Reenviar)$/ }).click();
+    await areaUI.page.getByRole("button", { name: /^(Enviar|Reenviar|Subir y leer)$/ }).click();
     await areaUI.page.waitForTimeout(2500);
+    await cifraManual(areaUI.page, FIXTURE.valorInterno, "tCO2e");
 
     const { data: evsInterna } = await staffDb
       .from("evidencias")
@@ -1010,10 +1009,9 @@ async function main() {
     });
     await staffUI.page.selectOption(`#carga-area-${solIrstrat.id}`, "Capital Humano");
     await staffUI.page.fill(`#carga-periodo-${solIrstrat.id}`, String(FIXTURE.ejercicio));
-    await staffUI.page.fill(`#carga-valor-${solIrstrat.id}`, String(FIXTURE.valorIrstrat));
-    await staffUI.page.fill(`#carga-unidad-${solIrstrat.id}`, "tCO2e");
-    await staffUI.page.getByRole("button", { name: "Cargar evidencia" }).click();
+    await staffUI.page.getByRole("button", { name: /^(Cargar evidencia|Subir y leer)$/ }).click();
     await staffUI.page.waitForTimeout(3000);
+    await cifraManual(staffUI.page, FIXTURE.valorIrstrat, "tCO2e");
 
     const { data: evStaff } = await staffDb
       .from("evidencias")
@@ -1196,3 +1194,18 @@ main().catch((e) => {
   console.error("Error inesperado:", e);
   process.exit(2);
 });
+
+// La cifra va DESPUÉS del archivo (encargo carga-lectura-primero): paso 3 manual.
+// Sin lectura (bandera apagada) aparece de inmediato; con lectura y sin llave del
+// modelo, se elige «Prefiero escribirla». En una solicitud de texto no hay paso 3.
+async function cifraManual(page, valor, unidad) {
+  const form = page.locator('[data-testid="paso3-manual"]');
+  const yo = page.getByRole("button", { name: "Prefiero escribirla" });
+  await Promise.race([form.waitFor({ timeout: 20000 }), yo.waitFor({ timeout: 20000 })]).catch(() => {});
+  if (!(await form.count()) && (await yo.count())) await yo.click();
+  if (!(await form.count())) return;
+  await page.fill("#cifra-valor", String(valor));
+  if (unidad && (await page.inputValue("#cifra-unidad")) === "") await page.fill("#cifra-unidad", unidad);
+  await page.getByRole("button", { name: "Guardar cifra" }).click();
+  await page.waitForTimeout(3000);
+}
