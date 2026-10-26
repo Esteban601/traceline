@@ -7,6 +7,9 @@ import { useToast } from "@/components/ui/toast";
 import { decidirSugerencia, type DecisionState } from "@/lib/evidencias/acciones-sugerencia";
 import type { BloqueSugerencia, FuenteVista, LecturaVista } from "@/lib/evidencias/sugerencia-vista";
 import type { Tono } from "@/lib/estados";
+// Hora de México en el servidor y en el navegador: con la zona del navegador, la
+// fecha de la decisión no hidrataba igual en Heroku (UTC).
+import { fmtFechaHora } from "@/lib/fechas";
 
 // =============================================================================
 // BLOQUE «VALOR SUGERIDO» / «EXTRACTO SUGERIDO» — captura sugerida, Paso 4.
@@ -24,7 +27,6 @@ import type { Tono } from "@/lib/estados";
 // =============================================================================
 
 const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 6 });
-const fmtFecha = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const CONFIANZA: Record<"alta" | "media" | "baja", { texto: string; tono: Tono }> = {
   alta: { texto: "Confianza alta", tono: "verde" },
@@ -99,7 +101,7 @@ function SugerenciaDecidida({ s }: { s: NonNullable<BloqueSugerencia["sugerencia
         ) : null}
         <p>
           {s.estado === "confirmada" ? "Confirmada" : s.estado === "corregida" ? "Corregida" : "Rechazada"}
-          {d.quien ? ` por ${d.quien}` : ""} el {fmtFecha.format(new Date(d.cuando))}
+          {d.quien ? ` por ${d.quien}` : ""} el {fmtFechaHora(d.cuando)}
           {d.motivoRechazo ? ` · motivo: ${d.motivoRechazo}` : ""}
         </p>
       </div>

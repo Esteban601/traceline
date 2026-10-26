@@ -103,7 +103,8 @@ const capturas = async (evId) => (await staff.c.from("capturas_valor").select("v
 const nav = await chromium.launch();
 const errores = [];
 async function entrar(email) {
-  const ctx = await nav.newContext({ viewport: { width: 1280, height: 900 } });
+  // Otra zona que la del servidor: una fecha formateada con la zona del navegador no hidrata igual (React #418).
+  const ctx = await nav.newContext({ viewport: { width: 1280, height: 900 }, timezoneId: "Asia/Tokyo" });
   const p = await ctx.newPage();
   p.on("console", (msg) => { if (msg.type() === "error") errores.push(`${email}: ${msg.text().slice(0, 160)}`); });
   p.on("pageerror", (e) => errores.push(`${email}: ${String(e).slice(0, 160)}`));
