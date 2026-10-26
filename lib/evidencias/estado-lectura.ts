@@ -2,6 +2,7 @@ import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import { cargarSugerencia, type BloqueSugerencia } from "@/lib/evidencias/sugerencia-vista";
 import { evidenciasConCifra } from "@/lib/evidencias/con-cifra";
+import { LINEA_SIN_TOTAL, lineaSinHallazgo } from "@/lib/evidencias/lineas";
 
 // =============================================================================
 // ESTADO DE LA LECTURA DE UNA EVIDENCIA, PARA LA CARGA EN DOS MOMENTOS
@@ -53,12 +54,6 @@ const LINEAS: Partial<Record<FaseLectura, string>> = {
   sin_lectura: "Escribe la cifra que respalda este archivo.",
 };
 
-/** Sin hallazgo, con la unidad de la solicitud en la oración (prueba de Esteban en traceline-dev, 26/10). */
-export function lineaSinHallazgo(unidad: string | null): string {
-  const que = unidad?.trim() ? `una cifra en ${unidad.trim()}` : "la cifra";
-  return `No encontramos ${que} en este archivo. Puedes escribir la cifra aquí.`;
-}
-
 export async function estadoDeLectura(
   db: Db,
   solicitud: { id: string; unidad_esperada: string | null },
@@ -84,6 +79,8 @@ export async function estadoDeLectura(
     if (s?.estado === "sugerida" && s.principal) return con("sugerida", { segundos, bloque });
     const sinHallazgo = lineaSinHallazgo(solicitud.unidad_esperada);
     if (s?.estado === "sugerida") return con("sin_hallazgo", { segundos, bloque, linea: sinHallazgo });
+    // Con parciales de referencia, la línea aprobada (sin el motivo del modelo); si no, qué trae el archivo.
+    if (s?.estado === "sin_hallazgo" && s.candidatos.length) return con("sin_hallazgo", { segundos, bloque, linea: LINEA_SIN_TOTAL });
     if (s?.estado === "sin_hallazgo") return con("sin_hallazgo", { segundos, bloque, linea: [sinHallazgo, s.motivo].filter(Boolean).join(" ") });
     if (s?.estado === "rechazada") return con("rechazada", { segundos });
     const { count: fallidas } = await db.from("sugerencias_captura").select("id", { count: "exact", head: true }).eq("evidencia_id", evidencia.id).eq("estado", "fallida");

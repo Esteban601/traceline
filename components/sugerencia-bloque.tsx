@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { decidirSugerencia, type DecisionState } from "@/lib/evidencias/acciones-sugerencia";
 import type { BloqueSugerencia, FuenteVista, LecturaVista } from "@/lib/evidencias/sugerencia-vista";
 import type { Tono } from "@/lib/estados";
+import { LINEA_SIN_TOTAL } from "@/lib/evidencias/lineas";
 // Hora de México en el servidor y en el navegador: con la zona del navegador, la
 // fecha de la decisión no hidrataba igual en Heroku (UTC).
 import { fmtFechaHora } from "@/lib/fechas";
@@ -150,8 +151,8 @@ export function SugerenciaBloque({
   const toast = useToast();
   const [estado, accion, pendiente] = useActionState(decidirSugerencia, inicial);
   const [modo, setModo] = useState<null | "corregir" | "rechazar">(null);
-  const [precarga, setPrecarga] = useState<{ valor: string; unidad: string; periodo: string; periodoArchivo: string; extracto: string }>({
-    valor: "", unidad: "", periodo: "", periodoArchivo: "", extracto: "",
+  const [precarga, setPrecarga] = useState<{ valor: string; unidad: string; periodo: string; periodoArchivo: string; parcial: boolean; extracto: string }>({
+    valor: "", unidad: "", periodo: "", periodoArchivo: "", parcial: false, extracto: "",
   });
 
   // Cada resultado se anuncia una sola vez, aunque el componente se vuelva a pintar.
@@ -175,12 +176,21 @@ export function SugerenciaBloque({
 
   const abrirCorreccion = (l: LecturaVista | null) => {
     if (esTexto) {
-      setPrecarga({ valor: "", unidad: "", periodo: "", periodoArchivo: "", extracto: s.extracto ?? "" });
+      setPrecarga({ valor: "", unidad: "", periodo: "", periodoArchivo: "", parcial: false, extracto: s.extracto ?? "" });
     } else if (l) {
       const m = mostrada(l);
       // El periodo se propone igual al de la solicitud; el de la cifra del archivo
       // se muestra al lado y nunca se hereda sin verse.
-      setPrecarga({ valor: String(m.valor), unidad: m.unidad, periodo: periodoSolicitud || l.periodo || "", periodoArchivo: l.periodo ?? "", extracto: "" });
+      // Una parcial (un mes, una planta) se usa con SU periodo, y se dice cuál pide la solicitud.
+      const parcial = l.cubre_periodo === false && Boolean(l.periodo);
+      setPrecarga({
+        valor: String(m.valor),
+        unidad: m.unidad,
+        periodo: parcial ? l.periodo ?? "" : periodoSolicitud || l.periodo || "",
+        periodoArchivo: l.periodo ?? "",
+        parcial,
+        extracto: "",
+      });
     }
     setModo("corregir");
   };
@@ -210,12 +220,19 @@ export function SugerenciaBloque({
       {/* ---------- Sin hallazgo ---------- */}
       {s.estado === "sin_hallazgo" ? (
         <div className="mt-3 space-y-1.5">
-          <p className="text-sm font-medium text-ink">
-            {esTexto ? "Esta evidencia no cubre el requisito." : "No se encontró la cifra en esta evidencia."}
-          </p>
-          {/* La línea de qué falta y, aparte, lo que la evidencia sí trae. */}
-          {s.cobertura ? <p className="text-sm text-ink">{s.cobertura}</p> : null}
-          {s.motivo ? <p className="text-xs leading-relaxed text-muted">{s.motivo}</p> : null}
+          {!esTexto && s.candidatos.length ? (
+            // sug-num-3: sin total, con parciales de referencia. La línea aprobada, sin el motivo del modelo.
+            <p className="text-sm font-medium text-ink">{LINEA_SIN_TOTAL}</p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-ink">
+                {esTexto ? "Esta evidencia no cubre el requisito." : "No se encontró la cifra en esta evidencia."}
+              </p>
+              {/* La línea de qué falta y, aparte, lo que la evidencia sí trae. */}
+              {s.cobertura ? <p className="text-sm text-ink">{s.cobertura}</p> : null}
+              {s.motivo ? <p className="text-xs leading-relaxed text-muted">{s.motivo}</p> : null}
+            </>
+          )}
           <ReferenciasParciales s={s} />
         </div>
       ) : null}
@@ -357,7 +374,12 @@ export function SugerenciaBloque({
                       key={`p-${precarga.periodo}`}
                       className="mt-1 h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-teal/40"
                     />
-                    {precarga.periodoArchivo && precarga.periodoArchivo !== precarga.periodo ? (
+                    {precarga.parcial ? (
+                      <span className="mt-1 block text-xs text-ambar" data-testid="periodo-archivo">
+                        Esta cifra cubre {precarga.periodoArchivo}
+                        {periodoSolicitud ? <>; la solicitud pide {periodoSolicitud}</> : null}.
+                      </span>
+                    ) : precarga.periodoArchivo && precarga.periodoArchivo !== precarga.periodo ? (
                       <span className="mt-1 block text-xs text-ambar" data-testid="periodo-archivo">
                         La cifra del archivo es de {precarga.periodoArchivo}.
                       </span>
