@@ -15,6 +15,7 @@ import {
 import { fmtDiaLargo, hoyOperacion } from "@/lib/fechas";
 import { puedeEntrarPanel, type IdentidadRol } from "@/lib/roles";
 import { detalleAviso } from "./inmediatos";
+import { evidenciasConCifra } from "@/lib/evidencias/con-cifra";
 
 // =============================================================================
 // RESUMEN DIARIO (encargo 2026-10-06-sistema-de-alertas, Paso 2).
@@ -219,12 +220,14 @@ export async function procesarResumenDiario(db: Db, fecha?: string): Promise<Res
   );
 
   // Sugerencias por decidir, y cuáles nacieron ayer.
-  const sugeridas = await todas<{ solicitud_id: string; created_at: string }>((a, b) =>
-    db.from("sugerencias_captura").select("solicitud_id, created_at").eq("estado", "sugerida").range(a, b)
+  // Sin las de evidencias que ya tienen cifra confirmada (encargo carga-lectura-primero).
+  const sugeridas = await todas<{ solicitud_id: string; evidencia_id: string; created_at: string }>((a, b) =>
+    db.from("sugerencias_captura").select("solicitud_id, evidencia_id, created_at").eq("estado", "sugerida").range(a, b)
   );
+  const conCifra = await evidenciasConCifra(db, sugeridas.map((s) => s.evidencia_id));
   const sugPorSol = new Map<string, { total: number; nuevas: number }>();
   for (const s of sugeridas) {
-    if (!solPorId.has(s.solicitud_id)) continue;
+    if (!solPorId.has(s.solicitud_id) || conCifra.has(s.evidencia_id)) continue;
     const c = sugPorSol.get(s.solicitud_id) ?? { total: 0, nuevas: 0 };
     c.total += 1;
     if (s.created_at >= desdeAyer && s.created_at < hastaHoy) c.nuevas += 1;

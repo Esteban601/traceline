@@ -8,6 +8,11 @@ import { cn } from "@/lib/cn";
 import type { EstadoSolicitud } from "@/lib/estados";
 import { excedeLimite, MENSAJE_ARCHIVO_GRANDE } from "@/lib/evidencias/limite-subida";
 import { subirArchivoFirmado } from "@/lib/evidencias/subir-archivo";
+import { PasoCifra } from "@/components/paso-cifra";
+import type { EstadoLectura } from "@/lib/evidencias/estado-lectura";
+
+/** La última evidencia cuantitativa sin cifra confirmada (encargo carga-lectura-primero). */
+export type CifraPendientePanel = { evidenciaId: string; nombreArchivo: string; periodo: string | null; estado: EstadoLectura };
 
 const initial: CargaPanelState = { ok: false, error: null, mensaje: null };
 
@@ -44,6 +49,7 @@ export function CargaPanel({
   estado,
   comoStaff,
   habilitada,
+  cifraPendiente = null,
 }: {
   solicitudId: string;
   esCuantitativa: boolean;
@@ -55,6 +61,8 @@ export function CargaPanel({
   estado: EstadoSolicitud;
   comoStaff: boolean;
   habilitada: boolean;
+  /** Con la cifra pendiente, el panel muestra el paso 3 antes que la carga de otra versión. */
+  cifraPendiente?: CifraPendientePanel | null;
 }) {
   const periodoDefault = reporteEjercicio != null ? String(reporteEjercicio) : "";
   const [state, formAction, pending] = useActionState(subirEvidenciaPanel, initial);
@@ -64,8 +72,6 @@ export function CargaPanel({
   const [dragging, setDragging] = useState(false);
   const [area, setArea] = useState(areaSugerida ?? "");
   const [periodo, setPeriodo] = useState(periodoDefault);
-  const [valor, setValor] = useState("");
-  const [unidad, setUnidad] = useState(unidadEsperada ?? "");
   const [justificacion, setJustificacion] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   // El archivo sube directo a storage (URL firmada) antes de registrar la fila.
@@ -79,12 +85,14 @@ export function CargaPanel({
     if (state.ok) {
       setFile(null);
       setPeriodo(periodoDefault);
-      setValor("");
       setJustificacion("");
       setAbierta(false);
       if (inputRef.current) inputRef.current.value = "";
-      toast.success(state.mensaje ?? "Evidencia registrada.");
-      if (state.error) toast.error(state.error); // captura parcial
+      toast.success(
+        esCuantitativa
+          ? `${state.mensaje ?? "Evidencia registrada."} Ahora se lee para proponer la cifra.`
+          : state.mensaje ?? "Evidencia registrada."
+      );
     } else if (state.error) {
       toast.error(state.error);
     }
@@ -174,12 +182,28 @@ export function CargaPanel({
     fd.set("area_origen", area);
     fd.set("periodo_cubierto", periodo);
     fd.set("justificacion", justificacion);
-    if (esCuantitativa) {
-      fd.set("valor", valor);
-      fd.set("unidad", unidad);
-      fd.set("periodo_captura", periodo);
-    }
     startTransition(() => formAction(fd));
+  }
+
+  // Segundo momento: el archivo ya está; falta su cifra (leída o escrita).
+  if (cifraPendiente && !abierta) {
+    return (
+      <div className="space-y-4 rounded-card border border-teal/25 bg-teal/[0.03] p-4" data-testid="carga-segundo-momento">
+        <PasoCifra
+          solicitudId={solicitudId}
+          nombreArchivo={cifraPendiente.nombreArchivo}
+          unidadEsperada={unidadEsperada}
+          periodoArchivo={cifraPendiente.periodo}
+          periodoSolicitud={periodoDefault || null}
+          estadoInicial={cifraPendiente.estado}
+        />
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setAbierta(true)} className="text-xs font-medium text-teal underline-offset-2 hover:underline">
+            Cargar otra versión del archivo
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!abierta) {
@@ -306,37 +330,6 @@ export function CargaPanel({
         </div>
       </div>
 
-      {/* Cifra (solo cuantitativas) */}
-      {esCuantitativa && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor={`carga-valor-${solicitudId}`} className={labelCls}>
-              Cifra <span className="font-normal">· opcional</span>
-            </label>
-            <input
-              id={`carga-valor-${solicitudId}`}
-              inputMode="decimal"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="0"
-              className={cn(inputCls, "mt-1")}
-            />
-          </div>
-          <div>
-            <label htmlFor={`carga-unidad-${solicitudId}`} className={labelCls}>
-              Unidad
-            </label>
-            <input
-              id={`carga-unidad-${solicitudId}`}
-              value={unidad}
-              onChange={(e) => setUnidad(e.target.value)}
-              placeholder="Ej. kWh"
-              className={cn(inputCls, "mt-1")}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Justificación: obligatoria si la solicitud ya está validada */}
       {justObligatoria && (
         <div className="space-y-1.5">
@@ -370,7 +363,7 @@ export function CargaPanel({
           Cancelar
         </button>
         <Button type="submit" size="sm" loading={pending || subiendo} disabled={!file}>
-          Cargar evidencia
+          {esCuantitativa ? "Subir y leer" : "Cargar evidencia"}
         </Button>
       </div>
     </form>
