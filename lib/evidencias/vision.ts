@@ -25,6 +25,7 @@ const SISTEMA = [
   "Conserva cada número exactamente como aparece: separadores de miles, decimales, signos, porcentajes y unidades.",
   "Las tablas van fila por fila, con las celdas separadas por \" | \" y la fila de encabezados primero.",
   "Si un fragmento no se puede leer, escribe [ilegible] en su lugar; nunca lo reconstruyas.",
+  "No agregues notas, comentarios, lecturas probables ni lecturas parciales (por ejemplo «se alcanza a leer…»): lo que no se lee es [ilegible] y nada más.",
   "Si la imagen está girada o torcida, transcribe en el orden de lectura natural del documento.",
 ].join(" ");
 

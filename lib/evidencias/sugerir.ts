@@ -355,6 +355,26 @@ export function elegir(verificadas: LecturaVerificada[], confianzaModelo: Confia
   return { principal, alternativas, confianza };
 }
 
+/**
+ * Si la línea de la cifra pedida salió [ilegible], no hay principal: «sin hallazgo»
+ * hasta que la relectura la lea. Lo que diga cubrir el periodo no se toma de una
+ * nota o una lectura a medias (el 26/10 el transcriptor anotó «se alcanza a leer
+ * 46,350» bajo la línea ilegible y salió como principal); queda en `descartadas`.
+ */
+export function sinTotalLegible(
+  principal: LecturaVerificada | null,
+  alternativas: LecturaVerificada[],
+  ilegible: { pagina: number; linea: string } | null
+) {
+  if (!ilegible) return { principal, alternativas, descartadas: [] as ResultadoSugerencia["descartadas"] };
+  const fuera = [principal, ...alternativas].filter((l): l is LecturaVerificada => Boolean(l?.cubre_periodo));
+  return {
+    principal: null,
+    alternativas: alternativas.filter((l) => !l.cubre_periodo),
+    descartadas: fuera.map((l) => ({ cita: l.cita, fuente: l.fuente_texto, motivo: "la línea de la cifra pedida está [ilegible]" })),
+  };
+}
+
 /** La línea [ilegible] que el modelo señaló, si la señaló. */
 function ilegibleDe(r: RespuestaModelo): { pagina: number; linea: string } | null {
   const x = r.linea_ilegible;
@@ -431,6 +451,11 @@ export async function sugerirNumerica(
       };
     }
   }
+
+  const legible = sinTotalLegible(principal, alternativas, ilegible);
+  principal = legible.principal;
+  alternativas = legible.alternativas;
+  descartadas.push(...legible.descartadas);
 
   // Sin una cifra verificada que cubra el periodo: «sin hallazgo», visible, con
   // las parciales como referencia (no se prellenan). Incluye las cifras cuya

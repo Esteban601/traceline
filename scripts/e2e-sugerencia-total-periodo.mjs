@@ -14,7 +14,9 @@
 //   · p10_escaneado_total_encimado.pdf: escaneado; la línea del total viene
 //     encimada y la transcripción la deja [ilegible]. Sin un total legible, la
 //     sugerencia es «sin hallazgo» con los meses de referencia; la línea se
-//     señala y se relee a más resolución (relectura.ts).
+//     señala y se relee a más resolución (relectura.ts). Una nota del
+//     transcriptor con una lectura a medias («se alcanza a leer 46,350») no
+//     puede salir como principal.
 //
 // Sin modelo se prueba la regla del código (depurar + elegir) con respuestas del
 // modelo escritas aquí, y la señal y la sustitución de la línea ilegible. Con
@@ -25,7 +27,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extraerContenido } from "../lib/evidencias/extraer.ts";
-import { depurar, elegir, sugerirNumerica } from "../lib/evidencias/sugerir.ts";
+import { depurar, elegir, sinTotalLegible, sugerirNumerica } from "../lib/evidencias/sugerir.ts";
 import { franjasDePagina, lineaSenalada, sustituirLinea } from "../lib/evidencias/relectura.ts";
 import { releerLinea } from "../lib/evidencias/vision.ts";
 
@@ -101,6 +103,18 @@ ok(legible.tipo === "pdf" && legible.paginas[0].origen === "texto" && /49,350/.t
   const releido = sustituirLinea(ESCANEADO, 1, LINEA_ILEGIBLE, "Consumo total del período 49,350 kWh");
   const d2 = depurar(releido, respuesta({ principal: lectura(49350, "2025", "Consumo total del período 49,350 kWh", true), candidatos: MESES.map(mes) }), "kWh");
   ok(elegir(d2.verificadas, d2.confianza).principal?.valor === 49350, "con la línea releída sustituida, el total se verifica contra el contenido y es la principal");
+}
+
+// A4. Una nota del transcriptor bajo la línea ilegible («se alcanza a leer 46,350») no es la principal.
+{
+  const NOTA = '(el texto se superpone; se alcanza a leer "46,350 kWh" parcialmente)';
+  const conNota = { ...ESCANEADO, paginas: [{ ...ESCANEADO.paginas[0], texto: ESCANEADO.paginas[0].texto.replace(LINEA_ILEGIBLE, `${LINEA_ILEGIBLE}\n${NOTA}`) }] };
+  const r = respuesta({ principal: lectura(46350, "2025", NOTA, true), candidatos: MESES.map(mes), confianza: "baja", linea_ilegible: { pagina: 1, linea: LINEA_ILEGIBLE } });
+  const d = depurar(conNota, r, "kWh");
+  const e = elegir(d.verificadas, d.confianza);
+  ok(e.principal?.valor === 46350, "(control) la nota pasa la verificación de fuente: el texto está en el contenido");
+  const l = sinTotalLegible(e.principal, e.alternativas, lineaSenalada(conNota, r.linea_ilegible));
+  ok(l.principal === null && l.alternativas.length === 12 && l.descartadas.some((x) => /46,350/.test(x.cita)), "con la línea de la cifra [ilegible], no hay principal: la lectura a medias se descarta y los meses quedan de referencia");
 }
 
 // -----------------------------------------------------------------------------
