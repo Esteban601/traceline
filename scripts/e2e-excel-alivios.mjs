@@ -95,7 +95,7 @@ try {
   // E5 (decisión de Esteban, 14 de octubre): las hojas de S1 llevan la información sobre clima, la misma del Formato.
   const climaticos = psql(`select string_agg(replace(nombre, '[DEMO] ', ''), '|') from objetivos where reporte_id=${lit(REPORTE)} and activo and ambito='climatico'`).split("|");
   ok(!b.c("NIIF S1 51", "A2").startsWith("No revelado") && climaticos.includes(b.c("NIIF S1 51", "A2")) && !b.todas.some((t) => t === NR("E5")), "E5: NIIF S1 51 lleva solo objetivos climáticos, sin «No revelado · alivio E5»");
-  ok(b.c("NIIF S1 46-50", "B3") !== "", "E5: NIIF S1 46-50 con las instancias de métricas");
+  ok(b.c("NIIF S1 46-50", "C3") !== "" && ["Riesgo", "Oportunidad"].includes(b.c("NIIF S1 46-50", "B3")), "E5: NIIF S1 46-50 con las instancias de métricas y su tipo");
   const tb = b.wb.getWorksheet("Taxonomía NIIF S1 S2");
   const pilares = [];
   tb.eachRow((row, n) => { if (n > 1 && !texto(row.getCell(1).value) && texto(row.getCell(3).value).startsWith(E5)) pilares.push(texto(row.getCell(2).value)); });

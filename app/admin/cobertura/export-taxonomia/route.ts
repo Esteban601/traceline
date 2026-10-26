@@ -17,7 +17,7 @@ import {
   noRevelado,
 } from "@/lib/reporte/ensamblar";
 import { type Alivios } from "@/lib/perfil-emisor";
-import { enunciarAlivios, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
+import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
@@ -163,8 +163,17 @@ function escribirRespuestas(
  */
 function escribirMetricasS1(ws: ExcelJS.Worksheet, inst: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] }): number {
   // La oración del E5 ya no va en A2 (una nota): va en los encabezados de pilar de la hoja de taxonomía.
+  // Columna B «Tipo» (Riesgo / Oportunidad), decisión de Esteban del 26/10: sin las filas separadoras, es lo que
+  // distingue un riesgo de una oportunidad.
+  insertarColumna(ws, 2);
+  for (const f of [3, 4]) {
+    const c = ws.getCell(f, 2);
+    c.value = "Tipo";
+    c.style = { ...ws.getCell(f, 1).style };
+  }
+  ws.getColumn(2).width = 14;
   const fila = (n: number, m: InstanciaMetrica) => {
-    const valores = [m.riesgo, m.nombre, m.descripcion, `NIIF S2 párrafo ${m.parrafo}`, m.nombre, m.descripcion, "No", "No aplica: la métrica se toma sin ajuste de NIIF S2", m.tipoMedida, m.verificacion, m.metodo];
+    const valores = [m.riesgo, m.tipoRegistro === "oportunidad" ? "Oportunidad" : "Riesgo", m.nombre, m.descripcion, `NIIF S2 párrafo ${m.parrafo}`, m.nombre, m.descripcion, "No", "No aplica: la métrica se toma sin ajuste de NIIF S2", m.tipoMedida, m.verificacion, m.metodo];
     valores.forEach((v, i) => {
       const c = ws.getRow(n).getCell(i + 1);
       c.value = v || null;

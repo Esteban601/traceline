@@ -73,6 +73,18 @@ export function quitar(ws: ExcelJS.Worksheet, filas: number[], columnas: number[
   }
 }
 
+/** Inserta una columna vacía en `col` (1-based), desplazando a la derecha las combinadas que empiezan en o después. */
+export function insertarColumna(ws: ExcelJS.Worksheet, col: number): void {
+  const rangos = combinadas(ws);
+  for (const r of rangos) ws.unMergeCells(r.top, r.left, r.bottom, r.right);
+  ws.spliceColumns(col, 0, []);
+  for (const r of rangos) {
+    const left = r.left >= col ? r.left + 1 : r.left;
+    const right = r.right >= col ? r.right + 1 : r.right;
+    ws.mergeCells(r.top, left, r.bottom, right);
+  }
+}
+
 /** Fila sin ningún texto. */
 const vacia = (ws: ExcelJS.Worksheet, n: number) => {
   const row = ws.getRow(n);

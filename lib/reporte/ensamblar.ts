@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { conPerimetro } from "@/lib/reporte/cifra";
 import type { Database } from "@/lib/database.types";
 import { NOTA_VALIDACION_INTERNA, type OrigenSolicitud } from "@/lib/origen";
 import { leerAlivios, regimenDe, type Alivios } from "@/lib/perfil-emisor";
@@ -643,7 +644,12 @@ export async function ensamblarReporte(
     const estado = estadoSol.get(solicitudId);
     const valor = estado === "validado" ? ultimaConfirmada(solicitudId, ejercicioCelda) : null;
 
-    if (valor != null) {
+    if (valor != null && alcance) {
+      // Con perímetro declarado, la cifra lleva su perímetro DENTRO de la celda: «<cifra>; perímetro: <perímetro>»
+      // (decisión de Esteban del 26/10: el Excel ya no tiene columna de notas).
+      celdas.push({ tipo: "etiqueta", hoja: m.hoja, celda: m.celda, texto: conPerimetro(valor.toLocaleString("en-US", { maximumFractionDigits: 3 }), alcance) });
+      conteos.llenadas++;
+    } else if (valor != null) {
       celdas.push({
         tipo: "valor",
         hoja: m.hoja,

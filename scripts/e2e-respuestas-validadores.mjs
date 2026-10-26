@@ -27,6 +27,7 @@ import {
 import fs from "node:fs";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
 import { TERMINOS_PLATAFORMA, glosarioDeClaudeMd, vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
+import { conceptoDeCifra } from "../lib/reporte/cifra.ts";
 import { avisosDeCoherencia, booleanosVaciosPorContradiccion, llenarFormato } from "../lib/formato/llenar.ts";
 import { BOOLEANOS_FORMATO, validarBooleano, valorBooleano } from "../lib/formato/booleanos.ts";
 import { numeracionConsecutiva } from "../lib/suplemento/numeracion.ts";
@@ -115,6 +116,8 @@ console.log("\n1c. Aviso de coherencia de métricas por industria (D2)");
 
 console.log("\n2. Reglas sin modelo");
 ok(respuestaDeCaptura(1240, "tCO2e", 2025) === "1,240 tCO2e (ejercicio 2025).", "respuesta de captura: valor, unidad y periodo, sin «captura validada»");
+ok(respuestaDeCaptura(2643446.803, "tCO2e", 2025, "La cifra corresponde a la división Materiales.") === "2,643,446.803 tCO2e (ejercicio 2025); perímetro: La cifra corresponde a la división Materiales.", "con perímetro declarado: «<cifra>; perímetro: <perímetro>» dentro de la respuesta");
+ok(conceptoDeCifra("[DEMO] Inventario GEI Alcance 1 con memoria de cálculo") === "Emisiones de Alcance 1" && conceptoDeCifra("Cartera de crédito total 2025") === "Cartera de crédito total 2025" && vocabularioProhibidoEn(conceptoDeCifra("Consumo de diésel con su memoria de cálculo")).length === 0, "concepto publicable de una cifra: sin el título de captura ni «memoria de cálculo»");
 const anclas = [
   { oracion: "Primera oración anclada a u2.", hechos: [{ id: "h2", hecho: "u2" }] },
   { oracion: "Oración de otro hecho.", hechos: [{ id: "h3", hecho: "u3" }] },

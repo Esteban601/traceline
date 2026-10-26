@@ -185,8 +185,9 @@ try {
     const delExcel = [];
     hoja.eachRow((row, n) => {
       // Sin fila de título ni separadoras (26/10): el encabezado ocupa las filas 1 y 2.
-      if (n < 3 || !v(row.getCell(2))) return;
-      delExcel.push([v(row.getCell(1)), v(row.getCell(2)), v(row.getCell(10)), v(row.getCell(11))].join(" | "));
+      if (n < 3 || !v(row.getCell(3))) return;
+      // Columna B «Tipo» (26/10): la métrica en C, verificación en K y método en L.
+      delExcel.push([v(row.getCell(1)), v(row.getCell(3)), v(row.getCell(11)), v(row.getCell(12))].join(" | "));
     });
     ok(delFormato.length > 0 && JSON.stringify(delFormato) === JSON.stringify(delExcel), `las mismas ${delFormato.length} instancias (riesgo, métrica, verificación, método) en el Formato y en la taxonomía (${delExcel.length})`);
     // La oración del E5 ya no va suelta en la hoja (es una nota): va en los encabezados de pilar de la taxonomía.

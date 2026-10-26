@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { conPerimetro } from "@/lib/reporte/cifra";
 import { BOOLEANOS_FORMATO, clausulasDelTema, validarBooleano } from "@/lib/formato/booleanos";
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -241,10 +242,13 @@ export function oracionesAncladas(anclas: Ancla[], hechos: string[], max: number
   return out.join(" ");
 }
 
-/** «1,240 tCO2e (ejercicio 2025).» Sin decir de dónde salió la cifra (glosario de CLAUDE.md §5). */
-export function respuestaDeCaptura(valor: number, unidad: string | null, periodo: string | number): string {
+/**
+ * «1,240 tCO2e (ejercicio 2025).» Sin decir de dónde salió la cifra (glosario de CLAUDE.md §5). Con perímetro
+ * declarado, dentro de la respuesta: «…(ejercicio 2025); perímetro: …».
+ */
+export function respuestaDeCaptura(valor: number, unidad: string | null, periodo: string | number, perimetro?: string | null): string {
   const v = valor.toLocaleString("en-US", { maximumFractionDigits: 3 });
-  return `${v}${unidad ? ` ${unidad}` : ""} (ejercicio ${periodo}).`;
+  return `${conPerimetro(`${v}${unidad ? ` ${unidad}` : ""} (ejercicio ${periodo})`, perimetro)}.`;
 }
 
 /**
@@ -462,7 +466,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         return {
           codigo,
           via: "captura",
-          texto: respuestaDeCaptura(e.valor, sol.unidad_esperada, ens.reporte.ejercicio),
+          texto: respuestaDeCaptura(e.valor, sol.unidad_esperada, ens.reporte.ejercicio, sol.nota_alcance),
           valor: { valor: e.valor, unidad: sol.unidad_esperada, periodo: ens.reporte.ejercicio, solicitud: sol.titulo },
         };
       }

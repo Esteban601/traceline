@@ -297,7 +297,13 @@ async function main() {
   ok(cellText(s51, "A2") === "Reducción de emisiones de Alcances 1 y 2" && cellText(s51, "H2").length > 0, "S1 51: el primer objetivo climático, con resultados");
   ok(filaDe(s51, "Cartera sostenible") > 0, "S1 51: el objetivo climático de cartera sostenible");
   const s4650 = wb.getWorksheet("NIIF S1 46-50");
-  ok(cellText(s4650, "A3").length > 0 && /NIIF S2 párrafo 29/.test(cellText(s4650, "D3")) && !/párrafo E5/.test(cellText(s4650, "A1")), "S1 46-50: instancias de métricas de NIIF S2 29 bajo el encabezado de dos filas, sin la oración del E5 suelta");
+  ok(cellText(s4650, "A3").length > 0 && /NIIF S2 párrafo 29/.test(cellText(s4650, "E3")) && !/párrafo E5/.test(cellText(s4650, "A1")), "S1 46-50: instancias de métricas de NIIF S2 29 bajo el encabezado de dos filas, sin la oración del E5 suelta");
+  {
+    // Columna B «Tipo» (decisión de Esteban del 26/10): Riesgo / Oportunidad en cada instancia.
+    const tipos = new Set();
+    s4650.eachRow((row, f) => { if (f > 2 && cellText(s4650, `A${f}`)) tipos.add(cellText(s4650, `B${f}`)); });
+    ok(cellText(s4650, "B2") === "Tipo" && [...tipos].every((t) => t === "Riesgo" || t === "Oportunidad") && tipos.has("Riesgo") && tipos.has("Oportunidad"), `S1 46-50: columna «Tipo» con Riesgo y Oportunidad (${[...tipos].join(", ")})`);
+  }
 
   // ---------------------------------------------------------------------------
   // Cuestionarios — 3 hojas: 22(b)(i)/(ii) y 36(e). Dos columnas: pregunta y respuesta.
@@ -455,14 +461,17 @@ async function main() {
     const c51 = wb3.getWorksheet("NIIF S1 51");
 
     // GEI Alcance 1 de Materiales: Elementia 83,189.803 + Fortaleza 2,560,257. Sin fila de título: la 2.
+    // Con perímetro declarado, la cifra lleva su perímetro DENTRO de la celda (decisión de Esteban del 26/10):
+    // «2,643,446.803; perímetro: La cifra corresponde al perímetro de la división Materiales (…)».
+    const celdaA1 = cellText(c1, "C2");
     ok(
-      Math.abs(Number(cellText(c1, "C2")) - 2643446.803) < 0.01,
-      `Alcance 1 2025 = suma real de Materiales (${cellText(c1, "C2")})`
+      Math.abs(Number(celdaA1.split(";")[0].replace(/,/g, "")) - 2643446.803) < 0.01,
+      `Alcance 1 2025 = suma real de Materiales (${celdaA1.split(";")[0]})`
     );
+    ok(/; perímetro: .*división Materiales.*Elementia.*Fortaleza/i.test(celdaA1), `y su perímetro dentro de la respuesta («${celdaA1.slice(0, 90)}…»)`);
     // COMPARATIVO 2024: sigue sin cifra después del import del histórico, porque ninguno de los documentos
     // históricos cubre a Materiales (ver abajo). Desde el 26/10 la causa va como marcador EN la celda. La nota de
-    // perímetro («perímetro de la división Materiales: Elementia y Fortaleza») ya no se exporta: el libro lleva
-    // solo preguntas y respuestas (regla de Esteban); queda en la solicitud y debe decirlo la respuesta narrativa.
+    // perímetro va dentro de la celda de la cifra (comprobado arriba), no en una nota.
     ok(/^Pendiente: cifra de 2024 — solicitud «/.test(cellText(c1, "D2")), "2024 con su marcador de pendiente en la celda: el histórico no cubre a Materiales");
 
     // Y se comprueba que la causa es esa y no que el histórico no corrió: el

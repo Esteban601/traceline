@@ -1,4 +1,5 @@
 import type { Ensamblado, SolRow } from "@/lib/reporte/ensamblar";
+import { conceptoDeCifra } from "@/lib/reporte/cifra";
 import { rubroExento } from "@/lib/suplemento/bloques";
 import { nivelDeSeveridad, severidadEfectiva, leerHorizontes, leerMatriz } from "@/lib/perfil-emisor";
 import type { Alivios } from "@/lib/perfil-emisor";
@@ -191,20 +192,8 @@ const tablaRiesgosPrioritarios: ConstructorTabla = (c) => {
   );
 };
 
-/**
- * Concepto publicable de una cifra de emisiones: el alcance, no el título de la
- * solicitud («Inventario GEI Alcance 1 con memoria de cálculo» es un nombre de
- * captura, no una etiqueta de informe).
- */
-function conceptoGei(titulo: string): string {
-  const t = limpiar(titulo);
-  const alcance = t.match(/alcance\s*([123])/i)?.[1];
-  if (!alcance) return t;
-  const base = `Emisiones de Alcance ${alcance}`;
-  if (alcance === "2" && /ubicaci[oó]n/i.test(t) && !/mercado/i.test(t)) return `${base} (ubicación)`;
-  if (alcance === "2" && /mercado/i.test(t) && !/ubicaci[oó]n/i.test(t)) return `${base} (mercado)`;
-  return base;
-}
+// El concepto publicable de una cifra vive en lib/reporte/cifra.ts (también lo usa el libro de hechos).
+const conceptoGei = conceptoDeCifra;
 
 /**
  * 29 · Emisiones GEI: solo las cifras de emisiones (en CO2 equivalente). Los
