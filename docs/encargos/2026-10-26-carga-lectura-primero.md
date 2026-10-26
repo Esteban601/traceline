@@ -171,3 +171,39 @@ Agregado el 26/10 con el OK al Paso 0:
 | 26/10/2026 | Fase 1: implementación y e2e en el stack local, migración aplicada solo en local | `e2e-carga-lectura-primero` 39 de 39, dos corridas seguidas. `e2e-difusion`, `e2e-vb-area`, `e2e-admin-cliente` y `e2e-jefe-sube-evidencia` en verde, con la cifra en el paso 3 manual. `verify:export` en verde contra dev (rama en :3017). `tsc` limpio; `eslint` sin errores (3 avisos previos, en archivos que no se tocaron). `e2e-captura-sugerida`: falla la aserción del Excel de la solicitud de Alcance 3 categoría 15. Probablemente es previa: con C4, esa celda no muestra la cifra; no se comprobó. `e2e-captura-sugerida-ui` no se corrió: necesita la llave del modelo. **Hallazgo:** en el stack local, `service_role` no tiene SELECT sobre `capturas_valor`, y la consulta con `head` devolvía «sin cifra» sin error. En dev el permiso existe. La migración agrega el `grant` (no-op en dev y staging), y las consultas fallan cerradas. **Parada:** SQL de la migración antes de aplicarla en dev |
 | 26/10/2026 | Comprobaciones antes de aplicar en dev | **(1)** `e2e-captura-sugerida` también falla en `dev/ajustes-sep26` (`d0ac80f`), después de un reset limpio: «al validar, la cifra confirmada aparece en el Excel (0 celdas cambiaron)». **Deuda previa, con causa:** el e2e (4/10) prueba la cifra en la solicitud de Alcance 3 categoría 15 (`gei_a3_cat_15`). Desde `2f44c3b` (13/10), con C4 vigente en el demo, `alivioDeCelda` escribe «No revelado · alivio C4» en esa celda, valide o no. Se corrige en el e2e: otra solicitud, o C4 apagado durante la prueba. No es de esta rama. **(2)** Reset del stack local desde los archivos (`supabase db reset --local`), con la migración aplicada desde su archivo y sin pasos a mano: `e2e-carga-lectura-primero` 39 de 39. **(3)** Privilegios de `service_role` en dev (`scripts/despliegue/privilegios-service-role.sql`, por la Management API, solo lectura): las 37 tablas de `public` tienen los 7 privilegios. En local, solo 1 de 37 los tiene todos; `evidencias` no tiene SELECT. **El día de staging, antes de migrar,** se corre el mismo script contra staging y se compara con dev: si staging no tiene SELECT de `service_role` sobre `capturas_valor`, el `grant` de la migración sí cambia algo ahí, y se anota |
 | 26/10/2026 | Migración en dev y despliegue a `traceline-dev` | OK de Esteban a `20261026120000` como aditiva. **Dev:** ref `kmjkoxecxcujxixlxwlb` verificado; `supabase db push` (dry-run: solo esta migración); `migration list` local == remoto; tipos regenerados desde dev, idénticos. Comprobado en dev: la función tiene la guarda; `service_role` con SELECT sobre `capturas_valor`; 228 políticas. **`traceline-dev` v22** (`a36c329`). Es una rama local de despliegue: esta rama más el merge de `13bfde4` (el `main` desplegado), sin diferencia de contenido. Se usó porque `13bfde4` no está en dev y no se usa `--force`. **Capturas** con Empresa Demo (`operaciones@`): antes de subir, leyendo, paso 3 prellenado (lectura real del Excel x01: 376,300 kWh, hoja «Energía», B14, confianza media) y lectura apagada. La bandera se restauró a `true` y se comprobó. **Datos de prueba en dev:** solicitudes «[Prueba] … lectura encendida» (`1b867b7f`, sugerencia sin decidir), «[Prueba] … lectura apagada» (`ffd7b1e3`, sin cifra) y tres «[Prueba PDF] …» para la prueba de Esteban (`370674c5`, `77dd2879`, `9f3ee113`). Una duplicada sin evidencia (`49c7bbe4`) se borró. **Parada:** prueba de Esteban con un PDF real; PR después |
+| 26/10/2026 | Prueba de Esteban en `traceline-dev` y correcciones (1)–(4) | **Resultado de la prueba:** con hallazgo, la lectura fue rápida, pero Confirmar se quedaba en espera hasta recargar. Sin hallazgo funcionó. En el escaneado propuso 4,080 kWh (la fila de diciembre, confianza baja) en vez del total de 49,350, y al corregir a 546 el periodo quedó «diciembre 2025». El caso de la cifra manual durante la lectura no se reprodujo a mano; lo cubre el e2e. **(1) Causa de la espera:** en el build de producción de Next 15.5.20, una acción que revalida en una página bajo un `loading.tsx` deja la transición sin terminar: la respuesta llega completa, pero la pantalla no se actualiza. Se reprodujo en local con `next build` + `next start`. También pasa en `dev/ajustes-sep26`: la subida del panel se queda girando 3 de 3, y quitar `app/admin/loading.tsx` lo resuelve. Antes no se veía porque los e2e corrían contra `next dev`. Se quitaron los tres `loading.tsx` (`/admin`, `/portal` y `/portal/solicitudes/[id]`), y el sondeo pasó de una acción de servidor a `GET /api/evidencias/lectura`. **(2)** La línea de sin hallazgo lleva la unidad: «No encontramos una cifra en kWh en este archivo. Puedes escribir la cifra aquí.» **(3)** En el historial, la cifra vigente va grande y primero; la sugerencia decidida va plegada («Sugerencia corregida: 4,080 → 546 kWh»). **(4)** Corregir propone el periodo de la solicitud y muestra el de la cifra del archivo cuando difiere. **Verificación:** `e2e-carga-lectura-primero` 47 de 47 contra el build de producción, tres corridas seguidas (comprueba sin recargar). `e2e-difusion`, `e2e-vb-area`, `e2e-admin-cliente` y `e2e-jefe-sube-evidencia` en verde contra el mismo build; `verify:export` en verde contra dev; `tsc` limpio; `eslint` sin errores. **(5)** Diagnóstico y propuesta en §8. **Parada** antes de cambiar la regla |
+
+## 8. Selección de candidatos: diagnóstico y propuesta (pendiente de OK)
+
+**Cómo elige hoy** (`lib/evidencias/sugerir.ts`, `sug-num-2`):
+- Una llamada a Sonnet devuelve `encontrado`, una `principal` y hasta tres `candidatos`.
+- La única regla de prioridad es la del año: si hay varios años, la principal es la del periodo del reporte.
+- No hay regla de total contra filas parciales dentro del mismo año, y está prohibido sumar.
+- El código verifica cada cifra contra el texto. Si la principal no existe o no se verifica, el primer candidato
+  verificado **sube a principal** con confianza baja.
+- Con confianza baja se pide la segunda opinión de Fable, que solo agrega un candidato.
+
+**Por qué propuso «Diciembre | 4,080»:**
+- La transcripción de visión del escaneado dice «Consumo total del período [ilegible] kWh», así que el modelo nunca
+  vio 49,350.
+- Las dos lecturas respondieron `encontrado = false`, porque el total era ilegible y sumar los meses está prohibido.
+- Diciembre llegó como candidato «parcial», y el código lo subió a principal.
+- No es una preferencia del modelo por la fila sobre el total: el total no estaba en el texto.
+- No se comprobó si el total se lee en la imagen del PDF.
+
+**`prueba-con-hallazgo.pdf`** (PDF con texto): propuso 49,350 kWh, periodo 2025, página 1, cita «Consumo total del
+periodo49,350 kWh», confianza alta, sin candidatos. Se confirmó así.
+
+**Propuesta** (`sug-num-3`, sin migración):
+1. **Regla del prompt.** Si la solicitud cubre un periodo y el archivo trae un total que lo cubre, ese total es la
+   principal. Las filas parciales (meses, trimestres, plantas) van como candidatos, con su periodo. Una fila parcial
+   nunca es la principal.
+2. **Regla del código.** El esquema agrega `cubre_periodo` (booleano) a cada cifra. Una cifra que no cubre el
+   periodo de la solicitud nunca sube a principal. Si no queda ninguna que lo cubra, la sugerencia es
+   `sin_hallazgo`: la línea de sin hallazgo, el motivo («el total del periodo aparece ilegible»), y las cifras
+   parciales a la vista como referencia, sin prellenar el paso 3.
+3. **Ilegible.** Si la transcripción marca `[ilegible]` en la línea de la cifra pedida, esa página se vuelve a leer
+   con visión a más resolución y enfocada en esa línea; es una llamada más, solo en ese caso. Si sigue ilegible,
+   aplica el punto 2.
+4. **e2e** con los dos textos de prueba: total legible (principal 49,350, con los meses como alternativas) e
+   ilegible (sin hallazgo, con los meses de referencia).
