@@ -1,6 +1,9 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.10 · 13 de octubre de 2026.
+Versión 1.11 · 25 de octubre de 2026.
+
+**Cambios respecto a 1.10** (25 de octubre de 2026, decisión de Esteban):
+- §5: costo y tiempo de referencia de una corrida completa del demo, medidos en el demo v4 (encargo deuda-s2-formato).
 
 **Cambios respecto a 1.9** (13 de octubre de 2026, decisión de Esteban):
 - §5: los marcadores de pendiente se escriben en texto plano en los Excel exportados (o celda vacía en el Formato
@@ -120,8 +123,10 @@ después el código.
   validado, IRStrat, bloque, ids). Ids solo en `fuentes_usadas`. Juicios del emisor en `notas_revision`.
 - Prompt en dos capas: estable (con caché) y volátil. Cambiar la capa estable o el esfuerzo invalida el caché;
   se anota la versión de prompt en cada bloque.
-- Costos: cada generación se registra con tokens y costo. Una corrida completa del demo cuesta ~8 USD; no se
-  regenera el documento entero "para ver".
+- Costos: cada generación se registra con tokens y costo. Referencia vigente de una corrida completa del demo: **11.15
+  USD y 14.7 min para 38 bloques**, más 1.03 USD de la pasada de coherencia (12.18 USD en total), medidos en el demo
+  v4 en `traceline-dev` el 25 de octubre de 2026, con los 8 editoriales; antes se estimaba en ~8 USD. No se regenera el documento entero
+  "para ver".
 - Una regeneración nunca borra una edición humana sin confirmación (A6).
 
 ## 6. Credenciales y secretos

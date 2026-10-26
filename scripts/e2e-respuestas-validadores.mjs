@@ -26,6 +26,8 @@ import {
 } from "../lib/suplemento/respuestas.ts";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
 import { numeracionConsecutiva } from "../lib/suplemento/numeracion.ts";
+import { HECHO_RAZON, hechosPrestados } from "../lib/suplemento/hechos/razones.ts";
+import { validarCobertura } from "../lib/suplemento/hechos/bloque.ts";
 
 const fallas = [];
 const ok = (c, m) => { if (!c) fallas.push(m); console.log(`${c ? "  ✓" : "  ✗"} ${m}`); };
@@ -77,6 +79,38 @@ const num = numeracionConsecutiva([21, 19, 15, 33, 19]);
 ok(num.get(15) === 1 && num.get(19) === 2 && num.get(21) === 3 && num.get(33) === 4, "numeración consecutiva: 15, 19, 21, 33 → 1, 2, 3, 4");
 ok(remision(21, num) === "Ver sección 3 · Riesgos climáticos prioritarios", "la remisión usa la numeración del documento");
 ok(sinRemision("La Compañía revela X. Ver sección 22 · Riesgos climáticos prioritarios.") === "La Compañía revela X.", "la remisión se quita para reutilizar el texto con la numeración vigente");
+
+console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (hechos/razones.ts)");
+{
+  const VIGENTE = "libro-vigente", VIEJO = "libro-viejo";
+  const REQ = ["NIIF S2 16(a)", "NIIF S2 21(a)"];
+  const propio = { id: "p1", clave: "efectos_financieros.ajustes_reconocidos_2025", libro_id: VIGENTE, estado: "vigente", dueno: 10, rango: "validado" };
+  const carta = (id, clave, libro, estado = "vigente") => ({ id, clave, libro_id: libro, estado, dueno: 1, rango: "narrativo" });
+  const esPropio = (h) => h.libro_id === VIGENTE && h.dueno === 10;
+  ok(HECHO_RAZON["NIIF S2 21(a)"].clave.test("emisora.carta_compromiso_transparencia") && HECHO_RAZON["NIIF S2 21(a)"].clave.test("emisora.compromiso_transparencia_limitaciones") && !HECHO_RAZON["NIIF S2 21(a)"].clave.test("emisora.carta_avances_2025"), "la clave cubre las dos variantes de los libros (14/10 y 8–11/10) y nada más");
+  const ambos = hechosPrestados(REQ, [propio, carta("v1", "emisora.carta_compromiso_transparencia", VIGENTE), carta("o1", "emisora.carta_compromiso_transparencia", VIEJO)], VIGENTE, esPropio);
+  ok(ambos.length === 1 && ambos[0].id === "v1", "con el hecho en dos libros: uno solo, del libro vigente primero");
+  const variantes = hechosPrestados(REQ, [propio, carta("v1", "emisora.carta_compromiso_transparencia", VIGENTE), carta("o1", "emisora.compromiso_transparencia_limitaciones", VIEJO)], VIGENTE, esPropio);
+  ok(variantes.length === 1 && variantes[0].id === "v1", "con las dos variantes de clave en dos libros: un solo hecho por requisito, el del libro vigente");
+  const soloViejo = hechosPrestados(REQ, [propio, carta("o1", "emisora.compromiso_transparencia_limitaciones", VIEJO)], VIGENTE, esPropio);
+  ok(soloViejo.length === 1 && soloViejo[0].libro_id === VIEJO, "si el libro vigente no lo tiene, se toma de otro libro del documento, con su libro de origen");
+  ok(hechosPrestados(["NIIF S2 16(a)"], [carta("v1", "emisora.carta_compromiso_transparencia", VIGENTE)], VIGENTE, esPropio).length === 0, "un bloque sin requisitos con razón no toma nada prestado");
+  ok(hechosPrestados(REQ, [carta("v1", "emisora.carta_compromiso_transparencia", VIGENTE, "descartado")], VIGENTE, esPropio).length === 0, "un hecho descartado no se presta");
+  ok(hechosPrestados(REQ, [{ ...carta("v1", "emisora.carta_compromiso_transparencia", VIGENTE), dueno: 10 }], VIGENTE, esPropio).length === 0, "si el bloque ya es dueño del hecho, no se duplica");
+
+  // Cobertura del bloque 10 (validador del generador): los ids que entrega el insumo son los propios y los prestados.
+  const TEXTO = "La Compañía no identificó efectos que requirieran reconocer ajustes; la cuantificación de los efectos financieros previstos se completará en los próximos periodos.";
+  const cob = (estado, hechos) => [{ codigo: "NIIF S2 16(a)", estado: "cubierto", bloque: 10, hechos: ["h1"], comentario: "" }, { codigo: "NIIF S2 21(a)", estado, bloque: 10, hechos, comentario: "" }];
+  const conHecho = ["h1", ...ambos.map((_, i) => `h${i + 2}`)];
+  const rango = new Map([["h1", "validado"], ["h2", "narrativo"]]);
+  ok(validarCobertura(cob("cubierto", ["h1", "h2"]), REQ, 10, new Set(conHecho), null, TEXTO, rango).length === 0, "CON hecho: 21(a) «cubierto» con el hecho propio y el prestado, sin marcador de pendiente");
+  const sinHecho = hechosPrestados(REQ, [propio], VIGENTE, esPropio);
+  const idsSin = new Set(["h1", ...sinHecho.map((_, i) => `h${i + 2}`)]);
+  ok(sinHecho.length === 0 && validarCobertura(cob("cubierto", ["h1", "h2"]), REQ, 10, idsSin, null, TEXTO, rango).some((e) => /h2/.test(e)), "SIN hecho: no se presta nada y «cubierto» citando la razón falla");
+  ok(validarCobertura(cob("pendiente", []), REQ, 10, idsSin, null, TEXTO, rango).some((e) => /marcador/.test(e)), "SIN hecho: «pendiente» exige el marcador en el texto");
+  ok(validarCobertura(cob("pendiente", []), REQ, 10, idsSin, null, `${TEXTO} [Pendiente: explicación de por qué no se cuantifican los efectos previstos — Efectos financieros, campo explicación]`, rango).length === 0, "SIN hecho: 21(a) «pendiente» con su marcador es válido");
+  ok(validarCobertura(cob("cubierto", ["h2"]), REQ, 10, new Set(conHecho), null, TEXTO, rango).some((e) => /narrativos/.test(e)), "el hecho prestado (narrativo) no sostiene 21(a) solo: va con uno propio de otro rango");
+}
 
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);
