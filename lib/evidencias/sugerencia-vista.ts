@@ -40,6 +40,8 @@ export type LecturaVista = {
   nota?: string | null;
   conversion: ConversionVista | null;
   origen?: "principal" | "candidato" | "segunda_opinion";
+  /** sug-num-3: false en una cifra parcial (un mes, una planta). Las anteriores no lo traen. */
+  cubre_periodo?: boolean;
 };
 
 export type SugerenciaVista = {

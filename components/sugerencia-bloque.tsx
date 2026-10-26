@@ -7,6 +7,10 @@ import { useToast } from "@/components/ui/toast";
 import { decidirSugerencia, type DecisionState } from "@/lib/evidencias/acciones-sugerencia";
 import type { BloqueSugerencia, FuenteVista, LecturaVista } from "@/lib/evidencias/sugerencia-vista";
 import type { Tono } from "@/lib/estados";
+import { LINEA_SIN_TOTAL } from "@/lib/evidencias/lineas";
+// Hora de México en el servidor y en el navegador: con la zona del navegador, la
+// fecha de la decisión no hidrataba igual en Heroku (UTC).
+import { fmtFechaHora } from "@/lib/fechas";
 
 // =============================================================================
 // BLOQUE «VALOR SUGERIDO» / «EXTRACTO SUGERIDO» — captura sugerida, Paso 4.
@@ -16,6 +20,7 @@ import type { Tono } from "@/lib/estados";
 // fuente como enlace que abre la evidencia en su página (o dice hoja y celda),
 // la conversión con su factor y los candidatos desplegables. Con
 // `sin_hallazgo` dice que la evidencia no trae la cifra o no cubre el requisito.
+// Ya decidida, va plegada en una línea secundaria (SugerenciaDecidida).
 //
 // Los botones solo aparecen si `puedeDecidir` (la regla de la base: quien
 // captura decide; el auditor nunca). Aunque alguien forzara el formulario, la
@@ -23,7 +28,6 @@ import type { Tono } from "@/lib/estados";
 // =============================================================================
 
 const fmt = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 6 });
-const fmtFecha = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const CONFIANZA: Record<"alta" | "media" | "baja", { texto: string; tono: Tono }> = {
   alta: { texto: "Confianza alta", tono: "verde" },
@@ -67,13 +71,88 @@ function mostrada(l: LecturaVista): { valor: number; unidad: string } {
   return l.conversion ? { valor: l.conversion.valor, unidad: l.conversion.unidad } : { valor: l.valor, unidad: l.unidad };
 }
 
-export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugerencia; solicitudId: string }) {
+/**
+ * Una sugerencia ya decidida va plegada y en secundario: la cifra que cuenta es la
+ * vigente del historial, no la que propuso la plataforma (prueba de Esteban en
+ * traceline-dev, 26/10). «Sugerencia corregida: 4,080 → 546 kWh».
+ */
+function SugerenciaDecidida({ s }: { s: NonNullable<BloqueSugerencia["sugerencia"]> }) {
+  const d = s.decision!;
+  const p = s.principal ? mostrada(s.principal) : null;
+  const propuesta = p ? `${fmt.format(p.valor)} ${p.unidad}` : null;
+  const resumen =
+    s.tipo === "texto"
+      ? s.estado === "confirmada" ? "Extracto sugerido confirmado" : s.estado === "corregida" ? "Extracto sugerido corregido" : "Extracto sugerido rechazado"
+      : s.estado === "confirmada"
+        ? `Sugerencia confirmada${propuesta ? `: ${propuesta}` : ""}`
+        : s.estado === "corregida"
+          ? `Sugerencia corregida${p && d.valorFinal !== null ? `: ${fmt.format(p.valor)} → ${fmt.format(d.valorFinal)} ${d.unidadFinal ?? p.unidad}` : ""}`
+          : `Sugerencia rechazada${propuesta ? `: ${propuesta}` : ""}`;
+  return (
+    <details className="group rounded-xl border border-line bg-surface px-3.5 py-2 text-xs text-muted" data-testid="sugerencia-decidida">
+      <summary className="cursor-pointer select-none">{resumen}</summary>
+      <div className="mt-2 space-y-1 leading-relaxed">
+        {s.principal ? (
+          <p>
+            Propuesta de la plataforma sobre la versión {s.evidenciaVersion}
+            {s.principal.periodo ? `, periodo ${s.principal.periodo}` : ""}. Fuente:{" "}
+            <Fuente evidenciaId={s.evidenciaId} fuente={s.principal.fuente} />
+            {s.principal.cita ? <> · «{s.principal.cita}»</> : null}
+          </p>
+        ) : null}
+        <p>
+          {s.estado === "confirmada" ? "Confirmada" : s.estado === "corregida" ? "Corregida" : "Rechazada"}
+          {d.quien ? ` por ${d.quien}` : ""} el {fmtFechaHora(d.cuando)}
+          {d.motivoRechazo ? ` · motivo: ${d.motivoRechazo}` : ""}
+        </p>
+      </div>
+    </details>
+  );
+}
+
+/**
+ * «Sin hallazgo» con cifras parciales (sug-num-3): el archivo no trae una cifra que
+ * cubra el periodo, pero sí partes (meses, plantas). Van como referencia, sin
+ * botón para usarlas ni prellenar nada: sumarlas o elegir una es decisión de quien
+ * reporta.
+ */
+export function ReferenciasParciales({ s }: { s: NonNullable<BloqueSugerencia["sugerencia"]> }) {
+  if (s.estado !== "sin_hallazgo" || !s.candidatos.length) return null;
+  return (
+    <details className="rounded-xl border border-line bg-surface px-3.5 py-2.5" data-testid="referencias-parciales">
+      <summary className="cursor-pointer text-sm font-medium text-ink">
+        Cifras parciales del archivo, como referencia ({s.candidatos.length})
+      </summary>
+      <ul className="mt-2 space-y-1.5">
+        {s.candidatos.map((c, i) => (
+          <li key={i} className="text-sm text-ink">
+            <span className="font-semibold tabular-nums">{fmt.format(mostrada(c).valor)}</span> {mostrada(c).unidad}
+            {c.periodo ? <span className="text-muted"> · {c.periodo}</span> : null}
+            <span className="text-muted"> · </span>
+            <Fuente evidenciaId={s.evidenciaId} fuente={c.fuente} />
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+export function SugerenciaBloque({
+  bloque,
+  solicitudId,
+  periodoSolicitud = null,
+}: {
+  bloque: BloqueSugerencia;
+  solicitudId: string;
+  /** El periodo que pide la solicitud (el ejercicio del reporte). Corregir lo propone por defecto. */
+  periodoSolicitud?: string | null;
+}) {
   const s = bloque.sugerencia;
   const toast = useToast();
   const [estado, accion, pendiente] = useActionState(decidirSugerencia, inicial);
   const [modo, setModo] = useState<null | "corregir" | "rechazar">(null);
-  const [precarga, setPrecarga] = useState<{ valor: string; unidad: string; periodo: string; extracto: string }>({
-    valor: "", unidad: "", periodo: "", extracto: "",
+  const [precarga, setPrecarga] = useState<{ valor: string; unidad: string; periodo: string; periodoArchivo: string; parcial: boolean; extracto: string }>({
+    valor: "", unidad: "", periodo: "", periodoArchivo: "", parcial: false, extracto: "",
   });
 
   // Cada resultado se anuncia una sola vez, aunque el componente se vuelva a pintar.
@@ -90,16 +169,28 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
   }, [estado, toast]);
 
   if (!s) return null;
+  if (s.decision && s.estado !== "sugerida") return <SugerenciaDecidida s={s} />;
   const esTexto = s.tipo === "texto";
   const titulo = esTexto ? "Extracto sugerido" : "Valor sugerido";
   const decidible = bloque.puedeDecidir && s.estado === "sugerida";
 
   const abrirCorreccion = (l: LecturaVista | null) => {
     if (esTexto) {
-      setPrecarga({ valor: "", unidad: "", periodo: "", extracto: s.extracto ?? "" });
+      setPrecarga({ valor: "", unidad: "", periodo: "", periodoArchivo: "", parcial: false, extracto: s.extracto ?? "" });
     } else if (l) {
       const m = mostrada(l);
-      setPrecarga({ valor: String(m.valor), unidad: m.unidad, periodo: l.periodo ?? "", extracto: "" });
+      // El periodo se propone igual al de la solicitud; el de la cifra del archivo
+      // se muestra al lado y nunca se hereda sin verse.
+      // Una parcial (un mes, una planta) se usa con SU periodo, y se dice cuál pide la solicitud.
+      const parcial = l.cubre_periodo === false && Boolean(l.periodo);
+      setPrecarga({
+        valor: String(m.valor),
+        unidad: m.unidad,
+        periodo: parcial ? l.periodo ?? "" : periodoSolicitud || l.periodo || "",
+        periodoArchivo: l.periodo ?? "",
+        parcial,
+        extracto: "",
+      });
     }
     setModo("corregir");
   };
@@ -129,12 +220,20 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
       {/* ---------- Sin hallazgo ---------- */}
       {s.estado === "sin_hallazgo" ? (
         <div className="mt-3 space-y-1.5">
-          <p className="text-sm font-medium text-ink">
-            {esTexto ? "Esta evidencia no cubre el requisito." : "No se encontró la cifra en esta evidencia."}
-          </p>
-          {/* La línea de qué falta y, aparte, lo que la evidencia sí trae. */}
-          {s.cobertura ? <p className="text-sm text-ink">{s.cobertura}</p> : null}
-          {s.motivo ? <p className="text-xs leading-relaxed text-muted">{s.motivo}</p> : null}
+          {!esTexto && s.candidatos.length ? (
+            // sug-num-3: sin total, con parciales de referencia. La línea aprobada, sin el motivo del modelo.
+            <p className="text-sm font-medium text-ink">{LINEA_SIN_TOTAL}</p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-ink">
+                {esTexto ? "Esta evidencia no cubre el requisito." : "No se encontró la cifra en esta evidencia."}
+              </p>
+              {/* La línea de qué falta y, aparte, lo que la evidencia sí trae. */}
+              {s.cobertura ? <p className="text-sm text-ink">{s.cobertura}</p> : null}
+              {s.motivo ? <p className="text-xs leading-relaxed text-muted">{s.motivo}</p> : null}
+            </>
+          )}
+          <ReferenciasParciales s={s} />
         </div>
       ) : null}
 
@@ -171,6 +270,7 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
                     <span className="text-ink">
                       <span className="font-semibold tabular-nums">{fmt.format(mostrada(c).valor)}</span> {mostrada(c).unidad}
                       {c.periodo ? <span className="text-muted"> · {c.periodo}</span> : null}
+                      {c.cubre_periodo === false ? <span className="text-muted"> (parcial)</span> : null}
                       {c.conversion ? (
                         <span className="text-muted"> (documento: {fmt.format(c.valor)} {c.unidad})</span>
                       ) : null}
@@ -208,19 +308,6 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
           ))}
           {s.cobertura ? <p className="text-sm text-muted">{s.cobertura}</p> : null}
         </div>
-      ) : null}
-
-      {/* ---------- Decisión tomada ---------- */}
-      {s.decision ? (
-        <p className="mt-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink">
-          {s.estado === "confirmada" ? "Confirmada" : s.estado === "corregida" ? "Corregida" : "Rechazada"}
-          {s.decision.quien ? ` por ${s.decision.quien}` : ""} el {fmtFecha.format(new Date(s.decision.cuando))}
-          {s.estado === "corregida" && s.decision.valorFinal !== null
-            ? ` · quedó ${fmt.format(s.decision.valorFinal)} ${s.decision.unidadFinal ?? ""}`
-            : ""}
-          {s.estado === "corregida" && s.decision.extractoFinal ? " · con el texto corregido" : ""}
-          {s.decision.motivoRechazo ? ` · motivo: ${s.decision.motivoRechazo}` : ""}
-        </p>
       ) : null}
 
       {/* ---------- Botones (solo quien decide) ---------- */}
@@ -287,6 +374,16 @@ export function SugerenciaBloque({ bloque, solicitudId }: { bloque: BloqueSugere
                       key={`p-${precarga.periodo}`}
                       className="mt-1 h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-teal/40"
                     />
+                    {precarga.parcial ? (
+                      <span className="mt-1 block text-xs text-ambar" data-testid="periodo-archivo">
+                        Esta cifra cubre {precarga.periodoArchivo}
+                        {periodoSolicitud ? <>; la solicitud pide {periodoSolicitud}</> : null}.
+                      </span>
+                    ) : precarga.periodoArchivo && precarga.periodoArchivo !== precarga.periodo ? (
+                      <span className="mt-1 block text-xs text-ambar" data-testid="periodo-archivo">
+                        La cifra del archivo es de {precarga.periodoArchivo}.
+                      </span>
+                    ) : null}
                   </label>
                 </div>
               )}

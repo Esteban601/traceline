@@ -140,34 +140,9 @@ export async function subirEvidencia(
   // el cron /api/evidencias/procesar.
   after(() => procesarLecturaDeEvidencia(ev.id).then(() => undefined));
 
-  // Captura de valor (solo si la solicitud es cuantitativa y se proporcionó valor).
-  if (sol.es_cuantitativa) {
-    const valorRaw = String(formData.get("valor") ?? "").trim();
-    if (valorRaw !== "") {
-      const valor = Number(valorRaw.replace(/,/g, ""));
-      const unidad = String(formData.get("unidad") ?? "").trim();
-      const periodoCaptura = String(formData.get("periodo_captura") ?? "").trim();
-      if (Number.isFinite(valor) && unidad) {
-        const { error: capErr } = await supabase.from("capturas_valor").insert({
-          solicitud_id: solicitudId,
-          evidencia_id: ev.id,
-          valor,
-          unidad,
-          periodo: periodoCaptura || null,
-          capturado_por: perfil.id,
-          confirmado: true,
-          justificacion: justificacionFinal,
-        });
-        if (capErr) {
-          return {
-            ok: true,
-            version: ev.version,
-            error: `Evidencia v${ev.version} registrada, pero la captura de valor falló: ${capErr.message}`,
-          };
-        }
-      }
-    }
-  }
+  // La cifra ya no viaja con el archivo (encargo carga-lectura-primero): va después,
+  // en el paso 3, confirmando la que leyó la plataforma (fn_decidir_sugerencia) o
+  // escribiéndola (capturarCifra, lib/evidencias/acciones-lectura.ts).
 
   revalidatePath(`/portal/solicitudes/${solicitudId}`);
   revalidatePath("/portal");

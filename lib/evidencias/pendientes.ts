@@ -2,6 +2,7 @@ import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import type { IdentidadRol } from "@/lib/roles";
 import { esAuditor, esStaffRol } from "@/lib/roles";
+import { evidenciasConCifra } from "@/lib/evidencias/con-cifra";
 
 // =============================================================================
 // SUGERENCIAS PENDIENTES DE DECISIÓN — captura sugerida, Paso 4.
@@ -16,14 +17,18 @@ import { esAuditor, esStaffRol } from "@/lib/roles";
 //     mostrárselo se leería como una presión (mismo criterio que los
 //     comentarios sin responder).
 // `sin_hallazgo` no cuenta: no hay nada que decidir.
+// Tampoco la sugerencia de una evidencia que ya tiene cifra confirmada (encargo
+// carga-lectura-primero): la cifra ya entró.
 // =============================================================================
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
 export async function pendientesDeDecision(db: Db, perfil: IdentidadRol): Promise<Set<string>> {
   if (esAuditor(perfil)) return new Set();
-  const { data } = await db.from("sugerencias_captura").select("solicitud_id, tenant_id").eq("estado", "sugerida");
+  const { data } = await db.from("sugerencias_captura").select("solicitud_id, tenant_id, evidencia_id").eq("estado", "sugerida");
   let filas = data ?? [];
+  const conCifra = await evidenciasConCifra(db, filas.map((f) => f.evidencia_id));
+  filas = filas.filter((f) => !conCifra.has(f.evidencia_id));
   if (esStaffRol(perfil) && filas.length) {
     const { data: tenants } = await db.from("tenants").select("id").eq("staff_puede_cargar", true);
     const conCarga = new Set((tenants ?? []).map((t) => t.id));
