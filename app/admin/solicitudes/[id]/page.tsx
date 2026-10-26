@@ -632,7 +632,7 @@ export default async function SolicitudStaffPage({
         <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0 space-y-4">
             {contexto}
-            {cifraPendiente ? null : <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />}
+            {cifraPendiente ? null : <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} periodoSolicitud={reporte?.ejercicio != null ? String(reporte.ejercicio) : null} />}
             {/* Carga de evidencia desde el panel. Para el administrador del
                 cliente siempre está; para el staff, solo si el cliente tiene el
                 toggle encendido — apagado se muestra en gris y bloqueada. */}
@@ -730,7 +730,7 @@ export default async function SolicitudStaffPage({
                       botones (puedeDecidir es false para él). */}
                   {soyAuditor && i === 0 && bloqueSugerencia.sugerencia ? (
                     <div className="mt-4">
-                      <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} />
+                      <SugerenciaBloque bloque={bloqueSugerencia} solicitudId={sol.id} periodoSolicitud={reporte?.ejercicio != null ? String(reporte.ejercicio) : null} />
                     </div>
                   ) : null}
                 </li>

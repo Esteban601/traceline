@@ -1078,8 +1078,8 @@ async function main() {
     // La cifra viaja pegada a esa evidencia: si la carga fue de IRStrat, la
     // capturó IRStrat. «Reportaste» ahí es la misma falsedad, una línea abajo.
     ok(
-      (await areaUI.page.getByText("Cifra registrada:").count()) > 0 &&
-        (await areaUI.page.getByText("Reportaste:").count()) === 0,
+      (await areaUI.page.getByText("Cifra registrada", { exact: true }).count()) > 0 &&
+        (await areaUI.page.getByText("Reportaste", { exact: true }).count()) === 0,
       "la cifra de una carga de IRStrat no se le atribuye al cliente («Cifra registrada», no «Reportaste»)"
     );
 

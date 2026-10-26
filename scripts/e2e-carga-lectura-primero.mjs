@@ -13,7 +13,10 @@
 //
 //   1. Con hallazgo: «Leyendo…», la pantalla sondea, aparece el paso 3 con
 //      cifra, unidad, periodo, fuente y cita, y Confirmar crea la captura.
-//   2. Con hallazgo: Corregir crea la captura con el valor corregido.
+//   2. Con hallazgo: Corregir propone el periodo de la solicitud (no el de una
+//      fila mensual), crea la captura con el valor corregido, y el historial
+//      pone la cifra vigente grande y la sugerencia plegada.
+//   Confirmar y Corregir refrescan la pantalla sin recarga manual.
 //   3. Sin hallazgo: su línea y el paso 3 manual, que guarda la cifra.
 //   4. Lectura apagada (bandera del tenant): su línea y el paso 3 manual.
 //   5. Tope mensual: su línea.
@@ -125,6 +128,19 @@ async function guardarManual(p, valor) {
   await p.waitForTimeout(1500);
 }
 const linea = async (p) => ((await p.locator('[data-testid="paso3-linea"]').count()) ? (await p.locator('[data-testid="paso3-linea"]').innerText()) : "");
+/** Espera (sin recargar) a que el paso 3 deje de estar en pantalla. */
+async function sinPaso3(p, ms = 15000) {
+  const fin = Date.now() + ms;
+  while (Date.now() < fin) { if ((await paso3(p).count()) === 0) return true; await p.waitForTimeout(300); }
+  return false;
+}
+/** Espera (sin recargar) a que el valor vigente del historial coincida. */
+async function vigenteEs(p, re, ms = 15000) {
+  const v = p.locator('[data-testid="cifra-vigente"]');
+  const fin = Date.now() + ms;
+  while (Date.now() < fin) { if ((await v.count()) && re.test((await v.first().innerText()).replace(/\s+/g, " "))) return true; await p.waitForTimeout(300); }
+  return false;
+}
 async function avisoDecision(p) {
   await abrir(p, "/portal");
   const t = (await p.locator("body").innerText()).replace(/\s+/g, " ");
@@ -155,6 +171,8 @@ try {
   await op.waitForTimeout(1500);
   const c1 = await capturas(e1.id);
   ok(c1.length === 1 && c1[0].origen === "sugerida" && Number(c1[0].valor) === 376300 && c1[0].confirmado, "Confirmar crea UNA captura confirmada con origen «sugerida»");
+  ok(await sinPaso3(op), "sin recargar, el paso 3 desaparece al confirmar");
+  ok(await vigenteEs(op, /376,300\s*kWh/), "y el historial muestra la cifra vigente sin recargar");
   await abrir(op, `/portal/solicitudes/${s1}`);
   ok((await paso3(op).count()) === 0, "con la cifra confirmada, el paso 3 ya no aparece");
 
@@ -163,16 +181,24 @@ try {
   const s2 = await solicitud("Consumo de electricidad 2025 (e2e corregir)");
   const e2 = await evidencia(s2);
   await lectura(e2, { estado: "extraido", contenido: { hojas: [] } });
-  await sugerencia(s2, e2, NUM);
+  // Una fila mensual: el periodo de la sugerencia no es el de la solicitud.
+  await sugerencia(s2, e2, { ...NUM, periodo: "diciembre 2025", confianza: "baja" });
   await abrir(op, `/portal/solicitudes/${s2}`);
   ok((await fase(op)) === "sugerida", "una evidencia ya leída abre directo en el paso 3 prellenado");
   await paso3(op).getByRole("button", { name: "Corregir" }).click();
+  ok((await paso3(op).locator('input[name="periodo"]').inputValue()) === "2025", "Corregir propone el periodo de la solicitud (2025), no el de la sugerencia");
+  ok(/diciembre 2025/.test(await paso3(op).locator('[data-testid="periodo-archivo"]').innerText().catch(() => "")), "y muestra el periodo de la cifra del archivo");
   await paso3(op).locator('input[name="valor"]').fill("376400");
   await paso3(op).getByRole("button", { name: "Guardar corrección" }).click();
   await op.getByText(/Sugerencia corregida/).first().waitFor({ timeout: 20000 }).catch(() => {});
   await op.waitForTimeout(1500);
   const c2 = await capturas(e2.id);
   ok(c2.length === 1 && Number(c2[0].valor) === 376400 && c2[0].origen === "sugerida", "Corregir crea la captura con el valor corregido");
+  ok(await sinPaso3(op), "sin recargar, el paso 3 desaparece al corregir");
+  ok(await vigenteEs(op, /376,400\s*kWh · periodo 2025/), "y el historial muestra la cifra corregida como vigente, con periodo 2025, sin recargar");
+  const plegada = op.locator('[data-testid="sugerencia-decidida"]');
+  ok((await plegada.count()) === 1 && !(await plegada.getAttribute("open")) && /Sugerencia corregida: 376,300 → 376,400 kWh/.test(await plegada.locator("summary").innerText()), "la sugerencia corregida va plegada: «Sugerencia corregida: 376,300 → 376,400 kWh»");
+  ok(c2[0]?.periodo === "2025", "la captura corregida queda con periodo 2025");
 
   // 3. Sin hallazgo.
   console.log("3. Sin hallazgo");
@@ -181,7 +207,7 @@ try {
   await lectura(e3, { estado: "extraido", contenido: { hojas: [] } });
   await sugerencia(s3, e3, { tipo: "numerica", estado: "sin_hallazgo", valor: null, unidad: null, confianza: null, motivo: "El archivo trae el consumo de gas, no el de electricidad." });
   await abrir(op, `/portal/solicitudes/${s3}`);
-  ok((await fase(op)) === "sin_hallazgo" && /No encontramos la cifra/.test(await linea(op)), "sin hallazgo: su línea, con el motivo");
+  ok((await fase(op)) === "sin_hallazgo" && /^No encontramos una cifra en kWh en este archivo\. Puedes escribir la cifra aquí\./.test(await linea(op)), "sin hallazgo: su línea, con la unidad de la solicitud");
   ok(/consumo de gas/.test(await linea(op)), "la línea dice qué trae el archivo");
   await guardarManual(op, 376300);
   const c3 = await capturas(e3.id);

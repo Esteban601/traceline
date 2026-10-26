@@ -203,6 +203,7 @@ export function UploadEvidencia({
           nombreArchivo={cifraPendiente.nombreArchivo}
           unidadEsperada={unidadEsperada}
           periodoArchivo={cifraPendiente.periodo}
+          periodoSolicitud={periodoDefault || null}
           estadoInicial={cifraPendiente.estado}
         />
         <div className="flex gap-4">
