@@ -7,34 +7,34 @@
   },
   "filas": 370,
   "porClasificacion": {
-   "encabezado": 45,
-   "concepto": 256,
-   "subconcepto": 57,
+   "encabezado": 44,
+   "concepto": 265,
+   "subconcepto": 51,
    "encabezado narrativo": 7,
    "fuera de alcance (SASB, Fase C)": 2,
-   "miembro de tabla": 3
+   "miembro de tabla": 1
   },
   "porCapa": {
-   "—": 50,
+   "—": 47,
    "regla fija": 11,
-   "Perfil": 20,
+   "Perfil": 23,
    "3 · revisión (S1→S2)": 46,
    "3 · revisión": 11,
-   "1 · fuente": 164,
+   "1 · fuente": 158,
+   "3 · revisión (regla)": 10,
    "3 · revisión (tabla)": 9,
    "1 · correspondencia S1→S2": 17,
-   "3 · revisión (regla)": 5,
-   "regla primer año": 8,
-   "2 · etiqueta": 23,
-   "sin candidato": 6
+   "regla primer año": 10,
+   "2 · etiqueta": 21,
+   "sin candidato": 7
   },
   "porConfianza": {
    "—": 57,
    "alta": 311,
    "media": 2
   },
-  "conDatapoint": 258,
-  "conBloque": 264,
+  "conDatapoint": 256,
+  "conBloque": 262,
   "conAlivioE5": 91,
   "revision": {
    "archivo": "mapeo-revision.xlsx",
@@ -653,13 +653,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 44",
-   "capa": "1 · fuente",
+   "clasificacion": "concepto",
+   "capa": "3 · revisión (regla)",
    "datapoint": "NIIF S2 6(b)(i)",
    "confianza": "alta",
    "bloque": 17,
-   "regla": "Se responde junto con la fila 44 (booleano)",
-   "alivioE5": true
+   "regla": "Si el booleano de la fila 44 es «No», la explicación de su respuesta propia (fila:44) sin el «No.» inicial; si es «Sí», vacía",
+   "alivioE5": true,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: «¿Por qué?» del booleano de la fila 44: era subconcepto y quedaba vacía (K45/K697/K705)"
   },
   {
    "fila": 47,
@@ -1873,13 +1874,14 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "1 · fuente",
+   "capa": "3 · revisión (regla)",
    "datapoint": "NIIF S2 22(b)(iii)",
    "confianza": "alta",
    "bloque": 26,
-   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(iii)",
+   "regla": "Fecha de inicio del ejercicio (dd/mm/aaaa) si la respuesta de NIIF S2 22(b)(iii) sitúa el análisis en el ejercicio del reporte; si no, pendiente (D5)",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: fecha de inicio del periodo del análisis de escenarios (K117): una fecha, no una oración (D5)"
   },
   {
    "fila": 119,
@@ -1891,13 +1893,14 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "1 · fuente",
+   "capa": "3 · revisión (regla)",
    "datapoint": "NIIF S2 22(b)(iii)",
    "confianza": "alta",
    "bloque": 26,
-   "regla": "Modelo, desde el bloque 26 aprobado y los hechos de NIIF S2 22(b)(iii)",
+   "regla": "Fecha de fin del ejercicio (dd/mm/aaaa) si la respuesta de NIIF S2 22(b)(iii) sitúa el análisis en el ejercicio del reporte; si no, pendiente (D5)",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: fecha de fin del periodo del análisis de escenarios (K119): una fecha, no una oración (D5)"
   },
   {
    "fila": 121,
@@ -5413,12 +5416,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (b) · B65 (c)",
    "confianza": "alta",
    "bloque": 34,
-   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (b)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 356,
@@ -5434,12 +5438,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (b) · B65 (c)",
    "confianza": "alta",
    "bloque": 34,
-   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (b)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 358,
@@ -5455,12 +5460,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (b) · B65 (c)",
    "confianza": "alta",
    "bloque": 34,
-   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (b)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 360,
@@ -5476,12 +5482,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (b) · B65 (c)",
    "confianza": "alta",
    "bloque": 34,
-   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (b)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 361,
@@ -5497,12 +5504,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (b) · B65 (c)",
    "confianza": "alta",
    "bloque": 34,
-   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (b)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 363,
@@ -5554,13 +5562,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 364",
+   "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 B65 inciso (e)",
    "confianza": "alta",
-   "bloque": 34,
-   "regla": "Se responde junto con la fila 364 (enumeración valor unico)",
-   "alivioE5": false
+   "bloque": 10,
+   "regla": "Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 B65 inciso (e)",
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(e), conexiones con los estados financieros (K644): concepto con dueño el bloque 10, no subconcepto de la enumeración"
   },
   {
    "fila": 367,
@@ -5727,12 +5736,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 29 (c) · B65 (c)",
    "confianza": "alta",
    "bloque": 35,
-   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (c)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 379,
@@ -5747,12 +5757,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 29 (c) · B65 (c)",
    "confianza": "alta",
    "bloque": 35,
-   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (c)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 381,
@@ -5767,12 +5778,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 29 (c) · B65 (c)",
    "confianza": "alta",
    "bloque": 35,
-   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (c)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 383,
@@ -5787,12 +5799,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 29 (c) · B65 (c)",
    "confianza": "alta",
    "bloque": 35,
-   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (c)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 384,
@@ -5807,12 +5820,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 29 (c) · B65 (c)",
    "confianza": "alta",
    "bloque": 35,
-   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (c)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 386,
@@ -5864,13 +5878,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 387",
+   "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 B65 inciso (e)",
    "confianza": "alta",
-   "bloque": 35,
-   "regla": "Se responde junto con la fila 387 (enumeración valor unico)",
-   "alivioE5": false
+   "bloque": 10,
+   "regla": "Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 B65 inciso (e)",
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(e), conexiones con los estados financieros (K667): concepto con dueño el bloque 10, no subconcepto de la enumeración"
   },
   {
    "fila": 390,
@@ -6036,12 +6051,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 29 (d) · B65 (c)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (d)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 402,
@@ -6056,12 +6072,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 29 (d) · B65 (c)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (d)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 404,
@@ -6076,12 +6093,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 29 (d) · B65 (c)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (d)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 406,
@@ -6096,12 +6114,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 29 (d) · B65 (c)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (d)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 407,
@@ -6116,12 +6135,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 29 (d) · B65 (c)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (c); el reparto por celda (situación, rendimiento, flujos, previstos, ajuste material) es de la Fase 3",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(c), efectos financieros por tipo (NIIF S2 29 (d)): al código de B65(c), no al padre (repetía la exposición)"
   },
   {
    "fila": 409,
@@ -6173,13 +6193,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 410",
+   "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 B65 inciso (e)",
    "confianza": "alta",
-   "bloque": 36,
-   "regla": "Se responde junto con la fila 410 (enumeración valor unico)",
-   "alivioE5": false
+   "bloque": 10,
+   "regla": "Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 B65 inciso (e)",
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: B65(e), conexiones con los estados financieros (K690): concepto con dueño el bloque 10, no subconcepto de la enumeración"
   },
   {
    "fila": 413,
@@ -6258,13 +6279,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 417",
-   "capa": "1 · fuente",
+   "clasificacion": "concepto",
+   "capa": "3 · revisión (regla)",
    "datapoint": "NIIF S2 29 (f) (i) y (ii)",
    "confianza": "alta",
    "bloque": 37,
-   "regla": "Se responde junto con la fila 417 (booleano)",
-   "alivioE5": false
+   "regla": "Si el booleano de la fila 417 es «No», la explicación de su respuesta propia (fila:417) sin el «No.» inicial; si es «Sí», vacía",
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: «¿Por qué?» del booleano de la fila 417: era subconcepto y quedaba vacía (K45/K697/K705)"
   },
   {
    "fila": 420,
@@ -6280,13 +6302,14 @@
    "datapoint": "NIIF S2 29 (f) (i) y (ii)",
    "confianza": "alta",
    "bloque": 37,
-   "regla": "S2 29(f)(i) · bloque 37, condicionado a 417 = Verdadero; si 417 = No, no se despliega. No es «sin candidato»",
+   "regla": "Modelo, desde el bloque 37 aprobado, SOLO si el booleano de la fila 417 es «Sí»; si es «No», vacía (no se despliega)",
    "nota": "NIIF S2 29(f)(i) → nombre combinado «NIIF S2 29 (f) (i) y (ii)»",
    "alivioE5": false,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "datapoint y bloque"
-   }
+   },
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: «Si ¿Cómo…?» del booleano de la fila 417: solo se despliega con «Sí» (K699/K707 salían con la explicación del «No»)"
   },
   {
    "fila": 421,
@@ -6297,17 +6320,18 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "concepto",
+   "clasificacion": "subconcepto de la fila 420",
    "capa": "3 · revisión",
    "datapoint": "NIIF S2 29 (f) (i) y (ii)",
    "confianza": "alta",
    "bloque": 37,
-   "regla": "S2 29(f)(i) · bloque 37, condicionado a 417 = Verdadero; si 417 = No, no se despliega. No es «sin candidato»",
+   "regla": "Se responde junto con la fila 420 (text block)",
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "datapoint y bloque"
    },
-   "nota": "NIIF S2 29(f)(i) → nombre combinado «NIIF S2 29 (f) (i) y (ii)»"
+   "nota": "NIIF S2 29(f)(i) → nombre combinado «NIIF S2 29 (f) (i) y (ii)»",
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: ejemplo de la pregunta de la fila 420, no un concepto (K700 repetía K699)"
   },
   {
    "fila": 422,
@@ -6374,13 +6398,14 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "subconcepto de la fila 425",
-   "capa": "1 · fuente",
+   "clasificacion": "concepto",
+   "capa": "3 · revisión (regla)",
    "datapoint": "NIIF S2 29 (g) (i) y (ii)",
    "confianza": "alta",
    "bloque": 37,
-   "regla": "Se responde junto con la fila 425 (booleano)",
-   "alivioE5": false
+   "regla": "Si el booleano de la fila 425 es «No», la explicación de su respuesta propia (fila:425) sin el «No.» inicial; si es «Sí», vacía",
+   "alivioE5": false,
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: «¿Por qué?» del booleano de la fila 425: era subconcepto y quedaba vacía (K45/K697/K705)"
   },
   {
    "fila": 428,
@@ -6396,13 +6421,14 @@
    "datapoint": "NIIF S2 29 (g) (i) y (ii)",
    "confianza": "alta",
    "bloque": 37,
-   "regla": "S2 29(g)(i) · bloque 37",
+   "regla": "Modelo, desde el bloque 37 aprobado, SOLO si el booleano de la fila 425 es «Sí»; si es «No», vacía (no se despliega)",
    "nota": "NIIF S2 29(g)(i) → nombre combinado «NIIF S2 29 (g) (i) y (ii)»",
    "alivioE5": false,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "datapoint y bloque"
-   }
+   },
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: «Si ¿Cómo…?» del booleano de la fila 425: solo se despliega con «Sí» (K699/K707 salían con la explicación del «No»)"
   },
   {
    "fila": 430,
@@ -6431,18 +6457,19 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "encabezado",
-   "capa": "—",
+   "clasificacion": "concepto",
+   "capa": "sin candidato",
    "datapoint": null,
    "confianza": "—",
    "bloque": null,
-   "regla": "Sin respuesta (encabezado)",
+   "regla": "Con el alivio C4, «No revelado · alivio C4» (regla de la fila 435); sin C4, «Pendiente» hasta ampliar el catálogo",
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "encabezado"
    },
    "alivioE5": false,
-   "nota": null
+   "nota": "NIIF S2 29A no existe en el catálogo · deuda de la modificación de 2025 de NIIF S2 (docs/suplemento-s1s2/ampliacion-catalogo.md)",
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: NIIF S2 29A (K711): concepto, con la regla de 29B (K712–K720)"
   },
   {
    "fila": 433,
@@ -6594,13 +6621,15 @@
    ],
    "lista": false,
    "respondidaEnReferencia": true,
-   "clasificacion": "subconcepto de la fila 443",
-   "capa": "1 · fuente",
+   "clasificacion": "concepto",
+   "capa": "Perfil",
    "datapoint": "NIIF S2 32",
    "confianza": "alta",
    "bloque": 4,
-   "regla": "Se responde junto con la fila 443 (text block)",
-   "alivioE5": false
+   "regla": "«Sí» si metricas_industria es «Sí, totalmente» o «Sí, parcialmente»; vacía si es «No» o no está capturado (D3)",
+   "alivioE5": false,
+   "perfil": "metricas_industria (D3)",
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: ¿considerará las métricas por industria? (K723): su propia pregunta, desde metricas_industria (D3)"
   },
   {
    "fila": 446,
@@ -6944,13 +6973,15 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "capa": "Perfil",
+   "datapoint": null,
    "confianza": "alta",
-   "bloque": 33,
-   "regla": "Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2)",
+   "bloque": null,
+   "regla": "«Banca comercial» si la emisora participa en esa actividad (Perfil); si no, «No aplica por actividad»",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "perfil": "actividades_financieras (selector: Banca comercial)",
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: selector de la sección de banca comercial (K747): la actividad, como la fila 339; el alivio C4 va en las filas de datos"
   },
   {
    "fila": 469,
@@ -7190,14 +7221,15 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "2 · etiqueta",
-   "datapoint": "NIIF S2 29 (a)(vi)(2)",
+   "capa": "Perfil",
+   "datapoint": null,
    "confianza": "alta",
-   "bloque": 33,
-   "regla": "Solo emisoras con seguros (Perfil); si no, «No aplica por actividad». Modelo, desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(2) (entrada de la sección, como la fila 468)",
+   "bloque": null,
+   "regla": "«Seguros» si la emisora participa en esa actividad (Perfil); si no, «No aplica por actividad»",
    "nota": null,
    "alivioE5": false,
-   "correccion": "2026-10-24 · encargo deuda-s2-formato: entrada de la sección de seguros, como la 468 en banca comercial; no NIIF S2 32"
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: selector de la sección de seguros (K767): la actividad, como la fila 339; el alivio C4 va en las filas de datos",
+   "perfil": "actividades_financieras (selector: Seguros)"
   },
   {
    "fila": 489,
@@ -7500,12 +7532,13 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "miembro de tabla",
-   "capa": "—",
+   "clasificacion": "concepto",
+   "capa": "regla primer año",
    "datapoint": null,
    "confianza": "—",
    "bloque": null,
-   "regla": "Miembro del eje de la tabla [901000]: se escribe como columna o fila de la tabla"
+   "regla": "Primer año: «sin mapeo» (no hay importes comparativos que revisar; mismo criterio que la fila 584). Segundo año: desde la revisión de comparativos",
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: NIIF S1 B50 (K861): concepto, no miembro de tabla; el primer año no hay comparativos que revisar, como la fila 584"
   },
   {
    "fila": 584,
@@ -7558,15 +7591,24 @@
    ],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "miembro de tabla",
-   "capa": "—",
+   "clasificacion": "concepto",
+   "capa": "regla primer año",
    "datapoint": null,
    "confianza": "—",
    "bloque": null,
-   "regla": "Miembro del eje de la tabla [901000]: se escribe como columna o fila de la tabla"
+   "regla": "Primer año: «sin mapeo» (no hay importes comparativos que revisar; mismo criterio que la fila 584). Segundo año: desde la revisión de comparativos",
+   "correccion": "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2: NIIF S1 B54 (K866): concepto, no miembro de tabla; el primer año no hay comparativos que revisar, como la fila 584"
   }
  ],
  "sinMapeo": [
+  {
+   "fila": 432,
+   "seccion": "210000",
+   "tipo": "(sin tipo)",
+   "parrafos": [
+    "NIIF S2 29A"
+   ]
+  },
   {
    "fila": 433,
    "seccion": "210000",
@@ -7755,6 +7797,7 @@
    299
   ],
   "NIIF S1 B50": [
+   582,
    584
   ],
   "NIIF S1 B52": [
@@ -7762,6 +7805,9 @@
    188,
    190,
    192
+  ],
+  "NIIF S1 B54": [
+   587
   ],
   "NIIF S1 B58 (a)": [
    295,
@@ -7784,6 +7830,9 @@
   "NIIF S2 15": [
    84,
    91
+  ],
+  "NIIF S2 21": [
+   100
   ],
   "NIIF S2 23": [
    59,
@@ -7812,15 +7861,19 @@
   ],
   "NIIF S2 29 (f)(i)": [
    417,
+   418,
    420,
-   421,
    422
   ],
   "NIIF S2 29 (g)(i)": [
    36,
    425,
+   426,
    428,
    430
+  ],
+  "NIIF S2 29A": [
+   432
   ],
   "NIIF S2 29B (a)": [
    435
@@ -8016,6 +8069,7 @@
    360,
    361,
    364,
+   365,
    370,
    375,
    377,
@@ -8024,6 +8078,7 @@
    383,
    384,
    387,
+   388,
    393,
    398,
    400,
@@ -8031,7 +8086,8 @@
    404,
    406,
    407,
-   410
+   410,
+   411
   ],
   "NIIF S2 B65 (a)": [
    347,
@@ -8064,6 +8120,11 @@
    364,
    387,
    410
+  ],
+  "NIIF S2 B65 (e)": [
+   365,
+   388,
+   411
   ],
   "NIIF S2 B66": [
    217,

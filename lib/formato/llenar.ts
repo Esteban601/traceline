@@ -119,8 +119,14 @@ export const SECCIONES_ACTIVIDAD = [
   { actividad: "Seguros", desde: 487, hasta: 505 },
 ];
 const FILAS_ACTIVIDAD = new Set([339, 340]);
-/** NIIF S2 29B: 433 (¿limitó la categoría 15?), 435 (qué trató como derivado) y 437 (actividades excluidas). Sin código en el catálogo (modificación de 2025). */
-const FILAS_29B = new Set([433, 435, 437]);
+/** NIIF S2 29A y 29B: 432 (limitaciones, 29A), 433 (¿limitó la categoría 15?), 435 (qué trató como derivado) y 437 (actividades excluidas). Sin código en el catálogo (modificación de 2025). */
+const FILAS_29B = new Set([432, 433, 435, 437]);
+/** «¿Por qué?» de un booleano (fila → fila del booleano): la explicación del «No». Fase 2 del encargo formato-afirmaciones-y-voz. */
+const POR_QUE: Record<number, number> = { 45: 44, 418: 417, 426: 425 };
+/** «Si ¿Cómo…?» de un booleano: solo se despliega con «Sí» (filas 420 y 428). */
+const SI_COMO: Record<number, number> = { 420: 417, 428: 425 };
+/** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
+const FECHAS_22B_III: Record<number, "inicio" | "fin"> = { 117: "inicio", 119: "fin" };
 const FILAS_SECTOR = new Set([446, 447]);
 const HORIZONTES = ["Corto plazo", "Mediano plazo", "Largo plazo"];
 const CAMPOS_22B_I = ["Cómo y cuándo se llevó a cabo", "Escenarios usados y sus fuentes", "¿Rango diverso de escenarios?", "Riesgos asociados a los escenarios", "¿Escenario alineado con el último acuerdo internacional?", "Por qué los escenarios son pertinentes", "Horizontes temporales usados", "Alcance de las operaciones cubierto"];
@@ -138,6 +144,19 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   const actividades = d.perfil.actividades_financieras;
 
   for (const c of conceptos) out.set(c.fila, valorDe(c));
+  // Lo que depende del valor de un booleano, ya calculado: el «¿Por qué?» explica el «No» con la respuesta propia del
+  // booleano (sin el «No.» inicial); el «Si ¿Cómo…?» solo se despliega con «Sí».
+  for (const [fila, bool] of Object.entries(POR_QUE).map(([f, b]) => [Number(f), b])) {
+    if (!out.has(fila)) continue;
+    if (out.get(bool)?.texto !== "No") { out.set(fila, { texto: null, origen: "regla", nota: `el booleano de la fila ${bool} no es «No»` }); continue; }
+    const propia = resp("formato", `fila:${bool}`);
+    const c = conceptos.find((x) => x.fila === bool);
+    const t = propia?.texto ? propia.texto.replace(/^No\.\s*/, "").trim() : c?.datapoint ? textoDe(c.datapoint) : null;
+    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `explicación del «No» de la fila ${bool}` } : { texto: null, origen: "pendiente" });
+  }
+  for (const [fila, bool] of Object.entries(SI_COMO).map(([f, b]) => [Number(f), b])) {
+    if (out.has(fila) && out.get(bool)?.texto !== "Sí") out.set(fila, { texto: null, origen: "regla", nota: `no se despliega: el booleano de la fila ${bool} no es «Sí»` });
+  }
   // E5 una vez por encabezado: se queda en la primera celda (por fila) a la que el llenado se la antepuso.
   const vistos = new Set<number>();
   for (const [fila, v] of [...out.entries()].sort((a, b) => a[0] - b[0])) {
@@ -206,6 +225,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const texto = [modelo, lineas.join("\n")].filter(Boolean).join("\n");
       if (!texto) return { texto: null, origen: "pendiente" };
       return { texto: conE5(texto), origen: modelo ? "respuesta" : "datos", nota: lineas.length ? "texto del bloque 13 y registros de clima, campo concentración" : undefined, e5: ponE5(texto) };
+    }
+    // 117 y 119 (D5): fechas del ejercicio, solo si la respuesta de NIIF S2 22(b)(iii) sitúa el análisis en él.
+    if (FECHAS_22B_III[c.fila]) {
+      const t = c.datapoint ? textoDe(c.datapoint) : null;
+      if (!t || !new RegExp(`(?<!\\d)${d.ejercicio}(?!\\d)`).test(t)) return { texto: null, origen: "pendiente", nota: "la respuesta de NIIF S2 22(b)(iii) no sitúa el análisis en el ejercicio" };
+      return { texto: FECHAS_22B_III[c.fila] === "inicio" ? `01/01/${d.ejercicio}` : `31/12/${d.ejercicio}`, origen: "regla", nota: "el análisis se sitúa en el ejercicio del reporte (D5)" };
     }
     // Fila 285: la declaración de cumplimiento, del bloque 2 aprobado (plantilla, sin hechos).
     if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "párrafo del bloque 2 aprobado, tal cual", e5: ponE5(d.declaracion) } : { texto: null, origen: "pendiente" };
@@ -294,6 +319,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (/denominacion_formal/.test(campo)) return v(p.denominacion_formal);
     if (/hechos_posteriores/.test(campo)) return v(p.hechos_posteriores);
     if (/reporte\.alivios/.test(campo)) return { texto: d.alivios.E5 ? "Sí" : "No", origen: "perfil" };
+    // Selector de la sección de una actividad (468, 488): la actividad, si la emisora participa (si no, la sección ya
+    // dijo «No aplica por actividad»).
+    const selector = campo.match(/selector: ([^)]+)\)/)?.[1];
+    if (selector) return d.perfil.actividades_financieras.includes(selector) ? { texto: selector, origen: "perfil" } : { texto: null, origen: "pendiente" };
+    // K723 (D3): ¿considerará las métricas por industria? «Sí» si el juicio del Perfil es «Sí, totalmente» o «Sí, parcialmente».
+    if (/metricas_industria/.test(campo)) return /^Sí/.test(p.metricas_industria ?? "") ? { texto: "Sí", origen: "perfil" } : { texto: null, origen: "regla", nota: "metricas_industria en «No» o sin capturar (D3)" };
     if (/reporte\.ejercicio \(fechas\)/.test(campo) || /fechas/.test(c.regla ?? "")) {
       return /inicio/.test(c.regla ?? "") ? { texto: `01/01/${d.ejercicio}`, origen: "perfil" } : { texto: `31/12/${d.ejercicio}`, origen: "perfil" };
     }
