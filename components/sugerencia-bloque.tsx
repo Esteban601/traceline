@@ -109,6 +109,33 @@ function SugerenciaDecidida({ s }: { s: NonNullable<BloqueSugerencia["sugerencia
   );
 }
 
+/**
+ * «Sin hallazgo» con cifras parciales (sug-num-3): el archivo no trae una cifra que
+ * cubra el periodo, pero sí partes (meses, plantas). Van como referencia, sin
+ * botón para usarlas ni prellenar nada: sumarlas o elegir una es decisión de quien
+ * reporta.
+ */
+export function ReferenciasParciales({ s }: { s: NonNullable<BloqueSugerencia["sugerencia"]> }) {
+  if (s.estado !== "sin_hallazgo" || !s.candidatos.length) return null;
+  return (
+    <details className="rounded-xl border border-line bg-surface px-3.5 py-2.5" data-testid="referencias-parciales">
+      <summary className="cursor-pointer text-sm font-medium text-ink">
+        Cifras parciales del archivo, como referencia ({s.candidatos.length})
+      </summary>
+      <ul className="mt-2 space-y-1.5">
+        {s.candidatos.map((c, i) => (
+          <li key={i} className="text-sm text-ink">
+            <span className="font-semibold tabular-nums">{fmt.format(mostrada(c).valor)}</span> {mostrada(c).unidad}
+            {c.periodo ? <span className="text-muted"> · {c.periodo}</span> : null}
+            <span className="text-muted"> · </span>
+            <Fuente evidenciaId={s.evidenciaId} fuente={c.fuente} />
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export function SugerenciaBloque({
   bloque,
   solicitudId,
@@ -189,6 +216,7 @@ export function SugerenciaBloque({
           {/* La línea de qué falta y, aparte, lo que la evidencia sí trae. */}
           {s.cobertura ? <p className="text-sm text-ink">{s.cobertura}</p> : null}
           {s.motivo ? <p className="text-xs leading-relaxed text-muted">{s.motivo}</p> : null}
+          <ReferenciasParciales s={s} />
         </div>
       ) : null}
 
@@ -225,6 +253,7 @@ export function SugerenciaBloque({
                     <span className="text-ink">
                       <span className="font-semibold tabular-nums">{fmt.format(mostrada(c).valor)}</span> {mostrada(c).unidad}
                       {c.periodo ? <span className="text-muted"> · {c.periodo}</span> : null}
+                      {c.cubre_periodo === false ? <span className="text-muted"> (parcial)</span> : null}
                       {c.conversion ? (
                         <span className="text-muted"> (documento: {fmt.format(c.valor)} {c.unidad})</span>
                       ) : null}

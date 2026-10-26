@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { SugerenciaBloque } from "@/components/sugerencia-bloque";
+import { ReferenciasParciales, SugerenciaBloque } from "@/components/sugerencia-bloque";
 import { cn } from "@/lib/cn";
 import { capturarCifra, type CifraState } from "@/lib/evidencias/acciones-lectura";
 import type { EstadoLectura } from "@/lib/evidencias/estado-lectura";
@@ -140,6 +140,7 @@ export function PasoCifra({
                 {estado.linea}
               </p>
             ) : null}
+            {estado.fase === "sin_hallazgo" && estado.bloque?.sugerencia ? <ReferenciasParciales s={estado.bloque.sugerencia} /> : null}
             {manual}
           </>
         )}
