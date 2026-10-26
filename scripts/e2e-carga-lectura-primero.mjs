@@ -17,7 +17,9 @@
 //      fila mensual), crea la captura con el valor corregido, y el historial
 //      pone la cifra vigente grande y la sugerencia plegada.
 //   Confirmar y Corregir refrescan la pantalla sin recarga manual.
-//   3. Sin hallazgo: su línea y el paso 3 manual, que guarda la cifra.
+//   3. Sin hallazgo: su línea y el paso 3 manual, que guarda la cifra. 3b: sin
+//      total que cubra el periodo (sug-num-3), los meses van de referencia, sin
+//      botón para usarlos y sin prellenar la cifra.
 //   4. Lectura apagada (bandera del tenant): su línea y el paso 3 manual.
 //   5. Tope mensual: su línea.
 //   6. Fallo técnico: su línea.
@@ -213,6 +215,25 @@ try {
   await guardarManual(op, 376300);
   const c3 = await capturas(e3.id);
   ok(c3.length === 1 && c3[0].origen === "manual" && c3[0].confirmado && c3[0].periodo === "2025", "el paso 3 manual guarda la cifra (origen manual, periodo del archivo)");
+
+  console.log("3b. Sin hallazgo con cifras parciales de referencia");
+  const s3b = await solicitud("Consumo de electricidad 2025 (e2e parciales)");
+  const e3b = await evidencia(s3b);
+  await lectura(e3b, { estado: "extraido", contenido: { hojas: [] } });
+  const meses = [["noviembre 2025", 3870, "Noviembre | 3,870"], ["diciembre 2025", 4080, "Diciembre | 4,080"]].map(([periodo, valor, cita]) => ({
+    valor, unidad: "kWh", periodo, cita, nota: "", cubre_periodo: false, conversion: null, origen: "candidato",
+    fuente: { tipo: "pagina", pagina: 1 }, fuente_texto: "página 1",
+  }));
+  await sugerencia(s3b, e3b, { tipo: "numerica", estado: "sin_hallazgo", valor: null, unidad: null, confianza: null, candidatos: meses,
+    motivo: "La línea de la cifra sigue ilegible al releer la página a más resolución." });
+  await abrir(op, `/portal/solicitudes/${s3b}`);
+  const refs = paso3(op).locator('[data-testid="referencias-parciales"]');
+  ok((await fase(op)) === "sin_hallazgo" && (await refs.count()) === 1, "sin total del periodo: «sin hallazgo» con las cifras parciales de referencia");
+  await refs.locator("summary").click();
+  const tRefs = (await refs.innerText()).replace(/\s+/g, " ");
+  ok(/3,870 kWh · noviembre 2025/.test(tRefs) && /4,080 kWh · diciembre 2025/.test(tRefs) && (await refs.getByRole("button").count()) === 0, "cada parcial con su periodo y fuente, sin botón para usarla");
+  ok((await op.locator("#cifra-valor").inputValue()) === "", "la cifra del paso 3 manual no se prellena con una parcial");
+  ok(/sigue ilegible/.test(await linea(op)), "la línea dice que el total sigue ilegible");
 
   // 4. Lectura apagada.
   console.log("4. Lectura apagada");

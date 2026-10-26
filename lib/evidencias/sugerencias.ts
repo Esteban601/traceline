@@ -2,7 +2,10 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
 import type { Contenido } from "./extraer";
-import { MODELO_SUGERENCIA, PROMPT_SUGERENCIA_VERSION, sugerirNumerica } from "./sugerir";
+import { MODELO_SUGERENCIA, PROMPT_SUGERENCIA_VERSION, sugerirNumerica, type Llamada } from "./sugerir";
+import { franjasDePagina, lineaSenalada, sustituirLinea } from "./relectura";
+import { releerLinea } from "./vision";
+import { clasificarArchivo } from "./tipos";
 import { lecturasDelMes, mensajeTope } from "./tope";
 import { evidenciasConCifra } from "./con-cifra";
 import { PROMPT_TEXTO_VERSION, sugerirTexto } from "./sugerir-texto";
@@ -63,7 +66,7 @@ export async function generarSugerencia(
 
   const { data: fila } = await db
     .from("evidencias_contenido")
-    .select("id, solicitud_id, tenant_id, evidencia_id, version, estado, contenido, nombre_original")
+    .select("id, solicitud_id, tenant_id, evidencia_id, version, estado, contenido, nombre_original, archivo_path")
     .eq("id", contenidoId)
     .maybeSingle();
   if (!fila) return fin("inexistente");
@@ -168,7 +171,22 @@ export async function generarSugerencia(
   }
 
   if (await tieneCifraConfirmada(db, fila.evidencia_id)) return fin("con_cifra", "la evidencia ya tiene una cifra confirmada");
-  const r = await sugerirNumerica(paraSugerir, contenido, fila.nombre_original);
+  let r = await sugerirNumerica(paraSugerir, contenido, fila.nombre_original);
+  // La línea de la cifra pedida salió [ilegible]: se relee a más resolución (cuenta en el tope) y, si se lee,
+  // la sugerencia se vuelve a pedir sobre el contenido corregido.
+  const senal = r.estado !== "fallida" ? lineaSenalada(contenido, r.ilegible) : null;
+  let relectura: Relectura | null = null;
+  if (senal) {
+    relectura = await releer(db, { ...fila, contenido }, senal, tenant.lecturas_mes_max);
+    if (relectura.contenido) {
+      const previas = r.llamadas;
+      r = await sugerirNumerica(paraSugerir, relectura.contenido, fila.nombre_original);
+      r.llamadas = [...previas, ...relectura.llamadas, ...r.llamadas];
+    } else {
+      r.llamadas = [...r.llamadas, ...relectura.llamadas];
+      if (r.estado === "sin_hallazgo") r.motivo = [r.motivo, relectura.motivo].filter(Boolean).join(" ");
+    }
+  }
   // Otra vez al guardar: la cifra manual pudo entrar mientras el modelo leía.
   if (await tieneCifraConfirmada(db, fila.evidencia_id)) return fin("con_cifra", "la evidencia recibió una cifra confirmada mientras se leía");
   await obsoletarViva();
@@ -194,11 +212,14 @@ export async function generarSugerencia(
       candidatos: r.candidatos as unknown as Json,
       confianza: r.confianza,
       motivo: [r.motivo, p?.nota].filter(Boolean).join(" · ") || null,
-      segunda_opinion: (r.segundaOpinion
-        ? { ...r.segundaOpinion, descartadas: r.descartadas }
-        : r.descartadas.length
-          ? { descartadas: r.descartadas }
-          : null) as Json,
+      // `relectura` vive aquí (sin migración): tope.ts la cuenta como una lectura cuando `realizada`.
+      segunda_opinion: (r.segundaOpinion || r.descartadas.length || relectura
+        ? {
+            ...(r.segundaOpinion ?? {}),
+            descartadas: r.descartadas,
+            ...(relectura ? { relectura: relectura.registro } : {}),
+          }
+        : null) as Json,
       prompt_version: PROMPT_SUGERENCIA_VERSION,
       error: r.error,
       ...totales(r.llamadas),
@@ -208,4 +229,55 @@ export async function generarSugerencia(
   if (error) return fin("error", `no se guardó la sugerencia: ${error.message}`);
   await registrarGenerada(nueva.id, "numerica", r.estado);
   return fin(r.estado, r.error ?? undefined, nueva.id);
+}
+
+type Relectura = {
+  /** El contenido con la línea releída, o null si no se leyó (o no se releyó). */
+  contenido: Contenido | null;
+  llamadas: Llamada[];
+  /** Lo que se agrega al motivo de «sin hallazgo» cuando no se pudo leer. */
+  motivo: string;
+  registro: { realizada: boolean; pagina: number; antes: string; despues: string | null; nota: string; costo_usd: number };
+};
+
+/**
+ * Relee a más resolución la línea [ilegible] señalada (relectura.ts). Cuenta como una lectura contra
+ * `lecturas_mes_max`: con el tope alcanzado no se relee. Un error aquí no tumba la sugerencia.
+ */
+async function releer(
+  db: ReturnType<typeof createAdminClient>,
+  fila: { id: string; tenant_id: string; archivo_path: string; nombre_original: string; contenido: Contenido },
+  senal: { pagina: number; linea: string },
+  topeMes: number
+): Promise<Relectura> {
+  const base = { pagina: senal.pagina, antes: senal.linea, despues: null, costo_usd: 0 };
+  const sin = (nota: string, motivo: string, realizada = false, llamadas: Llamada[] = []): Relectura => ({
+    contenido: null, llamadas, motivo,
+    registro: { ...base, realizada, nota, costo_usd: Number(llamadas.reduce((x, l) => x + l.costoUsd, 0).toFixed(4)) },
+  });
+  const ilegible = "La línea de la cifra aparece ilegible en el archivo.";
+  const clase = clasificarArchivo(fila.nombre_original);
+  if (!clase.soportado || (clase.tipo !== "pdf" && clase.tipo !== "imagen")) return sin("el archivo no es PDF ni imagen", ilegible);
+  if ((await lecturasDelMes(db, fila.tenant_id)) >= topeMes) return sin("tope mensual alcanzado; no se releyó", ilegible);
+  try {
+    const { data: blob, error } = await db.storage.from("evidencias").download(fila.archivo_path);
+    if (error || !blob) return sin(`no se descargó el archivo: ${error?.message ?? "vacío"}`, ilegible);
+    const franjas = await franjasDePagina(Buffer.from(await blob.arrayBuffer()), clase.tipo === "imagen" ? { tipo: "imagen", formato: clase.formato } : { tipo: "pdf" }, senal.pagina);
+    if (!franjas?.length) return sin("la página no tiene una imagen que releer", ilegible);
+    const x = await releerLinea(franjas, senal.linea);
+    const llamada: Llamada = { modelo: x.modelo, tokensEntrada: x.tokensEntrada, tokensSalida: x.tokensSalida, costoUsd: x.costoUsd };
+    if (!x.linea) {
+      return sin(x.nota || "sigue ilegible", "La línea de la cifra sigue ilegible al releer la página a más resolución.", true, [llamada]);
+    }
+    const contenido = sustituirLinea(fila.contenido, senal.pagina, senal.linea, x.linea);
+    // El contenido guardado queda con la línea releída: las citas se verifican contra él.
+    const { error: errGuardar } = await db.from("evidencias_contenido").update({ contenido: contenido as unknown as Json }).eq("id", fila.id);
+    if (errGuardar) console.error(`[relectura] no se guardó el contenido: ${errGuardar.message}`);
+    return {
+      contenido, llamadas: [llamada], motivo: "",
+      registro: { ...base, realizada: true, despues: x.linea, nota: x.nota, costo_usd: Number(x.costoUsd.toFixed(4)) },
+    };
+  } catch (e) {
+    return sin(`falló: ${e instanceof Error ? e.message : String(e)}`, ilegible);
+  }
 }
