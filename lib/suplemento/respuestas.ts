@@ -9,6 +9,7 @@ import { costoUsd, type Uso } from "@/lib/suplemento/modelos";
 import { vocabularioProhibidoEn } from "@/lib/suplemento/prompt";
 import { oracionesDe } from "@/lib/suplemento/hechos/oraciones";
 import { NEGACION } from "@/lib/suplemento/hechos/tipos";
+import { HECHO_RAZON } from "@/lib/suplemento/hechos/razones";
 import { numerosDe } from "@/lib/evidencias/fuente";
 import { numeracionConsecutiva } from "@/lib/suplemento/numeracion";
 import { leerAlivios, type Alivios } from "@/lib/perfil-emisor";
@@ -156,22 +157,13 @@ export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; pa
  */
 export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
   // La razón de que no haya cifras: emisora.compromiso_transparencia_limitaciones (decisión de Esteban, Fase 3).
-  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, /^emisora\.compromiso_transparencia_limitaciones$/],
+  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, HECHO_RAZON["NIIF S2 21(a)"].clave],
 };
 
-/**
- * Requisitos cuya respuesta debe dar una RAZÓN que está en un hecho concreto
- * (decisión de Esteban, Fase 3 del encargo deuda-s2-formato): la descripción lo
- * pide y el validador rechaza la respuesta que no cita ese hecho. DEGRADA: si el
- * hecho no está entre los del requisito, no se pide ni se exige (la respuesta sale
- * de los demás hechos; nunca se empuja al modelo a una razón que no tiene).
- */
-export const HECHO_RAZON: Record<string, { clave: RegExp; pide: string }> = {
-  "NIIF S2 21(a)": {
-    clave: /^emisora\.compromiso_transparencia_limitaciones$/,
-    pide: "Da como razón de que no haya información cuantitativa la del hecho sobre las limitaciones que la Compañía reconoce (cuantificar los efectos financieros es una tarea de los próximos periodos), y cita ese hecho.",
-  },
-};
+// HECHO_RAZON (la razón de un requisito que está en un hecho concreto) vive en hechos/razones.ts: la misma
+// ruta la usa el generador del bloque. La descripción la pide y el validador rechaza la respuesta que no cita
+// ese hecho; DEGRADA si el hecho no está entre los del requisito.
+export { HECHO_RAZON };
 
 /** NIIF S1 (sin espacios) → código NIIF S2 del catálogo que lo responde en el formato. */
 export const PAR_S2_DE_S1: Map<string, string> = (() => {

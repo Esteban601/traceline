@@ -41,7 +41,7 @@ import { cargarEvidenciasDelBloque, respaldoDeCifras, type EvidenciaDelBloque, t
 import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque } from "@/lib/suplemento/adjuntos-bloque";
 import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
 import { libroVigente } from "@/lib/suplemento/hechos/libro";
-import { insumoDelBloque, validarCobertura, type Cobertura } from "@/lib/suplemento/hechos/bloque";
+import { insumoDelBloque, validarCobertura, type Cobertura, type HechoDelBloque } from "@/lib/suplemento/hechos/bloque";
 import { cambiosNegados, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
 import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
 import { aceptaConObservacionesDeColocacion, clausulas, FIN_ORACION, mapaDeDuenos, remisionesSinAnclaTipadas } from "@/lib/suplemento/hechos/remisiones";
@@ -252,7 +252,12 @@ export async function generarBloque(
   // el bloque redacta SOLO desde sus hechos y referencias: ni evidencias crudas
   // ni adjuntos completos. Sin libro, el camino de antes.
   const libro = await libroVigente(supabase, doc.reporte_id);
-  const insumo = libro ? await insumoDelBloque(supabase, libro.id, bloque, doc.editoriales_incluidos ?? null, ens.reporte.ejercicio) : null;
+  // Los otros libros del documento (los de sus versiones de bloque): ahí también se buscan los hechos prestados
+  // que dan la razón de un requisito (hechos/razones.ts), con el libro vigente primero.
+  const otrosLibros = libro
+    ? [...new Set(((await supabase.from("documentos_bloques_versiones").select("libro_id").eq("documento_id", documentoId)).data ?? []).map((v) => v.libro_id).filter((x): x is string => !!x))]
+    : [];
+  const insumo = libro ? await insumoDelBloque(supabase, libro.id, bloque, doc.editoriales_incluidos ?? null, ens.reporte.ejercicio, otrosLibros) : null;
   // Glosario del emisor, matriz y defectos de insumo de nivel documento (Paso 5.4).
   const glosario = leerGlosario(perfil?.glosario);
   const matriz = (perfil?.matriz_riesgos ?? null) as Matriz;
@@ -400,6 +405,7 @@ export async function generarBloque(
           ...(h.valor != null ? { valor: h.valor, unidad: h.unidad } : {}),
           ...(h.tipo === "declaracion_negativa" ? { tipo: "declaracion_negativa" } : {}),
           ...(h.contradiccion ? { contradiccion: h.contradiccion.grupo } : {}),
+          ...(h.prestado ? { de_otro_bloque: h.prestado.bloque, uso: h.prestado.uso } : {}),
         })),
         // Una vez por grupo, no una por hecho (Paso 5b, punto 9).
         contradicciones: Object.fromEntries(
@@ -907,7 +913,7 @@ export async function generarBloque(
         ...new Map(
           salida.fuentes_usadas.map((id) => {
             const h = insumo?.hechos.find((x) => x.id === id);
-            if (h) return [h.fuenteId + h.extracto, { tipo: "hecho", id: h.fuenteId, detalle: `${h.fuente} — «${h.extracto}»` }] as const;
+            if (h) return [h.fuenteId + h.extracto, { tipo: "hecho", id: h.fuenteId, detalle: `${h.fuente}${origenDe(h)} — «${h.extracto}»` }] as const;
             const f = fuentesModelo.find((x) => x.id === id) ?? fuentes.find((x) => x.id === id)!;
             return [f.id, { tipo: f.tipo, id: f.id, detalle: f.detalle }] as const;
           })
@@ -922,7 +928,7 @@ export async function generarBloque(
             oracion: a.oracion,
             hechos: a.ids.map((id) => {
               const h = insumo?.hechos.find((x) => x.id === id);
-              return { id, hecho: h?.hechoId ?? null, fuente: h ? `${h.fuente} — «${h.extracto.slice(0, 160)}»` : id };
+              return { id, hecho: h?.hechoId ?? null, fuente: h ? `${h.fuente}${origenDe(h)} — «${h.extracto.slice(0, 160)}»` : id };
             }),
           }))
         : null,
@@ -975,6 +981,9 @@ type SalidaModelo = {
 
 // «validador», «remision_sin_ancla» y «texto_reescrito» los pone el código, no el modelo (su esquema solo ofrece las otras).
 type NotaClasificada = { cubeta: "decision_emisor" | "revelacion_voluntaria" | "defecto_insumo" | "validador"; etiqueta: "contradiccion" | "por_conciliar" | "remision_sin_ancla" | "texto_reescrito" | null; texto: string };
+
+/** Para la fuente que se guarda: el bloque y el libro de origen de un hecho prestado (hechos/razones.ts). */
+const origenDe = (h: HechoDelBloque) => (h.prestado ? ` · hecho del bloque ${h.prestado.bloque ?? "sin dueño"} (libro ${h.prestado.libroId.slice(0, 8)})` : "");
 
 function resolverBloque(id: number | string): Bloque | null {
   const n = typeof id === "number" ? id : Number(id);
