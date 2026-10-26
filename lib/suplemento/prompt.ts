@@ -2,6 +2,7 @@ import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloqu
 import { fronteraDe } from "@/lib/suplemento/fronteras";
 import { mapaDeDuenos } from "@/lib/suplemento/hechos/remisiones";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
+import { TERMINOS_PLATAFORMA } from "@/lib/suplemento/vocabulario";
 
 // =============================================================================
 // EL PROMPT DE UN BLOQUE, EN DOS CAPAS.
@@ -33,11 +34,14 @@ import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 
 // calidad-v2: documentos del Perfil del emisor como contexto citado (regla 10)
 // y documento sugerido dentro de «qué falta» del marcador (Paso 2).
-export const PROMPT_VERSION = "calidad-v2-2026-10-06";
+// calidad-v3: la lista de vocabulario prohibido sale del glosario de CLAUDE.md §5
+// (encargo formato-afirmaciones-y-voz); cambia la capa estable.
+export const PROMPT_VERSION = "calidad-v3-2026-10-26";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
-export const PROMPT_VERSION_HECHOS = "hechos-v10-2026-10-08";
+// v11: vocabulario prohibido desde el glosario de CLAUDE.md §5.
+export const PROMPT_VERSION_HECHOS = "hechos-v11-2026-10-26";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -54,66 +58,19 @@ export type FuenteEntregada = {
 };
 
 // -----------------------------------------------------------------------------
-// Vocabulario prohibido en `texto`.
+// Vocabulario prohibido en `texto`: el glosario de CLAUDE.md §5, que vive en
+// lib/suplemento/vocabulario.ts (única fuente; encargo formato-afirmaciones-y-voz).
 //
 // El texto ES la revelación de la emisora, lista para publicarse en su informe
 // anual. Todo lo que hable del proceso interno de recolección —quién pidió qué,
-// quién lo validó, en qué plataforma— es de TRACELINE, no del informe. Un
-// inversionista que lee "el inventario fue entregado y validado" está leyendo
-// nuestra cocina, no su información a revelar.
-//
-// La única excepción es el marcador de pendiente, que existe para el revisor y
-// se retira antes de aprobar.
+// quién lo validó, en qué plataforma— es de TRACELINE, no del informe. La única
+// excepción es el marcador de pendiente, que existe para el revisor y se retira
+// antes de aprobar.
 // -----------------------------------------------------------------------------
-export const VOCABULARIO_PROHIBIDO = [
-  "solicitud",
-  "solicitudes",
-  "evidencia",
-  "evidencias",
-  "expediente",
-  "entregado",
-  "entregada",
-  "entregados",
-  "entregadas",
-  "recibido",
-  "recibida",
-  "validado",
-  "validada",
-  "validados",
-  "validadas",
-  "IRStrat",
-  "plataforma",
-  "bloque",
-  "datapoint",
-  "sol:",
-  "reg:",
-  "obj:",
-  "cue:",
-  "perfil:",
-  "reporte:",
-  "evi:",
-  "adj:",
-];
+export { vocabularioProhibidoEn } from "@/lib/suplemento/vocabulario";
 
 /** El marcador de pendiente, con formato uniforme. Es lo único que se permite. */
 const RE_PENDIENTE = /\[Pendiente:[^\]]*\]/g;
-
-/**
- * Busca vocabulario prohibido FUERA del marcador de pendiente. Devuelve los
- * términos encontrados, para poder decírselo al modelo en el reintento: un
- * reintento que solo dice "hubo un error" repite el mismo fallo.
- */
-export function vocabularioProhibidoEn(texto: string): string[] {
-  const sinMarcadores = texto.replace(RE_PENDIENTE, " ");
-  const encontrados = new Set<string>();
-  for (const t of VOCABULARIO_PROHIBIDO) {
-    const re = t.endsWith(":")
-      ? new RegExp(t.replace(":", ":"), "i")
-      : new RegExp(`\\b${t}\\b`, "i");
-    if (re.test(sinMarcadores)) encontrados.add(t);
-  }
-  return [...encontrados];
-}
 
 /**
  * NORMALIZACIÓN DETERMINISTA DE LA DENOMINACIÓN.
@@ -192,7 +149,7 @@ Redactas la información a revelar bajo las Normas NIIF S1 y S2 de una emisora m
 
 El campo \`texto\` es la revelación, lista para publicarse. No es un reporte de avance, ni un resumen de lo que nos entregó el cliente, ni una explicación de cómo conseguimos el dato.
 
-NO uses jamás, dentro de \`texto\`, estas palabras ni sus variantes: solicitud, evidencia, expediente, entregado, recibido, validado, IRStrat, plataforma, bloque, datapoint. Tampoco identificadores internos (ids, uuids, nada con dos puntos como \`sol:\` o \`reg:\`). Y no narres de dónde salió una cifra: "según el inventario entregado y validado", "la información recibida no permite", "no cuenta con evidencia en el expediente" — nada de eso va en un informe anual.
+NO uses jamás, dentro de \`texto\`, estas palabras ni sus variantes: ${TERMINOS_PLATAFORMA.filter((t) => t !== "ids").join(", ")}. Tampoco identificadores internos (ids, uuids, nada con dos puntos como \`sol:\` o \`reg:\`). Y no narres de dónde salió una cifra: "según el inventario entregado y validado", "la información recibida no permite", "no cuenta con evidencia en el expediente" — nada de eso va en un informe anual.
 
 Escribe lo que la emisora afirma. Si el dato está, se afirma. Si no está, va el marcador de pendiente y punto.
 

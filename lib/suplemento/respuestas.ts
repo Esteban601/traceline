@@ -6,7 +6,7 @@ import { BLOQUES, datapointsExentos } from "@/lib/suplemento/bloques";
 import { PADRE_DE, noAplicaHeredado } from "@/lib/suplemento/catalogo-incisos";
 import { aplicarGlosario, leerGlosario, type EntradaGlosario } from "@/lib/suplemento/glosario";
 import { costoUsd, type Uso } from "@/lib/suplemento/modelos";
-import { vocabularioProhibidoEn } from "@/lib/suplemento/prompt";
+import { TERMINOS_PLATAFORMA, vocabularioProhibidoEn } from "@/lib/suplemento/vocabulario";
 import { oracionesDe } from "@/lib/suplemento/hechos/oraciones";
 import { NEGACION } from "@/lib/suplemento/hechos/tipos";
 import { HECHO_RAZON } from "@/lib/suplemento/hechos/razones";
@@ -236,10 +236,10 @@ export function oracionesAncladas(anclas: Ancla[], hechos: string[], max: number
   return out.join(" ");
 }
 
-/** «1,240 tCO2e (ejercicio 2025), según captura validada.» */
+/** «1,240 tCO2e (ejercicio 2025).» Sin decir de dónde salió la cifra (glosario de CLAUDE.md §5). */
 export function respuestaDeCaptura(valor: number, unidad: string | null, periodo: string | number): string {
   const v = valor.toLocaleString("en-US", { maximumFractionDigits: 3 });
-  return `${v}${unidad ? ` ${unidad}` : ""} (ejercicio ${periodo}), según captura validada.`;
+  return `${v}${unidad ? ` ${unidad}` : ""} (ejercicio ${periodo}).`;
 }
 
 /**
@@ -567,7 +567,7 @@ Reglas:
 2. Usa solo lo que dicen la sección aprobada y los hechos entregados para ese requisito. Cifras, fechas, porcentajes y nombres, idénticos a como aparecen ahí. No calcules, no redondees, no agregues contexto propio.
 3. Longitud: destino «taxonomia», de dos a cuatro oraciones; destino «formato», hasta seis oraciones y no más de 900 caracteres. Si los hechos son pocos, una o dos oraciones bastan.
 4. Si entre los hechos del requisito hay uno de tipo declaracion_negativa (la emisora declara una ausencia: «no usa», «ninguna»), la respuesta la incluye con su negación.
-5. Prohibido el vocabulario del proceso interno: solicitud, evidencia, validado, captura, plataforma, bloque, IRStrat, ids, «la sección aprobada». No escribas remisiones a otras secciones: el sistema añade la remisión.
+5. Prohibido el vocabulario del proceso interno: ${TERMINOS_PLATAFORMA.join(", ")}, «la sección aprobada». No escribas remisiones a otras secciones: el sistema añade la remisión.
 6. Nombres de órganos, comités y áreas: los canónicos del glosario de la emisora.
 7. En «hechos», los ids (h1, h2…) de los hechos en que se apoya cada respuesta; al menos uno.
 
