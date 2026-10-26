@@ -1676,6 +1676,25 @@ cada documento después del despliegue las regenera todas** (en el demo de dev: 
 siguientes reutilizan las que no cambiaron. El despliegue no dispara ninguna: solo se generan al aprobar un documento.
 Al registrar v41 staging no tenía documentos aprobados; se vuelve a comprobar el día del despliegue.
 
+**Demo v4 en `traceline-dev` (25 de octubre de 2026): documento aprobado vigente del demo de dev.** El documento
+`3487cb77` (versión 4, Empresa Demo, los 8 editoriales) se generó completo en `traceline-dev` v20 y se aprobó en v21
+(`13bfde4`) el 26/10 a las 01:20 UTC, por la pantalla y como el staff del seed. **Reemplaza al v3 (`99992cd3`) como
+documento aprobado vigente**: de él salen las respuestas del Excel de taxonomía y el Formato electrónico. El bloque 10 se
+regeneró solo, después de dar al generador el hecho de transparencia como prestado (PR #33): NIIF S2 21(a) queda
+«cubierto», sin pendiente. Costo del v4:
+
+| Paso | USD |
+|---|---:|
+| Generación de los 39 bloques (14.7 min; 38 en borrador y 2 «no aplica») | 11.1514 |
+| Pasada de coherencia | 1.0326 |
+| Cierre de pendientes | 0.0000 |
+| Bloque 10 regenerado (segundo intento; el primero se cortó a los 150 s y su costo no se registra) | 0.5933 |
+| Respuestas al aprobar (194 filas, 187 s; regeneración completa por la firma del pedido) | 0.5300 |
+| **Total registrado** | **13.3073** |
+
+El costo del documento (`documentos_generados.costo_usd`) queda en 11.4060: suma los costos vigentes de sus bloques, con
+el del bloque 10 nuevo en lugar del primero (0.3387).
+
 **Orden previsto:** merge de `dev/ajustes-sep26` → `main` (hecho el 25/10, ver el encargo); v42 en `traceline-dev`
 y demo v4; lectura externa; foto «antes» en staging; migraciones (Esteban); `git push heroku main`; foto «después»;
 verificación y registro aquí.

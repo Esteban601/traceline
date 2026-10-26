@@ -181,7 +181,7 @@ for (const c of mapeo.conceptos.filter((x) => x.datapoint)) {
 
 const por = (rel) => filas.filter((x) => x.rel === rel);
 const tabla = (lista) => [
-  "| Fila | Etiqueta | Referencia de la fila (fuente) | Datapoint mapeado → referencia | Qué escribe hoy el demo v3 (K) |",
+  "| Fila | Etiqueta | Referencia de la fila (fuente) | Datapoint mapeado → referencia | Qué escribe hoy el demo, último documento aprobado (K) |",
   "|---:|---|---|---|---|",
   ...lista.map((x) => `| ${x.c.fila} | ${esc(etiqueta(x.f))} | ${esc(x.texto || "—")} (${x.fuente}) | \`${esc(x.c.datapoint)}\` → ${esc(x.refDp.join(", ") || "sin referencia")} | ${esc(celdaK(x.c.fila))} |`),
 ];
