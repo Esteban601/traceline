@@ -9,8 +9,9 @@
 --
 -- Además, `service_role` lee `capturas_valor`: la generación de la sugerencia y
 -- el resumen diario (service role) comprueban si la evidencia ya tiene cifra.
--- En dev y staging el permiso ya existe (no-op); en el stack local faltaba, y la
--- consulta devolvía «sin cifra» en silencio.
+-- En dev el permiso ya existe (comprobado el 26/10/2026; aquí es no-op); en
+-- staging no se ha comprobado. En el stack local faltaba, y la consulta
+-- devolvía «sin cifra» en silencio.
 --
 -- Reemplaza el cuerpo de fn_decidir_sugerencia (20261005122500); la firma, los
 -- permisos y el resto del cuerpo no cambian. Idempotente. No crea tablas: la
