@@ -4,6 +4,7 @@ import type { Database } from "@/lib/database.types";
 import { BLOQUES, bloqueSeleccionado, type Bloque } from "@/lib/suplemento/bloques";
 import { ORDEN_RANGO, type RangoFuente } from "./tipos";
 import { esCambioDelEjercicio } from "./validadores";
+import { HECHO_RAZON, hechosPrestados, usoDelPrestado } from "./razones";
 
 // =============================================================================
 // EL BLOQUE DESDE EL LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5.3).
@@ -42,6 +43,11 @@ export type HechoDelBloque = {
    * no decide contradicciones: recibe el veredicto.
    */
   contradiccion: { grupo: string; veredicto: "excluyente" | "compatible" | "secuencia" | "por_conciliar"; explicacion: string; conciliacion: string | null } | null;
+  /**
+   * Hecho de otro bloque que este toma para dar la RAZÓN de un requisito (hechos/razones.ts): conserva su fuente,
+   * su bloque dueño y su libro de origen; `uso` le dice al modelo para qué es.
+   */
+  prestado?: { bloque: number | null; libroId: string; uso: string };
 };
 
 export type ReferenciaDelBloque = {
@@ -64,10 +70,19 @@ export type InsumoDelBloque = {
 
 const LARGO_REFERENCIA = 160;
 
-export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, incluidos: string[] | null, ejercicio?: number): Promise<InsumoDelBloque> {
+export async function insumoDelBloque(
+  db: Db,
+  libroId: string,
+  bloque: Bloque,
+  incluidos: string[] | null,
+  ejercicio?: number,
+  /** Los otros libros del documento (los de sus versiones de bloque): donde también se buscan los hechos prestados. */
+  otrosLibros: string[] = []
+): Promise<InsumoDelBloque> {
+  const CAMPOS = "id, clave, libro_id, enunciado, extracto, fuente_detalle, fuente_id, tipo, valor, unidad, periodo, rango_fuente, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado, veredicto, conciliacion" as const;
   const { data } = await db
     .from("hechos")
-    .select("id, enunciado, extracto, fuente_detalle, fuente_id, tipo, valor, unidad, periodo, rango_fuente, bloque_dueno, bloques_referencia, grupo_conflicto, conflicto, estado, veredicto, conciliacion")
+    .select(CAMPOS)
     .eq("libro_id", libroId)
     .neq("estado", "descartado")
     // Orden estable: el mapa del documento (capa estable, con caché) sale igual para todos los bloques.
@@ -85,7 +100,15 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
   const grupos = new Map<string, string>();
   for (const h of propios) if (h.grupo_conflicto && !grupos.has(h.grupo_conflicto)) grupos.set(h.grupo_conflicto, `c${grupos.size + 1}`);
 
-  const hechos: HechoDelBloque[] = propios.map((h, i) => ({
+  // HECHOS PRESTADOS (hechos/razones.ts): la razón de un requisito que está en un hecho de otro bloque, del libro
+  // vigente primero y, si no, de los otros libros del documento.
+  const otros = otrosLibros.filter((l) => l !== libroId);
+  const deOtrosLibros = otros.length && bloque.datapoints.some((c) => HECHO_RAZON[c])
+    ? ((await db.from("hechos").select(CAMPOS).in("libro_id", otros).neq("estado", "descartado").order("id")).data ?? [])
+    : [];
+  const prestados = hechosPrestados(bloque.datapoints, [...(data ?? []), ...deOtrosLibros], libroId, (h) => h.libro_id === libroId && duenoEfectivo(h) === bloque.numero);
+
+  const hechos: HechoDelBloque[] = [...propios, ...prestados].map((h, i) => ({
     id: `h${i + 1}`,
     hechoId: h.id,
     rango: h.rango_fuente as RangoFuente,
@@ -97,7 +120,8 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
     valor: h.valor == null ? null : Number(h.valor),
     unidad: h.unidad,
     periodo: h.periodo,
-    contradiccion: h.grupo_conflicto
+    // Un hecho prestado llega sin su grupo: la contradicción la resuelve su bloque dueño.
+    contradiccion: h.grupo_conflicto && !prestados.includes(h)
       ? {
           grupo: grupos.get(h.grupo_conflicto)!,
           // Un libro anterior al 5b no traía veredicto: lo que marcó era excluyente.
@@ -106,6 +130,7 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
           conciliacion: h.conciliacion,
         }
       : null,
+    ...(prestados.includes(h) ? { prestado: { bloque: duenoEfectivo(h), libroId: h.libro_id, uso: usoDelPrestado(bloque.datapoints, h.clave ?? "") } } : {}),
   }));
 
   // El bloque que responde «¿cambiaron los procesos respecto del periodo
@@ -114,6 +139,7 @@ export async function insumoDelBloque(db: Db, libroId: string, bloque: Bloque, i
   // tercera revisión: el 27 negaba cinco cambios que otros bloques publicaban).
   const preguntaCambios = ejercicio != null && bloque.datapoints.some((c) => /\(a\)\(vi\)/.test(c));
   const referencias: ReferenciaDelBloque[] = (data ?? [])
+    .filter((h) => !prestados.some((p) => p.id === h.id))
     .filter((h) => (h.bloques_referencia ?? []).includes(bloque.numero) || (preguntaCambios && esCambioDelEjercicio({ enunciado: h.enunciado, extracto: h.extracto, periodo: h.periodo }, ejercicio!)))
     .map((h) => ({ h, dueno: duenoEfectivo(h) }))
     .filter((x): x is { h: (typeof x)["h"]; dueno: number } => x.dueno != null && x.dueno !== bloque.numero)
