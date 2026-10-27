@@ -44,7 +44,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   }));
 
   const [{ data: pe }, ens] = await Promise.all([
-    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
+    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, fideicomitente, administrador_patrimonio, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
     ensamblarReporte(db, reporteId),
   ]);
   if (!ens.ok) return { ok: false, status: 500, error: "No se pudo leer el reporte." };
@@ -120,6 +120,8 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
         tipo_instrumento: pe?.tipo_instrumento ?? null,
         fiduciario: pe?.fiduciario ?? null,
         numero_fideicomiso: pe?.numero_fideicomiso ?? null,
+        fideicomitente: pe?.fideicomitente ?? null,
+        administrador_patrimonio: pe?.administrador_patrimonio ?? null,
         hechos_posteriores: pe?.hechos_posteriores ?? null,
         actividades_financieras: pe?.actividades_financieras ?? [],
         sector_sasb: pe?.sector_sasb ?? [],

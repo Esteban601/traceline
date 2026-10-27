@@ -188,6 +188,8 @@ export async function guardarIdentidad(_p: PerfilState, fd: FormData): Promise<P
     tipo_instrumento: texto(fd, "tipo_instrumento"),
     fiduciario: texto(fd, "fiduciario"),
     numero_fideicomiso: texto(fd, "numero_fideicomiso"),
+    fideicomitente: texto(fd, "fideicomitente"),
+    administrador_patrimonio: texto(fd, "administrador_patrimonio"),
     hechos_posteriores: texto(fd, "hechos_posteriores"),
     // Emisiones financiadas por actividad y sector SASB del Formato electrónico.
     actividades_financieras: lista(fd, "actividades_financieras"),
