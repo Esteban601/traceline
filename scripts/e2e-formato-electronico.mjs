@@ -20,7 +20,8 @@
 //      respuesta empieza con «[» salvo un código de lista («[815200] …»); la
 //      selección de actividad y el sector salen del Perfil; las secciones de una
 //      actividad en la que no participa dicen «No aplica por actividad»; la tabla
-//      de riesgos físicos (370) trae los físicos; hay hoja «Leyenda».
+//      de riesgos físicos (370) trae los físicos; sin hoja «Leyenda» y con los alivios en K12;
+//      la sección «Para: Fideicomisos» dice «No aplica» si la emisora no es fideicomiso.
 //   4. Con el generador apagado no se ofrece (409).
 // =============================================================================
 import fs from "node:fs";
@@ -155,7 +156,12 @@ try {
     ok(conPrefijo.length > 0 && Object.values(porEncabezado).every((n) => n === 1), `oración del E5 una vez por encabezado (${conPrefijo.map((x) => `K${x.fila}`).join(", ")})`);
     ok(!ks.some((t) => primeraPersonaPlural(t).length), "ninguna celda K en primera persona del plural (tercera persona, «la Compañía»)");
     const libro = await z.file("xl/workbook.xml").async("string");
-    ok(/<sheet name="Leyenda"/.test(libro) && /<sheet name="Métricas SASB"/.test(libro), "hojas «Leyenda» y «Métricas SASB»");
+    // Fase 5 del encargo formato-afirmaciones-y-voz: sin hoja «Leyenda»; los alivios del reporte, en K12.
+    ok(!/<sheet name="Leyenda"/.test(libro) && /<sheet name="Métricas SASB"/.test(libro), "sin hoja «Leyenda»; con «Métricas SASB»");
+    ok(/^(Alivios de transición aplicados en este ejercicio: .+\.|Sin alivios de transición en este ejercicio\.)$/.test(k(12)), `K12 declara los alivios del reporte («${k(12)}»)`);
+    // Sección «Para: Fideicomisos» (filas 13–21) entera «No aplica» si la emisora no es fideicomiso.
+    const instrumento = psql(`select coalesce(tipo_instrumento, '') from perfil_emisor where tenant_id=(select tenant_id from reportes where id=${lit(REPORTE)})`);
+    if (!/fideicomiso/i.test(instrumento)) ok([13, 14, 15, 16, 17, 18, 19, 20, 21].every((f) => k(f) === "No aplica"), "sección «Para: Fideicomisos» (K13–K21) «No aplica»: la emisora no es fideicomiso");
     let menciones = 0;
     for (const n of Object.keys(z.files).filter((x) => /\.(xml|rels|vml)$/.test(x))) menciones += ((await z.file(n).async("string")).match(/autl[aá]n/gi) ?? []).length;
     ok(menciones === 0, "ninguna parte del archivo nombra a la emisora de referencia");

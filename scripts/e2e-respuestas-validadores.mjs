@@ -26,7 +26,11 @@ import {
   PLAN_DISPOSICION_RE,
   disposicionesSinTipo,
   tipoDeDisposicion,
+  erroresDeForma,
+  conSeparadoresDeMiles,
+  respuestaDeCuestionario36e,
 } from "../lib/suplemento/respuestas.ts";
+import { declaracionDeAlivios, noRevelado, remisionE5, textoAlivio } from "../lib/suplemento/alivios.ts";
 import fs from "node:fs";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
 import { TERMINOS_PLATAFORMA, glosarioDeClaudeMd, vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
@@ -189,6 +193,24 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(tipoDeDisposicion(sinRiesgo) === null && tipoDeDisposicion(ambos) === null, "sin riesgo nombrado, o con los dos, no tiene tipo");
   const sin = disposicionesSinTipo([fisico, transicion, sinRiesgo, ambos, "Las emisiones de Alcance 1 fueron de 1,240 tCO2e."].map((enunciado) => ({ estado: "vigente", enunciado })));
   ok(sin.length === 2 && sin.every((h) => [sinRiesgo, ambos].includes(h.enunciado)), "disposicionesSinTipo lista solo los planes sin tipo");
+}
+
+// Fase 5 (revisión externa v5): textos de alivio de una sola fuente, reglas de forma, separadores, 36(e) y glosario.
+{
+  ok(textoAlivio("C4", "requisito") === "No revelado · alivio C4" && textoAlivio("C4", "cifra") === noRevelado("C4") && textoAlivio("C3", "cifra") === "No revelado · alivio C3", "alivios: C3/C4 con la redacción del Formato («No revelado · alivio …»), también en un requisito");
+  ok(textoAlivio("E5", "requisito", "NIIF S2 21(a)") === remisionE5("NIIF S2 21(a)") && textoAlivio("E5", "requisito") === ORACION_E5 && textoAlivio("E5", "encabezado") === ORACION_E5, "alivios: E5 requisito = remisión a su par, o la oración sin par");
+  ok(textoNoAplicaE5("NIIF S2 21(a)") === `${ORACION_E5} ${remisionE5("NIIF S2 21(a)")}`, "textoNoAplicaE5 se arma con el módulo de alivios");
+  ok(PAR_S2_DE_S1.get("niifs130(a)y(b)") === "NIIF S2 10(a), (b)y(c)" && PAR_S2_DE_S1.get("niifs140(a)") === "NIIF S2 21(a)" && PAR_S2_DE_S1.get("niifs146a50") === "NIIF S2 29", "pares S1→S2: 30(a)y(b), 40(a) y 46–50 completos");
+  ok(declaracionDeAlivios({ E4: true, E5: true, C3: true, C4: true }) === "Alivios de transición aplicados en este ejercicio: NIIF S1 E4 y E5; NIIF S2 C3 y C4." && declaracionDeAlivios({}) === "Sin alivios de transición en este ejercicio.", "K12: la declaración de los alivios");
+  ok(erroresDeForma("Sí. La Compañía utiliza escenarios.", "NIIF S2 25 (a)(ii)").length === 1 && erroresDeForma("Sí. Respecto del periodo anterior…", "fila:134").length === 0, "una respuesta que no es booleano no abre con «Sí.»; el booleano sí");
+  const transicion = "fila:361"; // riesgo de ajuste material, transición (K640)
+  ok(erroresDeForma("No se identificó un riesgo significativo de ajuste material por los riesgos climáticos.", transicion).some((e) => /de transición/.test(e)) && !erroresDeForma("No se identificó un riesgo significativo de ajuste material por los riesgos de transición.", transicion).length, "B65(c): la celda nombra su tipo de riesgo (K640)");
+  ok(conSeparadoresDeMiles("fue de 488000 litros en 2025", [{ valor: "488000" }, { valor: 2025 }]) === "fue de 488,000 litros en 2025", "separador de miles en las cifras de los hechos; un año no lo lleva");
+  ok(conSeparadoresDeMiles("ISO 14064 y 488,000 litros", [{ valor: 488000 }]) === "ISO 14064 y 488,000 litros", "un número ya formateado o ajeno a los hechos no se toca");
+  const cuest = [{ hoja: "S2 36(e)", pregunta_orden: 1, respuesta: "No se basa en créditos de carbono." }, { hoja: "S2 36(e)", pregunta_orden: 3, respuesta: "Bajo" }];
+  ok(respuestaDeCuestionario36e("NIIF S2 36 (e)(i)", cuest) === "No se basa en créditos de carbono." && respuestaDeCuestionario36e("NIIF S2 36 (e)(iii)", cuest) === null && respuestaDeCuestionario36e("NIIF S2 36 (c)", cuest) === null, "36(e): la respuesta de texto del cuestionario por inciso (fila 276); las de lista no");
+  ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
+  ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
 }
 
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");

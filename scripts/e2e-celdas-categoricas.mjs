@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+// =============================================================================
+// E2E · Celdas categóricas del Formato electrónico y del Excel de taxonomía del
+// demo (encargo formato-afirmaciones-y-voz, Fase 5). Los casos son las celdas
+// de §3 de docs/suplemento-s1s2/revision-externa-v5.md (negaciones y
+// booleanos), con su veredicto corregido: lo que «cuadra» se queda así y lo que
+// «no cuadra» se comprueba ya corregido. Más las celdas de §2 que se corrigieron.
+//
+//   node --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs \
+//        scripts/e2e-celdas-categoricas.mjs <formato.xlsx> <taxonomia.xlsx>
+//
+// Sobre los libros que descarga la plataforma para Empresa Demo 2025 (demo v5 de
+// dev, aprobado). Sin base ni modelo. Las filas del Formato son las de la hoja
+// exportada (la sección de métricas S1 46–50 ya expandida), como las cita la
+// revisión; las del Excel se buscan por su código de la columna A.
+// =============================================================================
+import ExcelJS from "exceljs";
+import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
+import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
+import { FILAS_FIDEICOMISO } from "../lib/formato/llenar.ts";
+
+const [formato, taxonomia] = process.argv.slice(2);
+if (!formato || !taxonomia) { console.error("Uso: e2e-celdas-categoricas.mjs <formato.xlsx> <taxonomia.xlsx>"); process.exit(2); }
+const fallas = [];
+const ok = (c, m) => { console.log(`  ${c ? "✓" : "✗"} ${m}`); if (!c) fallas.push(m); };
+const texto = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.richText.map((t) => t.text).join("") : v.text ?? (v.result != null ? String(v.result) : "")) : String(v)).trim();
+
+const wf = new ExcelJS.Workbook();
+await wf.xlsx.readFile(formato);
+const est = wf.getWorksheet("Estructura Formato Electronico");
+const K = (n) => texto(est.getCell(`K${n}`).value);
+const rango = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const todas = (filas, pred, msg) => {
+  const malas = filas.filter((f) => !pred(K(f)));
+  ok(!malas.length, `${msg}${malas.length ? ` — no: ${malas.map((f) => `K${f}=«${K(f).slice(0, 40)}»`).join(", ")}` : ""}`);
+};
+const es = (v) => (t) => t === v;
+const C4 = noRevelado("C4");
+
+console.log("Formato electrónico · identificación y alivios");
+ok(/^Alivios de transición aplicados en este ejercicio: /.test(K(12)), `K12: los alivios del reporte («${K(12)}»)`);
+todas(rango(13, 21), es("No aplica"), "K13–K21 «Para: Fideicomisos»: «No aplica» (Empresa Demo no es fideicomiso)");
+{
+  const deLaColumnaA = [];
+  est.eachRow((row, n) => { if (/^Para: Fideicomisos/.test(texto(row.getCell(1).value))) deLaColumnaA.push(n); });
+  ok(deLaColumnaA.join() === [...FILAS_FIDEICOMISO].join(), `FILAS_FIDEICOMISO = las filas cuya columna A dice «Para: Fideicomisos» (${deLaColumnaA.join(", ")})`);
+}
+
+console.log("\nFormato electrónico · booleanos y su vecina (§3)");
+todas([38], es("No"), "K38 ¿métricas de desempeño en la remuneración? «No»");
+todas([44, 49], es("Sí"), "K44 y K49 «Sí»");
+ok(K(126) && !/^(Sí|No)\./.test(K(126)), "K126 (texto): sin «Sí.» inicial");
+todas([134], es("Sí"), "K134 ¿cambió los procesos? «Sí»");
+ok(!K(135), "K135 «¿Por qué?»: vacía, el booleano de la fila 134 es «Sí»");
+ok(K(137) && !/^(Sí|No)\./.test(K(137)), "K137 «¿Cómo lo ha hecho?»: con texto y sin «Sí.» inicial");
+todas([148, 172, 197, 221, 246, 270, 294, 319, 343, 369, 393, 418, 442], es("Verdadero"), "¿métrica requerida por una Norma NIIF? «Verdadero» (13)");
+todas([161, 185, 210, 234, 259, 283, 307, 332, 356, 382, 406, 431, 455], es("No"), "¿se deriva de ajuste de otra fuente? «No» (13)");
+todas([167, 191, 216, 240, 289, 313, 338, 362, 388, 412, 437, 461], es("No"), "¿validada por tercero? «No» (12)");
+ok(/^Sí/.test(K(265)), "K265 GEI validada por tercero: «Sí, … Verificadora Demo»");
+todas([465, 516, 532, 535, 552, 696, 704], es("No"), "K465, K516, K532, K535, K552, K696, K704 «No»");
+todas([478], es("Verdadero"), "K478 ¿objetivo relacionado con el clima? «Verdadero»");
+todas([565, 582, 592, 723], es("Sí"), "K565, K582, K592, K723 «Sí»");
+ok(!K(699) && !K(707), "K699 y K707 vacías por el «No» de K696 y K704");
+todas([643, 666, 689], es("Sí, parcialmente"), "K643, K666, K689 «Sí, parcialmente»");
+todas([574, 576, 578], (t) => /^(No se identificaron|No aplica)/.test(t), "K574, K576, K578 errores de periodos anteriores");
+todas([861, 863, 866], (t) => /^No aplica/.test(t), "K861, K863, K866 comparativos revisados «No aplica»");
+
+console.log("\nFormato electrónico · actividad y alivios en celda");
+todas([613, 614, 615, 616, 617, 621], es(C4), "Alcance 3 (K613–K617, K621) «No revelado · alivio C4», K615 incluida");
+todas([618, 619, 747], es("Banca comercial"), "K618, K619, K747 «Banca comercial»");
+todas([725, 726], (t) => /FN-CB/.test(t), "K725, K726 sector FN-CB");
+todas(rango(711, 720).filter((f) => K(f)), es(C4), "29A–29C (K711–K720) «No revelado · alivio C4»");
+todas(rango(733, 741).filter((f) => K(f)), (t) => t.startsWith("No aplica por actividad"), "gestión de activos (K733–K741) «No aplica por actividad»");
+todas(rango(748, 762).filter((f) => K(f)), es(C4), "banca comercial, cifras (K748–K762) «No revelado · alivio C4»");
+todas(rango(767, 782).filter((f) => K(f)), (t) => t.startsWith("No aplica por actividad"), "seguros (K767–K782) «No aplica por actividad»");
+
+console.log("\nFormato electrónico · celdas corregidas de §2");
+ok(/de transición/.test(K(640)) && !/riesgos climáticos que/.test(K(640)), "K640 nombra «de transición»");
+ok(K(631) === K(623) && K(654) === K(646) && K(677) === K(669) && !!K(631), "K631, K654, K677: el texto de concentración (K623, K646, K669)");
+ok(/488,000/.test(K(606)) && !/488000/.test(K(606)), "K606 «488,000» con separador");
+ok(!K(787) && !K(788), "K787 y K788 vacías (sin nota interna de SASB)");
+
+console.log("\nFormato electrónico · todas las hojas");
+{
+  const conVoc = [];
+  for (const ws of wf.worksheets) ws.eachRow((row) => row.eachCell((c) => {
+    if (c.isMerged && c.master !== c) return;
+    const t = texto(c.value);
+    if (t.length >= 3 && vocabularioEnCeldaExportada(t).length) conVoc.push(`${ws.name}!${c.address}`);
+  }));
+  ok(!wf.getWorksheet("Leyenda"), "sin hoja «Leyenda»");
+  ok(!conVoc.length, `sin vocabulario de plataforma en ninguna hoja${conVoc.length ? ` — ${conVoc.join(", ")}` : ""}`);
+}
+
+const wt = new ExcelJS.Workbook();
+await wt.xlsx.readFile(taxonomia);
+const tax = wt.getWorksheet("Taxonomía NIIF S1 S2");
+const porCodigo = new Map();
+tax.eachRow((row) => {
+  const cod = texto(row.getCell(1).value).replace(/\s+/g, " ");
+  if (cod) porCodigo.set(cod, [...(porCodigo.get(cod) ?? []), texto(row.getCell(3).value)]);
+});
+const C = (codigo) => (porCodigo.get(codigo) ?? [""])[0];
+
+console.log("\nExcel de taxonomía · respuestas categóricas (§3)");
+ok(C("NIIF S1 30(a)y(b)") === remisionE5("NIIF S2 10(a), (b)y(c)"), "S1 30(a)y(b) (fila 20): remite a NIIF S2 10(a)–(c), no «No aplica»");
+ok(C("NIIF S1 33(c)") === ORACION_E5, "S1 33(c) (fila 27): la oración del E5, no «No aplica»");
+ok(C("NIIF S1 40(a)") === remisionE5("NIIF S2 21(a)"), "S1 40(a) (fila 38): remite a NIIF S2 21(a)");
+ok(C("NIIF S1 46 a 50") === remisionE5("NIIF S2 29"), "S1 46–50 (fila 55): remite a NIIF S2 29, como su hoja llena");
+ok(["NIIF S1 35(a)", "NIIF S1 35(b)", "NIIF S1 35(c)", "NIIF S1 35(d)"].filter((c) => porCodigo.has(c)).every((c) => /se revela conforme a NIIF S2 16/.test(C(c)) || !C(c)), "S1 35(a)–(d): remisión a S2 16 (las vacías van al encargo formato-respuesta-por-inciso)");
+ok(!!C("NIIF S2 6(b)(ii)"), "S2 6(b)(ii) (fila 77): con respuesta");
+for (const c of ["NIIF S2 25 (a)(ii)", "NIIF S2 25 (a)(vi)"]) ok(!!C(c) && !/^No aplica/.test(C(c)), `${c}: con respuesta`);
+for (const c of ["NIIF S2 29 (a)(vi)(1)", "NIIF S2 29 (a)(vi)(1) EI12", "NIIF S2 29 (a)(vi)(2)", "NIIF S2 EI19 a EI24"]) ok(C(c) === C4, `${c}: «No revelado · alivio C4», como el Formato`);
+ok(/^No aplica/.test(C("NIIF S2 36 (c)")), "S2 36(c): «No aplica» (ningún objetivo neto)");
+const hoja36e = wt.getWorksheet("NIIF S2 36(e)(i)-(iv)");
+ok(C("NIIF S2 36 (e)(i)") === texto(hoja36e.getCell("B2").value) && !/^No aplica/.test(C("NIIF S2 36 (e)(i)")), "S2 36(e)(i) (fila 276): la respuesta de su hoja del cuestionario");
+for (const c of ["NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"]) ok(/^No aplica/.test(C(c)), `${c}: «No aplica» (sin créditos de carbono)`);
+
+console.log("\nExcel de taxonomía · hojas de datos");
+{
+  const h = wt.getWorksheet("NIIF S2 36(a)-(d)");
+  const filas = [];
+  h.eachRow((row, n) => { if (n > 1 && texto(row.getCell(1).value)) filas.push(n); });
+  ok(filas.length === 1 && /Reducción de emisiones de Alcances 1 y 2/.test(texto(h.getCell(`A${filas[0]}`).value)), `36(a)–(d): solo el objetivo de emisiones GEI (${filas.map((n) => texto(h.getCell(`A${n}`).value)).join(" | ")})`);
+  let crudos = 0;
+  h.eachRow((row) => row.eachCell((c) => { if (/^(Verdadero|Falso)$/.test(texto(c.value))) crudos++; }));
+  ok(crudos === 0 && filas.length === 1 && texto(h.getCell(`E${filas[0]}`).value) === "No", "36(a)–(d): «No» en el enfoque sectorial, sin «Verdadero»/«Falso» crudos");
+  const g = wt.getWorksheet("NIIF S2 29(a)(vi)(1)");
+  let c3 = 0, cat = 0;
+  g.eachRow((row) => { if (/^Categoría \d/.test(texto(row.getCell(1).value))) { cat++; if (texto(row.getCell(3).value) === noRevelado("C3")) c3++; } });
+  ok(cat === 15 && c3 === 15, `29(a)(vi)(1): la columna del año anterior «No revelado · alivio C3» (${c3}/${cat})`);
+}
+{
+  let corchete = 0, voc = 0;
+  for (const ws of wt.worksheets) ws.eachRow((row, n) => row.eachCell((c) => {
+    const t = texto(c.value);
+    if (t.startsWith("[")) corchete++;
+    if (n > 1 && t.length >= 3 && vocabularioEnCeldaExportada(t).length) voc++;
+  }));
+  ok(corchete === 0, "ninguna celda del Excel empieza con «[»");
+  ok(voc === 0, `sin vocabulario de plataforma en el Excel (${voc})`);
+}
+
+console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
+process.exit(fallas.length ? 1 : 0);

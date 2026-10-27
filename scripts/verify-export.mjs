@@ -217,13 +217,16 @@ async function main() {
   ok(cellText(tax, "A1") === "Contenido" && cellText(tax, "B1") === "Requerimientos" && cellText(tax, "C1") === "Respuesta" && tax.columnCount === 3, "Taxonomía: tres columnas, código, requisito y respuesta");
   {
     const E5 = "En este primer periodo anual de aplicación, la Compañía se acoge a la exención del párrafo E5 de la NIIF S1";
+    // La oración completa (lib/suplemento/alivios.ts; este script no importa TypeScript).
+    const E5_COMPLETA = `${E5} y revela únicamente información sobre los riesgos y oportunidades relacionados con el clima.`;
     const pilares = [];
     let conE5 = 0;
     tax.eachRow((row, f) => {
       if (f === 1) return;
       const c = cellText(tax, `C${f}`);
-      if (c.startsWith(E5)) conE5++;
-      if (!cellText(tax, `A${f}`) && c.startsWith(E5)) pilares.push(cellText(tax, `B${f}`));
+      // La forma «requisito» del E5 sin par de NIIF S2 es la oración sola (S1 33(c), como K81 del Formato; Fase 5).
+      if (c.startsWith(E5) && c !== E5_COMPLETA) conE5++;
+      if (!cellText(tax, `A${f}`) && c.startsWith(E5)) { pilares.push(cellText(tax, `B${f}`)); if (c === E5_COMPLETA) conE5++; }
     });
     ok(conE5 === pilares.length && ["Gobernanza (S1)", "Estrategia", "Gestión del riesgo", "Métricas y Objetivos", "Declaración de cumplimiento"].every((p) => pilares.includes(p)), `E5 solo en los encabezados de pilar de NIIF S1 (${pilares.join(", ")})`);
     const f72 = filaDe(tax, "NIIF S1 72");
@@ -237,7 +240,8 @@ async function main() {
   ok(Number(cellText(gei1, `C${fA1}`)) === 1240, "Alcance 1, 2025 validado = 1240");
   // ALIVIOS: primer año con C3, C4 y E5. C3: la columna 2024 dice «No revelado · alivio C3»; C4: sin Alcance 3.
   ok(cellText(gei1, `D${fA1}`) === "No revelado · alivio C3" && Number(cellText(gei1, `C${fA2}`)) > 0 && cellText(gei1, `D${fA2}`) === "No revelado · alivio C3", "Alcances 1 y 2: 2024 «No revelado · alivio C3»");
-  ok(cellText(gei1, `C${fA3}`) === "No revelado · alivio C4" && cellText(gei1, `D${fA3}`) === "No revelado · alivio C4", "Alcance 3 total: «No revelado · alivio C4» en los dos años");
+  // El comparativo lo deja fuera C3 antes que C4 (revisión externa v5, Fase 5).
+  ok(cellText(gei1, `C${fA3}`) === "No revelado · alivio C4" && cellText(gei1, `D${fA3}`) === "No revelado · alivio C3", "Alcance 3 total: 2025 «No revelado · alivio C4», 2024 «No revelado · alivio C3»");
   {
     const textos = [];
     wb.eachSheet((ws) => ws.eachRow((row) => row.eachCell((c) => textos.push(cellTextC(c)))));
@@ -250,9 +254,9 @@ async function main() {
     geiVi.eachRow((row, f) => {
       if (!/^Categoría \d/.test(cellText(geiVi, `A${f}`))) return;
       n++;
-      if (cellText(geiVi, `B${f}`) !== "No revelado · alivio C4" || cellText(geiVi, `C${f}`) !== "No revelado · alivio C4") todas = false;
+      if (cellText(geiVi, `B${f}`) !== "No revelado · alivio C4" || cellText(geiVi, `C${f}`) !== "No revelado · alivio C3") todas = false;
     });
-    ok(n === 15 && todas && geiVi.columnCount === 3, `las 15 categorías: «No revelado · alivio C4» en los dos años, sin columna de notas (${n})`);
+    ok(n === 15 && todas && geiVi.columnCount === 3, `las 15 categorías: 2025 «No revelado · alivio C4», 2024 por C3, sin columna de notas (${n})`);
   }
 
   console.log("\nRegistros de clima (horizonte multi + capital en tres):");
@@ -289,7 +293,7 @@ async function main() {
   // Ningún objetivo tiene validación por tercero; «Verdadero» se prueba en S2 22(b)(i).
   ok(cellText(s34, "B2") === "Falso" && cellText(s34, "B3") === "Falso", "S2 34: validación por tercero «Falso» (booleano)");
   ok(cellText(s35, "B2").length > 0, "S2 35: resultados del objetivo completo");
-  ok(cellText(s36, "B2").includes("Dióxido de carbono (CO2)") && cellText(s36, "C2") === "Alcance 1; Alcance 2" && cellText(s36, "D2") === "Emisiones brutas de gases de efecto invernadero" && cellText(s36, "E2") === "Falso", "S2 36: gases, alcances, bruto/neto y enfoque con valores oficiales");
+  ok(cellText(s36, "B2").includes("Dióxido de carbono (CO2)") && cellText(s36, "C2") === "Alcance 1; Alcance 2" && cellText(s36, "D2") === "Emisiones brutas de gases de efecto invernadero" && cellText(s36, "E2") === "No", "S2 36: gases, alcances, bruto/neto y enfoque con valores oficiales");
   ok(cellText(s34, "A5") === "" && cellText(s35, "A5") === "" && cellText(s36, "A5") === "", "sin cuarto objetivo: nada inventado después del tercero");
 
   console.log("\nObjetivos — S1 51 y métricas S1 46-50:");
@@ -338,6 +342,9 @@ async function main() {
     c22bii.eachRow((row, f) => { if (/^Pendiente/.test(cellText(c22bii, `B${f}`))) pend = true; });
     ok(!pend, "S2 22(b)(ii): sin «Pendiente: …» (completo 6/6)");
   }
+
+  // NIIF S2 36(a)–(d): solo objetivos de emisiones de GEI (Fase 5): «Cartera sostenible» y la medición PCAF no van.
+  ok(!cellText(s36, "A3"), "S2 36(a)–(d): solo el objetivo de emisiones de GEI");
 
   console.log("\nCuestionarios — S2 36(e) (un solo estado):");
   ok(cellText(c36e, "A2").length > 0 && cellText(c36e, "B2").length > 0, "S2 36(e): la pregunta impresa y su respuesta capturada");
