@@ -45,8 +45,9 @@ type Cliente = SupabaseClient<Database>;
 export const NOTA_PENDIENTE = "Pendiente de validación en plataforma";
 export const NOTA_SIN = "Sin evidencia";
 export const NOTA_SIN_SOLICITUD = "Sin solicitud en el reporte";
-/** Celda que un alivio vigente deja fuera (especificación 0.41, §6.1): «No revelado · alivio C4». */
-export const noRevelado = (alivio: string) => `No revelado · alivio ${alivio}`;
+/** Celda que un alivio vigente deja fuera (especificación 0.41, §6.1): el texto vive en lib/suplemento/alivios.ts. */
+import { noRevelado } from "@/lib/suplemento/alivios";
+export { noRevelado };
 
 /**
  * ALIVIOS EN LAS HOJAS DE DATOS (revisión externa, punto 1). El Word no revela el
@@ -55,8 +56,10 @@ export const noRevelado = (alivio: string) => `No revelado · alivio ${alivio}`;
  */
 export function alivioDeCelda(rubro: string | null, anioOffset: number | null, alivios: Alivios): "C4" | "C3" | null {
   // La misma lista de rubros que calla el Word (CONDICIONADOS_POR_ALIVIO).
-  if (alivios.C4 && rubroExento(rubro, { C4: true })) return "C4";
+  // El comparativo del primer año lo deja fuera C3 antes que C4: no hay periodo anterior que revelar (revisión
+  // externa v5: la columna 2024 de Alcance 3 decía C4; el Formato, 589, la atribuye a C3).
   if (alivios.C3 && (anioOffset ?? 0) >= 1) return "C3";
+  if (alivios.C4 && rubroExento(rubro, { C4: true })) return "C4";
   return null;
 }
 

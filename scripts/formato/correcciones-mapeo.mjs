@@ -11,6 +11,7 @@
 
 const ENCARGO = "2026-10-24 · encargo deuda-s2-formato";
 const ENCARGO_VOZ = "2026-10-26 · encargo formato-afirmaciones-y-voz, Fase 2";
+const ENCARGO_FASE5 = "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5)";
 const SIN_29B = (inciso) => ({
   capa: "sin candidato", datapoint: null, confianza: "—", bloque: null, alivioE5: false,
   regla: "Con el alivio C4, «No revelado · alivio C4» (regla de la fila 435); sin C4, «Pendiente» hasta ampliar el catálogo",
@@ -76,6 +77,30 @@ export const CORRECCIONES = [
   ...[365, 388, 411].map((fila) => ({
     fila, encargo: ENCARGO_VOZ, motivo: `B65(e), conexiones con los estados financieros (K${fila + 279}): concepto con dueño el bloque 10, no subconcepto de la enumeración`,
     cambios: { clasificacion: "concepto", capa: "1 · fuente", datapoint: "NIIF S2 B65 inciso (e)", bloque: 10, alivioE5: false, regla: "Modelo, desde el bloque 10 aprobado y los hechos de NIIF S2 B65 inciso (e)" },
+  })),
+
+  // ---------------------------------------------------------------------------
+  // Fase 5 (revisión externa v5), con las decisiones de Esteban del 27/10.
+  // ---------------------------------------------------------------------------
+  ...[[17, "fideicomitente", "del fideicomitente"], [19, "administrador_patrimonio", "del administrador del patrimonio del fideicomiso"]].map(([fila, campo, de]) => ({
+    fila, encargo: ENCARGO_FASE5, motivo: `denominación ${de} (sección «Para: Fideicomisos»): un campo propio del Perfil, no la razón social de la emisora`,
+    cambios: { perfil: `perfil.${campo} (nuevo)`, regla: `Desde perfil.${campo}; si la emisora no es fideicomiso, «No aplica» (la sección entera, por su columna A)` },
+  })),
+  {
+    fila: 135, encargo: ENCARGO_FASE5, motivo: "«¿Por qué?» del booleano de la fila 134: copiaba la respuesta del código con su «Sí.» (K135)",
+    cambios: { clasificacion: "concepto", capa: "3 · revisión (regla)", regla: "Si el booleano de la fila 134 es «No», la explicación de su respuesta propia (fila:134) sin el «No.» inicial; si es «Sí», vacía" },
+  },
+  {
+    fila: 137, encargo: ENCARGO_FASE5, motivo: "«¿Cómo lo ha hecho?» del booleano de la fila 134: solo se despliega con «Sí» y sin «Sí.» inicial (K137)",
+    cambios: { regla: "Modelo, desde el bloque 27 aprobado y los hechos de NIIF S2 25 (a)(vi), SOLO si el booleano de la fila 134 es «Sí»; si es «No», vacía (no se despliega)" },
+  },
+  {
+    fila: 336, encargo: ENCARGO_FASE5, motivo: "extracto de Alcance 3 por categorías (EI12, K615): concepto con la regla de C4, como 335 y 337; quedaba vacía",
+    cambios: { clasificacion: "concepto", capa: "1 · fuente", datapoint: "NIIF S2 29 (a)(vi)(1)", confianza: "alta", bloque: 33, alivioE5: false, regla: "Con el alivio C4, «No revelado · alivio C4»; sin C4, modelo desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(1)" },
+  },
+  ...[["b", 352, 34], ["c", 375, 35], ["d", 398, 36]].map(([inciso, fila, bloque]) => ({
+    fila, encargo: ENCARGO_FASE5, motivo: `«dónde se concentran» (B65(b), K${fila + 279}): al código de B65(b), no al de la exposición de NIIF S2 29 (${inciso})`,
+    cambios: { datapoint: `NIIF S2 29 (${inciso}) · B65 (b)`, bloque, regla: `Modelo, desde el bloque ${bloque} aprobado y los hechos de NIIF S2 29 (${inciso}) · B65 (b): dónde se concentran en el modelo de negocio y en la cadena de valor` },
   })),
 ];
 

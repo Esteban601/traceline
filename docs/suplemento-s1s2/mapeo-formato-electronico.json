@@ -7,21 +7,21 @@
   },
   "filas": 370,
   "porClasificacion": {
-   "encabezado": 44,
-   "concepto": 265,
+   "encabezado": 43,
+   "concepto": 266,
    "subconcepto": 51,
    "encabezado narrativo": 7,
    "fuera de alcance (SASB, Fase C)": 2,
    "miembro de tabla": 1
   },
   "porCapa": {
-   "—": 47,
+   "—": 46,
    "regla fija": 11,
    "Perfil": 23,
-   "3 · revisión (S1→S2)": 46,
+   "3 · revisión (S1→S2)": 45,
    "3 · revisión": 11,
-   "1 · fuente": 158,
-   "3 · revisión (regla)": 10,
+   "1 · fuente": 159,
+   "3 · revisión (regla)": 11,
    "3 · revisión (tabla)": 9,
    "1 · correspondencia S1→S2": 17,
    "regla primer año": 10,
@@ -29,12 +29,12 @@
    "sin candidato": 7
   },
   "porConfianza": {
-   "—": 57,
-   "alta": 311,
+   "—": 56,
+   "alta": 312,
    "media": 2
   },
-  "conDatapoint": 256,
-  "conBloque": 262,
+  "conDatapoint": 257,
+  "conBloque": 263,
   "conAlivioE5": 91,
   "revision": {
    "archivo": "mapeo-revision.xlsx",
@@ -258,10 +258,11 @@
    "clasificacion": "concepto",
    "capa": "Perfil",
    "datapoint": null,
-   "perfil": "perfil.denominacion_formal",
+   "perfil": "perfil.fideicomitente (nuevo)",
    "confianza": "alta",
    "bloque": null,
-   "regla": "Desde perfil.denominacion_formal"
+   "regla": "Desde perfil.fideicomitente; si la emisora no es fideicomiso, «No aplica» (la sección entera, por su columna A)",
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): denominación del fideicomitente (sección «Para: Fideicomisos»): un campo propio del Perfil, no la razón social de la emisora"
   },
   {
    "fila": 18,
@@ -287,10 +288,11 @@
    "clasificacion": "concepto",
    "capa": "Perfil",
    "datapoint": null,
-   "perfil": "perfil.denominacion_formal",
+   "perfil": "perfil.administrador_patrimonio (nuevo)",
    "confianza": "alta",
    "bloque": null,
-   "regla": "Desde perfil.denominacion_formal"
+   "regla": "Desde perfil.administrador_patrimonio; si la emisora no es fideicomiso, «No aplica» (la sección entera, por su columna A)",
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): denominación del administrador del patrimonio del fideicomiso (sección «Para: Fideicomisos»): un campo propio del Perfil, no la razón social de la emisora"
   },
   {
    "fila": 20,
@@ -2143,17 +2145,18 @@
    "lista": false,
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
-   "capa": "3 · revisión (S1→S2)",
+   "capa": "3 · revisión (regla)",
    "datapoint": "NIIF S2 25 (a)(vi)",
    "confianza": "alta",
    "bloque": 27,
-   "regla": "Modelo, desde el bloque 27 aprobado y los hechos de NIIF S2 25 (a)(vi) · lleva la oración fija del alivio E5",
+   "regla": "Si el booleano de la fila 134 es «No», la explicación de su respuesta propia (fila:134) sin el «No.» inicial; si es «Sí», vacía",
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "regla S1→S2"
    },
    "alivioE5": true,
-   "nota": null
+   "nota": null,
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): «¿Por qué?» del booleano de la fila 134: copiaba la respuesta del código con su «Sí.» (K135)"
   },
   {
    "fila": 137,
@@ -2171,13 +2174,14 @@
    "datapoint": "NIIF S2 25 (a)(vi)",
    "confianza": "alta",
    "bloque": 27,
-   "regla": "Modelo, desde el bloque 27 aprobado y los hechos de NIIF S2 25 (a)(vi) · lleva la oración fija del alivio E5",
+   "regla": "Modelo, desde el bloque 27 aprobado y los hechos de NIIF S2 25 (a)(vi), SOLO si el booleano de la fila 134 es «Sí»; si es «No», vacía (no se despliega)",
    "nota": null,
    "alivioE5": true,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "regla S1→S2"
-   }
+   },
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): «¿Cómo lo ha hecho?» del booleano de la fila 134: solo se despliega con «Sí» y sin «Sí.» inicial (K137)"
   },
   {
    "fila": 139,
@@ -5128,18 +5132,19 @@
    "parrafos": [],
    "lista": false,
    "respondidaEnReferencia": false,
-   "clasificacion": "encabezado",
-   "capa": "—",
-   "datapoint": null,
-   "confianza": "—",
-   "bloque": null,
-   "regla": "Sin respuesta (encabezado)",
+   "clasificacion": "concepto",
+   "capa": "1 · fuente",
+   "datapoint": "NIIF S2 29 (a)(vi)(1)",
+   "confianza": "alta",
+   "bloque": 33,
+   "regla": "Con el alivio C4, «No revelado · alivio C4»; sin C4, modelo desde el bloque 33 aprobado y los hechos de NIIF S2 29 (a)(vi)(1)",
    "nota": null,
    "alivioE5": false,
    "revision": {
     "origen": "asesor (aceptada por Esteban)",
     "categoria": "encabezado"
-   }
+   },
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): extracto de Alcance 3 por categorías (EI12, K615): concepto con la regla de C4, como 335 y 337; quedaba vacía"
   },
   {
    "fila": 337,
@@ -5376,12 +5381,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (b)",
+   "datapoint": "NIIF S2 29 (b) · B65 (b)",
    "confianza": "alta",
    "bloque": 34,
-   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b)",
+   "regla": "Modelo, desde el bloque 34 aprobado y los hechos de NIIF S2 29 (b) · B65 (b): dónde se concentran en el modelo de negocio y en la cadena de valor",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): «dónde se concentran» (B65(b), K631): al código de B65(b), no al de la exposición de NIIF S2 29 (b)"
   },
   {
    "fila": 353,
@@ -5697,12 +5703,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (c)",
+   "datapoint": "NIIF S2 29 (c) · B65 (b)",
    "confianza": "alta",
    "bloque": 35,
-   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c)",
+   "regla": "Modelo, desde el bloque 35 aprobado y los hechos de NIIF S2 29 (c) · B65 (b): dónde se concentran en el modelo de negocio y en la cadena de valor",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): «dónde se concentran» (B65(b), K654): al código de B65(b), no al de la exposición de NIIF S2 29 (c)"
   },
   {
    "fila": 376,
@@ -6012,12 +6019,13 @@
    "respondidaEnReferencia": false,
    "clasificacion": "concepto",
    "capa": "1 · fuente",
-   "datapoint": "NIIF S2 29 (d)",
+   "datapoint": "NIIF S2 29 (d) · B65 (b)",
    "confianza": "alta",
    "bloque": 36,
-   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d)",
+   "regla": "Modelo, desde el bloque 36 aprobado y los hechos de NIIF S2 29 (d) · B65 (b): dónde se concentran en el modelo de negocio y en la cadena de valor",
    "nota": null,
-   "alivioE5": false
+   "alivioE5": false,
+   "correccion": "2026-10-27 · encargo formato-afirmaciones-y-voz, Fase 5 (revisión externa v5): «dónde se concentran» (B65(b), K677): al código de B65(b), no al de la exposición de NIIF S2 29 (d)"
   },
   {
    "fila": 399,
@@ -7830,9 +7838,6 @@
   "NIIF S2 15": [
    84,
    91
-  ],
-  "NIIF S2 21": [
-   100
   ],
   "NIIF S2 23": [
    59,

@@ -497,30 +497,38 @@ function escribirObjetivos(
       const vacia = !(d && (d.resultados || d.analisis_tendencias));
       if (vacia) s35.getCell(`B${fila}`).value = pendienteObjetivo("resultados y análisis de tendencias del objetivo", nombre);
     }
-    if (s36) {
-      put(s36, `A${fila}`, nombre);
+    escritas++;
+  });
+
+  // NIIF S2 36(a)–(d) es de objetivos de emisiones de GEI (decisión de Esteban, Fase 5 del encargo
+  // formato-afirmaciones-y-voz): alcances cubiertos o bruto/neto capturados y métrica en tCO2e. Los booleanos
+  // capturados como Verdadero/Falso se escriben «Sí»/«No», como en el Formato electrónico.
+  const esObjetivoGei = (o: (typeof climaticos)[number]) => {
+    const d = detallePorObj.get(o.id);
+    return !!(d?.alcances_cubiertos?.trim() || d?.bruto_neto?.trim()) && /t\s*CO(?:2|₂)\s*e/i.test(o.metrica ?? "");
+  };
+  const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
+  if (s36) {
+    climaticos.filter(esObjetivoGei).slice(0, S2_FIN - S2_INICIO + 1).forEach((o, i) => {
+      const fila = S2_INICIO + i;
+      const d = detallePorObj.get(o.id);
+      put(s36, `A${fila}`, limpiarNombre(o.nombre));
       put(s36, `B${fila}`, d?.gases_cubiertos);
       put(s36, `C${fila}`, d?.alcances_cubiertos);
       put(s36, `D${fila}`, d?.bruto_neto);
-      put(s36, `E${fila}`, d?.enfoque_descarbonizacion);
-      const vacia = !(
-        d &&
-        (d.gases_cubiertos ||
-          d.alcances_cubiertos ||
-          d.bruto_neto ||
-          d.enfoque_descarbonizacion)
-      );
-      if (vacia) s36.getCell(`B${fila}`).value = pendienteObjetivo("cobertura del objetivo (gases, alcances, bruto o neto, enfoque)", nombre);
-    }
-    escritas++;
-  });
+      put(s36, `E${fila}`, siNo(d?.enfoque_descarbonizacion));
+      if (!(d && (d.gases_cubiertos || d.alcances_cubiertos || d.bruto_neto || d.enfoque_descarbonizacion))) {
+        s36.getCell(`B${fila}`).value = pendienteObjetivo("cobertura del objetivo (gases, alcances, bruto o neto, enfoque)", limpiarNombre(o.nombre));
+      }
+    });
+  }
 
   // Overflow climáticos: nota '+N' en la última fila (col nombre) de las 4 hojas.
   const extrasClim = climaticos.length - visClim.length;
   if (extrasClim > 0 && visClim.length > 0) {
     const filaUlt = S2_INICIO + visClim.length - 1;
     const ultNombre = limpiarNombre(visClim[visClim.length - 1].nombre);
-    for (const ws of [s33, s34, s35, s36]) {
+    for (const ws of [s33, s34, s35]) {
       if (ws)
         ws.getCell(`A${filaUlt}`).value =
           `${ultNombre}  (+${extrasClim} más que no caben en esta hoja)`;
