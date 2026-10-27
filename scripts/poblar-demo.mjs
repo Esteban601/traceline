@@ -570,6 +570,23 @@ const NARRATIVAS = [
     texto:
       "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. En la red del sureste, las adecuaciones de inmuebles (gasto de capital) sumaron 12.3 millones de pesos y se capitalizaron en propiedades, mobiliario y equipo, y las primas de seguros de daños e interrupción (gasto de operación) sumaron 6.2 millones y se registraron en gastos de administración y promoción. La inversión ambiental del ejercicio fue de 31.4 millones de pesos: de la inversión ambiental, los 31.0 millones de eficiencia energética se capitalizaron en propiedades, mobiliario y equipo, y los 0.4 millones de medición se registraron como gasto. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente, sobre la estimación preventiva para riesgos crediticios.",
   },
+  // Decisión de Esteban del 27/10 (encargo formato-afirmaciones-y-voz, Fase 4): las dos declaraciones que el bloque 10
+  // necesita para no dejar pendientes, en voz de la emisora e ilustrativas. El cuestionario del Perfil debe pedirlas en
+  // el alta de cualquier emisora (encargo siguiente en la cola).
+  {
+    titulo: "Congruencia de datos y supuestos con los estados financieros",
+    codigos: ["NIIF S2 B65 inciso (e)"],
+    area: "Finanzas",
+    texto:
+      "Los datos y supuestos empleados en la información relacionada con el clima son congruentes con los utilizados en la preparación de los estados financieros consolidados de 2025: el gasto de capital de la red del sureste, las primas de seguros y la inversión ambiental provienen de los mismos registros contables, y la estimación preventiva para riesgos crediticios se analiza con los mismos supuestos de los estados financieros.",
+  },
+  {
+    titulo: "Criterio de cuantificación de los efectos financieros previstos",
+    codigos: ["NIIF S2 21(a)"],
+    area: "Finanzas",
+    texto:
+      "La Compañía no proporciona información cuantitativa sobre los efectos financieros previstos de los riesgos y oportunidades relacionados con el clima porque, conforme a los criterios de los párrafos 19 y 20 de la NIIF S2, esos efectos no son identificables por separado de los demás factores que inciden en el riesgo de crédito y en el margen financiero, y la incertidumbre de medición de las estimaciones es tan alta que la información cuantitativa resultante no sería útil. Evaluará su cuantificación en los próximos ejercicios, conforme avance la medición de emisiones financiadas y la sensibilidad de la cartera por sector.",
+  },
   {
     titulo: "Análisis de escenarios climáticos y resiliencia",
     codigos: ["NIIF S2 22(a)(i)", "NIIF S2 22(b)(i)"],
