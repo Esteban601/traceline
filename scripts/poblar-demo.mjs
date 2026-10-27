@@ -912,8 +912,13 @@ const CUESTIONARIOS = {
     "Incremento de 15% en la frecuencia de ciclones categoría 3 o mayor en el Golfo y el Caribe al 2040; reducción de 10% en la disponibilidad hídrica en el Bajío al 2035.",
     // 4 · uso y combinación de fuentes de energía
     "40% de generación limpia en la matriz nacional al 2030 en el escenario de transición ordenada.",
-    // 5 y 6 —desarrollos tecnológicos y otros supuestos— no los contesta el
-    // documento y se dejan como estaban: inventarlos sería peor que el hueco.
+    // 5 y 6 (decisión de Esteban, encargo formato-afirmaciones-y-voz): con el
+    // supuesto de 40% de generación limpia que el documento ya afirma (K114/K115);
+    // los supuestos clave del análisis son los cinco anteriores.
+    // 5 · desarrollos tecnológicos
+    "Despliegue de tecnologías de generación limpia hasta alcanzar 40% de la matriz nacional al 2030 en el escenario de transición ordenada.",
+    // 6 · otros supuestos
+    "Ninguno adicional: los supuestos clave del análisis son los anteriores, incluido el de 40% de generación limpia en la matriz nacional al 2030.",
   ],
   "S2 36(e)": [
     // 1 · en qué medida el objetivo se basa en créditos de carbono

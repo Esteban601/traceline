@@ -23,6 +23,9 @@ import {
   respuestaDeCaptura,
   textoNoAplicaHeredado,
   validarRespuesta,
+  PLAN_DISPOSICION_RE,
+  disposicionesSinTipo,
+  tipoDeDisposicion,
 } from "../lib/suplemento/respuestas.ts";
 import fs from "node:fs";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
@@ -172,6 +175,20 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(validarCobertura(cob("pendiente", []), REQ, 10, idsSin, null, TEXTO, rango).some((e) => /marcador/.test(e)), "SIN hecho: «pendiente» exige el marcador en el texto");
   ok(validarCobertura(cob("pendiente", []), REQ, 10, idsSin, null, `${TEXTO} [Pendiente: explicación de por qué no se cuantifican los efectos previstos — Efectos financieros, campo explicación]`, rango).length === 0, "SIN hecho: 21(a) «pendiente» con su marcador es válido");
   ok(validarCobertura(cob("cubierto", ["h2"]), REQ, 10, new Set(conHecho), null, TEXTO, rango).some((e) => /narrativos/.test(e)), "el hecho prestado (narrativo) no sostiene 21(a) solo: va con uno propio de otro rango");
+}
+
+// Planes de disposición de activos (regla de Esteban): al tipo de riesgo que el hecho nombra como motivo, nunca por
+// el bloque al que remite; sin riesgo nombrado (o con los dos), sin tipo para clasificación de IRStrat.
+{
+  const fisico = "No hay planes de disposición de activos distintos de la reubicación de seis sucursales ubicadas en zonas de inundación, prevista hasta 2028.";
+  const transicion = "La Compañía prevé la desinversión de activos varados en generación con carbón por el riesgo de transición.";
+  const sinRiesgo = "La Compañía prevé la venta de inmuebles administrativos en 2027.";
+  const ambos = "La reubicación de sucursales responde a zonas de inundación y al riesgo de transición de la región.";
+  ok(PLAN_DISPOSICION_RE.test(fisico) && tipoDeDisposicion(fisico) === 35, "disposición por zonas de inundación → riesgos físicos (35)");
+  ok(tipoDeDisposicion(transicion) === 34, "disposición por activos varados → riesgos de transición (34)");
+  ok(tipoDeDisposicion(sinRiesgo) === null && tipoDeDisposicion(ambos) === null, "sin riesgo nombrado, o con los dos, no tiene tipo");
+  const sin = disposicionesSinTipo([fisico, transicion, sinRiesgo, ambos, "Las emisiones de Alcance 1 fueron de 1,240 tCO2e."].map((enunciado) => ({ estado: "vigente", enunciado })));
+  ok(sin.length === 2 && sin.every((h) => [sinRiesgo, ambos].includes(h.enunciado)), "disposicionesSinTipo lista solo los planes sin tipo");
 }
 
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");

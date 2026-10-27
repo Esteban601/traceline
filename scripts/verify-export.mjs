@@ -328,9 +328,16 @@ async function main() {
     ok(!pend, "S2 22(b)(i): sin «Pendiente: …» (completo 8/8)");
   }
 
-  console.log("\nCuestionarios — S2 22(b)(ii) (a medias 4/6):");
+  // Completo 6/6 desde el encargo formato-afirmaciones-y-voz (5 y 6 con el supuesto de 40% de generación limpia).
+  // El marcador de un cuestionario sin respuesta se comprueba en el segundo tenant, que no tiene ninguna.
+  console.log("\nCuestionarios — S2 22(b)(ii) (completo 6/6):");
   ok(cellText(c22bii, "B2").length > 0 && cellText(c22bii, "A4").includes("patrones climáticos locales"), "S2 22(b)(ii): respuesta y pregunta con los ejemplos oficiales");
-  ok(cellText(c22bii, "B6") === PEND("NIIF S2 22(b)(ii)") && cellText(c22bii, "B7") === PEND("NIIF S2 22(b)(ii)"), "S2 22(b)(ii): preguntas 5 y 6 con el marcador de pendiente en la respuesta");
+  ok(["B6", "B7"].every((c) => /generación limpia/.test(cellText(c22bii, c)) && /40%/.test(cellText(c22bii, c))), "S2 22(b)(ii): preguntas 5 y 6 con el supuesto de generación limpia");
+  {
+    let pend = false;
+    c22bii.eachRow((row, f) => { if (/^Pendiente/.test(cellText(c22bii, `B${f}`))) pend = true; });
+    ok(!pend, "S2 22(b)(ii): sin «Pendiente: …» (completo 6/6)");
+  }
 
   console.log("\nCuestionarios — S2 36(e) (un solo estado):");
   ok(cellText(c36e, "A2").length > 0 && cellText(c36e, "B2").length > 0, "S2 36(e): la pregunta impresa y su respuesta capturada");
@@ -385,6 +392,14 @@ async function main() {
         let n = 0;
         gVi.eachRow((row, f) => { if (/^Categoría \d/.test(cellText(gVi, `A${f}`)) && cellText(gVi, `B${f}`) === sinSol(fixture.ejercicio)) n++; });
         ok(n === 15, `las 15 categorías de Alcance 3 con el marcador «sin solicitud en el reporte» (${n})`);
+      }
+
+      // Cuestionario sin ninguna respuesta: el marcador de pendiente en texto plano en cada respuesta (CLAUDE.md §5).
+      {
+        const q = wb2.getWorksheet("NIIF S2 22(b)(ii)");
+        let n = 0;
+        q?.eachRow((row, f) => { if (f > 1 && cellText(q, `B${f}`) === PEND("NIIF S2 22(b)(ii)")) n++; });
+        ok(n === 6, `S2 22(b)(ii) sin respuestas: las 6 preguntas con el marcador de pendiente (${n})`);
       }
 
       // AISLAMIENTO: ni un dato del demo se cuela en el libro del otro cliente.

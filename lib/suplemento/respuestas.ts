@@ -160,6 +160,26 @@ const B65C_TIPOS = [
   { inciso: "c", bloque: 35, desplazamiento: 23, de: "los riesgos físicos relacionados con el clima" },
   { inciso: "d", bloque: 36, desplazamiento: 46, de: "las oportunidades relacionadas con el clima" },
 ];
+/**
+ * Planes de disposición de activos (NIIF S2 16(c); regla de Esteban, encargo formato-afirmaciones-y-voz): van a la
+ * celda de efectos previstos del tipo de riesgo que el hecho nombra como motivo («zonas de inundación» → físico),
+ * nunca por el bloque al que remite. Si no nombra riesgo, o nombra los dos, no entra en B65(c) y se lista como hecho
+ * sin tipo para clasificación de IRStrat (hoja «Avisos» de la revisión).
+ */
+export const PLAN_DISPOSICION_RE = /disposici[oó]n de activos|reubic|desinversi[oó]n|venta de (activos|sucursales|inmuebles)|cierre definitivo/i;
+const MOTIVO_FISICO_RE = /inundaci|hurac[aá]n|cicl[oó]n|tormenta|sequ[ií]a|estr[eé]s h[ií]drico|olas? de calor|incendio|nivel del mar|deslave|riesgos? f[ií]sicos?|fen[oó]menos? meteorol/i;
+const MOTIVO_TRANSICION_RE = /riesgos? de transici[oó]n|transici[oó]n energ|precio del carbono|impuesto al carbono|activos varados|intensiv[oa]s? en carbono|descarboniz/i;
+/** Bloque del tipo de riesgo que el plan de disposición nombra como motivo (35 físico, 34 transición), o null. */
+export function tipoDeDisposicion(enunciado: string): 34 | 35 | null {
+  const fisico = MOTIVO_FISICO_RE.test(enunciado);
+  const transicion = MOTIVO_TRANSICION_RE.test(enunciado);
+  return fisico === transicion ? null : fisico ? 35 : 34;
+}
+/** Hechos vigentes de planes de disposición que no nombran un tipo de riesgo: para clasificación de IRStrat. */
+export function disposicionesSinTipo<H extends { estado: string; enunciado: string }>(hechos: H[]): H[] {
+  return hechos.filter((h) => h.estado === "vigente" && PLAN_DISPOSICION_RE.test(h.enunciado) && tipoDeDisposicion(h.enunciado) == null);
+}
+
 export const CONCEPTOS_B65C: { fila: number; codigo: string; enfoque: string; prestadosDe: number }[] = B65C_TIPOS.flatMap((t) =>
   [354, 356, 358, 360, 361].map((f, i) => ({ fila: f + t.desplazamiento, codigo: `NIIF S2 29 (${t.inciso}) · B65 (c)`, enfoque: B65C_EFECTOS[i](t.de), prestadosDe: t.bloque }))
 );
@@ -569,15 +589,25 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const cob = plan?.via === "bloque" ? { bloque: plan.bloque, hechos: plan.hechos, estado: "cubierto" } : coberturaDe(c.codigo);
     // B65(c): más los hechos del bloque 10 que remiten al bloque del tipo y sus declaraciones negativas generales
     // (sin referencias), uno por enunciado.
+    // Los planes de disposición de activos siguen otra regla (PLAN_DISPOSICION_RE): solo en la celda de efectos
+    // previstos y solo del tipo de riesgo que nombran como motivo, con o sin referencia al bloque del tipo.
+    const previstos = c.prestadosDe != null && CONCEPTOS_B65C.findIndex((x) => x.fila === c.fila) % 5 === 3;
+    const disposicionAqui = (x: HechoLibro) => previstos && tipoDeDisposicion(x.enunciado) === c.prestadosDe;
     const prestados = c.prestadosDe == null ? [] : (() => {
       const vistos = new Set<string>();
       return [...hechos.values()]
         .filter((x) => x.estado === "vigente" && x.bloque_dueno === 10 && x.libro_id === porBloque.get(10)?.libro_id)
-        .filter((x) => (x.bloques_referencia ?? []).includes(c.prestadosDe!) || (x.tipo === "declaracion_negativa" && !(x.bloques_referencia ?? []).length))
+        .filter((x) => PLAN_DISPOSICION_RE.test(x.enunciado)
+          ? disposicionAqui(x)
+          : (x.bloques_referencia ?? []).includes(c.prestadosDe!) || (x.tipo === "declaracion_negativa" && !(x.bloques_referencia ?? []).length))
         .filter((x) => !vistos.has(x.enunciado) && vistos.add(x.enunciado))
         .map((x) => x.id);
     })();
-    if (!cob || !["cubierto", "parcial"].includes(cob.estado) || !(cob.hechos.length + prestados.length)) continue;
+    const propios = c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
+      const x = hechos.get(id);
+      return !x || !PLAN_DISPOSICION_RE.test(x.enunciado) || disposicionAqui(x);
+    });
+    if (!cob || !["cubierto", "parcial"].includes(cob.estado) || !(propios.length + prestados.length)) continue;
     const clave = `fila:${c.fila}`;
     const otras = [
       ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((x) => x.codigo === c.codigo && x.fila !== c.fila && !x.noRepite).map((x) => `la fila ${x.fila}`),
@@ -588,7 +618,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       : c.noRepite
       ? `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en una o dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que da el detalle en otra fila. Sin cifras que no estén en los hechos.`
       : `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
-    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...cob.hechos, ...prestados])] });
+    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...propios, ...prestados])] });
   }
   // Booleanos del formato (D1 de Esteban, encargo formato-afirmaciones-y-voz): una respuesta propia por fila que abre
   // con «Sí.» o «No.» y cita el hecho que contesta la pregunta. Recibe solo los hechos del código que tratan el tema
@@ -796,6 +826,8 @@ async function responderBloque(
         // Ajuste de Esteban (Fase 3): los planes de disposición de activos (16(c)) van en los efectos previstos, no en
         // el riesgo de ajuste material.
         if (b65 % 5 === 4 && /disposici[oó]n de activos|reubicaci[oó]n/i.test(g.texto)) errores.push("menciona planes de disposición de activos; van en la celda de efectos previstos (NIIF S2 16(c)), no en la del riesgo de ajuste material");
+        // Y la de efectos previstos que recibe un plan de disposición de su tipo lo dice.
+        if (b65 % 5 === 3 && p.hechos.some((h) => PLAN_DISPOSICION_RE.test(h.enunciado)) && !/disposici[oó]n|reubic|desinvers|venta de/i.test(g.texto)) errores.push("omite el plan de disposición de activos de sus hechos (NIIF S2 16(c)); esta celda lo incluye");
         // Por oración: una oración que NO nombra el efecto de esta celda y comparte ≥ 70 % de sus palabras con una
         // oración de otra celda del inciso (la declaración general copiada). Dos negaciones paralelas, cada una con su
         // efecto («…en su situación financiera», «…en su rendimiento financiero»), no son repetición.

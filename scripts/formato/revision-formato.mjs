@@ -26,6 +26,7 @@ import JSZip from "jszip";
 import { createServerClient } from "@supabase/ssr";
 import { insumosDelFormato } from "../../lib/formato/datos.ts";
 import { avisosDeCoherencia, booleanosVaciosPorContradiccion, llenarFormato, CONCEPTOS_FORMATO } from "../../lib/formato/llenar.ts";
+import { disposicionesSinTipo } from "../../lib/suplemento/respuestas.ts";
 
 const [reporte, salida, plantilla, exportado] = process.argv.slice(2);
 if (!reporte || !salida) { console.error("Uso: revision-formato.mjs <reporte> <salida.xlsx>"); process.exit(2); }
@@ -84,8 +85,20 @@ ws.columns = [
 // Avisos de coherencia (D2 del encargo formato-afirmaciones-y-voz): juicios del Perfil que chocan con otros datos.
 // Y los booleanos que quedaron vacíos porque la celda narrativa vecina contradice su valor (D1): fila, celda, valor
 // propuesto y la oración que lo contradijo.
+// Y los planes de disposición de activos que no nombran un tipo de riesgo: no entran en B65(c) y esperan la
+// clasificación de IRStrat (regla de Esteban, encargo formato-afirmaciones-y-voz).
+const sinTipo = await (async () => {
+  const { data: r } = await db.from("respuestas_datapoint").select("documento_id").eq("reporte_id", reporte).limit(1).maybeSingle();
+  const { data: doc } = r ? await db.from("documentos_generados").select("versiones_aprobadas").eq("id", r.documento_id).maybeSingle() : { data: null };
+  const v10 = doc?.versiones_aprobadas?.["10"]?.id;
+  const { data: v } = v10 ? await db.from("documentos_bloques_versiones").select("libro_id").eq("id", v10).maybeSingle() : { data: null };
+  if (!v?.libro_id) return [];
+  const { data: hs } = await db.from("hechos").select("id, estado, enunciado, bloque_dueno").eq("libro_id", v.libro_id);
+  return disposicionesSinTipo(hs ?? []);
+})();
 const avisos = [
   ...avisosDeCoherencia(ins.datos),
+  ...sinTipo.map((h) => `Plan de disposición de activos sin tipo de riesgo (bloque ${h.bloque_dueno}, hecho ${h.id}): «${h.enunciado}». No entra en B65(c); clasificar.`),
   ...booleanosVaciosPorContradiccion(valores).map((b) => `Booleano vacío en ${b.celda} (fila ${b.fila}): valor propuesto «${b.valor}», contradicho por «${b.oracion}».`),
 ];
 const av = wb.addWorksheet("Avisos");
