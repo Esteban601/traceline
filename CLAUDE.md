@@ -1,6 +1,11 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.12 · 26 de octubre de 2026.
+Versión 1.13 · 27 de octubre de 2026.
+
+**Cambios respecto a 1.12** (27 de octubre de 2026, decisión de Esteban, encargo formato-afirmaciones-y-voz, Fase 5):
+- §5: el glosario suma las cadenas de trabajo interno: «Fase <letra o número>», sprint, encargo, pendiente de
+  catálogo, catálogo SASB, ampliación del catálogo, por decidir y sin mapeo. La medición de vocabulario revisa todas
+  las hojas del Formato electrónico y del Excel de taxonomía.
 
 **Cambios respecto a 1.11** (26 de octubre de 2026, decisión de Esteban, encargo formato-afirmaciones-y-voz):
 - §5: el glosario de vocabulario de plataforma se escribe completo y es la única fuente del validador
@@ -127,11 +132,13 @@ después el código.
   Juicios del emisor en `notas_revision`.
 - **Glosario de vocabulario de plataforma** (única fuente del validador; `lib/suplemento/vocabulario.ts` debe decir
   lo mismo y un e2e lo compara): solicitud, evidencia, expediente, entregado, recibido, validado, IRStrat,
-  plataforma, bloque, datapoint, suplemento, registros de clima, memoria de cálculo, ids. Aplica al texto del modelo
-  y a toda celda exportada (Formato electrónico y respuestas del Excel), también a la que arma el código. Fuera de
-  él, a propósito: «validación», «captura» y «recibidos», que son voz legítima de una emisora, y las expresiones de la
-  norma y de la plantilla «validado por …», la validación de un tercero (NIIF S2 34), y «bloque de texto» (tipo de dato
-  de la plantilla).
+  plataforma, bloque, datapoint, suplemento, registros de clima, memoria de cálculo, ids, Fase <letra o número>,
+  sprint, encargo, pendiente de catálogo, catálogo SASB, ampliación del catálogo, por decidir, sin mapeo. Aplica al
+  texto del modelo y a toda celda exportada (todas las hojas del Formato electrónico y del Excel de taxonomía), también
+  a la que arma el código. «Fase» cuenta con una sola letra o número detrás («Fase C»); «fase IV» de los escenarios
+  NGFS es voz legítima. Fuera de él, a propósito: «validación», «captura» y «recibidos», que son voz legítima de una
+  emisora, y las expresiones de la norma y de la plantilla «validado por …», la validación de un tercero (NIIF S2 34),
+  y «bloque de texto» (tipo de dato de la plantilla).
 - Prompt en dos capas: estable (con caché) y volátil. Cambiar la capa estable o el esfuerzo invalida el caché;
   se anota la versión de prompt en cada bloque.
 - Costos: cada generación se registra con tokens y costo. Referencia vigente de una corrida completa del demo: **11.15

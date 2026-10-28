@@ -6,9 +6,9 @@ import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { bloquesIterados, booleanosVaciosPorContradiccion, llenarFormato } from "@/lib/formato/llenar";
 import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
-import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA, leyendaDelFormato } from "@/lib/formato/plantilla";
+import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA } from "@/lib/formato/plantilla";
 import { celdasConCorchete, opcionesDeListas, ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
-import { agregarHoja, rutaDeHoja } from "@/lib/formato/zip";
+import { rutaDeHoja } from "@/lib/formato/zip";
 import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
 
 export const runtime = "nodejs";
@@ -99,8 +99,6 @@ export async function GET(request: Request) {
       }
       zip.file(rutaTabla, tn);
     }
-
-    await agregarHoja(zip, "Leyenda", leyendaDelFormato(datos.alivios, datos.perfil.actividades_financieras));
 
     // Validador de entrega: las imágenes en celda siguen enlazadas; ningún «#VALUE!» suelto.
     const hojas: Record<string, string> = {};

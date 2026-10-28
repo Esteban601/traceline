@@ -85,10 +85,11 @@ try {
   const b = await libro();
   const gb = b.wb.getWorksheet("NIIF S2 29(a)(i)");
   const [f1, f2, f3] = ["Alcance 1", "Alcance 2", "Alcance 3"].map((x) => filaDe(gb, x));
-  ok(b.c("NIIF S2 29(a)(i)", `C${f3}`) === NR("C4") && b.c("NIIF S2 29(a)(i)", `D${f3}`) === NR("C4"), "C4: Alcance 3 total no se revela, en su celda");
+  // El comparativo lo deja fuera C3 antes que C4 (revisión externa v5: la columna 2024 decía C4).
+  ok(b.c("NIIF S2 29(a)(i)", `C${f3}`) === NR("C4") && b.c("NIIF S2 29(a)(i)", `D${f3}`) === NR("C3"), "C4: Alcance 3 total no se revela, en su celda; su comparativo, por C3");
   let cat = 0;
-  b.wb.getWorksheet("NIIF S2 29(a)(vi)(1)").eachRow((row, n) => { if (/^Categoría \d/.test(texto(row.getCell(1).value)) && b.c("NIIF S2 29(a)(vi)(1)", `B${n}`) === NR("C4") && b.c("NIIF S2 29(a)(vi)(1)", `C${n}`) === NR("C4")) cat++; });
-  ok(cat === 15, `C4: las 15 categorías de Alcance 3 en su celda (${cat})`);
+  b.wb.getWorksheet("NIIF S2 29(a)(vi)(1)").eachRow((row, n) => { if (/^Categoría \d/.test(texto(row.getCell(1).value)) && b.c("NIIF S2 29(a)(vi)(1)", `B${n}`) === NR("C4") && b.c("NIIF S2 29(a)(vi)(1)", `C${n}`) === NR("C3")) cat++; });
+  ok(cat === 15, `C4: las 15 categorías de Alcance 3 en su celda, con el comparativo por C3 (${cat})`);
   ok(b.c("NIIF S2 29(a)(i)", `D${f1}`) === NR("C3") && b.c("NIIF S2 29(a)(i)", `D${f2}`) === NR("C3"), "C3: la columna del año anterior de Alcance 1 y 2");
   const regHoja = ["NIIF S2 29(c)", "NIIF S2 29(b)", "NIIF S2 29(d)"].find((h) => b.c(h, "A4"));
   ok(!!regHoja && b.c(regHoja, "H4") === NR("C3"), `C3: los registros de clima tampoco muestran el año anterior (${regHoja} H4)`);

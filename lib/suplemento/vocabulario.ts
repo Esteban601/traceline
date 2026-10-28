@@ -34,6 +34,16 @@ export const GLOSARIO_PLATAFORMA: { termino: string; re: RegExp }[] = [
   { termino: "memoria de cálculo", re: P("memorias? de c[aá]lculo") },
   // Identificadores internos: prefijos de fuente y uuids.
   { termino: "ids", re: /(?<!\p{L})(?:sol|reg|obj|cue|perfil|reporte|evi|adj):|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/iu },
+  // Cadenas de trabajo interno (CLAUDE.md 1.13, Fase 5 del encargo formato-afirmaciones-y-voz). «Fase» solo con una
+  // letra o un número detrás y con mayúscula: «fase IV» de los escenarios NGFS es voz legítima.
+  { termino: "Fase <letra o número>", re: /(?<!\p{L})Fase [A-Z0-9](?![\p{L}\p{N}])/u },
+  { termino: "sprint", re: P("sprints?") },
+  { termino: "encargo", re: P("encargos?") },
+  { termino: "pendiente de catálogo", re: P("pendientes? de cat[aá]logo") },
+  { termino: "catálogo SASB", re: P("cat[aá]logo SASB") },
+  { termino: "ampliación del catálogo", re: P("ampliaci[oó]n del cat[aá]logo") },
+  { termino: "por decidir", re: P("por decidir") },
+  { termino: "sin mapeo", re: P("sin mapeo") },
 ];
 
 /** Los términos, para los prompts y las rúbricas (se listan, no se copian). */

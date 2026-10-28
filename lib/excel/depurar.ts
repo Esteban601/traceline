@@ -1,6 +1,6 @@
 import type ExcelJS from "exceljs";
 import type { Alivios } from "@/lib/perfil-emisor";
-import { ORACION_E4, ORACION_E5 } from "@/lib/suplemento/respuestas";
+import { ORACION_E4, ORACION_E5, textoAlivio } from "@/lib/suplemento/alivios";
 
 // =============================================================================
 // EXCEL DE TAXONOMÍA: SOLO PREGUNTAS Y RESPUESTAS (regla de Esteban, 26 de
@@ -171,7 +171,8 @@ export function enunciarAlivios(ws: ExcelJS.Worksheet, alivios: Alivios): void {
         e.value = ORACION_E5;
         e.alignment = { vertical: "top", wrapText: true };
       } else if (respuesta.startsWith(ORACION_E5)) {
-        e.value = respuesta.slice(ORACION_E5.length).trim() || "No aplica en este periodo por el alivio E5.";
+        // Sin par de NIIF S2, la forma «requisito» del E5 es la oración misma, como en el Formato (K81).
+        e.value = respuesta.slice(ORACION_E5.length).trim() || textoAlivio("E5", "requisito");
       }
     }
     if (alivios.E4 && codigo === "NIIF S1 72") {

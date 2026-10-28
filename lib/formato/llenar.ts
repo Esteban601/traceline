@@ -1,5 +1,6 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
-import { ORACION_E5, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
 import type { Alivios } from "@/lib/perfil-emisor";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
 import { BOOLEANOS_FORMATO, clausulasDelTema, contradice, valorBooleano } from "@/lib/formato/booleanos";
@@ -65,6 +66,8 @@ export type DatosFormato = {
     tipo_instrumento: string | null;
     fiduciario: string | null;
     numero_fideicomiso: string | null;
+    fideicomitente: string | null;
+    administrador_patrimonio: string | null;
     hechos_posteriores: string | null;
     actividades_financieras: string[];
     sector_sasb: string[];
@@ -122,9 +125,13 @@ const FILAS_ACTIVIDAD = new Set([339, 340]);
 /** NIIF S2 29A y 29B: 432 (limitaciones, 29A), 433 (¿limitó la categoría 15?), 435 (qué trató como derivado) y 437 (actividades excluidas). Sin código en el catálogo (modificación de 2025). */
 const FILAS_29B = new Set([432, 433, 435, 437]);
 /** «¿Por qué?» de un booleano (fila → fila del booleano): la explicación del «No». Fase 2 del encargo formato-afirmaciones-y-voz. */
-const POR_QUE: Record<number, number> = { 45: 44, 418: 417, 426: 425 };
-/** «Si ¿Cómo…?» de un booleano: solo se despliega con «Sí» (filas 420 y 428). */
-const SI_COMO: Record<number, number> = { 420: 417, 428: 425 };
+/** Sección «Para: Fideicomisos» de la plantilla 2025: las filas cuya columna A lo dice (un e2e lo comprueba). */
+export const FILAS_FIDEICOMISO = new Set([13, 14, 15, 16, 17, 18, 19, 20, 21]);
+/** Fila de la declaración de los alivios del reporte (K12). */
+export const FILA_ALIVIOS = 12;
+const POR_QUE: Record<number, number> = { 45: 44, 135: 134, 418: 417, 426: 425 };
+/** «Si ¿Cómo…?» de un booleano: solo se despliega con «Sí» (filas 137, 420 y 428; 135 y 137 desde la Fase 5). */
+const SI_COMO: Record<number, number> = { 137: 134, 420: 417, 428: 425 };
 /** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
 const FECHAS_22B_III: Record<number, "inicio" | "fin"> = { 117: "inicio", 119: "fin" };
 const FILAS_SECTOR = new Set([446, 447]);
@@ -157,6 +164,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   for (const [fila, bool] of Object.entries(SI_COMO).map(([f, b]) => [Number(f), b])) {
     if (out.has(fila) && out.get(bool)?.texto !== "Sí") out.set(fila, { texto: null, origen: "regla", nota: `no se despliega: el booleano de la fila ${bool} no es «Sí»` });
   }
+  // Una celda de texto no abre con «Sí.»: el booleano vecino ya lo dice (revisión externa v5, K126/K135/K137). El
+  // validador de respuestas ya lo rechaza; esto cubre las respuestas guardadas antes.
+  for (const [fila, v] of out) {
+    const tipo = conceptos.find((x) => x.fila === fila)?.tipo ?? "";
+    if (v.texto && /^text/.test(tipo) && /^Sí\.\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí\.\s+/, "") });
+  }
   // E5 una vez por encabezado: se queda en la primera celda (por fila) a la que el llenado se la antepuso.
   const vistos = new Set<number>();
   for (const [fila, v] of [...out.entries()].sort((a, b) => a[0] - b[0])) {
@@ -165,10 +178,18 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (!vistos.has(enc)) vistos.add(enc);
     else out.set(fila, { ...v, texto: v.texto.slice(ORACION_E5.length).trim(), e5: false });
   }
+  // Los alivios del reporte, en K12 (la fila sin etiqueta tras el año de reporte): la hoja «Leyenda» ya no se entrega
+  // (decisión de Esteban, Fase 5).
+  out.set(FILA_ALIVIOS, { texto: declaracionDeAlivios(d.alivios), origen: "alivio" });
   return out;
 
   function valorDe(c: ConceptoMapeo): ValorFormato {
-    if (/^fuera de alcance/.test(c.clasificacion)) return { texto: "Métricas por industria: pendiente de catálogo SASB (Fase C).", origen: "fuera de alcance" };
+    // Métricas por industria (SASB) fuera de alcance: vacías. La nota interna que llevaban («pendiente de catálogo
+    // SASB») no es voz de la emisora (revisión externa v5, K787/K788).
+    if (/^fuera de alcance/.test(c.clasificacion)) return { texto: null, origen: "fuera de alcance" };
+    // Sección «Para: Fideicomisos» (columna A de la plantilla): entera «No aplica» si la emisora no es fideicomiso
+    // (revisión externa v5: K13, K17 y K19 llevaban la clave y la razón social de la emisora).
+    if (FILAS_FIDEICOMISO.has(c.fila) && !/fideicomiso/i.test(d.perfil.tipo_instrumento ?? "")) return { texto: "No aplica", origen: "perfil" };
     // Un encabezado narrativo con datapoint lleva texto (la referencia lo responde);
     // los demás encabezados y los subconceptos («se responde junto con la fila N»), no.
     const narrativo = c.clasificacion === "encabezado narrativo" && !!c.datapoint;
@@ -179,7 +200,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       return { texto: v, origen: "iteración" as OrigenFormato, nota: "se repite por riesgo u oportunidad y métrica de NIIF S2 29" };
     }
     // NIIF S2 29B (433, 435, 437): con C4 no se revela nada de Alcance 3, categoría 15.
-    if (FILAS_29B.has(c.fila) && d.alivios.C4) return { texto: "No revelado · alivio C4", origen: "alivio" };
+    if (FILAS_29B.has(c.fila) && d.alivios.C4) return { texto: noRevelado("C4"), origen: "alivio" };
 
     // Actividad y sector, desde el Perfil (antes que el alivio: C4 exime cifras, no la pregunta).
     if (FILAS_ACTIVIDAD.has(c.fila)) return actividades.length ? { texto: actividades.join("; "), origen: "perfil" } : { texto: null, origen: "pendiente" };
@@ -191,7 +212,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       return { texto: `No aplica por actividad: la Compañía no participa en ${seccion.actividad.toLowerCase()} (actividades financieras declaradas por la emisora: ${actividades.join(", ")}).`, origen: "actividad" };
     }
     if (c.capa === "sin candidato") return { texto: null, origen: "sin mapeo", nota: "código pedido sin datapoint en el catálogo (lista de ampliación del catálogo)" };
-    if (c.datapoint && exentos.has(c.datapoint)) return { texto: "No revelado · alivio C4", origen: "alivio" };
+    if (c.datapoint && exentos.has(c.datapoint)) return { texto: noRevelado("C4"), origen: "alivio" };
     const regla = c.regla ?? "";
 
     if (c.capa === "regla fija") {
@@ -315,6 +336,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (/tipo_instrumento/.test(campo)) return v(p.tipo_instrumento);
     if (/clave_cotizacion/.test(campo)) return v(p.clave_cotizacion);
     if (/numero_fideicomiso/.test(campo)) return esFideicomiso ? v(p.numero_fideicomiso) : { texto: "No aplica", origen: "perfil" };
+    if (/fideicomitente/.test(campo)) return v(p.fideicomitente);
+    if (/administrador_patrimonio/.test(campo)) return v(p.administrador_patrimonio);
     if (/fiduciario/.test(campo)) return esFideicomiso ? v(p.fiduciario) : { texto: "No aplica", origen: "perfil" };
     if (/logo/.test(campo)) return d.hayLogo ? { texto: null, origen: "logo" } : { texto: null, origen: "pendiente", nota: "la emisora no tiene logotipo en la plataforma" };
     if (/denominacion_formal/.test(campo)) return v(p.denominacion_formal);
@@ -335,7 +358,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
 
   function tabla(c: ConceptoMapeo): ValorFormato {
     const dp = c.datapoint ?? "";
-    const anterior = d.alivios.C3 ? `${d.ejercicio - 1}: No revelado · alivio C3` : null;
+    const anterior = d.alivios.C3 ? `${d.ejercicio - 1}: ${noRevelado("C3")}` : null;
     const conAnterior = (lineas: string[]) => (anterior ? [...lineas, anterior] : lineas);
     const porHorizonte = (clave: string): ValorFormato => {
       const t = textoDe(clave);
@@ -344,7 +367,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     };
     if (dp === "NIIF S2 29 (a)(i)") {
       const lineas = d.gei.map((g) => `${g.alcance}: ${g.valor} (${d.ejercicio})`);
-      if (d.alivios.C4) lineas.push("Alcance 3: No revelado · alivio C4");
+      if (d.alivios.C4) lineas.push(`Alcance 3: ${noRevelado("C4")}`);
       return lineas.length ? { texto: conAnterior(lineas).join("\n"), origen: "datos" } : { texto: null, origen: "pendiente" };
     }
     if (dp === "NIIF S2 29 (a)(iv) EI5") {
