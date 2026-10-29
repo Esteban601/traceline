@@ -289,8 +289,9 @@ async function main() {
   ok(s33.columnCount === 10, "S2 33: diez columnas, sin «Notas / Brechas»");
 
   console.log("\nObjetivos — trazabilidad + tipos oficiales S2 34/36:");
-  const a2 = cellText(s33, "A2");
-  ok(a2.length > 0 && cellText(s34, "A2") === a2 && cellText(s35, "A2") === a2 && cellText(s36, "A2") === a2, "el objetivo de la fila 2 es el mismo en S2 33/34/35/36");
+  // La hoja S2 33 («Nombre o descripción del objetivo») lleva además el valor de la meta: «nombre (meta: …)».
+  const a2 = cellText(s34, "A2");
+  ok(a2.length > 0 && cellText(s33, "A2").startsWith(`${a2} (meta: `) && cellText(s35, "A2") === a2 && cellText(s36, "A2") === a2, "el objetivo de la fila 2 es el mismo en S2 33/34/35/36 (en S2 33, con su meta)");
   // Ningún objetivo tiene validación por tercero; «Verdadero» se prueba en S2 22(b)(i).
   ok(cellText(s34, "B2") === "Falso" && cellText(s34, "B3") === "Falso", "S2 34: validación por tercero «Falso» (booleano)");
   ok(cellText(s35, "B2").length > 0, "S2 35: resultados del objetivo completo");

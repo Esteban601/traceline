@@ -115,6 +115,8 @@ console.log("\nFormato electrónico · objetivos por inciso y por objetivo (Fase
   const repetidos = s2.filter((b) => { const v = Object.keys(incisos).map((f) => enBloque(b, Number(f), 216)).filter((t) => t.length > 12); return new Set(v).size !== v.length; });
   ok(!repetidos.length && !s2.some((b) => Object.keys(incisos).some((f) => /tiene tres objetivos/.test(enBloque(b, Number(f), 216)))), "ningún inciso repite el texto de otro ni el párrafo de NIIF S2 33 (antes los 11 incisos decían lo mismo)");
   ok(s2.every((b) => !!enBloque(b, 223, 216)) && new Set(s2.map((b) => enBloque(b, 223, 216))).size === s2.length, "NIIF S2 33(b) (propósito del objetivo): el campo capturado, propio de cada objetivo");
+  const metas = s2.map((b) => enBloque(b, 217, 216));
+  ok(metas.every((t) => /\(meta: .*\d+ ?%.*\)$/.test(t)), `«Nombre o descripción del objetivo» (fila 217) con el valor de la meta en cada bloque (${metas.map((t) => t.match(/\(meta: ([^)]*)\)/)?.[1]).join(" · ")})`);
   const gei = s2.map((b) => !!enBloque(b, 247, 216));
   ok(gei.filter(Boolean).length === 1 && s2.every((b, i) => gei[i] || [247, 249, 251, 253, 255, 256, 259].every((f) => !enBloque(b, f, 216))), "NIIF S2 36 solo en el bloque del objetivo de emisiones de GEI; vacío en los demás");
   ok(s1.every((b) => [202, 204, 206, 208, 210, 212, 214].every((f) => /se revela conforme a NIIF S2 3[345]/.test(enBloque(b, f, 196)))), "NIIF S1 51 (a)–(g) bajo E5: cada inciso remite a su inciso de NIIF S2 en cada objetivo");
@@ -263,6 +265,7 @@ ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c)
   const si = sectores.filter(([, r]) => r === "Sí");
   ok(sectores.length === 70 && si.length === 1 && /\[815200\]/.test(si[0][0]) && sectores.every(([, r]) => !r || r === "Sí"), `lista de sectores de NIIF S2 32 (70 opciones): «Sí» solo en el sector del Perfil (${si.map(([o]) => o.slice(2, 40)).join(", ")})`);
   const s33 = wt.getWorksheet("NIIF S2 33");
+  ok([2, 3, 4].every((f) => /\(meta: .*\d+ ?%.*\)$/.test(texto(s33.getCell(`A${f}`).value))), "hoja «NIIF S2 33», columna A: el nombre con el valor de la meta, como la fila 217 del Formato");
   ok([2, 3, 4].every((f) => !!texto(s33.getCell(`D${f}`).value) && !/^\d+% (al|en) \d{4}$/.test(texto(s33.getCell(`D${f}`).value))), "hoja «NIIF S2 33», columna «Objetivo de la meta» (33(b)): el propósito de cada objetivo (o el marcador de §5), no la meta");
 }
 // Fase 3: NIIF S1 bajo E5 y booleanos de NIIF S2 con sus ramas, como el Formato.
