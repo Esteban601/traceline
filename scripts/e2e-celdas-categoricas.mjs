@@ -132,17 +132,21 @@ console.log("\nFormato electrónico · NIIF S2 16(a) por efecto (Fase 2)");
 console.log("\nFormato electrónico · NIIF S2 16(d) por efecto y por plazo (Fase 2, ajuste 3)");
 {
   const oraciones = (t) => t.split(/(?<=\.)\s+|\n/).map((o) => o.replace(/^(Corto|Mediano|Largo) plazo:\s*/, "").trim()).filter(Boolean);
-  ok(!!K(96) && !!K(98), "K96 (rendimiento previsto) y K98 (flujos previstos) con respuesta propia");
-  ok(/no proporciona información cuantitativa/.test(K(96)) && !/no proporciona información cuantitativa/.test(K(98)), "la razón de no cuantificar (NIIF S2 21) en K96, no repetida en K98");
-  ok(/9 millones/.test(K(98)) && !/9 millones/.test(K(96)), "el ahorro de 9 millones anuales en K98, no en K96");
-  for (const f of [97, 99]) {
+  // Regla de plazos (antes de la Fase 4): la fila de la pregunta lleva lo no fechado; la tabla, lo fechado por plazo.
+  ok(!!K(96) && /no proporciona información cuantitativa/.test(K(96)), "K96: lo no fechado (escenario de altas emisiones) y la razón de no cuantificar (NIIF S2 21)");
+  ok(!K(98), "K98 vacía: 16(d) no tiene hechos de flujos sin fecha; los flujos previstos van por plazo en K99");
+  ok(/^Mediano plazo: .*9 millones/.test(K(99)) && !/9 millones/.test(K(96)), "el ahorro de 9 millones anuales desde 2027, en el mediano plazo de K99 (2027 cae en «más de 1 y hasta 5 años»)");
+  for (const f of [95, 97, 99, 111]) {
     const lineas = K(f).split("\n").filter(Boolean);
-    ok(lineas.every((l) => /^(Corto|Mediano|Largo) plazo: /.test(l)) && new Set(lineas.map((l) => l.replace(/^\S+ plazo: /, ""))).size === lineas.length, `K${f}: una línea por plazo con hechos, sin el mismo texto en dos plazos (${lineas.length ? `${lineas.length} línea(s)` : "vacía: ningún hecho de 16(d) nombra un plazo"})`);
+    const cuerpos = lineas.map((l) => l.replace(/^\S+ plazo: /, ""));
+    const parecidas = cuerpos.some((a, i) => cuerpos.some((b, j) => i < j && (a === b || seParecen(a, b))));
+    ok(lineas.every((l) => /^(Corto|Mediano|Largo) plazo: /.test(l)) && !parecidas && !cuerpos.some((x) => /^(en|durante|para) el (corto|mediano|largo) plazo/i.test(x)), `K${f}: una línea por plazo con hechos que caen en él, sin repetir texto entre plazos (${lineas.map((l) => l.split(":")[0]).join(", ") || "vacía"})`);
   }
-  const celdas = [96, 97, 98, 99];
+  ok(/^Corto plazo: .*61 millones/m.test(K(95)) && /^Mediano plazo: /m.test(K(95)) && !/^Largo plazo/m.test(K(95)), "K95: corto plazo con el plan 2026-2027, mediano con lo previsto en el mediano plazo y hasta 2028; sin largo plazo (ningún hecho cae en él)");
+  const celdas = [94, 95, 96, 97, 98, 99, 110, 111];
   const choques = [];
   for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
-  ok(!choques.length, `ninguna celda de 16(d) (K96–K99) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
+  ok(!choques.length, `ninguna celda de 16(c), 16(d) y 22(a)(iii) (K94–K99, K110, K111) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
 }
 
 console.log("\nFormato electrónico · NIIF S2 36(e) en un solo estado");
@@ -214,7 +218,7 @@ ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c)
   const [s97, s98, s99] = porCodigo.get("NIIF S2 16(a)") ?? [];
   ok(!!s97 && s98 === K(87) && s99 === K(89), "Excel 98 y 99 (16(a) rendimiento y flujos): las respuestas propias de K87 y K89");
   const d = porCodigo.get("NIIF S2 16(d)") ?? [];
-  ok(d.length === 2 && d[1] === K(98) && d[1] !== d[0], "Excel 104 (16(d) flujos previstos): la respuesta de K98, distinta de la 103, sin fila intermedia");
+  ok(d.length === 2 && d[1] === K(99) && d[1] !== d[0], "Excel 104 (16(d) flujos previstos a corto, medio y largo plazo): la tabla por plazo de K99, distinta de la 103, sin fila intermedia");
   ok(s97 === K(85) && d[0] === K(96), "Excel 97 y 103: solo su parte (K85 y K96), sin repetir lo que dan las filas siguientes");
 }
 // Fase 3: NIIF S1 bajo E5 y booleanos de NIIF S2 con sus ramas, como el Formato.

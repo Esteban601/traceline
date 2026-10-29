@@ -32,6 +32,8 @@ import {
   remisionAIncisos,
   CONCEPTOS_29E,
   seParecen,
+  plazosDeclarados,
+  horizontesDeHecho,
 } from "../lib/suplemento/respuestas.ts";
 import { declaracionDeAlivios, noRevelado, remisionE5, textoAlivio } from "../lib/suplemento/alivios.ts";
 import fs from "node:fs";
@@ -219,6 +221,15 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(CONCEPTOS_29E.map((c) => `${c.fila}:${c.bloque}`).join(" ") === "350:34 373:35 396:36", "29(e) por tipo: filas 350, 373 y 396 con los bloques de transición, físicos y oportunidades");
   // Fase 2.
   ok(erroresDeForma("Los hechos no describen entradas o salidas de efectivo.", "fila:89").length === 1 && !erroresDeForma("La Compañía no revela hechos posteriores relevantes.", "NIIF S1 74").length, "voz de la emisora: no habla de «los hechos»; «hechos posteriores» sí se permite");
+  // Regla de plazos (antes de la Fase 4): un hecho fechado cae en el plazo que la emisora declaró en S2 10(d).
+  {
+    const p = plazosDeclarados(["Corto plazo: Hasta 1 año. Justificación: ciclo anual.", "Mediano plazo: Más de 1 año y hasta 5 años. Justificación: plan.", "Largo plazo: Más de 5 años. Justificación: cartera hipotecaria."]);
+    ok(p?.corto === 1 && p?.mediano === 5, "plazos declarados en 10(d): corto hasta 1 año, mediano hasta 5");
+    ok(plazosDeclarados(["Corto plazo: Hasta 1 año."]) === null, "sin los tres plazos declarados, null (la tabla queda vacía)");
+    const h = (t) => [...horizontesDeHecho(t, 2025, p)].sort().join(",");
+    ok(h("La reubicación está prevista hasta 2028.") === "mediano" && h("El plan 2026-2027 asigna 61 millones.") === "corto,mediano" && h("Hacia 2040 aumentará la frecuencia.") === "largo" && h("El ICAP al cierre de 2025 fue de 15.8%.") === "", "años posteriores al ejercicio → su plazo (2028 mediano; 2026 corto; 2040 largo); el año del ejercicio no fecha un plazo");
+    ok(h("Se prevé un efecto en el mediano plazo.") === "mediano", "un hecho que nombra el plazo cae en él");
+  }
   ok(seParecen("Con la información disponible al cierre de 2025, la Compañía no identificó efectos climáticos que requirieran reconocer ajustes en los estados financieros.", "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio.") && !seParecen("Las primas de seguros se registraron en gastos de administración.", "Las adecuaciones de inmuebles se capitalizaron en propiedades, mobiliario y equipo."), "16(a) por efecto: la misma oración parafraseada se detecta; dos oraciones distintas no");
   ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
   ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
