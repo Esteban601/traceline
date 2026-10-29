@@ -15,11 +15,11 @@
 // revisión; las del Excel se buscan por su código de la columna A.
 // =============================================================================
 import ExcelJS from "exceljs";
-import { noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
+import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
 import { FILAS_FIDEICOMISO, RAMAS_BOOLEANO } from "../lib/formato/llenar.ts";
 import { BOOLEANOS_FORMATO } from "../lib/formato/booleanos.ts";
-import { remisionAIncisos, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
+import { remisionAIncisos, seParecen, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
 import { INCISOS_CREDITOS } from "../lib/suplemento/catalogo-incisos.ts";
 
 const [formato, taxonomia] = process.argv.slice(2);
@@ -93,6 +93,23 @@ console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por t
   ok(!tr || (/transici/.test(tr) && !/12\.3/.test(tr)), "K629 (transición): vacía o solo lo suyo (el libro del demo no sustenta ninguno)");
   ok(new Set([tr, fi, op].filter(Boolean)).size === [tr, fi, op].filter(Boolean).length, "ninguna de las tres repite a otra");
   ok(/31\.4/.test(K(693)), "K693: el total de 31.4 millones");
+  // Ajustes de Esteban a la Fase 1: capitalizado sí, gasto no; la celda dice solo el despliegue de su tipo.
+  const gasto = /prima|gasto de operaci|registrad[oa]s? como gasto|no se incluy/i;
+  ok(!gasto.test(fi) && !gasto.test(op), "K652 y K675 sin importes registrados como gasto ni aclaraciones de lo que no se incluye");
+  ok(/31\.0/.test(op) && !/0\.4/.test(op), "K675: solo los 31.0 millones de eficiencia energética (sin los 0.4 de medición, que fueron gasto)");
+}
+
+console.log("\nFormato electrónico · NIIF S2 16(a) por efecto (Fase 2)");
+{
+  const oraciones = (t) => t.replace(ORACION_E5, "").split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
+  ok(!!K(85) && !!K(87) && !!K(89), "K85 (situación), K87 (rendimiento) y K89 (flujos) con respuesta propia");
+  todas([86, 88, 90], (t) => !t, "K86, K88 y K90 (instrucción de la pregunta de arriba): vacías");
+  ok(/12\.3/.test(K(85)) && /31\.0/.test(K(85)) && !/6\.2/.test(K(85)), "K85: lo capitalizado (12.3 y 31.0), sin las primas");
+  ok(/6\.2/.test(K(87)) && !/12\.3/.test(K(87)), "K87: lo registrado como gasto (primas de 6.2), sin lo capitalizado");
+  const celdas = [84, 85, 87, 89];
+  const choques = [];
+  for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
+  ok(!choques.length, `ninguna celda de 16(a) (K84, K85, K87, K89) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
 }
 
 console.log("\nFormato electrónico · NIIF S2 36(e) en un solo estado");
@@ -156,6 +173,16 @@ ok(C("NIIF S2 36 (e)(i)") === texto(hoja36e.getCell("B2").value) && !/^No aplica
 for (const c of ["NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"]) ok(/^No aplica/.test(C(c)), `${c}: «No aplica» (sin créditos de carbono)`);
 ok(C("NIIF S2 36 (e)(i)a(iv)") === remisionAIncisos(INCISOS_CREDITOS), "S2 36(e) padre (fila 272): remite a (i)–(iv), como K534");
 ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c) => C(c) === textoNoAplicaHeredado("NIIF S2 36 (e)")), "S2 36(e)(ii)–(iv): una sola redacción de «No aplica», como el Formato");
+// Fase 2: filas de continuación de 16 (Excel 31, 32, 37, 98, 99, 104).
+{
+  const [a30, a31, a32] = porCodigo.get("NIIF S1 35(a)") ?? [];
+  const [d36, d37] = porCodigo.get("NIIF S1 35(d)") ?? [];
+  ok(!!a30 && a31 === a30 && a32 === a30 && !!d36 && d37 === d36, "Excel 31, 32 y 37 (NIIF S1 35 bajo E5): la remisión de su fila madre");
+  const [s97, s98, s99] = porCodigo.get("NIIF S2 16(a)") ?? [];
+  ok(!!s97 && s98 === K(87) && s99 === K(89), "Excel 98 y 99 (16(a) rendimiento y flujos): las respuestas propias de K87 y K89");
+  const d = porCodigo.get("NIIF S2 16(d)") ?? [];
+  ok(d.length === 2 && !!d[1] && d[1] !== d[0], "Excel 104 (16(d) flujos previstos): respuesta propia, distinta de la 103, sin fila intermedia");
+}
 
 console.log("\nExcel de taxonomía · hojas de datos");
 {

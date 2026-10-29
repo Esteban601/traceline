@@ -31,6 +31,7 @@ import {
   respuestaDeCuestionario36e,
   remisionAIncisos,
   CONCEPTOS_29E,
+  seParecen,
 } from "../lib/suplemento/respuestas.ts";
 import { declaracionDeAlivios, noRevelado, remisionE5, textoAlivio } from "../lib/suplemento/alivios.ts";
 import fs from "node:fs";
@@ -216,6 +217,9 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(remisionAIncisos(["NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"]) === "La información correspondiente a este requisito se revela en sus incisos, conforme a NIIF S2 36 (e)(i) a (iv).", "36(e): el padre remite a (i)–(iv)");
   ok(!vocabularioEnCeldaExportada(remisionAIncisos(["NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(iv)"])).length, "la remisión a los incisos no usa vocabulario de plataforma");
   ok(CONCEPTOS_29E.map((c) => `${c.fila}:${c.bloque}`).join(" ") === "350:34 373:35 396:36", "29(e) por tipo: filas 350, 373 y 396 con los bloques de transición, físicos y oportunidades");
+  // Fase 2.
+  ok(erroresDeForma("Los hechos no describen entradas o salidas de efectivo.", "fila:89").length === 1 && !erroresDeForma("La Compañía no revela hechos posteriores relevantes.", "NIIF S1 74").length, "voz de la emisora: no habla de «los hechos»; «hechos posteriores» sí se permite");
+  ok(seParecen("Con la información disponible al cierre de 2025, la Compañía no identificó efectos climáticos que requirieran reconocer ajustes en los estados financieros.", "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio.") && !seParecen("Las primas de seguros se registraron en gastos de administración.", "Las adecuaciones de inmuebles se capitalizaron en propiedades, mobiliario y equipo."), "16(a) por efecto: la misma oración parafraseada se detecta; dos oraciones distintas no");
   ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
   ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
 }
