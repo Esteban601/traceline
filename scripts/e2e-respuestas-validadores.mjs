@@ -29,6 +29,8 @@ import {
   erroresDeForma,
   conSeparadoresDeMiles,
   respuestaDeCuestionario36e,
+  remisionAIncisos,
+  CONCEPTOS_29E,
 } from "../lib/suplemento/respuestas.ts";
 import { declaracionDeAlivios, noRevelado, remisionE5, textoAlivio } from "../lib/suplemento/alivios.ts";
 import fs from "node:fs";
@@ -209,6 +211,11 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(conSeparadoresDeMiles("ISO 14064 y 488,000 litros", [{ valor: 488000 }]) === "ISO 14064 y 488,000 litros", "un número ya formateado o ajeno a los hechos no se toca");
   const cuest = [{ hoja: "S2 36(e)", pregunta_orden: 1, respuesta: "No se basa en créditos de carbono." }, { hoja: "S2 36(e)", pregunta_orden: 3, respuesta: "Bajo" }];
   ok(respuestaDeCuestionario36e("NIIF S2 36 (e)(i)", cuest) === "No se basa en créditos de carbono." && respuestaDeCuestionario36e("NIIF S2 36 (e)(iii)", cuest) === null && respuestaDeCuestionario36e("NIIF S2 36 (c)", cuest) === null, "36(e): la respuesta de texto del cuestionario por inciso (fila 276); las de lista no");
+  // Encargo formato-respuesta-por-inciso, Fase 1.
+  ok(respuestaDeCuestionario36e("NIIF S2 36 (e)(ii)", [{ hoja: "S2 36(e)", pregunta_orden: 2, respuesta: "No aplica: la Compañía no prevé el uso de créditos." }]) === null, "36(e): una respuesta del cuestionario que solo dice «No aplica…» no responde el inciso (toma la redacción de regla)");
+  ok(remisionAIncisos(["NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"]) === "La información correspondiente a este requisito se revela en sus incisos, conforme a NIIF S2 36 (e)(i) a (iv).", "36(e): el padre remite a (i)–(iv)");
+  ok(!vocabularioEnCeldaExportada(remisionAIncisos(["NIIF S2 36 (e)(i)", "NIIF S2 36 (e)(iv)"])).length, "la remisión a los incisos no usa vocabulario de plataforma");
+  ok(CONCEPTOS_29E.map((c) => `${c.fila}:${c.bloque}`).join(" ") === "350:34 373:35 396:36", "29(e) por tipo: filas 350, 373 y 396 con los bloques de transición, físicos y oportunidades");
   ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
   ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
 }

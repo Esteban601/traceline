@@ -17,7 +17,10 @@
 import ExcelJS from "exceljs";
 import { noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
-import { FILAS_FIDEICOMISO } from "../lib/formato/llenar.ts";
+import { FILAS_FIDEICOMISO, RAMAS_BOOLEANO } from "../lib/formato/llenar.ts";
+import { BOOLEANOS_FORMATO } from "../lib/formato/booleanos.ts";
+import { remisionAIncisos, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
+import { INCISOS_CREDITOS } from "../lib/suplemento/catalogo-incisos.ts";
 
 const [formato, taxonomia] = process.argv.slice(2);
 if (!formato || !taxonomia) { console.error("Uso: e2e-celdas-categoricas.mjs <formato.xlsx> <taxonomia.xlsx>"); process.exit(2); }
@@ -64,6 +67,42 @@ ok(!K(699) && !K(707), "K699 y K707 vacías por el «No» de K696 y K704");
 todas([643, 666, 689], es("Sí, parcialmente"), "K643, K666, K689 «Sí, parcialmente»");
 todas([574, 576, 578], (t) => /^(No se identificaron|No aplica)/.test(t), "K574, K576, K578 errores de periodos anteriores");
 todas([861, 863, 866], (t) => /^No aplica/.test(t), "K861, K863, K866 comparativos revisados «No aplica»");
+
+// Encargo formato-respuesta-por-inciso, Fase 1: contenido falso y 36(e).
+console.log("\nFormato electrónico · ramas de los booleanos (regla general)");
+{
+  const kDe = (f) => (f <= 185 ? f : f + 279);
+  const D = (f) => texto(est.getCell(`D${kDe(f)}`).value);
+  const ramaDe = (d) => (/^¿Por qué\?|^Explicar el método/.test(d) ? "No" : /^¿\s*(Cómo|De qu[eé])/.test(d) ? "Sí" : null);
+  const enPlantilla = {};
+  for (const b of BOOLEANOS_FORMATO) for (let f = b.fila + 1; f <= b.fila + 4; f++) { const r = ramaDe(D(f)); if (r) enPlantilla[f] = { booleano: b.fila, rama: r }; }
+  ok(JSON.stringify(enPlantilla) === JSON.stringify(Object.fromEntries(Object.entries(RAMAS_BOOLEANO).map(([f, r]) => [f, { booleano: r.booleano, rama: r.rama }]))),
+    `RAMAS_BOOLEANO = las ramas de la columna D de la plantilla (${Object.keys(enPlantilla).length}: ${Object.keys(enPlantilla).join(", ")})`);
+  const cerradas = Object.entries(RAMAS_BOOLEANO).filter(([, r]) => K(kDe(r.booleano)) !== r.rama).map(([f]) => kDe(Number(f)));
+  todas(cerradas, (t) => !t, `ramas cerradas por su booleano, vacías (${cerradas.map((k) => `K${k}`).join(", ")})`);
+  ok(!K(41) && !K(50), "K41 (rama «Sí» con K38 «No») y K50 (rama «No» con K49 «Sí»): vacías");
+  ok(/remuneración variable/.test(K(39)) && !/aprobó los objetivos/.test(K(39)), "K39 «¿Por qué?» (K38 «No»): la razón, sin el texto de los objetivos");
+}
+
+console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
+{
+  const [tr, fi, op] = [K(629), K(652), K(675)];
+  ok(!/31\.4/.test(tr + fi + op), "K629, K652 y K675 sin el total de 31.4 millones (va en K693)");
+  ok(/12\.3/.test(fi) && /f[ií]sic/.test(fi) && !/31\.0/.test(fi), "K652 (riesgos físicos): los 12.3 millones de adecuaciones, sin la eficiencia energética");
+  ok(!op || (/oportunidad/.test(op) && !/12\.3/.test(op)), "K675 (oportunidades): lo que el libro sustenta, sin los 12.3 de riesgos físicos");
+  ok(!tr || (/transici/.test(tr) && !/12\.3/.test(tr)), "K629 (transición): vacía o solo lo suyo (el libro del demo no sustenta ninguno)");
+  ok(new Set([tr, fi, op].filter(Boolean)).size === [tr, fi, op].filter(Boolean).length, "ninguna de las tres repite a otra");
+  ok(/31\.4/.test(K(693)), "K693: el total de 31.4 millones");
+}
+
+console.log("\nFormato electrónico · NIIF S2 36(e) en un solo estado");
+{
+  const NA = textoNoAplicaHeredado("NIIF S2 36 (e)");
+  ok(!!K(538) && K(534) === remisionAIncisos(INCISOS_CREDITOS), "K534 (padre): remite a (i)–(iv), porque (i) responde (K538)");
+  ok(K(535) === "No", "K535 ¿uso previsto de créditos? «No»");
+  ok(!!K(536) && !/^No aplica/.test(K(536)), "K536 «¿Por qué?»: la razón, sin «No aplica» delante");
+  todas([540, 542, 544, 546], es(NA), "K540, K542, K544, K546: una sola redacción de «No aplica»");
+}
 
 console.log("\nFormato electrónico · actividad y alivios en celda");
 todas([613, 614, 615, 616, 617, 621], es(C4), "Alcance 3 (K613–K617, K621) «No revelado · alivio C4», K615 incluida");
@@ -115,6 +154,8 @@ ok(/^No aplica/.test(C("NIIF S2 36 (c)")), "S2 36(c): «No aplica» (ningún obj
 const hoja36e = wt.getWorksheet("NIIF S2 36(e)(i)-(iv)");
 ok(C("NIIF S2 36 (e)(i)") === texto(hoja36e.getCell("B2").value) && !/^No aplica/.test(C("NIIF S2 36 (e)(i)")), "S2 36(e)(i) (fila 276): la respuesta de su hoja del cuestionario");
 for (const c of ["NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"]) ok(/^No aplica/.test(C(c)), `${c}: «No aplica» (sin créditos de carbono)`);
+ok(C("NIIF S2 36 (e)(i)a(iv)") === remisionAIncisos(INCISOS_CREDITOS), "S2 36(e) padre (fila 272): remite a (i)–(iv), como K534");
+ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c) => C(c) === textoNoAplicaHeredado("NIIF S2 36 (e)")), "S2 36(e)(ii)–(iv): una sola redacción de «No aplica», como el Formato");
 
 console.log("\nExcel de taxonomía · hojas de datos");
 {
