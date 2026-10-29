@@ -1203,7 +1203,8 @@ async function responderBloque(
     let f = finales.get(clave(p));
     // B65(c) por celda y 29(e) por tipo: sin respuesta validada, la celda queda pendiente (vacía en el Formato); las
     // oraciones del bloque no responden el efecto ni el tipo de la celda.
-    if (!f && ([...CONCEPTOS_B65C, ...CONCEPTOS_29E, ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => c.porEfecto)].some((c) => `fila:${c.fila}` === p.codigo) || esClaveDeHorizonte(p.codigo) || p.codigo === CLAVE_RAZON_36E)) {
+    // Un código padre tampoco cae al respaldo: sus oraciones del bloque repiten las de sus incisos (K91, Fase 6).
+    if (!f && ([...CONCEPTOS_B65C, ...CONCEPTOS_29E, ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => c.porEfecto)].some((c) => `fila:${c.fila}` === p.codigo) || esClaveDeHorizonte(p.codigo) || p.codigo === CLAVE_RAZON_36E || Object.values(PADRE_DE).includes(p.codigo))) {
       filas.push({ ...{ destino: p.destino, clave: p.codigo, tipo_campo: "text block" as const, valor: null, bloque: v.numero, bloque_version: v.version, hechos: [], modelo: null, prompt_version: promptDe(p), uso: USO_CERO, costo_usd: 0 }, estado: "pendiente", origen: "bloque", texto: null, notas: [`Sin respuesta: el modelo no pasó los validadores: ${(motivos.get(clave(p)) ?? ["sin llave del modelo"]).join("; ")}`] });
       continue;
     }

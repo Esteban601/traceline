@@ -28,8 +28,9 @@ export const CONTINUACIONES: Record<string, Record<number, string>> = {
   "NIIF S2 6(b)(i)": { 0: "K:44", 1: "K:45", 2: "K:47" },
   "NIIF S2 6(b)(ii)": { 0: "K:49", 1: "K:50", 2: "K:52" },
   "NIIF S2 25 (a)(vi)": { 0: "K:134", 1: "K:135", 2: "K:137" },
-  "NIIF S2 29 (f) (i) y (ii)": { 0: "K:417", 1: "K:418", 2: "K:420" },
-  "NIIF S2 29 (g) (i) y (ii)": { 0: "K:425", 1: "K:426", 2: "K:428" },
+  // Fase 6: 185 (precio por tonelada) y 190 (porcentaje de la remuneración), como K845 y K853.
+  "NIIF S2 29 (f) (i) y (ii)": { 0: "K:417", 1: "K:418", 2: "K:420", 3: "K:422" },
+  "NIIF S2 29 (g) (i) y (ii)": { 0: "K:425", 1: "K:426", 2: "K:428", 3: "K:430" },
   "NIIF S2 36 (e)(i)a(iv)": { 1: "K:256", 2: "K:257" },
   // Fase 5 · NIIF S2 29(a)(iii) por inciso (f130–f133): enfoque, datos y supuestos, razón, cambios. La plantilla repite
   // las cuatro preguntas en f134–f137; esa copia queda vacía para no repetir texto (deuda conocida de la plantilla).
@@ -45,6 +46,7 @@ export const CONTINUACIONES: Record<string, Record<number, string>> = {
  * no están aquí quedan vacías si falta (por ejemplo, 29(e) de un tipo sin despliegue de capital en el libro).
  */
 export const PENDIENTE_CONTINUACION: Record<string, string> = {
-  "fila:320": "Pendiente: razón por la que se eligieron el enfoque de medición, los datos de entrada y los supuestos de GEI — hecho del bloque de métricas de GEI",
+  // Sin jerga de plataforma (revisión externa v5.2): nombra la solicitud, como pide CLAUDE.md §5.
+  "fila:320": "Pendiente: razón por la que se eligieron el enfoque de medición, los datos de entrada y los supuestos de GEI — solicitud «Enfoque de medición de emisiones y datos de entrada»",
   "K:322": "Pendiente: respuesta de la emisora a esta pregunta — cuestionario NIIF S2 29(a)(iii)",
 };

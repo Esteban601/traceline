@@ -1,6 +1,7 @@
 import { clonar, filaXml } from "@/lib/formato/metricas";
 import type { ObjetivoFormato, ValorFormato } from "@/lib/formato/llenar";
 import { remisionE5 } from "@/lib/suplemento/alivios";
+import { TIPOS_OBJETIVO } from "@/lib/objetivos-opciones";
 
 // =============================================================================
 // OBJETIVOS POR INCISO Y POR OBJETIVO (encargo formato-respuesta-por-inciso,
@@ -77,7 +78,8 @@ const S2_CAMPOS: Record<number, (o: ObjetivoFormato) => string> = {
   227: (o) => limpio(o.periodo_aplicacion),
   229: (o) => limpio(o.periodo_base),
   231: (o) => limpio(o.hito_intermedio),
-  233: (o) => limpio(o.tipo_objetivo),
+  // 33(g) solo admite la enumeración de la plantilla (Fase 6): un valor fuera de la lista no se escribe.
+  233: (o) => (TIPOS_OBJETIVO.includes(limpio(o.tipo_objetivo)) ? limpio(o.tipo_objetivo) : ""),
   235: (o) => limpio(o.alineacion),
   237: (o) => siNo(o.validacion_tercero),
   239: (o) => limpio(o.procesos_revision),

@@ -21,6 +21,7 @@ import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/li
 import { CONTINUACIONES, PENDIENTE_CONTINUACION } from "@/lib/excel/continuaciones";
 import { llenarFormato } from "@/lib/formato/llenar";
 import { esObjetivoDeEmisiones, nombreConMeta } from "@/lib/formato/objetivos";
+import { TIPOS_OBJETIVO } from "@/lib/objetivos-opciones";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { insumosDelFormato, verificacionGeiDelDocumento } from "@/lib/formato/datos";
@@ -443,6 +444,9 @@ function escribirRegistros(
 const pendienteObjetivo = (que: string, nombre: string) => `Pendiente: ${que} — objetivo «${nombre}»`;
 
 
+/** Booleano capturado («Verdadero»/«Falso») como lo pide la plantilla: «Sí»/«No». Lo usan las hojas 34 y 36(a)-(d). */
+const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
+
 function escribirObjetivos(
   wb: ExcelJS.Workbook,
   objetivos: ObjRow[], // activos, ordenados por `orden`
@@ -498,7 +502,8 @@ function escribirObjetivos(
       put(s33, `F${fila}`, o.periodo_aplicacion);
       put(s33, `G${fila}`, o.periodo_base);
       put(s33, `H${fila}`, o.hito_intermedio);
-      put(s33, `I${fila}`, o.tipo_objetivo);
+      // 33(g): solo la enumeración de la plantilla; fuera de ella, el marcador de §5 (Fase 6).
+      put(s33, `I${fila}`, o.tipo_objetivo && TIPOS_OBJETIVO.includes(o.tipo_objetivo) ? o.tipo_objetivo : pendienteObjetivo("tipo de objetivo de la lista de la plantilla (Cuantitativo, Absoluto o De intensidad), NIIF S2 33(g)", nombre));
       put(s33, `J${fila}`, o.alineacion_acuerdo_internacional);
       const defVacia = !(
         o.tipo ||
@@ -515,7 +520,8 @@ function escribirObjetivos(
     }
     if (s34) {
       put(s34, `A${fila}`, nombre);
-      put(s34, `B${fila}`, d?.validacion_tercero);
+      // «No» en vez de «Falso» (revisión externa v5.2): la misma función que la hoja 36(a)-(d).
+      put(s34, `B${fila}`, siNo(d?.validacion_tercero));
       put(s34, `C${fila}`, d?.procesos_revision);
       put(s34, `D${fila}`, d?.metricas_supervision);
       put(s34, `E${fila}`, d?.revisiones);
@@ -545,7 +551,6 @@ function escribirObjetivos(
     const d = detallePorObj.get(o.id);
     return esObjetivoDeEmisiones({ metrica: o.metrica, alcances: d?.alcances_cubiertos, bruto_neto: d?.bruto_neto });
   };
-  const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
   if (s36) {
     climaticos.filter(esObjetivoGei).slice(0, S2_FIN - S2_INICIO + 1).forEach((o, i) => {
       const fila = S2_INICIO + i;
