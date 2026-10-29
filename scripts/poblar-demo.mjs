@@ -946,8 +946,8 @@ const OBJETIVOS = [
     hito_intermedio: "12% al 2027",
     alineacion_acuerdo_internacional:
       "Fijado con el método de contracción absoluta (reducción lineal de 6% anual entre 2025 y 2030); la Compañía no ha evaluado formalmente su alineación con el Acuerdo de París y no está validado por SBTi.",
-    // NIIF S2 33(b) (encargo formato-respuesta-por-inciso, Fase 4; migración 20261029120000_objetivo_proposito).
-    // PENDIENTE DE APROBACIÓN DE ESTEBAN: no correr poblar-demo antes de aplicar la migración.
+    // NIIF S2 33(b) (encargo formato-respuesta-por-inciso, Fase 4; migración 20261029120000_objetivo_proposito,
+    // aprobada por Esteban con estos tres textos el 29/10/2026).
     proposito_objetivo: "Mitigación: reducir las emisiones de gases de efecto invernadero de la operación propia (Alcances 1 y 2).",
     descripcion:
       "Reducir en 30% las emisiones brutas de Alcances 1 y 2 respecto del periodo base 2025, mediante eficiencia energética, generación solar distribuida y renovación de flota.",
