@@ -162,6 +162,19 @@ Perfil y el bloque 10 tendría dos hechos iguales con rangos distintos (§5, pre
    sin remitir? Es mi propuesta.
 6. **Redacción de las dos ayudas** de la pantalla: te la presento en la Fase 1, antes de cargarla.
 
+### 5.2 Decisión de la parada de la Fase 2 (29/10/2026)
+
+**No se sube el tope mensual** de generaciones de Empresa Demo. Lo siguiente queda como **«esperan v6»** y se regenera
+con el libro de hechos v6, el 1 de noviembre de 2026 o después, en una sola corrida:
+
+- el bloque 10 del demo;
+- 21(a) y B65(e): K100, K788, K811 y K834, que cambian solo cuando se vuelva a aprobar el documento;
+- K91 y K743;
+- el Word de los objetivos 2 y 3 (33(g) y 33(h)).
+
+Consta también en las deudas conocidas de la entrega v5.2 (`~/Downloads/formato-v5-2/deudas-conocidas.md`, §12; la §6
+queda resuelta en código). El encargo se cierra como **«código en main; demo pendiente de v6»**.
+
 ## 7. Registro
 
 | Fecha | Qué | Resultado |
