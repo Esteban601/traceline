@@ -72,6 +72,8 @@ function base(fd: FormData) {
     // NIIF S2 33: fijado por la emisora o exigido por ley (Formato electrónico).
     origen_objetivo: ["Fijado por la Emisora", "Requerido por ley o regulación"].includes(texto(fd, "origen_objetivo") ?? "") ? texto(fd, "origen_objetivo") : null,
     alineacion_acuerdo_internacional: texto(fd, "alineacion_acuerdo_internacional"),
+    // NIIF S2 33(b): el propósito del objetivo (encargo formato-respuesta-por-inciso, Fase 4).
+    proposito_objetivo: texto(fd, "proposito_objetivo"),
   };
 }
 

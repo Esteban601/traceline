@@ -1364,6 +1364,7 @@ export type Database = {
           parte_entidad: string | null
           periodo_aplicacion: string | null
           periodo_base: string | null
+          proposito_objetivo: string | null
           reporte_id: string
           tipo: string | null
           tipo_objetivo: string | null
@@ -1385,6 +1386,7 @@ export type Database = {
           parte_entidad?: string | null
           periodo_aplicacion?: string | null
           periodo_base?: string | null
+          proposito_objetivo?: string | null
           reporte_id: string
           tipo?: string | null
           tipo_objetivo?: string | null
@@ -1406,6 +1408,7 @@ export type Database = {
           parte_entidad?: string | null
           periodo_aplicacion?: string | null
           periodo_base?: string | null
+          proposito_objetivo?: string | null
           reporte_id?: string
           tipo?: string | null
           tipo_objetivo?: string | null

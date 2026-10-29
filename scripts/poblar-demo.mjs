@@ -928,6 +928,12 @@ const CUESTIONARIOS = {
     // 3 a 5 son enumeraciones y texto sobre créditos que no se usarán; se dejan
     // como estaban porque el documento no las contesta.
   ],
+  // Cuestionario de GEI (encargo formato-respuesta-por-inciso, Fase 5; migración 20261029130000_cuestionario_gei,
+  // aprobada por Esteban con esta respuesta el 29/10/2026).
+  "S2 29(a)(iii)": [
+    // 1 · cambios en el enfoque de medición, los datos de entrada y los supuestos, y sus razones
+    "Sin cambios en 2025: es el primer periodo en que la Compañía mide sus emisiones de Alcances 1 y 2 conforme al Protocolo GEI y el año base de sus objetivos, por lo que no hay un enfoque anterior con el cual comparar.",
+  ],
 };
 
 const OBJETIVOS = [
@@ -946,6 +952,9 @@ const OBJETIVOS = [
     hito_intermedio: "12% al 2027",
     alineacion_acuerdo_internacional:
       "Fijado con el método de contracción absoluta (reducción lineal de 6% anual entre 2025 y 2030); la Compañía no ha evaluado formalmente su alineación con el Acuerdo de París y no está validado por SBTi.",
+    // NIIF S2 33(b) (encargo formato-respuesta-por-inciso, Fase 4; migración 20261029120000_objetivo_proposito,
+    // aprobada por Esteban con estos tres textos el 29/10/2026).
+    proposito_objetivo: "Mitigación: reducir las emisiones de gases de efecto invernadero de la operación propia (Alcances 1 y 2).",
     descripcion:
       "Reducir en 30% las emisiones brutas de Alcances 1 y 2 respecto del periodo base 2025, mediante eficiencia energética, generación solar distribuida y renovación de flota.",
     detalle: {
@@ -976,6 +985,7 @@ const OBJETIVOS = [
     periodo_base: "2025 (8.0%)",
     hito_intermedio: "12% en 2026",
     alineacion_acuerdo_internacional: "Taxonomía Sostenible de México.",
+    proposito_objetivo: "Mitigación por medio del financiamiento: aumentar la cartera que financia actividades alineadas con la Taxonomía Sostenible de México.",
     descripcion:
       "Llevar la cartera con etiqueta sostenible al 20% de la cartera total en 2028, desde el 8.0% del periodo base 2025.",
     detalle: {
@@ -1005,6 +1015,7 @@ const OBJETIVOS = [
     periodo_base: "2025 (42%)",
     hito_intermedio: "60% en 2026",
     alineacion_acuerdo_internacional: "Metodología PCAF.",
+    proposito_objetivo: "Gestión del riesgo de transición de la cartera: medir las emisiones financiadas de la cartera empresarial como base para fijar objetivos de reducción.",
     descripcion:
       "Medir las emisiones financiadas del 80% de la cartera empresarial bajo PCAF en 2027, desde el 42% del periodo base 2025.",
     detalle: {

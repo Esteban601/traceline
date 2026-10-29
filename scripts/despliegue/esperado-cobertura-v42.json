@@ -1,0 +1,7 @@
+[
+ { "codigo": "NIIF S2 21(a)", "cambio": "nuevo", "emisoras": "todas", "solicitudes": 0, "cobertura": "sin_solicitud" },
+ { "codigo": "NIIF S2 13 (a)a(b)", "cambio": "nuevo", "emisoras": "todas", "solicitudes": 0, "cobertura": "sin_solicitud" },
+ { "codigo": "NIIF S2 14 (a)(i)a(v)", "cambio": "nuevo", "emisoras": "todas", "solicitudes": 0, "cobertura": "sin_solicitud" },
+ { "codigo": "NIIF S2 16 (b)a(d)", "cambio": "nuevo", "emisoras": "todas", "solicitudes": 0, "cobertura": "sin_solicitud" },
+ { "codigo": "NIIF S2 22 (a)a(b)", "cambio": "nuevo", "emisoras": "todas", "solicitudes": 0, "cobertura": "sin_solicitud" }
+]

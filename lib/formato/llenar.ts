@@ -1,5 +1,7 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
-import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { filaExportada } from "@/lib/formato/objetivos";
+import { HOJA_GEI } from "@/lib/cuestionarios";
+import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
 import type { Alivios } from "@/lib/perfil-emisor";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
@@ -54,7 +56,14 @@ export const CONCEPTOS_FORMATO = (mapeoFormato as unknown as { conceptos: Concep
 
 export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; estado: EstadoRespuesta; texto: string | null };
 
-export type ObjetivoFormato = { nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null };
+export type ObjetivoFormato = {
+  nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null;
+  // Por inciso (encargo formato-respuesta-por-inciso, Fase 4): un bloque «Objetivo N» por objetivo.
+  descripcion?: string | null; metrica?: string | null; parte_entidad?: string | null; periodo_aplicacion?: string | null; periodo_base?: string | null;
+  hito_intermedio?: string | null; alineacion?: string | null; proposito?: string | null; validacion_tercero?: string | null; procesos_revision?: string | null;
+  metricas_supervision?: string | null; revisiones?: string | null; resultados?: string | null; analisis_tendencias?: string | null;
+  enfoque_descarbonizacion?: string | null;
+};
 
 export type DatosFormato = {
   ejercicio: number;
@@ -129,13 +138,43 @@ const FILAS_29B = new Set([432, 433, 435, 437]);
 export const FILAS_FIDEICOMISO = new Set([13, 14, 15, 16, 17, 18, 19, 20, 21]);
 /** Fila de la declaración de los alivios del reporte (K12). */
 export const FILA_ALIVIOS = 12;
-const POR_QUE: Record<number, number> = { 45: 44, 135: 134, 418: 417, 426: 425 };
-/** «Si ¿Cómo…?» de un booleano: solo se despliega con «Sí» (filas 137, 420 y 428; 135 y 137 desde la Fase 5). */
-const SI_COMO: Record<number, number> = { 137: 134, 420: 417, 428: 425 };
+/**
+ * Ramas de los booleanos de la plantilla 2025 (regla general, encargo formato-respuesta-por-inciso, Fase 1): la rama
+ * «No» («¿Por qué?»; en la 315, «Explicar el método…») solo se despliega con «No» y da la razón; la rama «Sí» («¿Cómo…?»,
+ * «¿De qué manera…?») solo con «Sí». Una rama que su booleano cierra queda vacía. Antes la lista tenía solo algunas
+ * filas: K41 y K50 llevaban texto con la rama cerrada. `scripts/e2e-celdas-categoricas.mjs` comprueba contra la
+ * columna D de la plantilla que no falta ninguna.
+ */
+export const RAMAS_BOOLEANO: Record<number, { booleano: number; rama: "No" | "Sí" }> = {
+  39: { booleano: 38, rama: "No" }, 41: { booleano: 38, rama: "Sí" },
+  45: { booleano: 44, rama: "No" }, 47: { booleano: 44, rama: "Sí" },
+  50: { booleano: 49, rama: "No" }, 52: { booleano: 49, rama: "Sí" },
+  135: { booleano: 134, rama: "No" }, 137: { booleano: 134, rama: "Sí" },
+  257: { booleano: 256, rama: "No" },
+  315: { booleano: 313, rama: "No" },
+  418: { booleano: 417, rama: "No" }, 420: { booleano: 417, rama: "Sí" },
+  426: { booleano: 425, rama: "No" }, 428: { booleano: 425, rama: "Sí" },
+};
+/**
+ * La razón del «No» de 36(e) (fila 257, K576): la respuesta propia (`fila:257`, con el modelo, distinta de la de 36(e)(i));
+ * sin ella, la regla (opción 1 de Esteban). Antes copiaba la respuesta de 36(e)(i).
+ */
+const RAZON_36E_REGLA = textoNoAplicaHeredado("NIIF S2 36 (e)").replace(/^No aplica\.\s*/, "");
+/** El «No» de un booleano que se deduce de sus incisos: no hay uso previsto de créditos si (ii)–(iv) no aplican. */
+const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
+/** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
+const FILAS_29E = new Set([350, 373, 396]);
+/** Celdas por efecto (`porEfecto`): solo su respuesta propia; sin ella, vacías. */
+const FILAS_POR_EFECTO = new Set(CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => c.porEfecto).map((c) => c.fila));
+/**
+ * Filas de instrucción de la pregunta de arriba («Revelar información cuantitativa y cualitativa…», NIIF S2 16(a)):
+ * con tipo en la plantilla, la parte cuantitativa del inciso; sin tipo (las tres de la plantilla 2025), vacías: la
+ * pregunta de arriba ya la responde (encargo formato-respuesta-por-inciso, Fase 2). Antes repetían el párrafo completo.
+ */
+const FILAS_INSTRUCCION: Record<number, number> = { 86: 85, 88: 87, 90: 89 };
 /** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
 const FECHAS_22B_III: Record<number, "inicio" | "fin"> = { 117: "inicio", 119: "fin" };
 const FILAS_SECTOR = new Set([446, 447]);
-const HORIZONTES = ["Corto plazo", "Mediano plazo", "Largo plazo"];
 const CAMPOS_22B_I = ["Cómo y cuándo se llevó a cabo", "Escenarios usados y sus fuentes", "¿Rango diverso de escenarios?", "Riesgos asociados a los escenarios", "¿Escenario alineado con el último acuerdo internacional?", "Por qué los escenarios son pertinentes", "Horizontes temporales usados", "Alcance de las operaciones cubierto"];
 const CAMPOS_22B_II = ["Políticas climáticas en las jurisdicciones", "Tendencias macroeconómicas", "Variables nacionales o regionales", "Uso y combinación de energías", "Desarrollos tecnológicos", "Otros supuestos"];
 
@@ -151,18 +190,23 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   const actividades = d.perfil.actividades_financieras;
 
   for (const c of conceptos) out.set(c.fila, valorDe(c));
-  // Lo que depende del valor de un booleano, ya calculado: el «¿Por qué?» explica el «No» con la respuesta propia del
-  // booleano (sin el «No.» inicial); el «Si ¿Cómo…?» solo se despliega con «Sí».
-  for (const [fila, bool] of Object.entries(POR_QUE).map(([f, b]) => [Number(f), b])) {
+  // Lo que depende del valor de un booleano, ya calculado: la rama que el booleano cierra queda vacía; la rama «No»
+  // abierta da la razón (la respuesta propia del booleano sin el «No.» inicial, o el inciso que la da, sin un «No
+  // aplica» delante); la rama «Sí» abierta conserva su respuesta.
+  for (const [fila, { booleano, rama }] of Object.entries(RAMAS_BOOLEANO).map(([f, r]) => [Number(f), r] as const)) {
     if (!out.has(fila)) continue;
-    if (out.get(bool)?.texto !== "No") { out.set(fila, { texto: null, origen: "regla", nota: `el booleano de la fila ${bool} no es «No»` }); continue; }
-    const propia = resp("formato", `fila:${bool}`);
-    const c = conceptos.find((x) => x.fila === bool);
-    const t = propia?.texto ? propia.texto.replace(/^No\.\s*/, "").trim() : c?.datapoint ? textoDe(c.datapoint) : null;
-    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `explicación del «No» de la fila ${bool}` } : { texto: null, origen: "pendiente" });
-  }
-  for (const [fila, bool] of Object.entries(SI_COMO).map(([f, b]) => [Number(f), b])) {
-    if (out.has(fila) && out.get(bool)?.texto !== "Sí") out.set(fila, { texto: null, origen: "regla", nota: `no se despliega: el booleano de la fila ${bool} no es «Sí»` });
+    if (out.get(booleano)?.texto !== rama) { out.set(fila, { texto: null, origen: "regla", nota: `rama «${rama}» cerrada: el booleano de la fila ${booleano} no es «${rama}»` }); continue; }
+    if (rama === "Sí") continue;
+    const propia = resp("formato", `fila:${booleano}`);
+    const c = conceptos.find((x) => x.fila === booleano);
+    if (fila === 257) {
+      const r = resp("formato", "fila:257");
+      out.set(fila, { texto: r?.estado === "respuesta" && r.texto ? r.texto : RAZON_36E_REGLA, origen: r?.estado === "respuesta" ? "respuesta" : "regla", nota: "razón del «No» de créditos de carbono" });
+      continue;
+    }
+    const desde = c?.datapoint ?? null;
+    const t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
+    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "pendiente" });
   }
   // Una celda de texto no abre con «Sí.»: el booleano vecino ya lo dice (revisión externa v5, K126/K135/K137). El
   // validador de respuestas ya lo rechaza; esto cubre las respuestas guardadas antes.
@@ -267,6 +311,35 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (tipo === "tabla") return tabla(c);
     if (/^enumeración/.test(tipo)) return enumeracion(c);
 
+    // Con tipo en la plantilla, la parte cuantitativa propia (`fila:N`); sin tipo, vacía (ajuste 1 de Esteban, Fase 2).
+    if (FILAS_INSTRUCCION[c.fila]) {
+      const propia = /^text/.test(tipo) ? textoDe(`fila:${c.fila}`) : null;
+      return propia ? { texto: propia, origen: "respuesta", nota: "parte cuantitativa del inciso" } : { texto: null, origen: "regla", nota: `instrucción sin tipo de la pregunta de la fila ${FILAS_INSTRUCCION[c.fila]}, que la responde` };
+    }
+    // Una fila sin tipo en la plantilla que sigue a otra con el mismo código es su detalle («Indicar el órgano…», «(por
+    // ejemplo…)»): la de arriba ya la responde, así que va vacía en vez de repetirla (encargo formato-respuesta-por-inciso,
+    // Fase 3; K26 repetía K25). Las ramas de los booleanos se resuelven después, con su propia regla.
+    if (c.tipo === "(sin tipo)" && c.datapoint) {
+      const anterior = [...conceptos].reverse().find((x) => x.fila < c.fila && x.clasificacion === "concepto");
+      if (anterior?.datapoint === c.datapoint) return { texto: null, origen: "regla", nota: `detalle sin tipo de la fila ${anterior.fila}, que la responde` };
+    }
+    // Por efecto (16(a), 16(c), 16(d), 22(a)(iii), K36, K43): la respuesta propia o nada; el texto del código repetiría
+    // lo que dicen las demás celdas del párrafo.
+    if (FILAS_POR_EFECTO.has(c.fila)) {
+      const r = resp("formato", `fila:${c.fila}`);
+      return r?.texto && r.estado === "respuesta" ? { texto: conE5(r.texto), origen: "respuesta", e5: ponE5(r.texto) } : { texto: null, origen: "regla", nota: "sin respuesta propia de este efecto: lo responden las demás celdas del párrafo" };
+    }
+    // NIIF S2 29(a)(iii)(3), cambios en el enfoque de medición (Fase 5): la respuesta de la emisora en el cuestionario de
+    // GEI; sin ella, vacía (§5: en el Formato, el pendiente es la celda vacía).
+    if (c.fila === 322) {
+      const t = (d.cuestionarios[HOJA_GEI] ?? [])[0]?.trim();
+      return t ? { texto: t, origen: "datos", nota: "cuestionario de GEI" } : { texto: null, origen: "pendiente", nota: "sin respuesta en el cuestionario de GEI" };
+    }
+    // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
+    if (FILAS_29E.has(c.fila)) {
+      const r = resp("formato", `fila:${c.fila}`);
+      return r?.texto && r.estado === "respuesta" ? { texto: r.texto, origen: "respuesta" } : { texto: null, origen: "regla", nota: "sin despliegue de capital de este tipo en el libro" };
+    }
     if (/^text/.test(tipo) || !tipo || narrativo) {
       // Una respuesta propia de la celda (`fila:N`: B65(c) por efecto, síntesis) manda sobre la del código.
       const clave = resp("formato", `fila:${c.fila}`) ? `fila:${c.fila}` : c.datapoint ?? `fila:${c.fila}`;
@@ -278,6 +351,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     }
     if (tipo === "booleano" && c.datapoint) {
       const r = resp("taxonomia", c.datapoint);
+      const incisos = NO_POR_INCISOS[c.fila];
+      if (incisos && incisos.every((x) => resp("taxonomia", x)?.estado === "no_aplica")) return { texto: "No", origen: "regla", nota: `${incisos.join(", ")} no aplican` };
       if (!r || r.estado === "pendiente") return { texto: null, origen: "pendiente" };
       // Regla 2: sin un hecho que lo responda (el E5 lo deja sin respuesta propia), vacío en el formato.
       if (r.estado === "no_aplica") return r.texto?.includes("párrafo E5") ? { texto: null, origen: "pendiente" } : { texto: "No", origen: "respuesta" };
@@ -321,8 +396,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     // Origen del objetivo (fijado por la emisora o por ley), de la captura de objetivos; sin captura, pendiente.
     if (c.fila === 200 || c.fila === 219) return porObjetivo("origen");
     if (c.fila === 263 || c.fila === 265) {
-      const r = resp("taxonomia", "NIIF S2 36 (e)(i)a(iv)");
-      // 36(e) en un solo estado: el mismo texto que la columna de respuestas y la hoja del cuestionario del Excel.
+      // 36(e)(iii) en un solo estado: el de su inciso (el padre ya no dice «No aplica» si (i) responde).
+      const r = resp("taxonomia", "NIIF S2 36 (e)(iii)");
       return r?.estado === "no_aplica" ? { texto: textoNoAplicaHeredado("NIIF S2 36 (e)"), origen: "regla" } : { texto: null, origen: "por decidir" };
     }
     return { texto: null, origen: "por decidir" };
@@ -360,11 +435,6 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const dp = c.datapoint ?? "";
     const anterior = d.alivios.C3 ? `${d.ejercicio - 1}: ${noRevelado("C3")}` : null;
     const conAnterior = (lineas: string[]) => (anterior ? [...lineas, anterior] : lineas);
-    const porHorizonte = (clave: string): ValorFormato => {
-      const t = textoDe(clave);
-      // Regla del mapeo: sin hechos por horizonte, el mismo texto en las tres filas.
-      return t ? { texto: HORIZONTES.map((h) => `${h}: ${t}`).join("\n"), origen: "datos", nota: "sin hechos por horizonte: el mismo texto en los tres" } : { texto: null, origen: "pendiente" };
-    };
     if (dp === "NIIF S2 29 (a)(i)") {
       const lineas = d.gei.map((g) => `${g.alcance}: ${g.valor} (${d.ejercicio})`);
       if (d.alivios.C4) lineas.push(`Alcance 3: ${noRevelado("C4")}`);
@@ -377,12 +447,15 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const otras = /no existen participadas|no hay participadas|ninguna participada/i.test(t) ? "Otras participadas: no existen participadas fuera de la consolidación con emisiones relevantes" : null;
       return { texto: conAnterior([`Grupo contable consolidado: ${alcances}`, ...(otras ? [otras] : []), `Total revelado: ${alcances}`]).join("\n"), origen: "datos" };
     }
-    // 97 (rendimiento) y 99 (flujos de efectivo): cada una con su respuesta propia (fila:N), por horizonte; nunca se copian ni remiten.
-    if (c.fila === 97 || c.fila === 99) {
-      const propia = textoDe(`fila:${c.fila}`);
-      return propia ? { texto: HORIZONTES.map((h) => `${h}: ${propia}`).join("\n"), origen: "datos", nota: "respuesta propia del concepto desde los hechos de 16(d)" } : { texto: null, origen: "pendiente" };
+    // Tablas por plazo (95 16(c), 97 y 99 16(d), 111 22(a)(iii)): una línea por plazo, solo los plazos con respuesta propia
+    // desde los hechos que caen en él (`fila:97:corto`…); sin ninguno, vacía (Fase 2 y regla de Esteban antes de la Fase
+    // 4). Antes, el mismo texto en los tres plazos.
+    if (TABLAS_POR_HORIZONTE.some((t) => t.fila === c.fila)) {
+      // Sin repetir el plazo que ya nombra la línea («Mediano plazo: En el mediano plazo, …»).
+      const sinPlazo = (n: string, t: string) => t.replace(new RegExp(`^(en|durante|para) el ${n.toLowerCase()},?\\s*`, "i"), "").replace(/^\p{Ll}/u, (x) => x.toUpperCase());
+      const lineas = HORIZONTES_TABLA.map((h) => [h.nombre, textoDe(`fila:${c.fila}:${h.clave}`)] as const).filter(([, t]) => !!t).map(([n, t]) => `${n}: ${sinPlazo(n, t!)}`);
+      return lineas.length ? { texto: lineas.join("\n"), origen: "datos", nota: "por plazo, con los hechos que caen en él" } : { texto: null, origen: "regla", nota: "ningún hecho del código cae en un plazo declarado, o no hay plazos declarados en 10(d)" };
     }
-    if (dp === "NIIF S2 16(c)(i)(ii)" || dp === "NIIF S2 16(d)" || dp === "NIIF S2 22(a)(iii)") return porHorizonte(dp);
     if (dp === "NIIF S2 22(b)(i)" || dp === "NIIF S2 22(b)(ii)") {
       const hoja = dp === "NIIF S2 22(b)(i)" ? "S2 22(b)(i)" : "S2 22(b)(ii)";
       const campos = dp === "NIIF S2 22(b)(i)" ? CAMPOS_22B_I : CAMPOS_22B_II;
@@ -403,17 +476,21 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   }
 }
 
-/** Fila del mapeo → celda K del Formato exportado (las filas > 185 se desplazan 279 por las métricas iteradas). */
-export const celdaK = (fila: number) => `K${fila > 185 ? fila + 279 : fila}`;
+/**
+ * Fila del mapeo → celda K del Formato exportado: las filas > 185 se desplazan 279 por las métricas iteradas del demo, y
+ * las de después de 270 además por los bloques «Objetivo N» (`objetivos`, Fase 4 de respuesta por inciso); las del
+ * bloque, en la copia del primer objetivo.
+ */
+export const celdaK = (fila: number, objetivos = 0) => `K${filaExportada(fila, { objetivos, deltaMetricas: 279 })}`;
 
 /**
  * Booleanos que quedaron vacíos porque la respuesta narrativa de su código los contradice: fila, celda, valor
  * propuesto y la oración que lo contradijo. Para el informe del validador (hoja de revisión y log de la descarga).
  */
-export function booleanosVaciosPorContradiccion(valores: Map<number, ValorFormato>): { fila: number; celda: string; valor: "Sí" | "No"; oracion: string }[] {
+export function booleanosVaciosPorContradiccion(valores: Map<number, ValorFormato>, objetivos = 0): { fila: number; celda: string; valor: "Sí" | "No"; oracion: string }[] {
   return [...valores.entries()]
     .filter(([, v]) => v.contradiccion)
-    .map(([fila, v]) => ({ fila, celda: celdaK(fila), valor: v.contradiccion!.valor, oracion: v.contradiccion!.oracion }));
+    .map(([fila, v]) => ({ fila, celda: celdaK(fila, objetivos), valor: v.contradiccion!.valor, oracion: v.contradiccion!.oracion }));
 }
 
 /**

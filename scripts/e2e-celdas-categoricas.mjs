@@ -15,9 +15,13 @@
 // revisión; las del Excel se buscan por su código de la columna A.
 // =============================================================================
 import ExcelJS from "exceljs";
-import { noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
+import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
-import { FILAS_FIDEICOMISO } from "../lib/formato/llenar.ts";
+import { FILAS_FIDEICOMISO, RAMAS_BOOLEANO } from "../lib/formato/llenar.ts";
+import { filaExportada } from "../lib/formato/objetivos.ts";
+import { BOOLEANOS_FORMATO } from "../lib/formato/booleanos.ts";
+import { remisionAIncisos, seParecen, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
+import { INCISOS_CREDITOS } from "../lib/suplemento/catalogo-incisos.ts";
 
 const [formato, taxonomia] = process.argv.slice(2);
 if (!formato || !taxonomia) { console.error("Uso: e2e-celdas-categoricas.mjs <formato.xlsx> <taxonomia.xlsx>"); process.exit(2); }
@@ -28,7 +32,12 @@ const texto = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.r
 const wf = new ExcelJS.Workbook();
 await wf.xlsx.readFile(formato);
 const est = wf.getWorksheet("Estructura Formato Electronico");
-const K = (n) => texto(est.getCell(`K${n}`).value);
+// Los casos citan las celdas como el Formato v5.1 (métricas S1 46–50 expandidas, un desplazamiento de 279). Desde la
+// Fase 4 de respuesta por inciso la sección de objetivos lleva un bloque por objetivo: la celda vieja se traduce a su
+// fila de la plantilla y de ahí a la hoja exportada (las del bloque, en la copia del primer objetivo).
+const nObjetivos = (() => { let c = 0; est.eachRow((r) => { if (/^Objetivo \d+: /.test(texto(r.getCell(4).value))) c++; }); return c / 2; })();
+const filaNueva = (n) => (n < 475 ? n : filaExportada(n - 279, { objetivos: nObjetivos, deltaMetricas: 279 }));
+const K = (n) => texto(est.getCell(`K${filaNueva(n)}`).value);
 const rango = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 const todas = (filas, pred, msg) => {
   const malas = filas.filter((f) => !pred(K(f)));
@@ -64,6 +73,123 @@ ok(!K(699) && !K(707), "K699 y K707 vacías por el «No» de K696 y K704");
 todas([643, 666, 689], es("Sí, parcialmente"), "K643, K666, K689 «Sí, parcialmente»");
 todas([574, 576, 578], (t) => /^(No se identificaron|No aplica)/.test(t), "K574, K576, K578 errores de periodos anteriores");
 todas([861, 863, 866], (t) => /^No aplica/.test(t), "K861, K863, K866 comparativos revisados «No aplica»");
+
+// Encargo formato-respuesta-por-inciso, Fase 1: contenido falso y 36(e).
+console.log("\nFormato electrónico · ramas de los booleanos (regla general)");
+{
+  const kDe = (f) => (f <= 185 ? f : f + 279);
+  const D = (f) => texto(est.getCell(`D${filaNueva(kDe(f))}`).value);
+  const ramaDe = (d) => (/^¿Por qué\?|^Explicar el método/.test(d) ? "No" : /^¿\s*(Cómo|De qu[eé])/.test(d) ? "Sí" : null);
+  const enPlantilla = {};
+  for (const b of BOOLEANOS_FORMATO) for (let f = b.fila + 1; f <= b.fila + 4; f++) { const r = ramaDe(D(f)); if (r) enPlantilla[f] = { booleano: b.fila, rama: r }; }
+  ok(JSON.stringify(enPlantilla) === JSON.stringify(Object.fromEntries(Object.entries(RAMAS_BOOLEANO).map(([f, r]) => [f, { booleano: r.booleano, rama: r.rama }]))),
+    `RAMAS_BOOLEANO = las ramas de la columna D de la plantilla (${Object.keys(enPlantilla).length}: ${Object.keys(enPlantilla).join(", ")})`);
+  const cerradas = Object.entries(RAMAS_BOOLEANO).filter(([, r]) => K(kDe(r.booleano)) !== r.rama).map(([f]) => kDe(Number(f)));
+  todas(cerradas, (t) => !t, `ramas cerradas por su booleano, vacías (${cerradas.map((k) => `K${k}`).join(", ")})`);
+  ok(!K(41) && !K(50), "K41 (rama «Sí» con K38 «No») y K50 (rama «No» con K49 «Sí»): vacías");
+  ok(/remuneración variable/.test(K(39)) && !/aprobó los objetivos/.test(K(39)), "K39 «¿Por qué?» (K38 «No»): la razón, sin el texto de los objetivos");
+}
+
+console.log("\nFormato electrónico · Gobernanza, NIIF S2 6 (Fase 3)");
+{
+  const oraciones = (t) => t.replace(ORACION_E5, "").split(/(?<=\.)\s+/).map((o) => o.trim()).filter((o) => o.length > 20);
+  ok(/exención del párrafo E5/.test(K(25)) && !!K(25).replace(ORACION_E5, "").trim() && !K(26), "K25 con la respuesta de 6(a); K26 (detalle sin tipo de la misma fila) vacía");
+  ok(!/remuneraci/i.test(K(36)) && /objetivos/.test(K(36)), "K36: la supervisión de los objetivos, sin la remuneración (va en K38/K39)");
+  const celdas = [25, 28, 30, 32, 34, 36, 39, 43, 47, 52];
+  const choques = [];
+  for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
+  ok(!choques.length, `ninguna celda de Gobernanza (K25–K52) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
+  todas([63, 125, 129], (t) => !t, "K63, K125 y K129 (filas de ejemplo sin tipo): vacías");
+}
+
+console.log("\nFormato electrónico · objetivos por inciso y por objetivo (Fase 4)");
+{
+  const etiquetas = [];
+  est.eachRow((r, n) => { const d = texto(r.getCell(4).value); if (/^Objetivo \d+: /.test(d)) etiquetas.push({ n, d }); });
+  const s1 = etiquetas.slice(0, nObjetivos), s2 = etiquetas.slice(nObjetivos);
+  ok(nObjetivos === 3 && s1.every((e, i) => e.d === s2[i].d && e.d.startsWith(`Objetivo ${i + 1}: `)), `un bloque «Objetivo N» de NIIF S1 51 y uno de NIIF S2 33–36 por objetivo (${s2.map((e) => e.d).join(" · ")})`);
+  const enBloque = (b, filaPlantilla, desde) => texto(est.getCell(`K${b.n + filaPlantilla - desde}`).value);
+  const incisos = { 221: "33(a)", 225: "33(c)", 227: "33(d)", 229: "33(e)", 231: "33(f)", 233: "33(g)", 235: "33(h)", 237: "34(a)", 239: "34(b)", 241: "34(c)", 243: "34(d)" };
+  const vacios = s2.flatMap((b, i) => Object.entries(incisos).filter(([f]) => !enBloque(b, Number(f), 216)).map(([, x]) => `objetivo ${i + 1} ${x}`));
+  ok(!vacios.length, `NIIF S2 33(a), (c)–(h) y 34(a)–(d) con respuesta propia en cada objetivo${vacios.length ? ` — vacíos: ${vacios.join(", ")}` : ""}`);
+  const repetidos = s2.filter((b) => { const v = Object.keys(incisos).map((f) => enBloque(b, Number(f), 216)).filter((t) => t.length > 12); return new Set(v).size !== v.length; });
+  ok(!repetidos.length && !s2.some((b) => Object.keys(incisos).some((f) => /tiene tres objetivos/.test(enBloque(b, Number(f), 216)))), "ningún inciso repite el texto de otro ni el párrafo de NIIF S2 33 (antes los 11 incisos decían lo mismo)");
+  ok(s2.every((b) => !!enBloque(b, 223, 216)) && new Set(s2.map((b) => enBloque(b, 223, 216))).size === s2.length, "NIIF S2 33(b) (propósito del objetivo): el campo capturado, propio de cada objetivo");
+  const gei = s2.map((b) => !!enBloque(b, 247, 216));
+  ok(gei.filter(Boolean).length === 1 && s2.every((b, i) => gei[i] || [247, 249, 251, 253, 255, 256, 259].every((f) => !enBloque(b, f, 216))), "NIIF S2 36 solo en el bloque del objetivo de emisiones de GEI; vacío en los demás");
+  ok(s1.every((b) => [202, 204, 206, 208, 210, 212, 214].every((f) => /se revela conforme a NIIF S2 3[345]/.test(enBloque(b, f, 196)))), "NIIF S1 51 (a)–(g) bajo E5: cada inciso remite a su inciso de NIIF S2 en cada objetivo");
+}
+
+console.log("\nFormato electrónico · NIIF S2 29(a)(iii) por inciso (Fase 5)");
+{
+  const [enfoque, datos, razon, cambios] = [K(596), K(597), K(599), K(601)];
+  ok(/Protocolo GEI/.test(enfoque) && !/488,000/.test(enfoque) && /488,000/.test(datos) && !/Protocolo GEI/.test(datos), "K596 el enfoque (protocolo, consolidación, factores) y K597 los datos de entrada y supuestos, sin repetirse");
+  ok(!razon, "K599 (razón de la elección): vacía, ningún hecho la da (§5: en el Formato el pendiente es la celda vacía)");
+  ok(!cambios || !/Protocolo GEI, con enfoque de control/.test(cambios), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo");
+}
+
+console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
+{
+  const [tr, fi, op] = [K(629), K(652), K(675)];
+  ok(!/31\.4/.test(tr + fi + op), "K629, K652 y K675 sin el total de 31.4 millones (va en K693)");
+  ok(/12\.3/.test(fi) && /f[ií]sic/.test(fi) && !/31\.0/.test(fi), "K652 (riesgos físicos): los 12.3 millones de adecuaciones, sin la eficiencia energética");
+  ok(!op || (/oportunidad/.test(op) && !/12\.3/.test(op)), "K675 (oportunidades): lo que el libro sustenta, sin los 12.3 de riesgos físicos");
+  ok(!tr || (/transici/.test(tr) && !/12\.3/.test(tr)), "K629 (transición): vacía o solo lo suyo (el libro del demo no sustenta ninguno)");
+  ok(new Set([tr, fi, op].filter(Boolean)).size === [tr, fi, op].filter(Boolean).length, "ninguna de las tres repite a otra");
+  ok(/31\.4/.test(K(693)), "K693: el total de 31.4 millones");
+  // Ajustes de Esteban a la Fase 1: capitalizado sí, gasto no; la celda dice solo el despliegue de su tipo.
+  const gasto = /prima|gasto de operaci|registrad[oa]s? como gasto|no se incluy/i;
+  ok(!gasto.test(fi) && !gasto.test(op), "K652 y K675 sin importes registrados como gasto ni aclaraciones de lo que no se incluye");
+  ok(/31\.0/.test(op) && !/0\.4/.test(op), "K675: solo los 31.0 millones de eficiencia energética (sin los 0.4 de medición, que fueron gasto)");
+}
+
+console.log("\nFormato electrónico · NIIF S2 16(a) por efecto (Fase 2)");
+{
+  const oraciones = (t) => t.replace(ORACION_E5, "").split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
+  ok(!!K(85) && !!K(87) && !!K(89), "K85 (situación), K87 (rendimiento) y K89 (flujos) con respuesta propia");
+  todas([86, 88, 90], (t) => !t, "K86, K88 y K90 (instrucción de la pregunta de arriba): vacías");
+  ok(/12\.3/.test(K(85)) && /31\.0/.test(K(85)) && !/6\.2/.test(K(85)), "K85: lo capitalizado (12.3 y 31.0), sin las primas");
+  ok(/6\.2/.test(K(87)) && !/12\.3/.test(K(87)), "K87: lo registrado como gasto (primas de 6.2), sin lo capitalizado");
+  const celdas = [84, 85, 87, 89];
+  const choques = [];
+  for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
+  ok(!choques.length, `ninguna celda de 16(a) (K84, K85, K87, K89) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
+  // Ajustes de Esteban a la Fase 2.
+  const sinTipo = [86, 88, 90].filter((f) => !texto(est.getCell(`F${f}`).value));
+  todas(sinTipo, (t) => !t, `filas de instrucción sin tipo en la plantilla (columna F), vacías (${sinTipo.map((f) => `K${f}`).join(", ")})`);
+  ok(/^Los importes del periodo relacionados con /.test(K(89)) && /no identificó otros efectos en sus flujos de efectivo/.test(K(89)), "K89: «Los importes del periodo relacionados con … fueron …; la Compañía no identificó otros efectos en sus flujos de efectivo»");
+  ok(!/(?<!\p{L})(salidas?|pagos?|desembols\p{L}*)(?!\p{L})/iu.test(K(89)), "K89 sin «salida», «pago» ni «desembolso» (ningún hecho del demo los dice)");
+}
+
+console.log("\nFormato electrónico · NIIF S2 16(d) por efecto y por plazo (Fase 2, ajuste 3)");
+{
+  const oraciones = (t) => t.split(/(?<=\.)\s+|\n/).map((o) => o.replace(/^(Corto|Mediano|Largo) plazo:\s*/, "").trim()).filter(Boolean);
+  // Regla de plazos (antes de la Fase 4): la fila de la pregunta lleva lo no fechado; la tabla, lo fechado por plazo.
+  ok(!!K(96) && /no proporciona información cuantitativa/.test(K(96)), "K96: lo no fechado (escenario de altas emisiones) y la razón de no cuantificar (NIIF S2 21)");
+  ok(!K(98), "K98 vacía: 16(d) no tiene hechos de flujos sin fecha; los flujos previstos van por plazo en K99");
+  ok(/^Mediano plazo: .*9 millones/.test(K(99)) && !/9 millones/.test(K(96)), "el ahorro de 9 millones anuales desde 2027, en el mediano plazo de K99 (2027 cae en «más de 1 y hasta 5 años»)");
+  for (const f of [95, 97, 99, 111]) {
+    const lineas = K(f).split("\n").filter(Boolean);
+    const cuerpos = lineas.map((l) => l.replace(/^\S+ plazo: /, ""));
+    const parecidas = cuerpos.some((a, i) => cuerpos.some((b, j) => i < j && (a === b || seParecen(a, b))));
+    ok(lineas.every((l) => /^(Corto|Mediano|Largo) plazo: /.test(l)) && !parecidas && !cuerpos.some((x) => /^(en|durante|para) el (corto|mediano|largo) plazo/i.test(x)), `K${f}: una línea por plazo con hechos que caen en él, sin repetir texto entre plazos (${lineas.map((l) => l.split(":")[0]).join(", ") || "vacía"})`);
+  }
+  ok(/^Corto plazo: .*61 millones/m.test(K(95)) && /^Mediano plazo: /m.test(K(95)) && /^Largo plazo: .*reservas adicionales/m.test(K(95)), "K95: corto (plan 2026-2027), mediano (hasta 2028) y largo plazo (reservas adicionales: el efecto previsto de K662 que nombra la situación financiera, opción A)");
+  const celdas = [94, 95, 96, 97, 98, 99, 110, 111];
+  const choques = [];
+  for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
+  ok(!choques.length, `ninguna celda de 16(c), 16(d) y 22(a)(iii) (K94–K99, K110, K111) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
+}
+
+console.log("\nFormato electrónico · NIIF S2 36(e) en un solo estado");
+{
+  const NA = textoNoAplicaHeredado("NIIF S2 36 (e)");
+  ok(!!K(538) && K(534) === remisionAIncisos(INCISOS_CREDITOS), "K534 (padre): remite a (i)–(iv), porque (i) responde (K538)");
+  ok(K(535) === "No", "K535 ¿uso previsto de créditos? «No»");
+  ok(!!K(536) && !/^No aplica/.test(K(536)), "K536 «¿Por qué?»: la razón, sin «No aplica» delante");
+  ok(K(536) !== K(538) && !K(536).split(/(?<=\.)\s+/).some((o) => K(538).split(/(?<=\.)\s+/).some((q) => q === o || seParecen(o, q))), "K536 (K576 con bloques) no repite ni parafrasea la respuesta de 36(e)(i)");
+  todas([540, 542, 544, 546], es(NA), "K540, K542, K544, K546: una sola redacción de «No aplica»");
+}
 
 console.log("\nFormato electrónico · actividad y alivios en celda");
 todas([613, 614, 615, 616, 617, 621], es(C4), "Alcance 3 (K613–K617, K621) «No revelado · alivio C4», K615 incluida");
@@ -115,6 +241,39 @@ ok(/^No aplica/.test(C("NIIF S2 36 (c)")), "S2 36(c): «No aplica» (ningún obj
 const hoja36e = wt.getWorksheet("NIIF S2 36(e)(i)-(iv)");
 ok(C("NIIF S2 36 (e)(i)") === texto(hoja36e.getCell("B2").value) && !/^No aplica/.test(C("NIIF S2 36 (e)(i)")), "S2 36(e)(i) (fila 276): la respuesta de su hoja del cuestionario");
 for (const c of ["NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"]) ok(/^No aplica/.test(C(c)), `${c}: «No aplica» (sin créditos de carbono)`);
+ok(C("NIIF S2 36 (e)(i)a(iv)") === remisionAIncisos(INCISOS_CREDITOS), "S2 36(e) padre (fila 272): remite a (i)–(iv), como K534");
+ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c) => C(c) === textoNoAplicaHeredado("NIIF S2 36 (e)")), "S2 36(e)(ii)–(iv): una sola redacción de «No aplica», como el Formato");
+// Fase 2: filas de continuación de 16 (Excel 31, 32, 37, 98, 99, 104).
+{
+  const [a30, a31, a32] = porCodigo.get("NIIF S1 35(a)") ?? [];
+  const [d36, d37] = porCodigo.get("NIIF S1 35(d)") ?? [];
+  ok(!!a30 && a31 === a30 && a32 === a30 && !!d36 && d37 === d36, "Excel 31, 32 y 37 (NIIF S1 35 bajo E5): la remisión de su fila madre");
+  const [s97, s98, s99] = porCodigo.get("NIIF S2 16(a)") ?? [];
+  ok(!!s97 && s98 === K(87) && s99 === K(89), "Excel 98 y 99 (16(a) rendimiento y flujos): las respuestas propias de K87 y K89");
+  const d = porCodigo.get("NIIF S2 16(d)") ?? [];
+  ok(d.length === 2 && d[1] === K(99) && d[1] !== d[0], "Excel 104 (16(d) flujos previstos a corto, medio y largo plazo): la tabla por plazo de K99, distinta de la 103, sin fila intermedia");
+  ok(s97 === K(85) && d[0] === K(96), "Excel 97 y 103: solo su parte (K85 y K96), sin repetir lo que dan las filas siguientes");
+  // Fase 5.
+  const g = porCodigo.get("NIIF S2 29 (a)(iii)") ?? [];
+  ok(g[0] === K(596) && g[1] === K(597) && (g[2] === K(599) || /^Pendiente: razón/.test(g[2])) && (g[3] === K(601) || /^Pendiente: respuesta de la emisora/.test(g[3])) && g.slice(4).every((t) => !t), "Excel 130–133 (29(a)(iii)): enfoque, datos, razón y cambios (o el marcador de §5); la copia 134–137 de la plantilla, vacía");
+  const tipos = ["NIIF S2 29 (b)", "NIIF S2 29 (c)", "NIIF S2 29 (d)"].map((c) => (porCodigo.get(c) ?? [])[1] ?? "");
+  ok(tipos[0] === K(629) && tipos[1] === K(652) && tipos[2] === K(675), "Excel 153, 162 y 171 (29(e) por tipo): las mismas celdas que K629, K652 y K675");
+  const sectores = [];
+  wt.getWorksheet("Taxonomía NIIF S1 S2").eachRow((row) => { if (texto(row.getCell(1).value) === "NIIF S2 32" && /^▫/.test(texto(row.getCell(2).value))) sectores.push([texto(row.getCell(2).value), texto(row.getCell(3).value)]); });
+  const si = sectores.filter(([, r]) => r === "Sí");
+  ok(sectores.length === 70 && si.length === 1 && /\[815200\]/.test(si[0][0]) && sectores.every(([, r]) => !r || r === "Sí"), `lista de sectores de NIIF S2 32 (70 opciones): «Sí» solo en el sector del Perfil (${si.map(([o]) => o.slice(2, 40)).join(", ")})`);
+  const s33 = wt.getWorksheet("NIIF S2 33");
+  ok([2, 3, 4].every((f) => !!texto(s33.getCell(`D${f}`).value) && !/^\d+% (al|en) \d{4}$/.test(texto(s33.getCell(`D${f}`).value))), "hoja «NIIF S2 33», columna «Objetivo de la meta» (33(b)): el propósito de cada objetivo (o el marcador de §5), no la meta");
+}
+// Fase 3: NIIF S1 bajo E5 y booleanos de NIIF S2 con sus ramas, como el Formato.
+{
+  const C_ = (c) => porCodigo.get(c) ?? [];
+  const e5 = ["NIIF S1 27(a)", "NIIF S1 27(a)(v)", "NIIF S1 27(b)(i)", "NIIF S1 44 (a)(vi)"];
+  ok(e5.every((c) => C_(c).length > 1 && C_(c).every((t) => t === C_(c)[0] && /se revela conforme a NIIF S2/.test(t))), "NIIF S1 27(a), 27(a)(v), 27(b)(i) y 44(a)(vi) bajo E5: todas sus filas con la remisión de la fila madre");
+  const como = { "NIIF S2 6 (a)(v)": [K(36), K(38), K(39), K(41)], "NIIF S2 6(b)(i)": [K(44), K(45), K(47)], "NIIF S2 6(b)(ii)": [K(49), K(50), K(52)], "NIIF S2 25 (a)(vi)": [K(134), K(135), K(137)], "NIIF S2 29 (f) (i) y (ii)": [K(696), K(697), K(699)], "NIIF S2 29 (g) (i) y (ii)": [K(704), K(705), K(707)], "NIIF S2 36 (e)(i)a(iv)": [C("NIIF S2 36 (e)(i)a(iv)"), K(535), K(536), ""] };
+  const malos = Object.entries(como).filter(([c, esperado]) => esperado.some((t, i) => (C_(c)[i] ?? "") !== t)).map(([c]) => c);
+  ok(!malos.length, `booleanos de NIIF S2 y sus ramas en el Excel, iguales al Formato (rama cerrada, vacía)${malos.length ? ` — no: ${malos.join(", ")}` : ""}`);
+}
 
 console.log("\nExcel de taxonomía · hojas de datos");
 {

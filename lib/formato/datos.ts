@@ -95,7 +95,16 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
     .filter((o) => o.ambito === "climatico")
     .map((o) => {
       const det = ens.detallePorObjetivo.get(o.id);
-      return { nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), origen: o.origen_objetivo ?? null, tipo_objetivo: o.tipo_objetivo ?? null, gases: det?.gases_cubiertos ?? null, alcances: det?.alcances_cubiertos ?? null, bruto_neto: det?.bruto_neto ?? null };
+      return {
+        nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), origen: o.origen_objetivo ?? null, tipo_objetivo: o.tipo_objetivo ?? null,
+        gases: det?.gases_cubiertos ?? null, alcances: det?.alcances_cubiertos ?? null, bruto_neto: det?.bruto_neto ?? null,
+        descripcion: o.descripcion ?? null, metrica: o.metrica ?? null, parte_entidad: o.parte_entidad ?? null, periodo_aplicacion: o.periodo_aplicacion ?? null,
+        periodo_base: o.periodo_base ?? null, hito_intermedio: o.hito_intermedio ?? null, alineacion: o.alineacion_acuerdo_internacional ?? null,
+        proposito: o.proposito_objetivo ?? null,
+        validacion_tercero: det?.validacion_tercero ?? null, procesos_revision: det?.procesos_revision ?? null, metricas_supervision: det?.metricas_supervision ?? null,
+        revisiones: det?.revisiones ?? null, resultados: det?.resultados ?? null, analisis_tendencias: det?.analisis_tendencias ?? null,
+        enfoque_descarbonizacion: det?.enfoque_descarbonizacion ?? null,
+      };
     });
   const { data: cat } = await db.from("datapoints_taxonomia").select("codigo, descripcion").in("codigo", ["NIIF S2 29 (a)(i)", "NIIF S2 29 (b)", "NIIF S2 29 (c)", "NIIF S2 29 (d)", "NIIF S2 29 (e)"]);
   const descripciones: Record<string, string> = Object.fromEntries((cat ?? []).map((x) => [x.codigo, x.descripcion]));
