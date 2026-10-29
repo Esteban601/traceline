@@ -285,7 +285,7 @@ async function main() {
 
   console.log("\nObjetivos — S2 33 (definición climática, tipos oficiales):");
   ok(cellText(s33, "A2").length > 0 && cellText(s33, "B2") === "Objetivo de emisiones de gases de efecto invernadero", "S2 33: el primer objetivo y su tipo oficial");
-  ok(cellText(s33, "I2") === "Absoluto" && cellText(s33, "I3") === "Relativo", "S2 33: tipos de objetivo Absoluto y Relativo");
+  ok(cellText(s33, "I2") === "Absoluto" && cellText(s33, "I3") === "De intensidad", "S2 33: tipos de objetivo de la enumeración de la plantilla (Absoluto, De intensidad)");
   ok(s33.columnCount === 10, "S2 33: diez columnas, sin «Notas / Brechas»");
 
   console.log("\nObjetivos — trazabilidad + tipos oficiales S2 34/36:");
@@ -293,7 +293,7 @@ async function main() {
   const a2 = cellText(s34, "A2");
   ok(a2.length > 0 && cellText(s33, "A2").startsWith(`${a2} (meta: `) && cellText(s35, "A2") === a2 && cellText(s36, "A2") === a2, "el objetivo de la fila 2 es el mismo en S2 33/34/35/36 (en S2 33, con su meta)");
   // Ningún objetivo tiene validación por tercero; «Verdadero» se prueba en S2 22(b)(i).
-  ok(cellText(s34, "B2") === "Falso" && cellText(s34, "B3") === "Falso", "S2 34: validación por tercero «Falso» (booleano)");
+  ok(cellText(s34, "B2") === "No" && cellText(s34, "B3") === "No", "S2 34: validación por tercero «No» (como la hoja 36(a)-(d); revisión externa v5.2)");
   ok(cellText(s35, "B2").length > 0, "S2 35: resultados del objetivo completo");
   ok(cellText(s36, "B2").includes("Dióxido de carbono (CO2)") && cellText(s36, "C2") === "Alcance 1; Alcance 2" && cellText(s36, "D2") === "Emisiones brutas de gases de efecto invernadero" && cellText(s36, "E2") === "No", "S2 36: gases, alcances, bruto/neto y enfoque con valores oficiales");
   ok(cellText(s34, "A5") === "" && cellText(s35, "A5") === "" && cellText(s36, "A5") === "", "sin cuarto objetivo: nada inventado después del tercero");

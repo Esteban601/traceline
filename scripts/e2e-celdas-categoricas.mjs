@@ -130,6 +130,25 @@ console.log("\nFormato electrónico · NIIF S2 29(a)(iii) por inciso (Fase 5)");
   ok(!cambios || !/Protocolo GEI, con enfoque de control/.test(cambios), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo");
 }
 
+console.log("\nFormato electrónico · cierre (Fase 6, revisión externa v5.2)");
+{
+  const ors = (t) => t.split(/(?<=\.)\s+/).filter((o) => o.length > 20);
+  // (1) K100: la razón de 19(a)/(b) de la declaración de criterio; la transparencia como complemento.
+  ok(/identificables por separado/.test(K(100)) && /incertidumbre/.test(K(100)) && /próximos periodos/.test(K(100)) && !/^[^.]*próximos periodos/.test(K(100)), "(1) K100: la razón de NIIF S2 19(a)/(b) primero; la limitación de los próximos periodos, como oración complementaria");
+  // (2) K91: sin la oración de K92 ni la razón de no cuantificar.
+  ok(!ors(K(91)).some((o) => ors(K(92)).some((q) => q === o || seParecen(o, q))) && !/no (proporciona información cuantitativa|cuantific)|identificables por separado/.test(K(91)), `(2) K91 sin la oración de K92 ni la razón de no cuantificar${K(91) ? "" : " (vacía: ninguna síntesis pasó el validador)"}`);
+  // (3) K712 vacía: repetía K710.
+  ok(!K(568) && !!K(566), "(3) K712 vacía; K710 conserva los juicios (celdas de v5.1, traducidas por K)");
+  // (4) K755: solo instrumentos contractuales y método.
+  ok(/instrumentos? contractual|certificad|energ[ií]a renovable/i.test(K(611)) && !/CFE bajo contratos est[aá]ndar/.test(K(611)) && K(611) !== K(609), "(4) K755 solo con instrumentos contractuales y el método, distinto de K753");
+  // (5) K836 vacía; K845 y K853 en una línea.
+  ok(!K(692) && K(701) === "No existe un precio por tonelada en 2025." && K(709) === "Cero por ciento.", "(5) K836 vacía; K845 «No existe un precio por tonelada en 2025.»; K853 «Cero por ciento.»");
+  // (6) K786, K809, K832 con el valor de su fila de opciones.
+  ok([[642, 643], [665, 666], [688, 689]].every(([p, o]) => !!K(o) && K(p) === K(o)), "(6) K786, K809 y K832 con el mismo valor que su fila de opciones (como K161/K162)");
+  // (7) K847 con el patrón de K839: el texto de su código.
+  ok(!!K(703) && !!K(695), "(7) K847 (sección «Remuneración») con texto, como K839 (sección «Precios internos del carbono»)");
+}
+
 console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
 {
   const [tr, fi, op] = [K(629), K(652), K(675)];
@@ -264,7 +283,18 @@ ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c)
   wt.getWorksheet("Taxonomía NIIF S1 S2").eachRow((row) => { if (texto(row.getCell(1).value) === "NIIF S2 32" && /^▫/.test(texto(row.getCell(2).value))) sectores.push([texto(row.getCell(2).value), texto(row.getCell(3).value)]); });
   const si = sectores.filter(([, r]) => r === "Sí");
   ok(sectores.length === 70 && si.length === 1 && /\[815200\]/.test(si[0][0]) && sectores.every(([, r]) => !r || r === "Sí"), `lista de sectores de NIIF S2 32 (70 opciones): «Sí» solo en el sector del Perfil (${si.map(([o]) => o.slice(2, 40)).join(", ")})`);
+  // (8) Excel 185 y 190 con la respuesta del Formato.
+  const f29 = (c) => porCodigo.get(c) ?? [];
+  ok(f29("NIIF S2 29 (f) (i) y (ii)")[3] === K(701) && f29("NIIF S2 29 (g) (i) y (ii)")[3] === K(709), "(8) Excel 185 y 190: lo mismo que K845 y K853");
+  // (9) Hoja «NIIF S2 34» con «No», no «Falso».
+  const s34 = wt.getWorksheet("NIIF S2 34");
+  ok([2, 3, 4].every((f) => texto(s34.getCell(`B${f}`).value) === "No"), "(9) hoja «NIIF S2 34»: validación por tercero «No», como la hoja 36(a)-(d)");
+  // (10) Marcador de la fila 132 sin jerga de plataforma.
+  ok(!/bloque|hecho del|plataforma/i.test(f29("NIIF S2 29 (a)(iii)")[2] ?? "") , "(10) marcador de la fila 132 sin jerga de plataforma (nombra la solicitud)");
   const s33 = wt.getWorksheet("NIIF S2 33");
+  // (11) 33(g) solo con la enumeración de la plantilla; 33(h) dice cómo influyó el Acuerdo de París.
+  ok([2, 3, 4].every((f) => ["Cuantitativo", "Absoluto", "De intensidad"].includes(texto(s33.getCell(`I${f}`).value)) || /^Pendiente: tipo de objetivo/.test(texto(s33.getCell(`I${f}`).value))), "(11) 33(g): solo Cuantitativo, Absoluto o De intensidad (o el marcador de §5)");
+  ok([2, 3, 4].every((f) => /Acuerdo de Par[ií]s/.test(texto(s33.getCell(`J${f}`).value))), "(11) 33(h): los tres objetivos dicen cómo influyó, o que no influyó, el Acuerdo de París");
   ok([2, 3, 4].every((f) => /\(meta: .*\d+ ?%.*\)$/.test(texto(s33.getCell(`A${f}`).value))), "hoja «NIIF S2 33», columna A: el nombre con el valor de la meta, como la fila 217 del Formato");
   ok([2, 3, 4].every((f) => !!texto(s33.getCell(`D${f}`).value) && !/^\d+% (al|en) \d{4}$/.test(texto(s33.getCell(`D${f}`).value))), "hoja «NIIF S2 33», columna «Objetivo de la meta» (33(b)): el propósito de cada objetivo (o el marcador de §5), no la meta");
 }
