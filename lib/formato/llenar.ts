@@ -129,9 +129,29 @@ const FILAS_29B = new Set([432, 433, 435, 437]);
 export const FILAS_FIDEICOMISO = new Set([13, 14, 15, 16, 17, 18, 19, 20, 21]);
 /** Fila de la declaración de los alivios del reporte (K12). */
 export const FILA_ALIVIOS = 12;
-const POR_QUE: Record<number, number> = { 45: 44, 135: 134, 418: 417, 426: 425 };
-/** «Si ¿Cómo…?» de un booleano: solo se despliega con «Sí» (filas 137, 420 y 428; 135 y 137 desde la Fase 5). */
-const SI_COMO: Record<number, number> = { 137: 134, 420: 417, 428: 425 };
+/**
+ * Ramas de los booleanos de la plantilla 2025 (regla general, encargo formato-respuesta-por-inciso, Fase 1): la rama
+ * «No» («¿Por qué?»; en la 315, «Explicar el método…») solo se despliega con «No» y da la razón; la rama «Sí» («¿Cómo…?»,
+ * «¿De qué manera…?») solo con «Sí». Una rama que su booleano cierra queda vacía. Antes la lista tenía solo algunas
+ * filas: K41 y K50 llevaban texto con la rama cerrada. `scripts/e2e-celdas-categoricas.mjs` comprueba contra la
+ * columna D de la plantilla que no falta ninguna.
+ */
+export const RAMAS_BOOLEANO: Record<number, { booleano: number; rama: "No" | "Sí" }> = {
+  39: { booleano: 38, rama: "No" }, 41: { booleano: 38, rama: "Sí" },
+  45: { booleano: 44, rama: "No" }, 47: { booleano: 44, rama: "Sí" },
+  50: { booleano: 49, rama: "No" }, 52: { booleano: 49, rama: "Sí" },
+  135: { booleano: 134, rama: "No" }, 137: { booleano: 134, rama: "Sí" },
+  257: { booleano: 256, rama: "No" },
+  315: { booleano: 313, rama: "No" },
+  418: { booleano: 417, rama: "No" }, 420: { booleano: 417, rama: "Sí" },
+  426: { booleano: 425, rama: "No" }, 428: { booleano: 425, rama: "Sí" },
+};
+/** La razón del «No» cuando el booleano no tiene respuesta propia: el inciso que la da (36(e)(i): cómo se cumplirá sin créditos). */
+const RAZON_DEL_NO: Record<number, string> = { 257: "NIIF S2 36 (e)(i)" };
+/** El «No» de un booleano que se deduce de sus incisos: no hay uso previsto de créditos si (ii)–(iv) no aplican. */
+const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
+/** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
+const FILAS_29E = new Set([350, 373, 396]);
 /** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
 const FECHAS_22B_III: Record<number, "inicio" | "fin"> = { 117: "inicio", 119: "fin" };
 const FILAS_SECTOR = new Set([446, 447]);
@@ -151,18 +171,18 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   const actividades = d.perfil.actividades_financieras;
 
   for (const c of conceptos) out.set(c.fila, valorDe(c));
-  // Lo que depende del valor de un booleano, ya calculado: el «¿Por qué?» explica el «No» con la respuesta propia del
-  // booleano (sin el «No.» inicial); el «Si ¿Cómo…?» solo se despliega con «Sí».
-  for (const [fila, bool] of Object.entries(POR_QUE).map(([f, b]) => [Number(f), b])) {
+  // Lo que depende del valor de un booleano, ya calculado: la rama que el booleano cierra queda vacía; la rama «No»
+  // abierta da la razón (la respuesta propia del booleano sin el «No.» inicial, o el inciso que la da, sin un «No
+  // aplica» delante); la rama «Sí» abierta conserva su respuesta.
+  for (const [fila, { booleano, rama }] of Object.entries(RAMAS_BOOLEANO).map(([f, r]) => [Number(f), r] as const)) {
     if (!out.has(fila)) continue;
-    if (out.get(bool)?.texto !== "No") { out.set(fila, { texto: null, origen: "regla", nota: `el booleano de la fila ${bool} no es «No»` }); continue; }
-    const propia = resp("formato", `fila:${bool}`);
-    const c = conceptos.find((x) => x.fila === bool);
-    const t = propia?.texto ? propia.texto.replace(/^No\.\s*/, "").trim() : c?.datapoint ? textoDe(c.datapoint) : null;
-    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `explicación del «No» de la fila ${bool}` } : { texto: null, origen: "pendiente" });
-  }
-  for (const [fila, bool] of Object.entries(SI_COMO).map(([f, b]) => [Number(f), b])) {
-    if (out.has(fila) && out.get(bool)?.texto !== "Sí") out.set(fila, { texto: null, origen: "regla", nota: `no se despliega: el booleano de la fila ${bool} no es «Sí»` });
+    if (out.get(booleano)?.texto !== rama) { out.set(fila, { texto: null, origen: "regla", nota: `rama «${rama}» cerrada: el booleano de la fila ${booleano} no es «${rama}»` }); continue; }
+    if (rama === "Sí") continue;
+    const propia = resp("formato", `fila:${booleano}`);
+    const c = conceptos.find((x) => x.fila === booleano);
+    const desde = RAZON_DEL_NO[fila] ?? c?.datapoint ?? null;
+    const t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
+    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "pendiente" });
   }
   // Una celda de texto no abre con «Sí.»: el booleano vecino ya lo dice (revisión externa v5, K126/K135/K137). El
   // validador de respuestas ya lo rechaza; esto cubre las respuestas guardadas antes.
@@ -267,6 +287,11 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (tipo === "tabla") return tabla(c);
     if (/^enumeración/.test(tipo)) return enumeracion(c);
 
+    // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
+    if (FILAS_29E.has(c.fila)) {
+      const r = resp("formato", `fila:${c.fila}`);
+      return r?.texto && r.estado === "respuesta" ? { texto: r.texto, origen: "respuesta" } : { texto: null, origen: "regla", nota: "sin despliegue de capital de este tipo en el libro" };
+    }
     if (/^text/.test(tipo) || !tipo || narrativo) {
       // Una respuesta propia de la celda (`fila:N`: B65(c) por efecto, síntesis) manda sobre la del código.
       const clave = resp("formato", `fila:${c.fila}`) ? `fila:${c.fila}` : c.datapoint ?? `fila:${c.fila}`;
@@ -278,6 +303,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     }
     if (tipo === "booleano" && c.datapoint) {
       const r = resp("taxonomia", c.datapoint);
+      const incisos = NO_POR_INCISOS[c.fila];
+      if (incisos && incisos.every((x) => resp("taxonomia", x)?.estado === "no_aplica")) return { texto: "No", origen: "regla", nota: `${incisos.join(", ")} no aplican` };
       if (!r || r.estado === "pendiente") return { texto: null, origen: "pendiente" };
       // Regla 2: sin un hecho que lo responda (el E5 lo deja sin respuesta propia), vacío en el formato.
       if (r.estado === "no_aplica") return r.texto?.includes("párrafo E5") ? { texto: null, origen: "pendiente" } : { texto: "No", origen: "respuesta" };
@@ -321,8 +348,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     // Origen del objetivo (fijado por la emisora o por ley), de la captura de objetivos; sin captura, pendiente.
     if (c.fila === 200 || c.fila === 219) return porObjetivo("origen");
     if (c.fila === 263 || c.fila === 265) {
-      const r = resp("taxonomia", "NIIF S2 36 (e)(i)a(iv)");
-      // 36(e) en un solo estado: el mismo texto que la columna de respuestas y la hoja del cuestionario del Excel.
+      // 36(e)(iii) en un solo estado: el de su inciso (el padre ya no dice «No aplica» si (i) responde).
+      const r = resp("taxonomia", "NIIF S2 36 (e)(iii)");
       return r?.estado === "no_aplica" ? { texto: textoNoAplicaHeredado("NIIF S2 36 (e)"), origen: "regla" } : { texto: null, origen: "por decidir" };
     }
     return { texto: null, origen: "por decidir" };

@@ -83,10 +83,18 @@ export function respuestaDeCuestionario36e(codigo: string, cuestionarios: { hoja
   if (!/^NIIF S2 36 ?\(e\)\((i|ii|iii|iv)\)$/.test(codigo)) return null;
   const ordenes = preguntasDe("S2 36(e)").filter((q) => q.control === "texto" && sin(q.inciso) === sin(codigo)).map((q) => q.orden);
   const textos = cuestionarios
-    .filter((c) => c.hoja === "S2 36(e)" && ordenes.includes(c.pregunta_orden) && c.respuesta?.trim())
+    // Una respuesta que solo dice «No aplica…» no responde el inciso: toma el «No aplica» de regla, con una sola
+    // redacción (encargo formato-respuesta-por-inciso, Fase 1; K540 decía «No aplica:» y las demás «No aplica.»).
+    .filter((c) => c.hoja === "S2 36(e)" && ordenes.includes(c.pregunta_orden) && c.respuesta?.trim() && !/^no aplica\b/i.test(c.respuesta.trim()))
     .sort((a, b) => a.pregunta_orden - b.pregunta_orden)
     .map((c) => c.respuesta!.trim());
   return textos.length ? textos.join(" ") : null;
+}
+
+/** El padre que remite a sus incisos («NIIF S2 36 (e)(i)» … «(iv)» → «NIIF S2 36 (e)(i) a (iv)»). */
+export function remisionAIncisos(hijos: string[]): string {
+  const ultimo = hijos[hijos.length - 1].match(/\([^()]*\)$/)?.[0] ?? hijos[hijos.length - 1];
+  return `La información correspondiente a este requisito se revela en sus incisos, conforme a ${hijos[0]} a ${ultimo}.`;
 }
 
 export function textoNoAplicaHeredado(codigo: string): string {
@@ -188,6 +196,23 @@ export function disposicionesSinTipo<H extends { estado: string; enunciado: stri
 export const CONCEPTOS_B65C: { fila: number; codigo: string; enfoque: string; prestadosDe: number }[] = B65C_TIPOS.flatMap((t) =>
   [354, 356, 358, 360, 361].map((f, i) => ({ fila: f + t.desplazamiento, codigo: `NIIF S2 29 (${t.inciso}) · B65 (c)`, enfoque: B65C_EFECTOS[i](t.de), prestadosDe: t.bloque }))
 );
+
+/**
+ * NIIF S2 29(e) por tipo (encargo formato-respuesta-por-inciso, Fase 1): la plantilla pide el despliegue de capital
+ * aplicado a los riesgos de transición (fila 350), a los físicos (373) y a las oportunidades (396). Antes las tres
+ * repetían el párrafo: los mismos 31.4 millones en los tres tipos, y en el de riesgos físicos una inversión que no lo
+ * es. Cada celda recibe solo los hechos de despliegue de capital del libro de su tipo (dueños del bloque 34, 35 o 36, o
+ * que remiten a él); sin ninguno, la celda queda vacía. El total del párrafo sigue en la fila 414.
+ */
+const DESPLIEGUE_RE = /gasto de capital|se capitaliz|capitalizaron|invirti|inversi[oó]n (ambiental|de \d|en )|inversi[oó]n \d|financiaci[oó]n:? \d|; financiaci[oó]n|destin[oó] [\d.,]+ millones/i;
+export const CONCEPTOS_29E: { fila: number; bloque: 34 | 35 | 36; de: string; tipo: { nombre: string; re: RegExp } }[] = B65C_TIPOS.map((t, i) => ({
+  fila: 350 + t.desplazamiento,
+  bloque: t.bloque as 34 | 35 | 36,
+  de: t.de,
+  tipo: B65C_TIPO_RE[i],
+}));
+/** Cifras de un texto, sin separadores de miles («12.3», «2000»), para comprobar que salen de los hechos. */
+const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((x) => x.replace(/,/g, "")));
 
 export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number }[] = [
   { fila: 97, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre el rendimiento financiero (resultados, margen, ingresos y gastos)" },
@@ -554,11 +579,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const hijos = hijosDe.get(codigo);
     if (hijos) {
       const planes = hijos.map(planDe);
-      // Un inciso de 36(e) respondido desde el cuestionario no cambia el estado del padre: la emisora no usa créditos de
-      // carbono (el Formato lo lee así en sus filas 263 y 265).
+      // 36(e) en un solo estado (decisión de Esteban, encargo formato-respuesta-por-inciso): si algún inciso responde
+      // desde el cuestionario, el padre remite a sus incisos; «No aplica» solo si ninguno responde.
       const noAplica = (p: Plan) => p.via === "regla" && p.estado === "no_aplica";
       const delCuest = (p: Plan) => p.via === "regla" && !!p.notas?.includes(NOTA_CUESTIONARIO_36E);
-      if (planes.every((p) => noAplica(p) || delCuest(p)) && planes.some(noAplica)) {
+      if (planes.every((p) => noAplica(p) || delCuest(p)) && planes.some(delCuest)) {
+        return { codigo, via: "regla", estado: "respuesta", texto: remisionAIncisos(hijos) };
+      }
+      if (planes.every(noAplica)) {
         return { codigo, via: "regla", estado: "no_aplica", texto: (planes.find(noAplica) as { texto: string }).texto };
       }
       const conBloque = planes.filter((p): p is Extract<Plan, { via: "bloque" }> => p.via === "bloque");
@@ -671,6 +699,25 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       ? `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en una o dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que da el detalle en otra fila. Sin cifras que no estén en los hechos.`
       : `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
     planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...propios, ...prestados])] });
+  }
+  // 29(e) por tipo: los hechos de despliegue de capital del libro del bloque del tipo, uno por enunciado; sin ninguno,
+  // no hay pedido y la celda queda vacía.
+  {
+    const plan = planes.find((p) => p.codigo === "NIIF S2 29 (e)");
+    const cob = plan?.via === "bloque" ? { bloque: plan.bloque } : coberturaDe("NIIF S2 29 (e)");
+    for (const c of cob ? CONCEPTOS_29E : []) {
+      const libro = porBloque.get(c.bloque)?.libro_id;
+      const vistos = new Set<string>();
+      const hs = [...hechos.values()]
+        .filter((x) => x.estado === "vigente" && x.libro_id === libro && (x.bloque_dueno === c.bloque || (x.bloques_referencia ?? []).includes(c.bloque)))
+        .filter((x) => DESPLIEGUE_RE.test(x.enunciado) && !vistos.has(x.enunciado) && vistos.add(x.enunciado))
+        .map((x) => x.id);
+      if (!libro || !hs.length) continue;
+      const clave = `fila:${c.fila}`;
+      const otras = CONCEPTOS_29E.filter((x) => x.fila !== c.fila).map((x) => x.tipo.nombre).join(" ni a las ");
+      descripcion.set(clave, `Concepto del Formato electrónico (fila ${c.fila}) de NIIF S2 29 (e): responde SOLO el gasto de capital, la financiación o la inversión que la Compañía aplicó en el ejercicio a ${c.de}, con sus importes, en una o dos oraciones, y nombra «${c.tipo.nombre}». No incluyas saldos de cartera de crédito ni deuda emitida, ni lo aplicado a las ${otras}. Sin cifras que no estén en los hechos. Es una respuesta aparte de la de NIIF S2 29 (e): en el JSON va con «codigo» exactamente «${clave}» y destino «formato».`);
+      planes.push({ codigo: clave, via: "bloque", bloque: cob!.bloque, hechos: hs });
+    }
   }
   // Booleanos del formato (D1 de Esteban, encargo formato-afirmaciones-y-voz): una respuesta propia por fila que abre
   // con «Sí.» o «No.» y cita el hecho que contesta la pregunta. Recibe solo los hechos del código que tratan el tema
@@ -903,6 +950,14 @@ async function responderBloque(
           errores.push(`repite casi igual una oración de la fila ${filas.join(" y ")}; responde solo ${efecto.nombre}, en una oración propia`);
         }
       }
+      // 29(e) por tipo: nombra su tipo y no trae una cifra que no esté en sus hechos (así no repite el importe de otro tipo).
+      const de29e = CONCEPTOS_29E.find((c) => `fila:${c.fila}` === p.codigo);
+      if (de29e) {
+        if (!de29e.tipo.re.test(g.texto)) errores.push(`no nombra el tipo de esta celda (${de29e.tipo.nombre})`);
+        const propiasCifras = cifrasDe(p.hechos.map((h) => h.enunciado).join(" "));
+        const ajenas = [...cifrasDe(g.texto)].filter((x) => !propiasCifras.has(x));
+        if (ajenas.length) errores.push(`trae cifras que no están en sus hechos (${ajenas.join(", ")}); esta celda da solo el despliegue de capital de ${de29e.tipo.nombre}`);
+      }
       // Booleanos (D1): «Sí.»/«No.», el hecho que contesta, y ni el resto ni la celda vecina (la respuesta del código) en contra.
       const bool = BOOLEANOS_FORMATO.find((b) => `fila:${b.fila}` === p.codigo);
       if (bool) {
@@ -955,9 +1010,9 @@ async function responderBloque(
       continue;
     }
     let f = finales.get(clave(p));
-    // B65(c) por celda: sin respuesta validada, la celda queda pendiente (vacía en el Formato); las oraciones del
-    // bloque no responden el efecto de la celda.
-    if (!f && CONCEPTOS_B65C.some((c) => `fila:${c.fila}` === p.codigo)) {
+    // B65(c) por celda y 29(e) por tipo: sin respuesta validada, la celda queda pendiente (vacía en el Formato); las
+    // oraciones del bloque no responden el efecto ni el tipo de la celda.
+    if (!f && [...CONCEPTOS_B65C, ...CONCEPTOS_29E].some((c) => `fila:${c.fila}` === p.codigo)) {
       filas.push({ ...{ destino: p.destino, clave: p.codigo, tipo_campo: "text block" as const, valor: null, bloque: v.numero, bloque_version: v.version, hechos: [], modelo: null, prompt_version: promptDe(p), uso: USO_CERO, costo_usd: 0 }, estado: "pendiente", origen: "bloque", texto: null, notas: [`Sin respuesta: el modelo no pasó los validadores: ${(motivos.get(clave(p)) ?? ["sin llave del modelo"]).join("; ")}`] });
       continue;
     }
