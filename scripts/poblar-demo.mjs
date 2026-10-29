@@ -215,6 +215,12 @@ const PERFIL = {
     "Durante 2025 fortalecimos la gobernanza de estos temas con la creación del Comité de Sostenibilidad y Riesgos Climáticos, integramos criterios climáticos en la evaluación de crédito para los sectores de mayor exposición y concluimos la primera evaluación de riesgos físicos sobre nuestra red de sucursales y sobre la cartera agropecuaria e inmobiliaria.",
     "Este informe es una línea base. Reconocemos que la medición de emisiones financiadas, la cuantificación de efectos financieros y la comparabilidad entre ejercicios son tareas que iremos completando en los próximos periodos, y asumimos el compromiso de reportar con transparencia tanto los avances como las limitaciones.",
   ].join("\n\n"),
+  // Sección «Efectos financieros» (encargo perfil-declaraciones-alta): las dos declaraciones del bloque 10, en voz de la
+  // emisora e ilustrativas (decisión de Esteban del 27/10; antes eran dos solicitudes de NARRATIVAS).
+  criterio_cuantificacion:
+    "La Compañía no proporciona información cuantitativa sobre los efectos financieros previstos de los riesgos y oportunidades relacionados con el clima porque, conforme a los criterios de los párrafos 19 y 20 de la NIIF S2, esos efectos no son identificables por separado de los demás factores que inciden en el riesgo de crédito y en el margen financiero, y la incertidumbre de medición de las estimaciones es tan alta que la información cuantitativa resultante no sería útil. Evaluará su cuantificación en los próximos ejercicios, conforme avance la medición de emisiones financiadas y la sensibilidad de la cartera por sector.",
+  congruencia_estados_financieros:
+    "Los datos y supuestos empleados en la información relacionada con el clima son congruentes con los utilizados en la preparación de los estados financieros consolidados de 2025: el gasto de capital de la red del sureste, las primas de seguros y la inversión ambiental provienen de los mismos registros contables, y la estimación preventiva para riesgos crediticios se analiza con los mismos supuestos de los estados financieros.",
   proceso_materialidad:
     "Durante 2025 la Compañía evaluó los riesgos y oportunidades relacionados con el clima considerando su efecto razonablemente previsible sobre la situación financiera, el desempeño financiero, los flujos de efectivo, el acceso a financiamiento y el costo de capital. El ejercicio combinó tres fuentes: el análisis de exposición física de la red de sucursales y de los colaterales con datos del Atlas Nacional de Riesgos (CENAPRED); el análisis de sensibilidad de la cartera por sector económico ante un precio al carbono y cambios regulatorios; y entrevistas con las direcciones de Riesgos, Crédito y Banca, Sostenibilidad y Finanzas. La materialidad se determinó con el criterio de materialidad financiera de la NIIF S1. Los marcos COSO (2017) e ISO 31000 se utilizaron como apoyo metodológico, sin sustituir el análisis requerido por la norma.",
   modelo_negocio:
@@ -570,23 +576,8 @@ const NARRATIVAS = [
     texto:
       "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. En la red del sureste, las adecuaciones de inmuebles (gasto de capital) sumaron 12.3 millones de pesos y se capitalizaron en propiedades, mobiliario y equipo, y las primas de seguros de daños e interrupción (gasto de operación) sumaron 6.2 millones y se registraron en gastos de administración y promoción. La inversión ambiental del ejercicio fue de 31.4 millones de pesos: de la inversión ambiental, los 31.0 millones de eficiencia energética se capitalizaron en propiedades, mobiliario y equipo, y los 0.4 millones de medición se registraron como gasto. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente, sobre la estimación preventiva para riesgos crediticios.",
   },
-  // Decisión de Esteban del 27/10 (encargo formato-afirmaciones-y-voz, Fase 4): las dos declaraciones que el bloque 10
-  // necesita para no dejar pendientes, en voz de la emisora e ilustrativas. El cuestionario del Perfil debe pedirlas en
-  // el alta de cualquier emisora (encargo siguiente en la cola).
-  {
-    titulo: "Congruencia de datos y supuestos con los estados financieros",
-    codigos: ["NIIF S2 B65 inciso (e)"],
-    area: "Finanzas",
-    texto:
-      "Los datos y supuestos empleados en la información relacionada con el clima son congruentes con los utilizados en la preparación de los estados financieros consolidados de 2025: el gasto de capital de la red del sureste, las primas de seguros y la inversión ambiental provienen de los mismos registros contables, y la estimación preventiva para riesgos crediticios se analiza con los mismos supuestos de los estados financieros.",
-  },
-  {
-    titulo: "Criterio de cuantificación de los efectos financieros previstos",
-    codigos: ["NIIF S2 21(a)"],
-    area: "Finanzas",
-    texto:
-      "La Compañía no proporciona información cuantitativa sobre los efectos financieros previstos de los riesgos y oportunidades relacionados con el clima porque, conforme a los criterios de los párrafos 19 y 20 de la NIIF S2, esos efectos no son identificables por separado de los demás factores que inciden en el riesgo de crédito y en el margen financiero, y la incertidumbre de medición de las estimaciones es tan alta que la información cuantitativa resultante no sería útil. Evaluará su cuantificación en los próximos ejercicios, conforme avance la medición de emisiones financiadas y la sensibilidad de la cartera por sector.",
-  },
+  // Las dos declaraciones del bloque 10 (congruencia, B65(e); criterio de cuantificación, 21(a)) ya no son solicitudes:
+  // van en el Perfil, sección «Efectos financieros» (encargo perfil-declaraciones-alta). Ver PERFIL y SOLICITUDES_RETIRADAS.
   {
     titulo: "Análisis de escenarios climáticos y resiliencia",
     codigos: ["NIIF S2 22(a)(i)", "NIIF S2 22(b)(i)"],
@@ -1563,6 +1554,34 @@ async function objetivos() {
 }
 
 // --- Orquestación ------------------------------------------------------------
+/**
+ * Solicitudes que el demo ya no lleva: las dos declaraciones del bloque 10 pasaron al Perfil, sección «Efectos
+ * financieros» (encargo perfil-declaraciones-alta, decisión 4 de Esteban). Idempotente: si siguen en el reporte, se
+ * borran sus archivos de evidencia del bucket y la solicitud (la base borra en cascada su evidencia, sus extractos y
+ * su mapeo a datapoints). Si ya no están, no hace nada.
+ */
+const SOLICITUDES_RETIRADAS = [
+  "Congruencia de datos y supuestos con los estados financieros",
+  "Criterio de cuantificación de los efectos financieros previstos",
+];
+async function retirarSolicitudes() {
+  for (const titulo of SOLICITUDES_RETIRADAS) {
+    const sol = ok("retirar?", await db.from("solicitudes").select("id").eq("reporte_id", REPORTE).eq("titulo", titulo).maybeSingle());
+    if (!sol) {
+      log(`  ya retirada  ${titulo}`);
+      continue;
+    }
+    const evs = ok("evidencias a retirar", await db.from("evidencias").select("archivo_path").eq("solicitud_id", sol.id));
+    const rutas = evs.map((e) => e.archivo_path).filter(Boolean);
+    if (rutas.length) {
+      const { error } = await db.storage.from(BUCKET).remove(rutas);
+      if (error) throw new Error(`storage remove: ${error.message}`);
+    }
+    ok("retirar solicitud", await db.from("solicitudes").delete().eq("id", sol.id));
+    log(`  retirada     ${titulo} (${rutas.length} archivo(s))`);
+  }
+}
+
 async function main() {
   await cargarUsuarios();
   await cargarCatalogo();
@@ -1580,6 +1599,7 @@ async function main() {
   await registros();
 
   log("\n5. Solicitudes narrativas");
+  await retirarSolicitudes();
   for (const s of NARRATIVAS) {
     const r = await solicitudCompleta({ ...s, confirmarTexto: true });
     log(`  ${r.nueva ? "creada  " : "vigente "} ${s.titulo.slice(0, 62).padEnd(64)} ${s.codigos.join(", ")}`);

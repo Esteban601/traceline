@@ -212,6 +212,8 @@ export const SECCION_DE_CAMPO: Record<string, string> = {
   gobierno_texto: "gobierno",
   organigrama_path: "gobierno",
   proceso_materialidad: "materialidad",
+  criterio_cuantificacion: "efectos",
+  congruencia_estados_financieros: "efectos",
 };
 
 export const ETIQUETA_CAMPO: Record<string, string> = {
@@ -232,6 +234,22 @@ export const ETIQUETA_CAMPO: Record<string, string> = {
   gobierno_texto: "Estructura de gobierno",
   organigrama_path: "Organigrama",
   proceso_materialidad: "Proceso de materialidad",
+  criterio_cuantificacion: "Criterio de cuantificación de los efectos financieros",
+  congruencia_estados_financieros: "Congruencia con los estados financieros",
+};
+
+/** Sección del formulario → su título en la pantalla del Perfil (para el detalle de un faltante). */
+export const NOMBRE_SECCION: Record<string, string> = {
+  identidad: "Identidad",
+  matriz: "Matriz de riesgos",
+  horizontes: "Horizontes temporales",
+  carta: "Carta de la Dirección",
+  historia: "Historia corporativa",
+  trayectoria: "Trayectoria en sostenibilidad",
+  modelo: "Modelo de negocio y cadena de valor",
+  gobierno: "Gobierno corporativo",
+  materialidad: "Proceso de materialidad",
+  efectos: "Efectos financieros",
 };
 
 /** Veredicto de entrega → causa del faltante. Son las del Excel, una a una. */
@@ -398,12 +416,29 @@ export async function evaluarCompletitud(
         });
         if (lleno) {
           cumplidos++;
-          remisiones.push({ codigo, bloque: alterna.remitirA });
+          // Un campo del mismo bloque responde aquí mismo: no hay a dónde remitir (perfil-declaraciones-alta).
+          if (alterna.remitirA !== b.numero) remisiones.push({ codigo, bloque: alterna.remitirA });
           continue;
         }
       }
+      // Campo del mismo bloque, vacío y sin solicitud que lo cubra: el hueco está en el Perfil, no en las solicitudes.
+      // Un solo faltante por requisito, con su etiqueta (el código) para que el generador lo encuentre, y el enlace a la
+      // sección. El adjunto de la sección no lo cubre: la declaración se escribe (decisión de Esteban, Fase 1).
+      const mismoBloqueVacio = alterna && alterna.remitirA === b.numero;
 
       const dpId = idPorCodigo.get(codigo);
+      const sinSolicitudes = !dpId || (solsPorDatapoint.get(dpId) ?? []).length === 0;
+      if (mismoBloqueVacio && sinSolicitudes) {
+        const campo = alterna.campos[0];
+        const seccion = SECCION_DE_CAMPO[campo] ?? "identidad";
+        faltantes.push({
+          causa: "perfil_vacio",
+          etiqueta: codigo,
+          detalle: `${ETIQUETA_CAMPO[campo] ?? campo}: sin capturar en el Perfil del emisor, sección ${NOMBRE_SECCION[seccion] ?? seccion}.`,
+          enlace: enlacePerfil(seccion),
+        });
+        continue;
+      }
       if (!dpId) {
         faltantes.push({
           causa: "codigo_no_en_catalogo",
