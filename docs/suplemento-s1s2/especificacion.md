@@ -1,6 +1,8 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.46** · 28 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.47** · 28 de octubre de 2026.
+
+**Cambios respecto a 0.46** (despliegue v42): §10, registro de v42 cerrado con el resultado del día.
 
 **Cambios respecto a 0.45** (encargo 2026-10-26-formato-afirmaciones-y-voz, Fase 5): §10, el registro de v42 agrega la
 cuarta migración (`20261027120000_perfil_fideicomitente_administrador`) y el reemplazo de la plantilla del Formato
@@ -1653,7 +1655,35 @@ Punto de reversión: `heroku releases:rollback v40 -a traceline-staging`. Revier
 aditivas y se quedan, y la plantilla en Storage no estorba al código de v40. En el ensayo, el código de v40 sobre la base
 migrada dio el Excel idéntico en las cuatro emisoras.
 
-### staging · release v42 · pendiente (después de la lectura externa)
+### staging · release v42 · 28 de octubre de 2026 (29/10 00:50 UTC)
+
+**Resultado (runbook `docs/encargos/2026-10-28-runbook-v42.md`, v3).**
+1. **Privilegios de `service_role`:** staging igual a dev: 37 tablas con los 7 privilegios, 0 distintas. Staging ya
+   tenía SELECT sobre `capturas_valor`, así que el `grant` de la tercera migración no cambió nada ahí.
+2. **Foto «antes»** (00:38 UTC): 22 emisoras × 116 códigos, 920 solicitudes y 1,436 enlaces.
+3. **Migraciones** (Esteban, `migrar-remoto.sh staging` en tres pasadas): las cuatro en un `db push`; 95 de 95 y
+   barrera 108.
+4. **Plantilla:** Esteban respaldó la de v41 (`eb09aa55…146786`, 6,424,008 bytes, en `~/Downloads/v42/`), la reemplazó
+   a mano y la verificó con `subir-plantilla.mjs` en modo lectura: sha256 `217912465e5c…bad46`, 6,423,970 bytes
+   (= local).
+5. **Release:** `git push heroku main` por Claude Code con autorización de Esteban por chat → **v42**, `Deploy
+   cf2dda3b`, `web.1` arriba a las 00:51:01 UTC.
+6. **`comprobar-v42.mjs --destino staging`** en verde (solo lectura, con autorización de Esteban):
+   - `/login` 200;
+   - 22 emisoras en la base y en la foto «antes»;
+   - foto «después»: 22 × 121, con 920 solicitudes y 1,436 enlaces sin cambio. La diferencia es exactamente la esperada
+     (`esperado-cobertura-v42.json`, 110 celdas): los 5 códigos nuevos en las 22 emisoras, sin solicitudes y «sin
+     solicitud». Los totales «sin padres» de las 22 emisoras cuadran con los de antes;
+   - plantilla en Storage `217912465e5c…`;
+   - Formato de Empresa Demo 409, «aún no hay un documento aprobado con sus respuestas», como en v41.
+7. **Logs desde el release:** 21 líneas y 3 peticiones; 0 respuestas 5xx, 0 `Error:`, 0 códigos H; máxima 672 ms.
+
+8. **Documentos aprobados** (consulta de solo lectura con autorización de Esteban, 29/10 después del release): en las 22
+   emisoras hay **0 documentos aprobados** y **0 filas de respuestas**. El único documento es uno de Empresa Demo, sin
+   aprobar. Como la firma por respuesta hace que la primera corrida de un aprobado regenere todas sus respuestas, en
+   staging esa regeneración completa no afecta hoy a ningún documento: ocurrirá con el primer aprobado de cada emisora,
+   igual que en cualquier generación nueva. El despliegue no dispara ninguna.
+
 
 **Deuda S2 del suplemento y corrección del mapeo del Formato electrónico.** Encargo
 `docs/encargos/2026-10-24-deuda-s2-formato.md`. Registro abierto el 25 de octubre de 2026 al preparar la Fase 4; el
@@ -1743,9 +1773,7 @@ el del bloque 10 nuevo en lugar del primero (0.3387).
   Es el parche de una carrera de Next 15.5.20 que solo se reprodujo en local. El encargo siguiente
   `actualizar-next-y-restaurar-loading` decide si vuelven.
 
-**Orden previsto:** merge de `dev/ajustes-sep26` → `main` (hecho el 25/10, ver el encargo); v42 en `traceline-dev`
-y demo v4; lectura externa; foto «antes» en staging; migraciones (Esteban); `git push heroku main`; foto «después»;
-verificación y registro aquí. Antes de las migraciones, la comparación de privilegios de `service_role`.
+**Orden seguido:** el del runbook v3; ver «Resultado» al inicio de esta sección.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
