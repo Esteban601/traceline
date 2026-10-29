@@ -211,13 +211,32 @@ export const CONCEPTOS_29E: { fila: number; bloque: 34 | 35 | 36; de: string; ti
   de: t.de,
   tipo: B65C_TIPO_RE[i],
 }));
+/** Lo que no es despliegue de capital: importes registrados como gasto, o la aclaración de que algo no se incluye. */
+const GASTO_NO_CAPITAL_RE = /registrad[oa]s? como gasto|se registr[oó] como gasto|gastos? de (operaci[oó]n|administraci[oó]n)|primas?|no se incluy|no incluye/i;
+/** Dos oraciones que comparten ≥ 70 % de sus palabras (de más de 3 letras): la misma oración parafraseada. */
+export function seParecen(a: string, b: string): boolean {
+  const palabras = (t: string) => new Set(t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+  const [x, y] = [palabras(a), palabras(b)];
+  const comunes = [...x].filter((w) => y.has(w)).length;
+  return Math.min(x.size, y.size) >= 4 && comunes / Math.min(x.size, y.size) >= 0.7;
+}
 /** Cifras de un texto, sin separadores de miles («12.3», «2000»), para comprobar que salen de los hechos. */
 const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((x) => x.replace(/,/g, "")));
 
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number }[] = [
+/**
+ * `porEfecto` (16(a) por efecto, encargo formato-respuesta-por-inciso, Fase 2): la celda responde un solo efecto del
+ * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
+ * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
+ */
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean }[] = [
   { fila: 97, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre el rendimiento financiero (resultados, margen, ingresos y gastos)" },
   { fila: 99, codigo: "NIIF S2 16(d)", enfoque: "los efectos previstos sobre los flujos de efectivo (entradas y salidas de efectivo, como ahorros, gastos o desembolsos)" },
   // Encargo 2026-10-24-deuda-s2-formato, decisiones (b) y (c): síntesis que no repiten la fila que da el detalle.
+  // Encargo formato-respuesta-por-inciso, Fase 2: 16(a) por efecto (K85 situación, K87 rendimiento, K89 flujos), con
+  // los hechos del párrafo repartidos; ninguna repite una oración de otra del párrafo (ni de la síntesis K84).
+  { fila: 85, codigo: "NIIF S2 16(a)", porEfecto: true, enfoque: "los efectos sobre la situación financiera (activos, pasivos y patrimonio) durante el periodo: qué importes se capitalizaron o reconocieron en el balance y en qué partida. Sin los importes registrados como gasto, que van en la fila 87, y sin la declaración general de que no hubo ajustes, que va en la fila 84" },
+  { fila: 87, codigo: "NIIF S2 16(a)", porEfecto: true, enfoque: "los efectos sobre el rendimiento financiero (ingresos, gastos y resultados) durante el periodo: qué importes se registraron como gasto o ingreso y en qué rubro. Sin los importes capitalizados, que van en la fila 85, y sin la declaración general de que no hubo ajustes, que va en la fila 84" },
+  { fila: 89, codigo: "NIIF S2 16(a)", porEfecto: true, enfoque: "los efectos sobre los flujos de efectivo durante el periodo: las salidas de efectivo del periodo por el gasto de capital, la inversión y las primas de seguros, con sus importes, sin repetir en qué partida se reconocieron (eso va en las filas 85 y 87) y sin la declaración general de que no hubo ajustes, que va en la fila 84" },
   { fila: 84, codigo: "NIIF S2 16(a)", noRepite: "NIIF S2 16(a)", enfoque: "una síntesis de los efectos financieros actuales: si hubo efectos que reconocer y dónde, sin el detalle de importes por partida, que va en la fila 85" },
   { fila: 64, codigo: "NIIF S2 14 (a)(i)a(v)", noRepite: "NIIF S2 14 (a)(i)a(v)", enfoque: "una síntesis de cómo la estrategia y la toma de decisiones responden a los riesgos y oportunidades relacionados con el clima, sin el detalle de cambios, esfuerzos y planes, que va en la fila 65" },
   ...CONCEPTOS_B65C,
@@ -317,6 +336,8 @@ export function erroresDeForma(texto: string, codigo: string): string[] {
   const errores: string[] = [];
   const esBooleano = BOOLEANOS_FORMATO.some((b) => `fila:${b.fila}` === codigo);
   if (!esBooleano && /^(Sí|No)\.\s/.test(texto.trim())) errores.push("abre con «Sí.» o «No.»: esta respuesta no es una pregunta de sí o no; empieza por lo que afirma");
+  // Voz de la emisora: no habla del material con que se redacta (encargo formato-respuesta-por-inciso, Fase 2, K89).
+  if (/(?<!\p{L})los hechos (no |describen|dan |disponibles|del requisito)/iu.test(texto)) errores.push("habla de «los hechos»: la respuesta es la voz de la emisora; di lo que la Compañía revela");
   const b65 = CONCEPTOS_B65C.findIndex((c) => `fila:${c.fila}` === codigo);
   if (b65 >= 0) {
     const tipo = B65C_TIPO_RE[Math.floor(b65 / 5)];
@@ -683,14 +704,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         .filter((x) => !vistos.has(x.enunciado) && vistos.add(x.enunciado))
         .map((x) => x.id);
     })();
-    const propios = c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
+    const propios = c.porEfecto ? (cob?.hechos ?? []).filter((id) => hechos.get(id)?.tipo !== "declaracion_negativa") : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
       const x = hechos.get(id);
       return !x || !PLAN_DISPOSICION_RE.test(x.enunciado) || disposicionAqui(x);
     });
     if (!cob || !["cubierto", "parcial"].includes(cob.estado) || !(propios.length + prestados.length)) continue;
     const clave = `fila:${c.fila}`;
     const otras = [
-      ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((x) => x.codigo === c.codigo && x.fila !== c.fila && !x.noRepite).map((x) => `la fila ${x.fila}`),
+      ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((x) => x.codigo === c.codigo && x.fila !== c.fila && (!x.noRepite || !c.noRepite)).map((x) => `la fila ${x.fila}`),
       ...(c.noRepite ? [`la respuesta de ${c.noRepite}`] : []),
     ];
     descripcion.set(clave, c.prestadosDe != null
@@ -715,7 +736,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       if (!libro || !hs.length) continue;
       const clave = `fila:${c.fila}`;
       const otras = CONCEPTOS_29E.filter((x) => x.fila !== c.fila).map((x) => x.tipo.nombre).join(" ni a las ");
-      descripcion.set(clave, `Concepto del Formato electrónico (fila ${c.fila}) de NIIF S2 29 (e): responde SOLO el gasto de capital, la financiación o la inversión que la Compañía aplicó en el ejercicio a ${c.de}, con sus importes, en una o dos oraciones, y nombra «${c.tipo.nombre}». No incluyas saldos de cartera de crédito ni deuda emitida, ni lo aplicado a las ${otras}. Sin cifras que no estén en los hechos. Es una respuesta aparte de la de NIIF S2 29 (e): en el JSON va con «codigo» exactamente «${clave}» y destino «formato».`);
+      descripcion.set(clave, `Concepto del Formato electrónico (fila ${c.fila}) de NIIF S2 29 (e): responde SOLO el gasto de capital, la financiación o la inversión que la Compañía aplicó en el ejercicio a ${c.de} y que se capitalizó o invirtió, con sus importes, en una oración, y nombra «${c.tipo.nombre}». No incluyas importes registrados como gasto (gasto de operación, primas, mediciones), saldos de cartera de crédito ni deuda emitida, ni lo aplicado a las ${otras}, ni digas lo que no se incluye. Sin cifras que no estén en los hechos. Es una respuesta aparte de la de NIIF S2 29 (e): en el JSON va con «codigo» exactamente «${clave}» y destino «formato».`);
       planes.push({ codigo: clave, via: "bloque", bloque: cob!.bloque, hechos: hs });
     }
   }
@@ -908,9 +929,14 @@ async function responderBloque(
       const yo = CONCEPTOS_FORMATO_CON_ENFOQUE.find((c) => `fila:${c.fila}` === p.codigo);
       const norm = (o: string) => o.toLowerCase().replace(/\s+/g, " ").trim();
       const repetidasDe = (previa: string | null) => (previa ? oracionesDe(g.texto).filter((o) => oracionesDe(previa).some((q) => norm(q) === norm(o))) : []);
-      for (const otro of CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => yo && !yo.noRepite && !c.noRepite && c.codigo === yo.codigo && c.fila < yo.fila)) {
+      // También contra la síntesis del mismo código (84 para 16(a)): ninguna celda del párrafo repite una oración de otra.
+      for (const otro of CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => yo && !yo.noRepite && c.codigo === yo.codigo && c.fila !== yo.fila && (c.fila < yo.fila || c.noRepite))) {
         const repetidas = repetidasDe(finales.get(`formato|fila:${otro.fila}`)?.texto ?? reutilizadas.get(`formato|fila:${otro.fila}`)?.texto ?? null);
         if (repetidas.length) errores.push(`repite oraciones de la respuesta de la fila ${otro.fila} (${repetidas.length}); esta fila responde otro efecto y no puede copiarla`);
+        // Por efecto (16(a)): tampoco parafraseada (K85 repetía casi igual la declaración general de K84).
+        const previa = finales.get(`formato|fila:${otro.fila}`)?.texto ?? reutilizadas.get(`formato|fila:${otro.fila}`)?.texto ?? null;
+        const parafraseadas = yo?.porEfecto && previa ? oracionesDe(g.texto).filter((o) => oracionesDe(previa).some((q) => seParecen(o, q))) : [];
+        if (parafraseadas.length) errores.push(`repite casi igual una oración de la fila ${otro.fila}; esta fila responde solo su efecto, con oraciones propias`);
       }
       // Código padre: ninguna oración de las respuestas de sus incisos (de esta corrida, reutilizadas o previas).
       for (const hijo of Object.keys(PADRE_DE).filter((h) => PADRE_DE[h] === p.codigo)) {
@@ -957,6 +983,9 @@ async function responderBloque(
         const propiasCifras = cifrasDe(p.hechos.map((h) => h.enunciado).join(" "));
         const ajenas = [...cifrasDe(g.texto)].filter((x) => !propiasCifras.has(x));
         if (ajenas.length) errores.push(`trae cifras que no están en sus hechos (${ajenas.join(", ")}); esta celda da solo el despliegue de capital de ${de29e.tipo.nombre}`);
+        // Ajuste de Esteban (Fase 1): capitalizado sí, gasto no, con el criterio de K85; y solo lo de su tipo, sin aclarar
+        // lo que no se incluye.
+        if (GASTO_NO_CAPITAL_RE.test(g.texto)) errores.push("menciona importes registrados como gasto o lo que no se incluye; esta celda da solo lo capitalizado o invertido de su tipo");
       }
       // Booleanos (D1): «Sí.»/«No.», el hecho que contesta, y ni el resto ni la celda vecina (la respuesta del código) en contra.
       const bool = BOOLEANOS_FORMATO.find((b) => `fila:${b.fila}` === p.codigo);
@@ -1012,7 +1041,7 @@ async function responderBloque(
     let f = finales.get(clave(p));
     // B65(c) por celda y 29(e) por tipo: sin respuesta validada, la celda queda pendiente (vacía en el Formato); las
     // oraciones del bloque no responden el efecto ni el tipo de la celda.
-    if (!f && [...CONCEPTOS_B65C, ...CONCEPTOS_29E].some((c) => `fila:${c.fila}` === p.codigo)) {
+    if (!f && [...CONCEPTOS_B65C, ...CONCEPTOS_29E, ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => c.porEfecto)].some((c) => `fila:${c.fila}` === p.codigo)) {
       filas.push({ ...{ destino: p.destino, clave: p.codigo, tipo_campo: "text block" as const, valor: null, bloque: v.numero, bloque_version: v.version, hechos: [], modelo: null, prompt_version: promptDe(p), uso: USO_CERO, costo_usd: 0 }, estado: "pendiente", origen: "bloque", texto: null, notas: [`Sin respuesta: el modelo no pasó los validadores: ${(motivos.get(clave(p)) ?? ["sin llave del modelo"]).join("; ")}`] });
       continue;
     }

@@ -18,6 +18,7 @@ import {
 } from "@/lib/reporte/ensamblar";
 import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
+import { CONTINUACIONES } from "@/lib/excel/continuaciones";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
@@ -109,7 +110,8 @@ const EN_PREPARACION = "En preparación";
 
 function escribirRespuestas(
   ws: ExcelJS.Worksheet,
-  respuestas: Map<string, string> | null
+  respuestas: Map<string, string> | null,
+  delFormato: Map<string, string> = new Map()
 ): { escritas: number; enPreparacion: number; hijos: number } {
   const norm = (v: unknown): string => {
     if (v === null || v === undefined) return "";
@@ -125,21 +127,37 @@ function escribirRespuestas(
   ws.getColumn(5).width = 90;
   ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false };
 
-  const vistos = new Set<string>();
+  const vistos = new Map<string, { veces: number; texto: string | null }>();
   let escritas = 0;
   let enPreparacion = 0;
   let hijos = 0;
   ws.eachRow((fila, nf) => {
     if (nf === 1) return;
     const codigo = norm(ws.getCell(`B${nf}`).value);
-    if (!codigo || vistos.has(codigo)) return;
-    vistos.add(codigo);
+    if (!codigo) return;
+    const visto = vistos.get(codigo);
+    if (visto) {
+      // Continuación: solo las de CONTINUACIONES, y solo con respuestas del documento aprobado. Cuenta solo filas con
+      // requisito (columna D): la plantilla trae filas intermedias vacías que la depuración borra si quedan vacías.
+      if (!norm(ws.getCell(`D${nf}`).value)) return;
+      visto.veces++;
+      const de = CONTINUACIONES[codigo]?.[visto.veces - 1];
+      const t = !respuestas || !de ? null : de === "madre" ? visto.texto : delFormato.get(de) ?? null;
+      if (t) {
+        const celda = ws.getCell(`E${nf}`);
+        celda.value = pendienteEnTextoPlano(t);
+        celda.alignment = { vertical: "top", wrapText: true };
+        escritas++;
+      }
+      return;
+    }
     const esHijo = Object.hasOwn(PADRE_DE, codigo);
     const celda = ws.getCell(`E${nf}`);
     // Ninguna celda exportada lleva el marcador «[Pendiente: …]» (CLAUDE.md §5,
     // 1.10): en este libro va en texto plano.
     const r = respuestas?.get(codigo);
     const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
+    vistos.set(codigo, { veces: 1, texto: texto === EN_PREPARACION ? null : texto });
     celda.value = texto ?? EN_PREPARACION;
     if (texto === null || texto === EN_PREPARACION) enPreparacion++;
     else escritas++;
@@ -787,7 +805,16 @@ export async function GET(request: Request) {
       .eq("reporte_id", reporteId)
       .eq("destino", "taxonomia");
     const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
-    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas);
+    // Las respuestas propias del Formato que llenan filas de continuación (CONTINUACIONES), con estado «respuesta».
+    const clavesFormato = [...new Set(Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((x) => x !== "madre"))];
+    const { data: filasFormato } = await supabase
+      .from("respuestas_datapoint")
+      .select("clave, texto, estado")
+      .eq("reporte_id", reporteId)
+      .eq("destino", "formato")
+      .in("clave", clavesFormato);
+    const delFormato = new Map((filasFormato ?? []).filter((r) => r.estado === "respuesta" && r.texto).map((r) => [r.clave, r.texto!]));
+    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas, delFormato);
     if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
   }
 

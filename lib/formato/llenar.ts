@@ -152,6 +152,12 @@ const RAZON_DEL_NO: Record<number, string> = { 257: "NIIF S2 36 (e)(i)" };
 const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
 const FILAS_29E = new Set([350, 373, 396]);
+/**
+ * Filas de instrucción de la pregunta de arriba («Revelar información cuantitativa y cualitativa…», NIIF S2 16(a)): la
+ * respuesta va en la fila de la pregunta (85, 87, 89), que ya da importes y explicación. Vacías por regla
+ * (encargo formato-respuesta-por-inciso, Fase 2); antes repetían el párrafo completo.
+ */
+const FILAS_INSTRUCCION: Record<number, number> = { 86: 85, 88: 87, 90: 89 };
 /** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
 const FECHAS_22B_III: Record<number, "inicio" | "fin"> = { 117: "inicio", 119: "fin" };
 const FILAS_SECTOR = new Set([446, 447]);
@@ -287,6 +293,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (tipo === "tabla") return tabla(c);
     if (/^enumeración/.test(tipo)) return enumeracion(c);
 
+    if (FILAS_INSTRUCCION[c.fila]) return { texto: null, origen: "regla", nota: `instrucción de la pregunta de la fila ${FILAS_INSTRUCCION[c.fila]}, que la responde` };
     // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
     if (FILAS_29E.has(c.fila)) {
       const r = resp("formato", `fila:${c.fila}`);
