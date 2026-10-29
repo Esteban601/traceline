@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.47** · 28 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.48** · 29 de octubre de 2026.
+
+**Cambios respecto a 0.47** (encargo 2026-10-28-formato-respuesta-por-inciso, cierre): §10, registro de v43
+(pendiente), con las dos migraciones del encargo y sin plantilla.
 
 **Cambios respecto a 0.46** (despliegue v42): §10, registro de v42 cerrado con el resultado del día.
 
@@ -1774,6 +1777,28 @@ el del bloque 10 nuevo en lugar del primero (0.3387).
   `actualizar-next-y-restaurar-loading` decide si vuelven.
 
 **Orden seguido:** el del runbook v3; ver «Resultado» al inicio de esta sección.
+
+### staging · release v43 · pendiente
+
+**Respuesta por inciso del Formato electrónico y del Excel de taxonomía.** Encargo
+`docs/encargos/2026-10-28-formato-respuesta-por-inciso.md`, cerrado el 29 de octubre de 2026 con la revisión externa
+v5.2 (ponderado 4.0). En `main` desde el PR #44 (`0b44c49`). Runbook: `docs/encargos/2026-10-29-runbook-v43.md`.
+
+**Qué entra:** respuesta propia por inciso en el Formato y en el Excel (ramas de booleanos por regla, NIIF S2 16 por
+efecto con tablas por plazo según 10(d), 29(e) por tipo, 29(a)(iii) por inciso, 36(e) en un solo estado); un bloque
+«Objetivo N» por objetivo en NIIF S1 51 y S2 33–36, con la meta junto al nombre y 33(g) solo con valores de la lista de
+la plantilla; filas de continuación del Excel, incluidas las de NIIF S1 bajo E5; campo «propósito del objetivo» en la
+captura de objetivos; pregunta del cuestionario de GEI sobre cambios en el enfoque de medición (NIIF S2 29(a)(iii)).
+
+**Migraciones** (las ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`, en un `db push`):
+`20261029120000_objetivo_proposito` (columna nullable `objetivos.proposito_objetivo`) y `20261029130000_cuestionario_gei`
+(CHECK de `cuestionarios_respuestas.hoja` sustituido por uno más amplio). Las dos aditivas, con la barrera del auditor;
+barrera 108 y 97 migraciones después. v42 funciona con las dos aplicadas, así que van antes del push.
+
+**Sin plantilla:** la del Formato en Storage sigue siendo `217912465e5c…bad46`. **Sin cambio de catálogo:** la foto de
+Cobertura después del release tiene que ser igual a la de antes.
+
+**Resultado:** pendiente.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
