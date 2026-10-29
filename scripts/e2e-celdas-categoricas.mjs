@@ -84,6 +84,18 @@ console.log("\nFormato electrónico · ramas de los booleanos (regla general)");
   ok(/remuneración variable/.test(K(39)) && !/aprobó los objetivos/.test(K(39)), "K39 «¿Por qué?» (K38 «No»): la razón, sin el texto de los objetivos");
 }
 
+console.log("\nFormato electrónico · Gobernanza, NIIF S2 6 (Fase 3)");
+{
+  const oraciones = (t) => t.replace(ORACION_E5, "").split(/(?<=\.)\s+/).map((o) => o.trim()).filter((o) => o.length > 20);
+  ok(/exención del párrafo E5/.test(K(25)) && !!K(25).replace(ORACION_E5, "").trim() && !K(26), "K25 con la respuesta de 6(a); K26 (detalle sin tipo de la misma fila) vacía");
+  ok(!/remuneraci/i.test(K(36)) && /objetivos/.test(K(36)), "K36: la supervisión de los objetivos, sin la remuneración (va en K38/K39)");
+  const celdas = [25, 28, 30, 32, 34, 36, 39, 43, 47, 52];
+  const choques = [];
+  for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
+  ok(!choques.length, `ninguna celda de Gobernanza (K25–K52) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
+  todas([63, 125, 129], (t) => !t, "K63, K125 y K129 (filas de ejemplo sin tipo): vacías");
+}
+
 console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
 {
   const [tr, fi, op] = [K(629), K(652), K(675)];
@@ -203,6 +215,16 @@ ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c)
   ok(!!s97 && s98 === K(87) && s99 === K(89), "Excel 98 y 99 (16(a) rendimiento y flujos): las respuestas propias de K87 y K89");
   const d = porCodigo.get("NIIF S2 16(d)") ?? [];
   ok(d.length === 2 && d[1] === K(98) && d[1] !== d[0], "Excel 104 (16(d) flujos previstos): la respuesta de K98, distinta de la 103, sin fila intermedia");
+  ok(s97 === K(85) && d[0] === K(96), "Excel 97 y 103: solo su parte (K85 y K96), sin repetir lo que dan las filas siguientes");
+}
+// Fase 3: NIIF S1 bajo E5 y booleanos de NIIF S2 con sus ramas, como el Formato.
+{
+  const C_ = (c) => porCodigo.get(c) ?? [];
+  const e5 = ["NIIF S1 27(a)", "NIIF S1 27(a)(v)", "NIIF S1 27(b)(i)", "NIIF S1 44 (a)(vi)"];
+  ok(e5.every((c) => C_(c).length > 1 && C_(c).every((t) => t === C_(c)[0] && /se revela conforme a NIIF S2/.test(t))), "NIIF S1 27(a), 27(a)(v), 27(b)(i) y 44(a)(vi) bajo E5: todas sus filas con la remisión de la fila madre");
+  const como = { "NIIF S2 6 (a)(v)": [K(36), K(38), K(39), K(41)], "NIIF S2 6(b)(i)": [K(44), K(45), K(47)], "NIIF S2 6(b)(ii)": [K(49), K(50), K(52)], "NIIF S2 25 (a)(vi)": [K(134), K(135), K(137)], "NIIF S2 29 (f) (i) y (ii)": [K(696), K(697), K(699)], "NIIF S2 29 (g) (i) y (ii)": [K(704), K(705), K(707)], "NIIF S2 36 (e)(i)a(iv)": [C("NIIF S2 36 (e)(i)a(iv)"), K(535), K(536), ""] };
+  const malos = Object.entries(como).filter(([c, esperado]) => esperado.some((t, i) => (C_(c)[i] ?? "") !== t)).map(([c]) => c);
+  ok(!malos.length, `booleanos de NIIF S2 y sus ramas en el Excel, iguales al Formato (rama cerrada, vacía)${malos.length ? ` — no: ${malos.join(", ")}` : ""}`);
 }
 
 console.log("\nExcel de taxonomía · hojas de datos");
