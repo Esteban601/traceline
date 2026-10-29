@@ -26,6 +26,7 @@ import {
   guardarHorizontes,
   guardarIdentidad,
   guardarMaterialidad,
+  guardarEfectosFinancieros,
   guardarMatriz,
   guardarModeloNegocio,
   guardarTrayectoria,
@@ -88,6 +89,8 @@ export type PerfilData = {
   carta_firmante: string | null;
   carta_cargo: string | null;
   proceso_materialidad: string | null;
+  criterio_cuantificacion: string | null;
+  congruencia_estados_financieros: string | null;
   modelo_negocio: string | null;
   gobierno_texto: string | null;
   /** Glosario en texto, una línea por nombre: «Canónico = variante; variante». */
@@ -291,6 +294,7 @@ export function PerfilView({
   const [sGob, aGob] = useActionState(guardarGobierno, VACIO);
   const [sOrg, aOrg] = useActionState(subirOrganigrama, VACIO);
   const [sMat, aMat] = useActionState(guardarMaterialidad, VACIO);
+  const [sEfectos, aEfectos] = useActionState(guardarEfectosFinancieros, VACIO);
 
   // Qué secciones se acaban de guardar, con quién lo hizo. Se pinta en la
   // cabecera hasta que se recargue la página.
@@ -315,6 +319,7 @@ export function PerfilView({
   useResultado(sGob, marcarOk);
   useResultado(sOrg, marcarOk);
   useResultado(sMat, marcarOk);
+  useResultado(sEfectos, marcarOk);
 
   const hz: Horizonte[] =
     p?.horizontes?.length === 3
@@ -1105,6 +1110,50 @@ export function PerfilView({
             </p>
             {guardar()}
             <Aviso state={sMat} seccion="materialidad" />
+          </form>
+        </CamposManuales>
+      </Seccion>
+
+      {/* 10 · EFECTOS FINANCIEROS (encargo perfil-declaraciones-alta) ---------- */}
+      {/* Las dos declaraciones del bloque 10: NIIF S2 21(a) y B65(e). Sin ellas el bloque sale con su marcador. */}
+      <Seccion
+        titulo="Efectos financieros"
+        ayuda="Dos declaraciones de la emisora sobre los efectos financieros y los estados financieros."
+        completa={(!!p?.criterio_cuantificacion && !!p?.congruencia_estados_financieros) || hayDocs("efectos")}
+        abierta={abierta === "efectos"}
+        onToggle={() => alternar("efectos")}
+        reciente={recientes["efectos"] ?? null}
+      >
+        <Adjuntos tenantId={tenantId} seccion="efectos" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aEfectos}>
+            {oculto}
+            <div>
+              <label className={LABEL} htmlFor={`${uid}-cq`}>
+                Criterio de cuantificación de los efectos financieros
+              </label>
+              <textarea
+                id={`${uid}-cq`}
+                name="criterio_cuantificacion"
+                rows={6}
+                defaultValue={p?.criterio_cuantificacion ?? ""}
+                className={cn(AREA, "mt-2")}
+              />
+            </div>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor={`${uid}-ce`}>
+                Congruencia con los estados financieros
+              </label>
+              <textarea
+                id={`${uid}-ce`}
+                name="congruencia_estados_financieros"
+                rows={6}
+                defaultValue={p?.congruencia_estados_financieros ?? ""}
+                className={cn(AREA, "mt-2")}
+              />
+            </div>
+            {guardar()}
+            <Aviso state={sEfectos} seccion="efectos" />
           </form>
         </CamposManuales>
       </Seccion>

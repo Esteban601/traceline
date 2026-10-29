@@ -140,7 +140,15 @@ Perfil y el bloque 10 tendría dos hechos iguales con rangos distintos (§5, pre
 
 ---
 
-## 5. Decisiones de Esteban (pendientes del Paso 0)
+## 5. Decisiones de Esteban (29/10/2026, Paso 0)
+
+1. Fases y estimación de §0.5: **aprobadas**.
+2. **Hecho tomado tal cual**, con clave fija y dueño el bloque 10.
+3. **Sección «Efectos financieros» con adjuntos**, ampliando el CHECK de `perfil_emisor_adjuntos.seccion`.
+4. **Se retiran de dev** las dos solicitudes viejas del demo (Fase 2).
+5. Un requisito cubierto por un campo **del mismo bloque** cuenta como cumplido **sin remitir** a otro bloque.
+
+### 5.1 Preguntas del Paso 0 (ya respondidas arriba)
 
 1. **Fases y estimación de §0.5:** ¿las apruebas?
 2. **Hecho directo con clave fija (§0.3 c)**, en lugar de un tramo que el modelo atomiza: es mi propuesta.
@@ -159,3 +167,4 @@ Perfil y el bloque 10 tendría dos hechos iguales con rangos distintos (§5, pre
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 29/10/2026 | **Paso 0** (lectura). El Perfil no pide ninguna de las dos declaraciones. En el demo llegan como solicitudes con extracto confirmado, creadas por `poblar-demo`. En staging, 21(a) y B65(e) están «sin solicitud» en las 22 emisoras. Propuesta: dos columnas en `perfil_emisor`, la sección «Efectos financieros», hechos directos con clave fija y bloque dueño 10, y el marcador de §5 cuando falten, sin bloqueo. ~1.5 jornadas, ~0.05 USD | **Parada:** decisiones de §5 |
+| 29/10/2026 | **Decisiones del Paso 0** (§5) y **Fase 1**, parada con el SQL y las ayudas | **Migración** `supabase/migrations/20261029140000_perfil_efectos_financieros.sql`, aditiva: `perfil_emisor.criterio_cuantificacion` y `perfil_emisor.congruencia_estados_financieros` (text, nullable), el CHECK de `perfil_emisor_adjuntos.seccion` sustituido por uno más amplio con `efectos`, y la barrera. **Sin aplicar en ningún ambiente.** Tipos de las dos columnas escritos a mano en `lib/database.types.ts`, iguales a los que genera la CLI; se regeneran al aplicarla. **Pantalla:** sección «Efectos financieros» después de Materialidad, con adjuntos (`efectos`), las dos áreas de texto, su acción `guardarEfectosFinancieros` (patrón de Materialidad, con bitácora) y «completa» cuando las dos tienen texto o hay un documento. Las ayudas de los dos campos, sin cargar. `tsc` limpio y eslint sin errores. La completitud, el libro de hechos y el demo van en la Fase 2 | **Parada:** aprobación del SQL y de las ayudas |
