@@ -154,8 +154,11 @@ export const RAMAS_BOOLEANO: Record<number, { booleano: number; rama: "No" | "S�
   418: { booleano: 417, rama: "No" }, 420: { booleano: 417, rama: "Sí" },
   426: { booleano: 425, rama: "No" }, 428: { booleano: 425, rama: "Sí" },
 };
-/** La razón del «No» cuando el booleano no tiene respuesta propia: el inciso que la da (36(e)(i): cómo se cumplirá sin créditos). */
-const RAZON_DEL_NO: Record<number, string> = { 257: "NIIF S2 36 (e)(i)" };
+/**
+ * La razón del «No» de 36(e) (fila 257, K576): la respuesta propia (`fila:257`, con el modelo, distinta de la de 36(e)(i));
+ * sin ella, la regla (opción 1 de Esteban). Antes copiaba la respuesta de 36(e)(i).
+ */
+const RAZON_36E_REGLA = textoNoAplicaHeredado("NIIF S2 36 (e)").replace(/^No aplica\.\s*/, "");
 /** El «No» de un booleano que se deduce de sus incisos: no hay uso previsto de créditos si (ii)–(iv) no aplican. */
 const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
@@ -195,7 +198,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (rama === "Sí") continue;
     const propia = resp("formato", `fila:${booleano}`);
     const c = conceptos.find((x) => x.fila === booleano);
-    const desde = RAZON_DEL_NO[fila] ?? c?.datapoint ?? null;
+    if (fila === 257) {
+      const r = resp("formato", "fila:257");
+      out.set(fila, { texto: r?.estado === "respuesta" && r.texto ? r.texto : RAZON_36E_REGLA, origen: r?.estado === "respuesta" ? "respuesta" : "regla", nota: "razón del «No» de créditos de carbono" });
+      continue;
+    }
+    const desde = c?.datapoint ?? null;
     const t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
     out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "pendiente" });
   }
