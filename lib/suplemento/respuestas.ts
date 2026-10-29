@@ -257,8 +257,9 @@ export const PAR_S2_DE_S1: Map<string, string> = (() => {
   }
   // Pares que el mapeo no da (sus filas del Formato son tabla o fila combinada sin alivio E5): S1 30(a)y(b) se
   // responde con la tabla de S2 10(a)–(c), S1 40(a) con S2 21(a) y las métricas de S1 46–50 con las de S2 29
-  // (decisión de Esteban y revisión externa v5, Fase 5).
-  for (const [s1, s2] of [["NIIF S1 30(a)y(b)", "NIIF S2 10(a), (b)y(c)"], ["NIIF S1 40(a)", "NIIF S2 21(a)"], ["NIIF S1 46 a 50", "NIIF S2 29"]]) {
+  // (decisión de Esteban y revisión externa v5, Fase 5). S1 33(c) remite a S2 6(a)(iv), las compensaciones que
+  // considera el órgano de gobernanza (revisión externa v5.1).
+  for (const [s1, s2] of [["NIIF S1 30(a)y(b)", "NIIF S2 10(a), (b)y(c)"], ["NIIF S1 40(a)", "NIIF S2 21(a)"], ["NIIF S1 46 a 50", "NIIF S2 29"], ["NIIF S1 33(c)", "NIIF S2 6 (a)(iv)"]]) {
     if (!m.has(sinCodigoNorma(s1))) m.set(sinCodigoNorma(s1), s2);
   }
   return m;

@@ -1,6 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.45** · 26 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.46** · 28 de octubre de 2026.
+
+**Cambios respecto a 0.45** (encargo 2026-10-26-formato-afirmaciones-y-voz, Fase 5): §10, el registro de v42 agrega la
+cuarta migración (`20261027120000_perfil_fideicomitente_administrador`) y el reemplazo de la plantilla del Formato
+electrónico en Storage de staging.
 
 **Cambios respecto a 0.44** (encargo 2026-10-26-carga-lectura-primero): §10, el registro de v42 agrega la carga en dos
 momentos, la corrección de la lectura de escaneados y la regla de total frente a parciales (`sug-num-3`), la tercera
@@ -1660,11 +1664,22 @@ release a staging se anota aquí cuando ocurra, después de la lectura externa d
 síntesis; «No revelado · alivio C4» en las filas 433 y 437; voz en tercera persona obligatoria en las respuestas.
 
 **Migraciones** (las ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`, en orden):
-`20261024120000_catalogo_s2_21a`, `20261024130000_catalogo_padres_fase3` y
-`20261026120000_decidir_sugerencia_sin_doble_captura`. Las dos primeras son solo filas del catálogo, idempotentes, con la
-barrera del auditor. La tercera reemplaza el cuerpo de `fn_decidir_sugerencia` con la misma firma (aditiva, OK de
-Esteban del 26/10): responde 409 «Esta evidencia ya tiene una cifra confirmada.» si la evidencia ya tiene cifra, y agrega
-`grant select on capturas_valor to service_role`.
+`20261024120000_catalogo_s2_21a`, `20261024130000_catalogo_padres_fase3`,
+`20261026120000_decidir_sugerencia_sin_doble_captura` y `20261027120000_perfil_fideicomitente_administrador`. Las dos
+primeras son solo filas del catálogo, idempotentes, con la barrera del auditor. La tercera reemplaza el cuerpo de
+`fn_decidir_sugerencia` con la misma firma (aditiva, OK de Esteban del 26/10): responde 409 «Esta evidencia ya tiene una
+cifra confirmada.» si la evidencia ya tiene cifra, y agrega `grant select on capturas_valor to service_role`. La cuarta
+(encargo `2026-10-26-formato-afirmaciones-y-voz`, Fase 5) agrega a `perfil_emisor` dos columnas nullable,
+`fideicomitente` y `administrador_patrimonio`, para las filas 17 y 19 del Formato electrónico, y llama a la barrera del
+auditor; aplicada en dev el 27/10.
+
+**Plantilla del Formato electrónico en Storage de staging: reemplazar el día del despliegue.** Staging tiene la de v41
+(sha256 `eb09aa55…146786`); v42 lleva la limpia de la Fase 5 del encargo `2026-10-26-formato-afirmaciones-y-voz`
+(sha256 `217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46`, 6,423,970 bytes, sin la nota «pendiente de
+catálogo SASB» en A2 de «Métricas SASB»), en Storage de dev desde el 28/10. El registro por ambiente está en
+`scripts/formato/subir-plantilla.mjs` (`SHA_ESPERADO`): ese día, staging pasa al sha256 nuevo. El script sube sin
+reemplazar, así que el reemplazo en staging necesita un paso propio, que se escribe antes del despliegue. Sin el
+reemplazo, el Formato de staging sigue saliendo con esa nota.
 
 **Antes de migrar, privilegios de `service_role`:** se corre `scripts/despliegue/privilegios-service-role.sql` (solo
 lectura) contra staging y se compara con dev, donde las 37 tablas de `public` tienen los 7 privilegios (consulta del
