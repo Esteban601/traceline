@@ -11,7 +11,8 @@
 export const CONTINUACIONES: Record<string, Record<number, string>> = {
   // Fase 2 · NIIF S2 16 y NIIF S1 35.
   "NIIF S2 16(a)": { 0: "fila:85", 1: "fila:87", 2: "fila:89" },
-  "NIIF S2 16(d)": { 0: "fila:96", 1: "fila:98" },
+  // 104 (flujos previstos a corto, medio y largo plazo): la tabla por plazo del Formato (K99); K98 no tiene hechos sin fecha.
+  "NIIF S2 16(d)": { 0: "fila:96", 1: "K:99" },
   "NIIF S1 35(a)": { 1: "madre", 2: "madre" },
   "NIIF S1 35(d)": { 1: "madre" },
   // Fase 3 · NIIF S1 bajo E5: la remisión de la fila madre.

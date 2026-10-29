@@ -1,5 +1,5 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
-import { HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
 import type { Alivios } from "@/lib/perfil-emisor";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
@@ -152,6 +152,8 @@ const RAZON_DEL_NO: Record<number, string> = { 257: "NIIF S2 36 (e)(i)" };
 const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
 const FILAS_29E = new Set([350, 373, 396]);
+/** Celdas por efecto (`porEfecto`): solo su respuesta propia; sin ella, vacías. */
+const FILAS_POR_EFECTO = new Set(CONCEPTOS_FORMATO_CON_ENFOQUE.filter((c) => c.porEfecto).map((c) => c.fila));
 /**
  * Filas de instrucción de la pregunta de arriba («Revelar información cuantitativa y cualitativa…», NIIF S2 16(a)):
  * con tipo en la plantilla, la parte cuantitativa del inciso; sin tipo (las tres de la plantilla 2025), vacías: la
@@ -161,7 +163,6 @@ const FILAS_INSTRUCCION: Record<number, number> = { 86: 85, 88: 87, 90: 89 };
 /** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
 const FECHAS_22B_III: Record<number, "inicio" | "fin"> = { 117: "inicio", 119: "fin" };
 const FILAS_SECTOR = new Set([446, 447]);
-const HORIZONTES = ["Corto plazo", "Mediano plazo", "Largo plazo"];
 const CAMPOS_22B_I = ["Cómo y cuándo se llevó a cabo", "Escenarios usados y sus fuentes", "¿Rango diverso de escenarios?", "Riesgos asociados a los escenarios", "¿Escenario alineado con el último acuerdo internacional?", "Por qué los escenarios son pertinentes", "Horizontes temporales usados", "Alcance de las operaciones cubierto"];
 const CAMPOS_22B_II = ["Políticas climáticas en las jurisdicciones", "Tendencias macroeconómicas", "Variables nacionales o regionales", "Uso y combinación de energías", "Desarrollos tecnológicos", "Otros supuestos"];
 
@@ -305,6 +306,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const anterior = [...conceptos].reverse().find((x) => x.fila < c.fila && x.clasificacion === "concepto");
       if (anterior?.datapoint === c.datapoint) return { texto: null, origen: "regla", nota: `detalle sin tipo de la fila ${anterior.fila}, que la responde` };
     }
+    // Por efecto (16(a), 16(c), 16(d), 22(a)(iii), K36, K43): la respuesta propia o nada; el texto del código repetiría
+    // lo que dicen las demás celdas del párrafo.
+    if (FILAS_POR_EFECTO.has(c.fila)) {
+      const r = resp("formato", `fila:${c.fila}`);
+      return r?.texto && r.estado === "respuesta" ? { texto: conE5(r.texto), origen: "respuesta", e5: ponE5(r.texto) } : { texto: null, origen: "regla", nota: "sin respuesta propia de este efecto: lo responden las demás celdas del párrafo" };
+    }
     // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
     if (FILAS_29E.has(c.fila)) {
       const r = resp("formato", `fila:${c.fila}`);
@@ -405,11 +412,6 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const dp = c.datapoint ?? "";
     const anterior = d.alivios.C3 ? `${d.ejercicio - 1}: ${noRevelado("C3")}` : null;
     const conAnterior = (lineas: string[]) => (anterior ? [...lineas, anterior] : lineas);
-    const porHorizonte = (clave: string): ValorFormato => {
-      const t = textoDe(clave);
-      // Regla del mapeo: sin hechos por horizonte, el mismo texto en las tres filas.
-      return t ? { texto: HORIZONTES.map((h) => `${h}: ${t}`).join("\n"), origen: "datos", nota: "sin hechos por horizonte: el mismo texto en los tres" } : { texto: null, origen: "pendiente" };
-    };
     if (dp === "NIIF S2 29 (a)(i)") {
       const lineas = d.gei.map((g) => `${g.alcance}: ${g.valor} (${d.ejercicio})`);
       if (d.alivios.C4) lineas.push(`Alcance 3: ${noRevelado("C4")}`);
@@ -422,14 +424,15 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const otras = /no existen participadas|no hay participadas|ninguna participada/i.test(t) ? "Otras participadas: no existen participadas fuera de la consolidación con emisiones relevantes" : null;
       return { texto: conAnterior([`Grupo contable consolidado: ${alcances}`, ...(otras ? [otras] : []), `Total revelado: ${alcances}`]).join("\n"), origen: "datos" };
     }
-    // 97 (rendimiento) y 99 (flujos de efectivo): una línea por plazo, solo los plazos con una respuesta propia desde los
-    // hechos que lo nombran (`fila:97:corto`…); sin ninguno, vacía (ajuste 3 de Esteban, Fase 2). Antes, el mismo texto
-    // en los tres plazos.
+    // Tablas por plazo (95 16(c), 97 y 99 16(d), 111 22(a)(iii)): una línea por plazo, solo los plazos con respuesta propia
+    // desde los hechos que caen en él (`fila:97:corto`…); sin ninguno, vacía (Fase 2 y regla de Esteban antes de la Fase
+    // 4). Antes, el mismo texto en los tres plazos.
     if (TABLAS_POR_HORIZONTE.some((t) => t.fila === c.fila)) {
-      const lineas = HORIZONTES_TABLA.map((h) => [h.nombre, textoDe(`fila:${c.fila}:${h.clave}`)] as const).filter(([, t]) => !!t).map(([n, t]) => `${n}: ${t}`);
-      return lineas.length ? { texto: lineas.join("\n"), origen: "datos", nota: "por plazo, con los hechos que lo nombran" } : { texto: null, origen: "regla", nota: "ningún hecho del código nombra un plazo" };
+      // Sin repetir el plazo que ya nombra la línea («Mediano plazo: En el mediano plazo, …»).
+      const sinPlazo = (n: string, t: string) => t.replace(new RegExp(`^(en|durante|para) el ${n.toLowerCase()},?\\s*`, "i"), "").replace(/^\p{Ll}/u, (x) => x.toUpperCase());
+      const lineas = HORIZONTES_TABLA.map((h) => [h.nombre, textoDe(`fila:${c.fila}:${h.clave}`)] as const).filter(([, t]) => !!t).map(([n, t]) => `${n}: ${sinPlazo(n, t!)}`);
+      return lineas.length ? { texto: lineas.join("\n"), origen: "datos", nota: "por plazo, con los hechos que caen en él" } : { texto: null, origen: "regla", nota: "ningún hecho del código cae en un plazo declarado, o no hay plazos declarados en 10(d)" };
     }
-    if (dp === "NIIF S2 16(c)(i)(ii)" || dp === "NIIF S2 16(d)" || dp === "NIIF S2 22(a)(iii)") return porHorizonte(dp);
     if (dp === "NIIF S2 22(b)(i)" || dp === "NIIF S2 22(b)(ii)") {
       const hoja = dp === "NIIF S2 22(b)(i)" ? "S2 22(b)(i)" : "S2 22(b)(ii)";
       const campos = dp === "NIIF S2 22(b)(i)" ? CAMPOS_22B_I : CAMPOS_22B_II;

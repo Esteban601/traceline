@@ -221,10 +221,38 @@ export const HORIZONTES_TABLA = [
   { clave: "mediano", nombre: "Mediano plazo", re: /mediano plazo|medio plazo/i },
   { clave: "largo", nombre: "Largo plazo", re: /largo plazo/i },
 ] as const;
-export const TABLAS_POR_HORIZONTE: { fila: number; codigo: string; efecto: string }[] = [
-  { fila: 97, codigo: "NIIF S2 16(d)", efecto: "el rendimiento financiero (margen, ingresos, gastos y resultados)" },
-  { fila: 99, codigo: "NIIF S2 16(d)", efecto: "los flujos de efectivo (los importes que los hechos dan como ahorro o gasto esperado)" },
+export const TABLAS_POR_HORIZONTE: { fila: number; codigo: string; pide: string; pregunta: number }[] = [
+  { fila: 95, codigo: "NIIF S2 16(c)(i)(ii)", pide: "cómo se espera que cambie la situación financiera", pregunta: 94 },
+  { fila: 97, codigo: "NIIF S2 16(d)", pide: "el efecto previsto sobre el rendimiento financiero (margen, ingresos, gastos y resultados)", pregunta: 96 },
+  { fila: 99, codigo: "NIIF S2 16(d)", pide: "el efecto previsto sobre los flujos de efectivo (los importes que los hechos dan como ahorro o gasto esperado)", pregunta: 98 },
+  { fila: 111, codigo: "NIIF S2 22(a)(iii)", pide: "la capacidad de la Compañía para ajustar o adaptar su estrategia y modelo de negocio", pregunta: 110 },
 ];
+/**
+ * Plazos que la emisora declaró en NIIF S2 10(d) («Corto plazo: Hasta 1 año», «Mediano plazo: Más de 1 año y hasta 5
+ * años», «Largo plazo: Más de 5 años»): el máximo en años del corto y del mediano. Sin los tres, null (regla de Esteban
+ * antes de la Fase 4: sin plazos declarados, la tabla queda vacía).
+ */
+export function plazosDeclarados(enunciados: string[]): { corto: number; mediano: number } | null {
+  const de = (n: string) => enunciados.map((e) => e.trim()).find((e) => new RegExp(`^${n} plazo:`, "i").test(e))?.split(/Justificaci/i)[0] ?? null;
+  const [c, m, l] = [de("Corto"), de("Mediano"), de("Largo")];
+  if (!c || !m || !l) return null;
+  const anios = (t: string) => [...t.matchAll(/(\d+(?:\.\d+)?)\s*años?/gi)].map((x) => Number(x[1]));
+  const [corto, mediano] = [Math.max(...anios(c)), Math.max(...anios(m))];
+  return Number.isFinite(corto) && Number.isFinite(mediano) && mediano > corto ? { corto, mediano } : null;
+}
+/**
+ * Plazos en que cae un hecho: los que nombra («mediano plazo») y, si está fechado, los de cada año posterior al
+ * ejercicio que menciona, según los plazos declarados («hasta 2028» con ejercicio 2025 → 3 años → mediano).
+ */
+export function horizontesDeHecho(enunciado: string, ejercicio: number, plazos: { corto: number; mediano: number }): Set<"corto" | "mediano" | "largo"> {
+  const s = new Set<"corto" | "mediano" | "largo">();
+  for (const h of HORIZONTES_TABLA) if (h.re.test(enunciado)) s.add(h.clave);
+  for (const m of enunciado.matchAll(/(?<!\d)(20\d{2})(?!\d)/g)) {
+    const d = Number(m[1]) - ejercicio;
+    if (d > 0) s.add(d <= plazos.corto ? "corto" : d <= plazos.mediano ? "mediano" : "largo");
+  }
+  return s;
+}
 const esClaveDeHorizonte = (codigo: string) => TABLAS_POR_HORIZONTE.some((t) => HORIZONTES_TABLA.some((h) => codigo === `fila:${t.fila}:${h.clave}`));
 /** Palabras que afirman un flujo de efectivo; en una celda por efecto, solo si un hecho las sustenta (ajuste 2, K89). */
 const FLUJO_RE = /(?<!\p{L})(salidas?|pagos?|pagad[oa]s?|pag[oó]|desembols\p{L}*)(?!\p{L})/iu;
@@ -245,15 +273,19 @@ const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).m
  * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
  * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[] }[] = [
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean }[] = [
   // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
   // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
   { fila: 36, codigo: "NIIF S2 6 (a)(v)", porEfecto: true, sinHechos: /remuneraci[oó]n/i, enfoque: "cómo el órgano de gobierno supervisa el establecimiento de los objetivos relacionados con el clima y el seguimiento de su avance. Sin la remuneración, que va en las filas 38 y 39" },
   { fila: 43, codigo: "NIIF S2 6(b)", porEfecto: true, distintaDe: ["NIIF S2 6(b)(i)", "NIIF S2 6(b)(ii)"], enfoque: "el papel de la gerencia en la gestión de los riesgos y oportunidades relacionados con el clima: qué funciones de dirección los gestionan y de qué se encarga cada una. Sin cómo se supervisa a esos cargos (fila 47, NIIF S2 6(b)(i)) ni los controles y procedimientos (fila 52, NIIF S2 6(b)(ii))" },
   // 16(d) por efecto (Fase 2, ajuste 3 de Esteban): K96 rendimiento previsto, con la razón de no cuantificar (NIIF S2 21);
   // K98 flujos previstos, sin ella. Las tablas por horizonte (97 y 99) van aparte: TABLAS_POR_HORIZONTE.
-  { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) a corto, mediano y largo plazo, y la razón por la que la Compañía no da información cuantitativa adicional si los hechos la dan. Sin el ahorro que los hechos dan como menor gasto de efectivo, que va en la fila 98" },
-  { fila: 98, codigo: "NIIF S2 16(d)", porEfecto: true, enfoque: "los efectos previstos sobre los flujos de efectivo: los importes que los hechos dan como ahorro o gasto esperado y desde cuándo, sin inferir flujos que los hechos no dan. Sin el efecto sobre el margen ni la razón de no cuantificar, que van en la fila 96" },
+  // Con plazos declarados en 10(d), la fila de la pregunta lleva solo lo que no está fechado en un plazo (`sinFechados`);
+  // lo fechado va en su tabla por plazo (95, 97, 99, 111), sin repetirse (regla de Esteban antes de la Fase 4).
+  { fila: 94, codigo: "NIIF S2 16(c)(i)(ii)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "cómo se espera que cambie la situación financiera y con qué fuentes de financiación, con lo que no está fechado en un plazo; lo de cada plazo va en la tabla de la fila 95" },
+  { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) que no están fechados en un plazo, y la razón por la que la Compañía no da información cuantitativa adicional si los hechos la dan; lo de cada plazo va en la tabla de la fila 97" },
+  { fila: 98, codigo: "NIIF S2 16(d)", porEfecto: true, sinFechados: true, enfoque: "los efectos previstos sobre los flujos de efectivo que no están fechados en un plazo, sin inferir flujos que los hechos no dan. Sin el efecto sobre el margen ni la razón de no cuantificar, que van en la fila 96; lo de cada plazo va en la tabla de la fila 99" },
+  { fila: 110, codigo: "NIIF S2 22(a)(iii)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "la capacidad de la Compañía para ajustar o adaptar su estrategia y modelo de negocio, con lo que no está fechado en un plazo; lo de cada plazo va en la tabla de la fila 111" },
   // Encargo 2026-10-24-deuda-s2-formato, decisiones (b) y (c): síntesis que no repiten la fila que da el detalle.
   // Encargo formato-respuesta-por-inciso, Fase 2: 16(a) por efecto (K85 situación, K87 rendimiento, K89 flujos), con
   // los hechos del párrafo repartidos; ninguna repite una oración de otra del párrafo (ni de la síntesis K84).
@@ -708,8 +740,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const razon = HECHO_RAZON[p.codigo];
     if (razon && p.via === "bloque" && p.hechos.some((id) => razon.clave.test(hechos.get(id)?.clave ?? ""))) descripcion.set(p.codigo, `${descripcion.get(p.codigo)} ${razon.pide}`);
   }
+  // Plazos declarados en 10(d) y en qué plazo cae cada hecho (filas de pregunta `sinFechados` y tablas por plazo).
+  const plazos = plazosDeclarados((coberturaDe("NIIF S2 10(d)")?.hechos ?? []).map((id) => hechos.get(id)?.enunciado ?? ""));
+  const fechado = (id: string) => !!plazos && horizontesDeHecho(hechos.get(id)?.enunciado ?? "", ens.reporte.ejercicio, plazos).size > 0;
+  // Un hecho no fechado va a una sola fila de pregunta `sinFechados` del mismo código: la primera (K98 repetía en otras
+  // palabras el escenario de altas emisiones de K96).
+  const yaAsignados = new Map<string, Set<string>>();
   // Conceptos con enfoque propio (97/99): los hechos de la cobertura de su datapoint, redactados con su enfoque.
-  for (const c of CONCEPTOS_FORMATO_CON_ENFOQUE) {
+  for (const c of [...CONCEPTOS_FORMATO_CON_ENFOQUE].sort((a, b) => a.fila - b.fila)) {
     // El bloque y los hechos del código: los de su plan (un padre los reúne de sus incisos) o los de su cobertura.
     const plan = planes.find((p) => p.codigo === c.codigo);
     const cob = plan?.via === "bloque" ? { bloque: plan.bloque, hechos: plan.hechos, estado: "cubierto" } : coberturaDe(c.codigo);
@@ -729,11 +767,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         .filter((x) => !vistos.has(x.enunciado) && vistos.add(x.enunciado))
         .map((x) => x.id);
     })();
-    const propios = c.porEfecto ? (cob?.hechos ?? []).filter((id) => (c.conNegativas || hechos.get(id)?.tipo !== "declaracion_negativa") && !(c.sinHechos && c.sinHechos.test(hechos.get(id)?.enunciado ?? ""))) : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
+    const propios = c.porEfecto ? (cob?.hechos ?? []).filter((id) => (c.conNegativas || hechos.get(id)?.tipo !== "declaracion_negativa") && !(c.sinHechos && c.sinHechos.test(hechos.get(id)?.enunciado ?? "")) && !(c.sinFechados && (fechado(id) || yaAsignados.get(c.codigo)?.has(id)))) : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
       const x = hechos.get(id);
       return !x || !PLAN_DISPOSICION_RE.test(x.enunciado) || disposicionAqui(x);
     });
     if (!cob || !["cubierto", "parcial"].includes(cob.estado) || !(propios.length + prestados.length)) continue;
+    if (c.sinFechados) yaAsignados.set(c.codigo, new Set([...(yaAsignados.get(c.codigo) ?? []), ...propios]));
     const clave = `fila:${c.fila}`;
     const otras = [
       ...CONCEPTOS_FORMATO_CON_ENFOQUE.filter((x) => x.codigo === c.codigo && x.fila !== c.fila && (!x.noRepite || !c.noRepite)).map((x) => `la fila ${x.fila}`),
@@ -765,16 +804,18 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       planes.push({ codigo: clave, via: "bloque", bloque: cob!.bloque, hechos: hs });
     }
   }
-  // Tablas por horizonte (97 y 99): un pedido por plazo con los hechos del código que lo nombran; sin ninguno, nada.
-  for (const t of TABLAS_POR_HORIZONTE) {
+  // Tablas por horizonte (95, 97, 99, 111): un pedido por plazo con los hechos del código que caen en él (lo nombran o
+  // están fechados en él según los plazos declarados en 10(d)); sin plazos declarados o sin hechos, nada.
+  for (const t of plazos ? TABLAS_POR_HORIZONTE : []) {
     const plan = planes.find((p) => p.codigo === t.codigo);
     const cob = plan?.via === "bloque" ? { bloque: plan.bloque, hechos: plan.hechos } : coberturaDe(t.codigo);
     if (!cob) continue;
     for (const h of HORIZONTES_TABLA) {
-      const hs = (cob.hechos ?? []).filter((id) => h.re.test(hechos.get(id)?.enunciado ?? ""));
+      const hs = (cob.hechos ?? []).filter((id) => horizontesDeHecho(hechos.get(id)?.enunciado ?? "", ens.reporte.ejercicio, plazos!).has(h.clave));
       if (!hs.length) continue;
       const clave = `fila:${t.fila}:${h.clave}`;
-      descripcion.set(clave, `Concepto del Formato electrónico (fila ${t.fila}, ${h.nombre.toLowerCase()}) de ${t.codigo}: responde SOLO el efecto previsto sobre ${t.efecto} en el ${h.nombre.toLowerCase()}, en una oración, con lo que dicen los hechos de ese plazo. Sin inferir otros plazos. Es una respuesta aparte: en el JSON va con «codigo» exactamente «${clave}» y destino «formato».`);
+      const otros = HORIZONTES_TABLA.filter((x) => x.clave !== h.clave).map((x) => x.nombre.toLowerCase()).join(" ni del ");
+      descripcion.set(clave, `Concepto del Formato electrónico (fila ${t.fila}, ${h.nombre.toLowerCase()}) de ${t.codigo}: responde SOLO ${t.pide} en el ${h.nombre.toLowerCase()} (${h.clave === "corto" ? `hasta ${plazos!.corto} año(s)` : h.clave === "mediano" ? `más de ${plazos!.corto} y hasta ${plazos!.mediano} años` : `más de ${plazos!.mediano} años`} desde el cierre del ejercicio), en una oración, con lo que dicen los hechos de ese plazo. No digas nada del ${otros}; no repitas texto de esos plazos. Es una respuesta aparte: en el JSON va con «codigo» exactamente «${clave}» y destino «formato».`);
       planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: hs });
     }
   }
@@ -981,6 +1022,19 @@ async function responderBloque(
         const k = `formato|${otro}`;
         const suya = finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === otro && x.destino === "formato")?.texto ?? ctx.previaDe?.get(k)?.texto ?? null;
         if (suya && oracionesDe(g.texto).some((o) => oracionesDe(suya).some((q) => q === o || seParecen(o, q)))) errores.push(`repite o parafrasea una oración de la respuesta de ${otro}; esta fila responde solo su parte`);
+      }
+      // Por plazo: ninguna oración igual o parafraseada a la de otro plazo de la misma tabla ni a la fila de su pregunta.
+      if (esClaveDeHorizonte(p.codigo)) {
+        const base = p.codigo.replace(/:[a-z]+$/, "");
+        const pregunta = TABLAS_POR_HORIZONTE.find((t) => `fila:${t.fila}` === base)?.pregunta;
+        const kp = `formato|fila:${pregunta}`;
+        const dePregunta = finales.get(kp)?.texto ?? reutilizadas.get(kp)?.texto ?? null;
+        if (dePregunta && oracionesDe(g.texto).some((o) => oracionesDe(dePregunta).some((q) => q === o || seParecen(o, q)))) errores.push(`repite o parafrasea la fila ${pregunta}, que responde lo no fechado; el plazo lleva solo lo suyo`);
+        for (const h of HORIZONTES_TABLA.filter((x) => `${base}:${x.clave}` !== p.codigo)) {
+          const k = `formato|${base}:${h.clave}`;
+          const otra = finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? null;
+          if (otra && oracionesDe(g.texto).some((o) => oracionesDe(otra).some((q) => q === o || seParecen(o, q)))) errores.push(`repite o parafrasea el texto del ${h.nombre.toLowerCase()}; cada plazo lleva solo lo suyo`);
+        }
       }
       // Por efecto o por plazo: «salida», «pago» o «desembolso» solo si un hecho lo dice (ajuste 2 de Esteban, K89).
       if ((yo?.porEfecto || esClaveDeHorizonte(p.codigo)) && FLUJO_RE.test(g.texto) && !p.hechos.some((h) => FLUJO_RE.test(h.enunciado))) {
