@@ -18,6 +18,7 @@ import ExcelJS from "exceljs";
 import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
 import { FILAS_FIDEICOMISO, RAMAS_BOOLEANO } from "../lib/formato/llenar.ts";
+import { filaExportada } from "../lib/formato/objetivos.ts";
 import { BOOLEANOS_FORMATO } from "../lib/formato/booleanos.ts";
 import { remisionAIncisos, seParecen, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
 import { INCISOS_CREDITOS } from "../lib/suplemento/catalogo-incisos.ts";
@@ -31,7 +32,12 @@ const texto = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.r
 const wf = new ExcelJS.Workbook();
 await wf.xlsx.readFile(formato);
 const est = wf.getWorksheet("Estructura Formato Electronico");
-const K = (n) => texto(est.getCell(`K${n}`).value);
+// Los casos citan las celdas como el Formato v5.1 (métricas S1 46–50 expandidas, un desplazamiento de 279). Desde la
+// Fase 4 de respuesta por inciso la sección de objetivos lleva un bloque por objetivo: la celda vieja se traduce a su
+// fila de la plantilla y de ahí a la hoja exportada (las del bloque, en la copia del primer objetivo).
+const nObjetivos = (() => { let c = 0; est.eachRow((r) => { if (/^Objetivo \d+: /.test(texto(r.getCell(4).value))) c++; }); return c / 2; })();
+const filaNueva = (n) => (n < 475 ? n : filaExportada(n - 279, { objetivos: nObjetivos, deltaMetricas: 279 }));
+const K = (n) => texto(est.getCell(`K${filaNueva(n)}`).value);
 const rango = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 const todas = (filas, pred, msg) => {
   const malas = filas.filter((f) => !pred(K(f)));
@@ -72,7 +78,7 @@ todas([861, 863, 866], (t) => /^No aplica/.test(t), "K861, K863, K866 comparativ
 console.log("\nFormato electrónico · ramas de los booleanos (regla general)");
 {
   const kDe = (f) => (f <= 185 ? f : f + 279);
-  const D = (f) => texto(est.getCell(`D${kDe(f)}`).value);
+  const D = (f) => texto(est.getCell(`D${filaNueva(kDe(f))}`).value);
   const ramaDe = (d) => (/^¿Por qué\?|^Explicar el método/.test(d) ? "No" : /^¿\s*(Cómo|De qu[eé])/.test(d) ? "Sí" : null);
   const enPlantilla = {};
   for (const b of BOOLEANOS_FORMATO) for (let f = b.fila + 1; f <= b.fila + 4; f++) { const r = ramaDe(D(f)); if (r) enPlantilla[f] = { booleano: b.fila, rama: r }; }
@@ -94,6 +100,24 @@ console.log("\nFormato electrónico · Gobernanza, NIIF S2 6 (Fase 3)");
   for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
   ok(!choques.length, `ninguna celda de Gobernanza (K25–K52) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
   todas([63, 125, 129], (t) => !t, "K63, K125 y K129 (filas de ejemplo sin tipo): vacías");
+}
+
+console.log("\nFormato electrónico · objetivos por inciso y por objetivo (Fase 4)");
+{
+  const etiquetas = [];
+  est.eachRow((r, n) => { const d = texto(r.getCell(4).value); if (/^Objetivo \d+: /.test(d)) etiquetas.push({ n, d }); });
+  const s1 = etiquetas.slice(0, nObjetivos), s2 = etiquetas.slice(nObjetivos);
+  ok(nObjetivos === 3 && s1.every((e, i) => e.d === s2[i].d && e.d.startsWith(`Objetivo ${i + 1}: `)), `un bloque «Objetivo N» de NIIF S1 51 y uno de NIIF S2 33–36 por objetivo (${s2.map((e) => e.d).join(" · ")})`);
+  const enBloque = (b, filaPlantilla, desde) => texto(est.getCell(`K${b.n + filaPlantilla - desde}`).value);
+  const incisos = { 221: "33(a)", 225: "33(c)", 227: "33(d)", 229: "33(e)", 231: "33(f)", 233: "33(g)", 235: "33(h)", 237: "34(a)", 239: "34(b)", 241: "34(c)", 243: "34(d)" };
+  const vacios = s2.flatMap((b, i) => Object.entries(incisos).filter(([f]) => !enBloque(b, Number(f), 216)).map(([, x]) => `objetivo ${i + 1} ${x}`));
+  ok(!vacios.length, `NIIF S2 33(a), (c)–(h) y 34(a)–(d) con respuesta propia en cada objetivo${vacios.length ? ` — vacíos: ${vacios.join(", ")}` : ""}`);
+  const repetidos = s2.filter((b) => { const v = Object.keys(incisos).map((f) => enBloque(b, Number(f), 216)).filter((t) => t.length > 12); return new Set(v).size !== v.length; });
+  ok(!repetidos.length && !s2.some((b) => Object.keys(incisos).some((f) => /tiene tres objetivos/.test(enBloque(b, Number(f), 216)))), "ningún inciso repite el texto de otro ni el párrafo de NIIF S2 33 (antes los 11 incisos decían lo mismo)");
+  ok(s2.every((b) => !enBloque(b, 223, 216)), "NIIF S2 33(b) (propósito del objetivo) vacía en los tres: espera su campo (migración de la Fase 4)");
+  const gei = s2.map((b) => !!enBloque(b, 247, 216));
+  ok(gei.filter(Boolean).length === 1 && s2.every((b, i) => gei[i] || [247, 249, 251, 253, 255, 256, 259].every((f) => !enBloque(b, f, 216))), "NIIF S2 36 solo en el bloque del objetivo de emisiones de GEI; vacío en los demás");
+  ok(s1.every((b) => [202, 204, 206, 208, 210, 212, 214].every((f) => /se revela conforme a NIIF S2 3[345]/.test(enBloque(b, f, 196)))), "NIIF S1 51 (a)–(g) bajo E5: cada inciso remite a su inciso de NIIF S2 en cada objetivo");
 }
 
 console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
