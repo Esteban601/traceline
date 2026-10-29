@@ -199,6 +199,14 @@ export function leerAlivios(raw: unknown): Alivios {
   return out;
 }
 
+/**
+ * Las claves de los alivios vigentes, en el orden del catálogo («E4, E5, C3, C4»), o el texto de ninguno. Lo usan
+ * las dos leyendas (Formato electrónico y Excel de taxonomía): antes cada una filtraba una lista fija sin E4.
+ */
+export function aliviosVigentes(alivios: Alivios): string {
+  return ALIVIOS.filter((a) => alivios[a.clave]).map((a) => a.clave).join(", ") || "Ninguno vigente en este ejercicio.";
+}
+
 export type Regimen = "primer_anio" | "subsecuentes" | "indeterminado";
 
 /**

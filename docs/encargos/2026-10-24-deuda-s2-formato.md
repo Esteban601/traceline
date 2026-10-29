@@ -247,7 +247,8 @@ correcto): 344, 367, 369, 390, 392, 413, 416 y 468.
 **Deuda de la modificación de 2025 de NIIF S2** (`ampliacion-catalogo.md`): 29B (filas 433, 435–436 y 437) y 29C
 (439 y 441). Con C4 escriben «No revelado · alivio C4».
 
-**Encargo siguiente, fuera de este: `formato-repeticiones-por-inciso`** (renombrado el 24/10). Filas que repiten el
+**Encargo siguiente, fuera de este: `formato-repeticiones-por-inciso`** (renombrado el 24/10; el 27/10 pasa a
+`formato-respuesta-por-inciso`, ver el registro de `2026-10-26-formato-afirmaciones-y-voz`). Filas que repiten el
 mismo texto porque comparten datapoint: NIIF S2 33(a)–(h) (221 a 235, 7 celdas con texto) y 34(b)–(d) (239 a 243, 3
 celdas), con los generales `NIIF S2 33` y `NIIF S2 34`; y NIIF S2 16(a) en K85 a K90 (6 celdas).
 

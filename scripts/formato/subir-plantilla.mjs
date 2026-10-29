@@ -16,8 +16,8 @@
 // falla; con el mismo, no hace nada), la descarga de vuelta e imprime su sha256:
 // el de antes y el de después deben ser iguales al esperado.
 //
-// Barreras: el archivo tiene que ser la plantilla revisada (SHA_ESPERADO, la que
-// está en Storage de dev desde el 13/10/2026), con sus 23 imágenes en celda
+// Barreras: el archivo tiene que ser la plantilla registrada para el destino
+// (SHA_ESPERADO[destino]), con sus 23 imágenes en celda
 // enlazadas y sin menciones de la emisora de referencia; NEXT_PUBLIC_SUPABASE_URL
 // tiene que ser la del destino. La llave (SUPABASE_SERVICE_ROLE_KEY) y la URL no
 // se imprimen.
@@ -32,7 +32,15 @@ import { IMAGENES_EN_CELDA, RUTA_PLANTILLA_FORMATO } from "../../lib/formato/pla
 
 // Sin proyecto de ensayo vivo (el de v41 se borró el 14/10/2026): con el marcador, «ensayo» falla.
 const REFS = { dev: "kmjkoxecxcujxixlxwlb", ensayo: "PENDIENTE_REF_ENSAYO", staging: "ewgnvjtjhvdltvkopptn" };
-const SHA_ESPERADO = "eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786";
+// Registro de la plantilla por ambiente. dev: la limpia de la Fase 5 del encargo formato-afirmaciones-y-voz (hoja
+// «Métricas SASB» sin la nota de A2), subida por Esteban el 28/10/2026 y comprobada por descarga. staging: la vigente
+// desde v41 (13/10/2026); REEMPLAZAR EL DÍA DEL DESPLIEGUE v42 por la de dev (la ruta ya existe y este script no
+// reemplaza: el paso va escrito en el registro de v42 de la especificación §10).
+const SHA_ESPERADO = {
+  dev: "217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46",
+  ensayo: "217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46",
+  staging: "eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786",
+};
 const TIPO = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 const args = process.argv.slice(2);
@@ -58,7 +66,7 @@ const buf = fs.readFileSync(archivo);
 const huella = sha(buf);
 console.log(`destino: ${destino} (${ref}) · documentos/${RUTA_PLANTILLA_FORMATO}`);
 console.log(`archivo local: ${buf.length} bytes · sha256 ${huella}`);
-if (huella !== SHA_ESPERADO) salir(`el archivo no es la plantilla revisada (se esperaba sha256 ${SHA_ESPERADO}).`, 1);
+if (huella !== SHA_ESPERADO[destino]) salir(`el archivo no es la plantilla registrada para ${destino} (se esperaba sha256 ${SHA_ESPERADO[destino]}).`, 1);
 const zip = await JSZip.loadAsync(buf);
 const hojas = {};
 for (const n of Object.keys(zip.files).filter((x) => /^xl\/worksheets\/sheet\d+\.xml$/.test(x))) hojas[n] = await zip.file(n).async("string");

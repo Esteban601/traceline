@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { conPerimetro } from "@/lib/reporte/cifra";
 import type { Database } from "@/lib/database.types";
 import { NOTA_VALIDACION_INTERNA, type OrigenSolicitud } from "@/lib/origen";
 import { leerAlivios, regimenDe, type Alivios } from "@/lib/perfil-emisor";
@@ -44,8 +45,9 @@ type Cliente = SupabaseClient<Database>;
 export const NOTA_PENDIENTE = "Pendiente de validación en plataforma";
 export const NOTA_SIN = "Sin evidencia";
 export const NOTA_SIN_SOLICITUD = "Sin solicitud en el reporte";
-/** Celda que un alivio vigente deja fuera (especificación 0.41, §6.1): «No revelado · alivio C4». */
-export const noRevelado = (alivio: string) => `No revelado · alivio ${alivio}`;
+/** Celda que un alivio vigente deja fuera (especificación 0.41, §6.1): el texto vive en lib/suplemento/alivios.ts. */
+import { noRevelado } from "@/lib/suplemento/alivios";
+export { noRevelado };
 
 /**
  * ALIVIOS EN LAS HOJAS DE DATOS (revisión externa, punto 1). El Word no revela el
@@ -54,8 +56,10 @@ export const noRevelado = (alivio: string) => `No revelado · alivio ${alivio}`;
  */
 export function alivioDeCelda(rubro: string | null, anioOffset: number | null, alivios: Alivios): "C4" | "C3" | null {
   // La misma lista de rubros que calla el Word (CONDICIONADOS_POR_ALIVIO).
-  if (alivios.C4 && rubroExento(rubro, { C4: true })) return "C4";
+  // El comparativo del primer año lo deja fuera C3 antes que C4: no hay periodo anterior que revelar (revisión
+  // externa v5: la columna 2024 de Alcance 3 decía C4; el Formato, 589, la atribuye a C3).
   if (alivios.C3 && (anioOffset ?? 0) >= 1) return "C3";
+  if (alivios.C4 && rubroExento(rubro, { C4: true })) return "C4";
   return null;
 }
 
@@ -281,6 +285,12 @@ export type Ensamblado = {
   reporte: ReporteEnsamblado;
   celdas: CeldaResuelta[];
   notas: NotaFila[];
+  /**
+   * El marcador de pendiente de cada celda de cifra que falta («Pendiente: <qué falta> — <solicitud o campo>»,
+   * CLAUDE.md §5), para escribirlo EN la celda: el Excel de taxonomía lleva solo preguntas y respuestas, sin
+   * columna de notas (regla de Esteban del 26/10).
+   */
+  pendientes: { hoja: string; celda: string; texto: string }[];
   conteos: ConteosEnsamblado;
   /** Última fila tocada por hoja: quien escribe la usa para colocar su pie. */
   filaMaximaPorHoja: Map<string, number>;
@@ -570,6 +580,8 @@ export async function ensamblarReporte(
     alcances: Set<string>;
   };
   const acum = new Map<string, NotaAcum>();
+  const pendientes: Ensamblado["pendientes"] = [];
+  const tituloSol = new Map(solicitudes.map((s) => [s.id, s.titulo.replace(/\[DEMO\]\s*/i, "").trim()]));
 
   const filaDe = (celda: string): number => parseInt(celda.replace(/[^0-9]/g, ""), 10);
 
@@ -622,6 +634,7 @@ export async function ensamblarReporte(
     // propia causa, distinta de "falta evidencia" (aquí falta la solicitud).
     if (!solicitudId) {
       if (clave) entradaNota().sinSolicitud = true;
+      pendientes.push({ hoja: m.hoja, celda: m.celda, texto: `Pendiente: cifra de ${ejercicioCelda} — sin solicitud en el reporte` });
       continue;
     }
 
@@ -634,7 +647,12 @@ export async function ensamblarReporte(
     const estado = estadoSol.get(solicitudId);
     const valor = estado === "validado" ? ultimaConfirmada(solicitudId, ejercicioCelda) : null;
 
-    if (valor != null) {
+    if (valor != null && alcance) {
+      // Con perímetro declarado, la cifra lleva su perímetro DENTRO de la celda: «<cifra>; perímetro: <perímetro>»
+      // (decisión de Esteban del 26/10: el Excel ya no tiene columna de notas).
+      celdas.push({ tipo: "etiqueta", hoja: m.hoja, celda: m.celda, texto: conPerimetro(valor.toLocaleString("en-US", { maximumFractionDigits: 3 }), alcance) });
+      conteos.llenadas++;
+    } else if (valor != null) {
       celdas.push({
         tipo: "valor",
         hoja: m.hoja,
@@ -653,14 +671,17 @@ export async function ensamblarReporte(
           conteos.validacionesInternas++;
         }
       }
-    } else if (clave) {
+    } else {
       // Regla dura: valor no validado/ausente NO entra. La causa se decide POR
       // CELDA-AÑO: hay captura de ese periodo pero sin validar (→ pendiente) vs.
       // no hay captura de ese periodo (→ sin evidencia). Cada causa lleva su año.
-      const causa = hayCapturaDe(solicitudId, ejercicioCelda)
-        ? `${NOTA_PENDIENTE} (${ejercicioCelda})`
-        : `${NOTA_SIN} (${ejercicioCelda})`;
-      entradaNota().causas.set(ejercicioCelda, causa);
+      const capturada = hayCapturaDe(solicitudId, ejercicioCelda);
+      pendientes.push({
+        hoja: m.hoja,
+        celda: m.celda,
+        texto: `Pendiente: ${capturada ? "validación de la cifra" : "cifra"} de ${ejercicioCelda} — solicitud «${tituloSol.get(solicitudId) ?? solicitudId}»`,
+      });
+      if (clave) entradaNota().causas.set(ejercicioCelda, capturada ? `${NOTA_PENDIENTE} (${ejercicioCelda})` : `${NOTA_SIN} (${ejercicioCelda})`);
     }
   }
 
@@ -716,6 +737,7 @@ export async function ensamblarReporte(
     reporte,
     celdas,
     notas,
+    pendientes,
     conteos,
     filaMaximaPorHoja,
     descripcionesDatapoint: new Map(

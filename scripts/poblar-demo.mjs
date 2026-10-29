@@ -200,8 +200,9 @@ const PERFIL = {
   hechos_posteriores: "No se identificaron hechos posteriores al cierre del ejercicio que afecten la información de sostenibilidad y clima.",
   actividades_financieras: ["Banca comercial"],
   sector_sasb: ["[815200] Finanzas - Bancos comerciales (FN-CB)"],
-  // Juicio de la emisora (filas 364, 387 y 410): «No» hasta que exista el catálogo SASB (Fase C).
-  metricas_industria: "No",
+  // Juicio de la emisora (filas 364, 387 y 410). «Sí, parcialmente» (D2 de Esteban, 26/10): la emisora tiene sector
+  // SASB (FN-CB) y responde NIIF S2 32; con «No» la hoja de revisión lo marca como aviso de coherencia.
+  metricas_industria: "Sí, parcialmente",
   forma_de_referencia: "la Compañía",
   entidad_que_informa:
     "Empresa Demo, S.A.B. de C.V. y sus subsidiarias consolidadas: Banco Demo, S.A., Institución de Banca Múltiple; Arrendadora Demo, S.A. de C.V., SOFOM E.R.; y Factoraje Demo, S.A. de C.V.",
@@ -569,6 +570,23 @@ const NARRATIVAS = [
     texto:
       "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos y oportunidades climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio, ni partidas afectadas de forma material. En la red del sureste, las adecuaciones de inmuebles (gasto de capital) sumaron 12.3 millones de pesos y se capitalizaron en propiedades, mobiliario y equipo, y las primas de seguros de daños e interrupción (gasto de operación) sumaron 6.2 millones y se registraron en gastos de administración y promoción. La inversión ambiental del ejercicio fue de 31.4 millones de pesos: de la inversión ambiental, los 31.0 millones de eficiencia energética se capitalizaron en propiedades, mobiliario y equipo, y los 0.4 millones de medición se registraron como gasto. Los riesgos físicos sobre colaterales del sureste y de la cartera agropecuaria son la principal fuente de riesgo de ajuste material en el ejercicio siguiente, sobre la estimación preventiva para riesgos crediticios.",
   },
+  // Decisión de Esteban del 27/10 (encargo formato-afirmaciones-y-voz, Fase 4): las dos declaraciones que el bloque 10
+  // necesita para no dejar pendientes, en voz de la emisora e ilustrativas. El cuestionario del Perfil debe pedirlas en
+  // el alta de cualquier emisora (encargo siguiente en la cola).
+  {
+    titulo: "Congruencia de datos y supuestos con los estados financieros",
+    codigos: ["NIIF S2 B65 inciso (e)"],
+    area: "Finanzas",
+    texto:
+      "Los datos y supuestos empleados en la información relacionada con el clima son congruentes con los utilizados en la preparación de los estados financieros consolidados de 2025: el gasto de capital de la red del sureste, las primas de seguros y la inversión ambiental provienen de los mismos registros contables, y la estimación preventiva para riesgos crediticios se analiza con los mismos supuestos de los estados financieros.",
+  },
+  {
+    titulo: "Criterio de cuantificación de los efectos financieros previstos",
+    codigos: ["NIIF S2 21(a)"],
+    area: "Finanzas",
+    texto:
+      "La Compañía no proporciona información cuantitativa sobre los efectos financieros previstos de los riesgos y oportunidades relacionados con el clima porque, conforme a los criterios de los párrafos 19 y 20 de la NIIF S2, esos efectos no son identificables por separado de los demás factores que inciden en el riesgo de crédito y en el margen financiero, y la incertidumbre de medición de las estimaciones es tan alta que la información cuantitativa resultante no sería útil. Evaluará su cuantificación en los próximos ejercicios, conforme avance la medición de emisiones financiadas y la sensibilidad de la cartera por sector.",
+  },
   {
     titulo: "Análisis de escenarios climáticos y resiliencia",
     codigos: ["NIIF S2 22(a)(i)", "NIIF S2 22(b)(i)"],
@@ -894,8 +912,13 @@ const CUESTIONARIOS = {
     "Incremento de 15% en la frecuencia de ciclones categoría 3 o mayor en el Golfo y el Caribe al 2040; reducción de 10% en la disponibilidad hídrica en el Bajío al 2035.",
     // 4 · uso y combinación de fuentes de energía
     "40% de generación limpia en la matriz nacional al 2030 en el escenario de transición ordenada.",
-    // 5 y 6 —desarrollos tecnológicos y otros supuestos— no los contesta el
-    // documento y se dejan como estaban: inventarlos sería peor que el hueco.
+    // 5 y 6 (decisión de Esteban, encargo formato-afirmaciones-y-voz): con el
+    // supuesto de 40% de generación limpia que el documento ya afirma (K114/K115);
+    // los supuestos clave del análisis son los cinco anteriores.
+    // 5 · desarrollos tecnológicos
+    "Despliegue de tecnologías de generación limpia hasta alcanzar 40% de la matriz nacional al 2030 en el escenario de transición ordenada.",
+    // 6 · otros supuestos
+    "Ninguno adicional: los supuestos clave del análisis son los anteriores, incluido el de 40% de generación limpia en la matriz nacional al 2030.",
   ],
   "S2 36(e)": [
     // 1 · en qué medida el objetivo se basa en créditos de carbono
