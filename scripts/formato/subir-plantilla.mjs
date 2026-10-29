@@ -32,14 +32,14 @@ import { IMAGENES_EN_CELDA, RUTA_PLANTILLA_FORMATO } from "../../lib/formato/pla
 
 // Sin proyecto de ensayo vivo (el de v41 se borró el 14/10/2026): con el marcador, «ensayo» falla.
 const REFS = { dev: "kmjkoxecxcujxixlxwlb", ensayo: "PENDIENTE_REF_ENSAYO", staging: "ewgnvjtjhvdltvkopptn" };
-// Registro de la plantilla por ambiente. dev: la limpia de la Fase 5 del encargo formato-afirmaciones-y-voz (hoja
-// «Métricas SASB» sin la nota de A2), subida por Esteban el 28/10/2026 y comprobada por descarga. staging: la vigente
-// desde v41 (13/10/2026); REEMPLAZAR EL DÍA DEL DESPLIEGUE v42 por la de dev (la ruta ya existe y este script no
-// reemplaza: el paso va escrito en el registro de v42 de la especificación §10).
+// Registro de la plantilla por ambiente: la limpia de la Fase 5 del encargo formato-afirmaciones-y-voz (hoja
+// «Métricas SASB» sin la nota de A2). En dev, subida por Esteban el 28/10/2026 y comprobada por descarga. En staging
+// entra con v42: la ruta ya tiene la de v41 (eb09aa55…146786) y este script no reemplaza, así que Esteban la
+// reemplaza a mano y este script, sin --subir, verifica (paso bloqueante del runbook 2026-10-28-runbook-v42.md).
 const SHA_ESPERADO = {
   dev: "217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46",
   ensayo: "217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46",
-  staging: "eb09aa55c5a6073fe9d3ec299f08cbac0b2a0c1fd4dc8ec4a2c00ffefc146786",
+  staging: "217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46",
 };
 const TIPO = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
