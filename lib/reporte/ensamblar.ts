@@ -185,6 +185,7 @@ export type ObjRow = {
   /** Fijado por la emisora o exigido por ley (NIIF S2 33). */
   origen_objetivo: string | null;
   alineacion_acuerdo_internacional: string | null;
+  proposito_objetivo: string | null;
   orden: number;
 };
 
@@ -431,7 +432,7 @@ export async function ensamblarReporte(
     supabase
       .from("objetivos")
       .select(
-        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, origen_objetivo, alineacion_acuerdo_internacional, orden"
+        "id, reporte_id, ambito, naturaleza, nombre, descripcion, tipo, metrica, meta, parte_entidad, periodo_aplicacion, periodo_base, hito_intermedio, tipo_objetivo, origen_objetivo, alineacion_acuerdo_internacional, proposito_objetivo, orden"
       )
       .eq("reporte_id", reporteId)
       .eq("activo", true)
