@@ -33,6 +33,33 @@ export const HECHO_RAZON: Record<string, { clave: RegExp; pide: string; uso: str
   },
 };
 
+/**
+ * Las dos declaraciones del bloque 10 en el Perfil del emisor, sección «Efectos financieros» (encargo
+ * perfil-declaraciones-alta, decisión 2 de Esteban del Paso 0): cada campo es UN hecho, tomado tal cual, con clave
+ * fija y dueño el bloque 10 (`hechos/fuentes.ts`). La clave no la elige el modelo, así que el requisito la encuentra
+ * por clave (`respuestas.ts`); sin el campo, el requisito sale con el marcador que nombra la sección del Perfil.
+ */
+export const DECLARACIONES_PERFIL = {
+  criterio_cuantificacion: {
+    clave: "emisora.criterio_cuantificacion",
+    codigo: "NIIF S2 21(a)",
+    etiqueta: "criterio de cuantificación de los efectos financieros",
+    falta: "criterio de cuantificación de los efectos financieros (NIIF S2 19–21)",
+  },
+  congruencia_estados_financieros: {
+    clave: "emisora.congruencia_estados_financieros",
+    codigo: "NIIF S2 B65 inciso (e)",
+    etiqueta: "congruencia de los datos y supuestos con los estados financieros",
+    falta: "congruencia de los datos y supuestos con los estados financieros (NIIF S2 B65(e))",
+  },
+} as const;
+/** Dónde se contestan las dos declaraciones: el «solicitud o campo» del marcador de CLAUDE.md §5. */
+export const DONDE_DECLARACIONES = "Perfil del emisor, sección Efectos financieros";
+/** Por código del catálogo: la declaración del Perfil que lo responde. */
+export const DECLARACION_DE_CODIGO: Record<string, (typeof DECLARACIONES_PERFIL)[keyof typeof DECLARACIONES_PERFIL]> = Object.fromEntries(
+  Object.values(DECLARACIONES_PERFIL).map((d) => [d.codigo, d])
+);
+
 export type HechoCandidato = { id: string; clave: string | null; libro_id: string; estado: string };
 
 /**

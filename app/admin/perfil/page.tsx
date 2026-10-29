@@ -81,7 +81,7 @@ export default async function PerfilEmisorPage({
   const { data: fila } = await db
     .from("perfil_emisor")
     .select(
-      "denominacion_formal, nombre_corto, forma_de_referencia, entidad_que_informa, perimetro, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, fideicomitente, administrador_patrimonio, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria, carta_texto, carta_firmante, carta_cargo, proceso_materialidad, modelo_negocio, gobierno_texto, glosario, organigrama_path, horizontes, hitos_corporativos, hitos_sostenibilidad, cadena_valor, matriz_riesgos, actualizado_en, actualizado:perfiles_usuario!perfil_emisor_actualizado_por_fkey(nombre)"
+      "denominacion_formal, nombre_corto, forma_de_referencia, entidad_que_informa, perimetro, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, fideicomitente, administrador_patrimonio, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria, carta_texto, carta_firmante, carta_cargo, proceso_materialidad, criterio_cuantificacion, congruencia_estados_financieros, modelo_negocio, gobierno_texto, glosario, organigrama_path, horizontes, hitos_corporativos, hitos_sostenibilidad, cadena_valor, matriz_riesgos, actualizado_en, actualizado:perfiles_usuario!perfil_emisor_actualizado_por_fkey(nombre)"
     )
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -107,6 +107,8 @@ export default async function PerfilEmisorPage({
         carta_firmante: fila.carta_firmante,
         carta_cargo: fila.carta_cargo,
         proceso_materialidad: fila.proceso_materialidad,
+        criterio_cuantificacion: fila.criterio_cuantificacion,
+        congruencia_estados_financieros: fila.congruencia_estados_financieros,
         modelo_negocio: fila.modelo_negocio,
         gobierno_texto: fila.gobierno_texto,
         glosario: glosarioATexto(leerGlosario(fila.glosario)),
