@@ -1587,7 +1587,9 @@ export type Database = {
           carta_firmante: string | null
           carta_texto: string | null
           clave_cotizacion: string | null
+          congruencia_estados_financieros: string | null
           created_at: string
+          criterio_cuantificacion: string | null
           denominacion_formal: string | null
           entidad_que_informa: string | null
           fideicomitente: string | null
@@ -1623,7 +1625,9 @@ export type Database = {
           carta_firmante?: string | null
           carta_texto?: string | null
           clave_cotizacion?: string | null
+          congruencia_estados_financieros?: string | null
           created_at?: string
+          criterio_cuantificacion?: string | null
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
           fideicomitente?: string | null
@@ -1659,7 +1663,9 @@ export type Database = {
           carta_firmante?: string | null
           carta_texto?: string | null
           clave_cotizacion?: string | null
+          congruencia_estados_financieros?: string | null
           created_at?: string
+          criterio_cuantificacion?: string | null
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
           fideicomitente?: string | null

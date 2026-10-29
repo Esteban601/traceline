@@ -26,6 +26,7 @@ import {
   guardarHorizontes,
   guardarIdentidad,
   guardarMaterialidad,
+  guardarEfectosFinancieros,
   guardarMatriz,
   guardarModeloNegocio,
   guardarTrayectoria,
@@ -88,6 +89,8 @@ export type PerfilData = {
   carta_firmante: string | null;
   carta_cargo: string | null;
   proceso_materialidad: string | null;
+  criterio_cuantificacion: string | null;
+  congruencia_estados_financieros: string | null;
   modelo_negocio: string | null;
   gobierno_texto: string | null;
   /** Glosario en texto, una línea por nombre: «Canónico = variante; variante». */
@@ -291,6 +294,7 @@ export function PerfilView({
   const [sGob, aGob] = useActionState(guardarGobierno, VACIO);
   const [sOrg, aOrg] = useActionState(subirOrganigrama, VACIO);
   const [sMat, aMat] = useActionState(guardarMaterialidad, VACIO);
+  const [sEfectos, aEfectos] = useActionState(guardarEfectosFinancieros, VACIO);
 
   // Qué secciones se acaban de guardar, con quién lo hizo. Se pinta en la
   // cabecera hasta que se recargue la página.
@@ -315,6 +319,7 @@ export function PerfilView({
   useResultado(sGob, marcarOk);
   useResultado(sOrg, marcarOk);
   useResultado(sMat, marcarOk);
+  useResultado(sEfectos, marcarOk);
 
   const hz: Horizonte[] =
     p?.horizontes?.length === 3
@@ -1105,6 +1110,67 @@ export function PerfilView({
             </p>
             {guardar()}
             <Aviso state={sMat} seccion="materialidad" />
+          </form>
+        </CamposManuales>
+      </Seccion>
+
+      {/* 10 · EFECTOS FINANCIEROS (encargo perfil-declaraciones-alta) ---------- */}
+      {/* Las dos declaraciones del bloque 10: NIIF S2 21(a) y B65(e). Sin ellas el bloque sale con su marcador. */}
+      <Seccion
+        titulo="Efectos financieros"
+        ayuda="Dos declaraciones de la emisora sobre los efectos financieros y los estados financieros."
+        // Completa solo con las dos declaraciones escritas: el adjunto respalda, no sustituye al texto (Esteban, Fase 1).
+        completa={!!p?.criterio_cuantificacion && !!p?.congruencia_estados_financieros}
+        abierta={abierta === "efectos"}
+        onToggle={() => alternar("efectos")}
+        reciente={recientes["efectos"] ?? null}
+      >
+        <Adjuntos tenantId={tenantId} seccion="efectos" adjuntos={adjuntos} variante="origen" />
+        <CamposManuales>
+          <form action={aEfectos}>
+            {oculto}
+            <div>
+              <label className={LABEL} htmlFor={`${uid}-cq`}>
+                Criterio de cuantificación de los efectos financieros
+              </label>
+              <textarea
+                id={`${uid}-cq`}
+                name="criterio_cuantificacion"
+                rows={6}
+                defaultValue={p?.criterio_cuantificacion ?? ""}
+                placeholder="La Compañía [proporciona / no proporciona] información cuantitativa sobre los efectos financieros actuales y previstos porque…"
+                className={cn(AREA, "mt-2")}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Si la Compañía da cifras de los efectos financieros actuales y previstos de sus riesgos y
+                oportunidades relacionados con el clima. Si no las da para alguno, por qué: porque no son
+                identificables por separado, porque la incertidumbre de medición es tan alta que la cifra no
+                sería útil o, en los previstos, porque no cuenta con las capacidades o los recursos (NIIF S2 19
+                y 20). Se usa tal cual en el suplemento: escríbelo en voz de la emisora.
+              </p>
+            </div>
+            <div className="mt-4">
+              <label className={LABEL} htmlFor={`${uid}-ce`}>
+                Congruencia con los estados financieros
+              </label>
+              <textarea
+                id={`${uid}-ce`}
+                name="congruencia_estados_financieros"
+                rows={6}
+                defaultValue={p?.congruencia_estados_financieros ?? ""}
+                placeholder="Los datos y supuestos empleados en la información relacionada con el clima [son / no son del todo] congruentes con los utilizados en la preparación de los estados financieros…"
+                className={cn(AREA, "mt-2")}
+              />
+              <p className="mt-1.5 text-xs text-muted">
+                Si los datos y supuestos de la información relacionada con el clima son congruentes con los que
+                se usan para preparar los estados financieros, y dónde no lo son (NIIF S2 B65(e)). Indica qué
+                cifras salen de los mismos registros contables y qué estimaciones comparten supuestos, por
+                ejemplo la estimación preventiva para riesgos crediticios. Se usa tal cual en el suplemento:
+                escríbelo en voz de la emisora.
+              </p>
+            </div>
+            {guardar()}
+            <Aviso state={sEfectos} seccion="efectos" />
           </form>
         </CamposManuales>
       </Seccion>

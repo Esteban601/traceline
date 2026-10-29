@@ -11,7 +11,7 @@ import { costoUsd, type Uso } from "@/lib/suplemento/modelos";
 import { TERMINOS_PLATAFORMA, vocabularioProhibidoEn } from "@/lib/suplemento/vocabulario";
 import { oracionesDe } from "@/lib/suplemento/hechos/oraciones";
 import { NEGACION } from "@/lib/suplemento/hechos/tipos";
-import { HECHO_RAZON } from "@/lib/suplemento/hechos/razones";
+import { DECLARACION_DE_CODIGO, DECLARACIONES_PERFIL, DONDE_DECLARACIONES, HECHO_RAZON } from "@/lib/suplemento/hechos/razones";
 import { numerosDe } from "@/lib/evidencias/fuente";
 import { numeracionConsecutiva } from "@/lib/suplemento/numeracion";
 import { preguntasDe } from "@/lib/cuestionarios";
@@ -123,6 +123,8 @@ export type FilaRespuesta = {
 
 const sinCodigoNorma = (c: string) => c.replace(/\s+/g, "").toLowerCase();
 const marcador = (falta: string, donde: string) => `[Pendiente: ${falta} — ${donde}]`;
+/** Una clave fija de hecho como expresión exacta (las claves llevan puntos). */
+const claveExacta = (clave: string) => new RegExp(`^${clave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
 const USO_CERO: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
 
 // -----------------------------------------------------------------------------
@@ -357,7 +359,9 @@ export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; pa
  */
 export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
   // La razón de que no haya cifras: emisora.compromiso_transparencia_limitaciones (decisión de Esteban, Fase 3).
-  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, HECHO_RAZON["NIIF S2 21(a)"].clave],
+  "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, HECHO_RAZON["NIIF S2 21(a)"].clave, claveExacta(DECLARACIONES_PERFIL.criterio_cuantificacion.clave)],
+  // La declaración del Perfil (perfil-declaraciones-alta); la vía por contenido de abajo sigue para los libros viejos.
+  "NIIF S2 B65 inciso (e)": [claveExacta(DECLARACIONES_PERFIL.congruencia_estados_financieros.clave)],
 };
 
 /**
@@ -705,9 +709,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     if (cob && cob.estado === "no_aplica") {
       return { codigo, via: "regla", estado: "no_aplica", texto: textoNoAplicaHeredado(codigo), notas: h?.motivo ? [h.motivo] : [] };
     }
+    // La declaración del Perfil (21(a), B65(e); perfil-declaraciones-alta) entra siempre que esté en un libro del
+    // documento, aunque la cobertura aprobada del bloque no la haya citado.
+    const declaracion = DECLARACION_DE_CODIGO[codigo];
+    const deLaDeclaracion = declaracion && cob ? hechosPorClave([claveExacta(declaracion.clave)], porBloque.get(cob.bloque)?.libro_id) : [];
     if (cob && (cob.estado === "cubierto" || cob.estado === "parcial") && cob.hechos.length) {
-      return { codigo, via: "bloque", bloque: cob.bloque, hechos: cob.hechos };
+      return { codigo, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...deLaDeclaracion, ...cob.hechos])] };
     }
+    if (cob && deLaDeclaracion.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: deLaDeclaracion };
     // Alta posterior a la aprobación: los hechos vigentes del libro del bloque dueño, por clave.
     if (cob?.estado === "sin_cobertura" && HECHOS_POR_CLAVE[codigo]) {
       const porClave = hechosPorClave(HECHOS_POR_CLAVE[codigo], porBloque.get(cob.bloque)?.libro_id);
@@ -721,6 +730,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         .map((x) => x.id);
       if (porEnunciado.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: porEnunciado };
     }
+    // Sin la declaración en el Perfil: el marcador dice qué falta y en qué sección del Perfil se contesta (§5).
+    if (declaracion) return { codigo, via: "regla", estado: "pendiente", texto: marcador(declaracion.falta, DONDE_DECLARACIONES) };
     if (cob) {
       const b = BLOQUES.find((x) => x.numero === cob.bloque);
       return { codigo, via: "regla", estado: "pendiente", texto: marcador(`respuesta del requisito ${codigo} en la sección aprobada`, `sección ${cob.bloque} · ${b?.titulo ?? ""}`) };
@@ -1082,8 +1093,13 @@ async function responderBloque(
         }
       }
       // 21(a) (K100): la razón de 19(a)/(b) de la declaración de criterio (Fase 6, revisión externa v5.2).
-      if (p.codigo === "NIIF S2 21(a)" && p.hechos.some((h) => NO_CUANTIFICA_RE.test(h.enunciado)) && !(/identificables? por separado/i.test(g.texto) && /incertidumbre/i.test(g.texto))) {
-        errores.push("no da la razón de NIIF S2 19(a) y 19(b) de la declaración de criterio (efectos no identificables por separado; incertidumbre de medición): es la razón de esta celda; la limitación de los próximos periodos va como oración complementaria");
+      // Exige las razones que la declaración da, no una lista fija: la de la emisora puede dar otra (perfil-declaraciones-alta).
+      if (p.codigo === "NIIF S2 21(a)") {
+        const declaraNo = p.hechos.filter((h) => NO_CUANTIFICA_RE.test(h.enunciado));
+        const razones = [/identificables? por separado/i, /incertidumbre/i].filter((re) => declaraNo.some((h) => re.test(h.enunciado)));
+        if (razones.some((re) => !re.test(g.texto))) {
+          errores.push("no da la razón de NIIF S2 19 y 20 de la declaración de criterio (las que la declaración da: efectos no identificables por separado, incertidumbre de medición): es la razón de esta celda; la limitación de los próximos periodos va como oración complementaria");
+        }
       }
       // K576: ni igual ni parafraseada a la respuesta de 36(e)(i), ni con «No aplica».
       if (p.codigo === CLAVE_RAZON_36E) {

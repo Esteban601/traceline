@@ -102,6 +102,10 @@ export const FUENTES_ALTERNATIVAS: Record<
   { campos: string[]; remitirA: number }
 > = {
   "NIIF S2 10(d)": { campos: ["horizontes"], remitirA: 8 },
+  // Perfil, sección «Efectos financieros» (encargo perfil-declaraciones-alta): el campo es del MISMO bloque que el
+  // requisito, así que lleno cuenta como cumplido sin remitir (decisión 5 de Esteban del Paso 0).
+  "NIIF S2 21(a)": { campos: ["criterio_cuantificacion"], remitirA: 10 },
+  "NIIF S2 B65 inciso (e)": { campos: ["congruencia_estados_financieros"], remitirA: 10 },
 };
 
 export const CONDICIONADOS_POR_ALIVIO: Partial<

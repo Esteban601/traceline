@@ -9,6 +9,7 @@ import { BLOQUES, datapointsExentos } from "@/lib/suplemento/bloques";
 import { leerAlivios, regimenDe } from "@/lib/perfil-emisor";
 import { puntuar, unidades } from "@/lib/suplemento/adjuntos-bloque";
 import { NEGACION, type HechoNuevo, type UnidadTexto } from "./tipos";
+import { DECLARACIONES_PERFIL } from "./razones";
 
 // =============================================================================
 // FUENTES DEL LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5).
@@ -54,7 +55,11 @@ const DUENO_PERFIL: Record<string, { dueno: number; referencia: number[] }> = {
   hitos_corporativos: { dueno: 11, referencia: [] },
   hitos_sostenibilidad: { dueno: 19, referencia: [] },
   cadena_valor: { dueno: 12, referencia: [13] },
+  // Sección «Efectos financieros» (encargo perfil-declaraciones-alta): las dos declaraciones del bloque 10.
+  criterio_cuantificacion: { dueno: 10, referencia: [] },
+  congruencia_estados_financieros: { dueno: 10, referencia: [] },
 };
+
 
 /** Campos de texto libre del Perfil y los bloques que probablemente los usan. */
 const TEXTO_PERFIL: Record<string, { etiqueta: string; sugeridos: number[] }> = {
@@ -77,6 +82,7 @@ const BLOQUES_DE_SECCION: Record<string, number[]> = {
   modelo: [12, 13, 22],
   gobierno: [15, 16, 17, 18, 27],
   materialidad: [7],
+  efectos: [10],
 };
 
 const normCodigo = (c: string) => c.replace(/^NIIF\s*/i, "").replace(/\s+/g, "").toLowerCase();
@@ -282,6 +288,14 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
     directoPerfil("cadena_valor", {
       clave: `cadena_valor.${slug(e.etapa)}`, enunciado: `Etapa «${e.etapa}» de la cadena de valor: ${e.descripcion}`,
       tipo: "proceso", valor: null, unidad: null, periodo: null, fuente_detalle: `Perfil del emisor, cadena de valor (${e.etapa})`, extracto: e.descripcion,
+    });
+  }
+  for (const [campo, def] of Object.entries(DECLARACIONES_PERFIL)) {
+    const v = typeof p[campo] === "string" ? (p[campo] as string).trim() : "";
+    if (!v) continue;
+    directoPerfil(campo, {
+      clave: def.clave, enunciado: v, tipo: NEGACION.test(v) ? "declaracion_negativa" : "otro",
+      valor: null, unidad: null, periodo: null, fuente_detalle: `Perfil del emisor, Efectos financieros (${def.etiqueta})`, extracto: v,
     });
   }
   for (const [campo, def] of Object.entries(TEXTO_PERFIL)) {

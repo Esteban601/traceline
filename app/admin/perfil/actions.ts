@@ -290,6 +290,14 @@ export async function guardarMaterialidad(_p: PerfilState, fd: FormData): Promis
   });
 }
 
+/** Las dos declaraciones del bloque 10: NIIF S2 19–21 (criterio de cuantificación) y B65(e) (congruencia). */
+export async function guardarEfectosFinancieros(_p: PerfilState, fd: FormData): Promise<PerfilState> {
+  return guardar("efectos", texto(fd, "tenant_id"), {
+    criterio_cuantificacion: texto(fd, "criterio_cuantificacion"),
+    congruencia_estados_financieros: texto(fd, "congruencia_estados_financieros"),
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Organigrama: sube al bucket privado `documentos` bajo {tenant_id}/perfil/.
 // -----------------------------------------------------------------------------
