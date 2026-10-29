@@ -975,7 +975,9 @@ const OBJETIVOS = [
     ambito: "climatico",
     naturaleza: "oportunidad",
     tipo: "Objetivo de cartera",
-    tipo_objetivo: "Relativo",
+    // 33(g): un valor de la enumeración de la plantilla (Cuantitativo, Absoluto, De intensidad); un porcentaje sobre la
+    // cartera es de intensidad (Fase 6 de formato-respuesta-por-inciso; antes «Relativo», fuera de la lista).
+    tipo_objetivo: "De intensidad",
     origen_objetivo: "Fijado por la Emisora",
     metrica:
       "Porcentaje de la cartera total con etiqueta sostenible conforme a la Taxonomía Sostenible de México",
@@ -984,7 +986,9 @@ const OBJETIVOS = [
     periodo_aplicacion: "2026-2028",
     periodo_base: "2025 (8.0%)",
     hito_intermedio: "12% en 2026",
-    alineacion_acuerdo_internacional: "Taxonomía Sostenible de México.",
+    // 33(h): cómo influyó el Acuerdo de París (revisión externa v5.2; antes nombraba solo el estándar de referencia).
+    alineacion_acuerdo_internacional:
+      "El Acuerdo de París no influyó directamente en el objetivo: se fijó conforme a la Taxonomía Sostenible de México, y la Compañía no ha evaluado formalmente su alineación con el Acuerdo.",
     proposito_objetivo: "Mitigación por medio del financiamiento: aumentar la cartera que financia actividades alineadas con la Taxonomía Sostenible de México.",
     descripcion:
       "Llevar la cartera con etiqueta sostenible al 20% de la cartera total en 2028, desde el 8.0% del periodo base 2025.",
@@ -1006,7 +1010,7 @@ const OBJETIVOS = [
     ambito: "climatico",
     naturaleza: "riesgo",
     tipo: "Objetivo de cobertura de medición",
-    tipo_objetivo: "Relativo",
+    tipo_objetivo: "De intensidad",
     origen_objetivo: "Fijado por la Emisora",
     metrica: "Porcentaje de la cartera empresarial con emisiones financiadas medidas bajo PCAF",
     meta: "80% en 2027",
@@ -1014,7 +1018,8 @@ const OBJETIVOS = [
     periodo_aplicacion: "2026-2027",
     periodo_base: "2025 (42%)",
     hito_intermedio: "60% en 2026",
-    alineacion_acuerdo_internacional: "Metodología PCAF.",
+    alineacion_acuerdo_internacional:
+      "El Acuerdo de París no influyó directamente en el objetivo: es un objetivo de medición de las emisiones financiadas conforme a la metodología PCAF, y la Compañía no ha evaluado formalmente su alineación con el Acuerdo.",
     proposito_objetivo: "Gestión del riesgo de transición de la cartera: medir las emisiones financiadas de la cartera empresarial como base para fijar objetivos de reducción.",
     descripcion:
       "Medir las emisiones financiadas del 80% de la cartera empresarial bajo PCAF en 2027, desde el 42% del periodo base 2025.",
