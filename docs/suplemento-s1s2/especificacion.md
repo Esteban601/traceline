@@ -1,6 +1,8 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.48** · 29 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.49** · 29 de octubre de 2026.
+
+**Cambios respecto a 0.48** (despliegue v43): §10, registro de v43 cerrado con el resultado del día.
 
 **Cambios respecto a 0.47** (encargo 2026-10-28-formato-respuesta-por-inciso, cierre): §10, registro de v43
 (pendiente), con las dos migraciones del encargo y sin plantilla.
@@ -1778,7 +1780,7 @@ el del bloque 10 nuevo en lugar del primero (0.3387).
 
 **Orden seguido:** el del runbook v3; ver «Resultado» al inicio de esta sección.
 
-### staging · release v43 · pendiente
+### staging · release v43 · 29 de octubre de 2026 (21:01 UTC) · `96da0bb`
 
 **Respuesta por inciso del Formato electrónico y del Excel de taxonomía.** Encargo
 `docs/encargos/2026-10-28-formato-respuesta-por-inciso.md`, cerrado el 29 de octubre de 2026 con la revisión externa
@@ -1798,7 +1800,27 @@ barrera 108 y 97 migraciones después. v42 funciona con las dos aplicadas, así 
 **Sin plantilla:** la del Formato en Storage sigue siendo `217912465e5c…bad46`. **Sin cambio de catálogo:** la foto de
 Cobertura después del release tiene que ser igual a la de antes.
 
-**Resultado:** pendiente.
+**Resultado (runbook `docs/encargos/2026-10-29-runbook-v43.md`, v2).**
+1. **Privilegios de `service_role`:** staging igual a dev: 37 tablas con los 7 privilegios, 0 distintas (comparación de
+   Claude Code sobre el archivo de Esteban, antes del push).
+2. **Foto «antes»** (20:58 UTC): 22 emisoras × 121 códigos, 920 solicitudes y 1,436 enlaces.
+3. **Migraciones** (Esteban, `migrar-remoto.sh staging` en tres pasadas, «todo lo esperado»): las dos en un `db push`;
+   97 de 97 y barrera 108.
+4. **Release:** `git push heroku main` por Claude Code con autorización de Esteban por chat → **v43**, `Deploy
+   96da0bb0`, 21:01:23 UTC; `web.1` arriba a las 21:01:38 UTC. Sin plantilla.
+5. **`comprobar-v43.mjs --destino staging`** en verde (solo lectura, con autorización de Esteban):
+   - `/login` 200;
+   - 22 emisoras en la base y en la foto «antes»;
+   - foto «después» igual a la «antes» (22 × 121, 920 solicitudes, 1,436 enlaces; 0 celdas de diferencia, como dice
+     `esperado-cobertura-v43.json`), con los totales de las 22 emisoras cuadrados;
+   - plantilla en Storage `217912465e5c…`, la de v42;
+   - Formato de Empresa Demo 409, «aún no hay un documento aprobado con sus respuestas», como en v42;
+   - `objetivos.proposito_objetivo` se lee (6 objetivos visibles); Excel de taxonomía de Empresa Demo 200.
+6. **Logs desde el release:** 23 líneas y 4 peticiones; 0 respuestas 5xx, 0 `Error:`, 0 códigos H; máxima 1,366 ms.
+
+Ningún documento se regenera con el release (0 aprobados en staging desde v42). En el próximo Excel de cada emisora, la
+hoja «NIIF S2 33» lleva el marcador de 33(b) donde el objetivo no tiene propósito capturado, y el de 33(g) donde el tipo
+no está en la lista de la plantilla.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
