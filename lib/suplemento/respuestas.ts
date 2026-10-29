@@ -294,7 +294,9 @@ export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfo
   // NIIF S2 29(a)(iii) por inciso (Fase 5): K596 el enfoque, K597 los datos de entrada y supuestos, K599 la razón (solo
   // con un hecho que la dé; si no, vacía y el marcador de §5 en el Excel). K601 (cambios) sale del cuestionario de GEI.
   { fila: 317, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "el enfoque de medición de las emisiones de GEI: la norma o el protocolo, el enfoque de consolidación y los factores de emisión. Sin los datos de entrada ni los supuestos, que van en la fila 318" },
-  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones). Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
+  // K597 recibe también las declaraciones negativas: una exclusión del inventario (fugas de refrigerantes, HFC) es un
+  // supuesto de la medición (Esteban, 29/10; antes la regla de las celdas por efecto la dejaba fuera).
+  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan). Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
   { fila: 320, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, soloHechos: /(?<!\p{L})(porque|raz[oó]n|debido a|eligi[oó]|se eligi[oó]|a fin de|con el fin de)(?!\p{L})/iu, enfoque: "la razón por la que la Compañía eligió su enfoque de medición, sus datos de entrada y sus supuestos, tal como la dan los hechos" },
   // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
   // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
