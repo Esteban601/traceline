@@ -110,6 +110,27 @@ console.log("\nFormato electrónico · NIIF S2 16(a) por efecto (Fase 2)");
   const choques = [];
   for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
   ok(!choques.length, `ninguna celda de 16(a) (K84, K85, K87, K89) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
+  // Ajustes de Esteban a la Fase 2.
+  const sinTipo = [86, 88, 90].filter((f) => !texto(est.getCell(`F${f}`).value));
+  todas(sinTipo, (t) => !t, `filas de instrucción sin tipo en la plantilla (columna F), vacías (${sinTipo.map((f) => `K${f}`).join(", ")})`);
+  ok(/^Los importes del periodo relacionados con /.test(K(89)) && /no identificó otros efectos en sus flujos de efectivo/.test(K(89)), "K89: «Los importes del periodo relacionados con … fueron …; la Compañía no identificó otros efectos en sus flujos de efectivo»");
+  ok(!/(?<!\p{L})(salidas?|pagos?|desembols\p{L}*)(?!\p{L})/iu.test(K(89)), "K89 sin «salida», «pago» ni «desembolso» (ningún hecho del demo los dice)");
+}
+
+console.log("\nFormato electrónico · NIIF S2 16(d) por efecto y por plazo (Fase 2, ajuste 3)");
+{
+  const oraciones = (t) => t.split(/(?<=\.)\s+|\n/).map((o) => o.replace(/^(Corto|Mediano|Largo) plazo:\s*/, "").trim()).filter(Boolean);
+  ok(!!K(96) && !!K(98), "K96 (rendimiento previsto) y K98 (flujos previstos) con respuesta propia");
+  ok(/no proporciona información cuantitativa/.test(K(96)) && !/no proporciona información cuantitativa/.test(K(98)), "la razón de no cuantificar (NIIF S2 21) en K96, no repetida en K98");
+  ok(/9 millones/.test(K(98)) && !/9 millones/.test(K(96)), "el ahorro de 9 millones anuales en K98, no en K96");
+  for (const f of [97, 99]) {
+    const lineas = K(f).split("\n").filter(Boolean);
+    ok(lineas.every((l) => /^(Corto|Mediano|Largo) plazo: /.test(l)) && new Set(lineas.map((l) => l.replace(/^\S+ plazo: /, ""))).size === lineas.length, `K${f}: una línea por plazo con hechos, sin el mismo texto en dos plazos (${lineas.length ? `${lineas.length} línea(s)` : "vacía: ningún hecho de 16(d) nombra un plazo"})`);
+  }
+  const celdas = [96, 97, 98, 99];
+  const choques = [];
+  for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
+  ok(!choques.length, `ninguna celda de 16(d) (K96–K99) repite o parafrasea una oración de otra${choques.length ? ` — no: ${[...new Set(choques)].join(", ")}` : ""}`);
 }
 
 console.log("\nFormato electrónico · NIIF S2 36(e) en un solo estado");
@@ -181,7 +202,7 @@ ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c)
   const [s97, s98, s99] = porCodigo.get("NIIF S2 16(a)") ?? [];
   ok(!!s97 && s98 === K(87) && s99 === K(89), "Excel 98 y 99 (16(a) rendimiento y flujos): las respuestas propias de K87 y K89");
   const d = porCodigo.get("NIIF S2 16(d)") ?? [];
-  ok(d.length === 2 && !!d[1] && d[1] !== d[0], "Excel 104 (16(d) flujos previstos): respuesta propia, distinta de la 103, sin fila intermedia");
+  ok(d.length === 2 && d[1] === K(98) && d[1] !== d[0], "Excel 104 (16(d) flujos previstos): la respuesta de K98, distinta de la 103, sin fila intermedia");
 }
 
 console.log("\nExcel de taxonomía · hojas de datos");

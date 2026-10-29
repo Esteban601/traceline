@@ -1,5 +1,5 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
-import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
 import type { Alivios } from "@/lib/perfil-emisor";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
@@ -153,9 +153,9 @@ const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
 const FILAS_29E = new Set([350, 373, 396]);
 /**
- * Filas de instrucción de la pregunta de arriba («Revelar información cuantitativa y cualitativa…», NIIF S2 16(a)): la
- * respuesta va en la fila de la pregunta (85, 87, 89), que ya da importes y explicación. Vacías por regla
- * (encargo formato-respuesta-por-inciso, Fase 2); antes repetían el párrafo completo.
+ * Filas de instrucción de la pregunta de arriba («Revelar información cuantitativa y cualitativa…», NIIF S2 16(a)):
+ * con tipo en la plantilla, la parte cuantitativa del inciso; sin tipo (las tres de la plantilla 2025), vacías: la
+ * pregunta de arriba ya la responde (encargo formato-respuesta-por-inciso, Fase 2). Antes repetían el párrafo completo.
  */
 const FILAS_INSTRUCCION: Record<number, number> = { 86: 85, 88: 87, 90: 89 };
 /** Fechas del periodo del análisis de escenarios (D5): 117 inicio, 119 fin. */
@@ -293,7 +293,11 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (tipo === "tabla") return tabla(c);
     if (/^enumeración/.test(tipo)) return enumeracion(c);
 
-    if (FILAS_INSTRUCCION[c.fila]) return { texto: null, origen: "regla", nota: `instrucción de la pregunta de la fila ${FILAS_INSTRUCCION[c.fila]}, que la responde` };
+    // Con tipo en la plantilla, la parte cuantitativa propia (`fila:N`); sin tipo, vacía (ajuste 1 de Esteban, Fase 2).
+    if (FILAS_INSTRUCCION[c.fila]) {
+      const propia = /^text/.test(tipo) ? textoDe(`fila:${c.fila}`) : null;
+      return propia ? { texto: propia, origen: "respuesta", nota: "parte cuantitativa del inciso" } : { texto: null, origen: "regla", nota: `instrucción sin tipo de la pregunta de la fila ${FILAS_INSTRUCCION[c.fila]}, que la responde` };
+    }
     // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
     if (FILAS_29E.has(c.fila)) {
       const r = resp("formato", `fila:${c.fila}`);
@@ -411,10 +415,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const otras = /no existen participadas|no hay participadas|ninguna participada/i.test(t) ? "Otras participadas: no existen participadas fuera de la consolidación con emisiones relevantes" : null;
       return { texto: conAnterior([`Grupo contable consolidado: ${alcances}`, ...(otras ? [otras] : []), `Total revelado: ${alcances}`]).join("\n"), origen: "datos" };
     }
-    // 97 (rendimiento) y 99 (flujos de efectivo): cada una con su respuesta propia (fila:N), por horizonte; nunca se copian ni remiten.
-    if (c.fila === 97 || c.fila === 99) {
-      const propia = textoDe(`fila:${c.fila}`);
-      return propia ? { texto: HORIZONTES.map((h) => `${h}: ${propia}`).join("\n"), origen: "datos", nota: "respuesta propia del concepto desde los hechos de 16(d)" } : { texto: null, origen: "pendiente" };
+    // 97 (rendimiento) y 99 (flujos de efectivo): una línea por plazo, solo los plazos con una respuesta propia desde los
+    // hechos que lo nombran (`fila:97:corto`…); sin ninguno, vacía (ajuste 3 de Esteban, Fase 2). Antes, el mismo texto
+    // en los tres plazos.
+    if (TABLAS_POR_HORIZONTE.some((t) => t.fila === c.fila)) {
+      const lineas = HORIZONTES_TABLA.map((h) => [h.nombre, textoDe(`fila:${c.fila}:${h.clave}`)] as const).filter(([, t]) => !!t).map(([n, t]) => `${n}: ${t}`);
+      return lineas.length ? { texto: lineas.join("\n"), origen: "datos", nota: "por plazo, con los hechos que lo nombran" } : { texto: null, origen: "regla", nota: "ningún hecho del código nombra un plazo" };
     }
     if (dp === "NIIF S2 16(c)(i)(ii)" || dp === "NIIF S2 16(d)" || dp === "NIIF S2 22(a)(iii)") return porHorizonte(dp);
     if (dp === "NIIF S2 22(b)(i)" || dp === "NIIF S2 22(b)(ii)") {

@@ -5,7 +5,7 @@
  */
 export const CONTINUACIONES: Record<string, Record<number, string>> = {
   "NIIF S2 16(a)": { 1: "fila:87", 2: "fila:89" },
-  "NIIF S2 16(d)": { 1: "fila:99" },
+  "NIIF S2 16(d)": { 1: "fila:98" },
   "NIIF S1 35(a)": { 1: "madre", 2: "madre" },
   "NIIF S1 35(d)": { 1: "madre" },
 };
