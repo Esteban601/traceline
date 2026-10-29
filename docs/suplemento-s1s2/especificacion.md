@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.49** · 29 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.50** · 29 de octubre de 2026.
+
+**Cambios respecto a 0.49** (encargo 2026-10-29-perfil-declaraciones-alta, cierre): §10, registro de v44 (pendiente),
+con la migración del encargo y sin plantilla.
 
 **Cambios respecto a 0.48** (despliegue v43): §10, registro de v43 cerrado con el resultado del día.
 
@@ -1821,6 +1824,31 @@ Cobertura después del release tiene que ser igual a la de antes.
 Ningún documento se regenera con el release (0 aprobados en staging desde v42). En el próximo Excel de cada emisora, la
 hoja «NIIF S2 33» lleva el marcador de 33(b) donde el objetivo no tiene propósito capturado, y el de 33(g) donde el tipo
 no está en la lista de la plantilla.
+
+### staging · release v44 · pendiente
+
+**Declaraciones del bloque 10 en el Perfil del emisor.** Encargo `docs/encargos/2026-10-29-perfil-declaraciones-alta.md`,
+cerrado el 29 de octubre de 2026 como «código en main; demo pendiente de v6». En `main` desde el PR #49 (`61eb454`).
+Runbook: `docs/encargos/2026-10-29-runbook-v44.md`.
+
+**Qué entra:** sección «Efectos financieros» del Perfil del emisor, con adjuntos, que pide el criterio de cuantificación
+de los efectos financieros (NIIF S2 19–21, para 21(a)) y la congruencia de los datos y supuestos con los estados
+financieros (NIIF S2 B65(e)). Cada declaración entra al libro de hechos tal cual, con clave fija y dueño el bloque 10.
+Llena, su requisito cuenta como cumplido; vacía, el bloque 10 lleva un faltante «Falta en el Perfil» con enlace a la
+sección, y la respuesta, el marcador de CLAUDE.md §5 que nombra la sección.
+
+**Migración** (la ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`):
+`20261029140000_perfil_efectos_financieros` (dos columnas nullable en `perfil_emisor` y el CHECK de
+`perfil_emisor_adjuntos.seccion` sustituido por uno más amplio con `efectos`). Aditiva, con la barrera del auditor;
+barrera 108 y 98 migraciones después. v43 funciona con la migración aplicada, así que va antes del push.
+
+**Sin plantilla:** la del Formato en Storage sigue siendo `217912465e5c…bad46`. **Sin cambio de catálogo ni de
+solicitudes:** la foto de Cobertura después del release tiene que ser igual a la de antes.
+
+**Lo que verán las 22 emisoras:** dos faltantes «Falta en el Perfil» en el bloque 10 (21(a) y B65(e)) hasta que
+contesten la sección. Nada se bloquea; ningún documento cambia (0 aprobados en staging).
+
+**Resultado:** pendiente.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
