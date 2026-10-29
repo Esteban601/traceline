@@ -31,4 +31,20 @@ export const CONTINUACIONES: Record<string, Record<number, string>> = {
   "NIIF S2 29 (f) (i) y (ii)": { 0: "K:417", 1: "K:418", 2: "K:420" },
   "NIIF S2 29 (g) (i) y (ii)": { 0: "K:425", 1: "K:426", 2: "K:428" },
   "NIIF S2 36 (e)(i)a(iv)": { 1: "K:256", 2: "K:257" },
+  // Fase 5 · NIIF S2 29(a)(iii) por inciso (f130–f133): enfoque, datos y supuestos, razón, cambios. La plantilla repite
+  // las cuatro preguntas en f134–f137; esa copia queda vacía para no repetir texto (deuda conocida de la plantilla).
+  "NIIF S2 29 (a)(iii)": { 0: "fila:317", 1: "fila:318", 2: "fila:320", 3: "K:322" },
+  // Fase 5 · 29(e) por tipo: el despliegue de capital de cada tipo (f153, f162, f171), como K629, K652 y K675.
+  "NIIF S2 29 (b)": { 1: "fila:350" },
+  "NIIF S2 29 (c)": { 1: "fila:373" },
+  "NIIF S2 29 (d)": { 1: "fila:396" },
+};
+
+/**
+ * Marcador de §5 (texto plano en el Excel) cuando falta la respuesta de una continuación que sí debería tenerla. Las que
+ * no están aquí quedan vacías si falta (por ejemplo, 29(e) de un tipo sin despliegue de capital en el libro).
+ */
+export const PENDIENTE_CONTINUACION: Record<string, string> = {
+  "fila:320": "Pendiente: razón por la que se eligieron el enfoque de medición, los datos de entrada y los supuestos de GEI — hecho del bloque de métricas de GEI",
+  "K:322": "Pendiente: respuesta de la emisora a esta pregunta — cuestionario NIIF S2 29(a)(iii)",
 };

@@ -25,7 +25,9 @@
 // su "Tipo de dato" capturado libremente (sin cambios).
 // =============================================================================
 
-export type HojaCuestionario = "S2 22(b)(i)" | "S2 22(b)(ii)" | "S2 36(e)";
+export type HojaCuestionario = "S2 22(b)(i)" | "S2 22(b)(ii)" | "S2 36(e)" | "S2 29(a)(iii)";
+/** Cuestionario de GEI (encargo formato-respuesta-por-inciso, Fase 5; migración 20261029130000). Sin hoja en el Excel. */
+export const HOJA_GEI = "S2 29(a)(iii)" as const;
 
 export type ControlCuestionario = "texto" | "booleano" | "enum_multi" | "enum_single";
 
@@ -153,6 +155,12 @@ const S2_36E: PreguntaCuestionario[] = [
     texto: "Información sobre cualquier otro factor necesario para que los usuarios de informes financieros con propósito general comprendan la credibilidad e integridad de los créditos de carbono que la entidad prevé utilizar (por ejemplo, supuestos relativos a la permanencia de la compensación de carbono)" },
 ];
 
+/** NIIF S2 29(a)(iii)(3): cambios en el enfoque de medición de GEI (decisión 4 de Esteban, Paso 0). */
+const S2_29AIII: PreguntaCuestionario[] = [
+  { orden: 1, inciso: "S2 29(a)(iii)(3)", control: "texto", pendienteValidacion: false,
+    texto: "Cambios que la entidad haya introducido durante el periodo en el enfoque de medición, los datos de entrada y los supuestos que utiliza para medir sus emisiones de gases de efecto invernadero, y las razones de esos cambios" },
+];
+
 export const CUESTIONARIOS: SeccionCuestionario[] = [
   {
     hoja: "S2 22(b)(i)",
@@ -175,11 +183,18 @@ export const CUESTIONARIOS: SeccionCuestionario[] = [
     etiquetaColumna: "Pregunta",
     preguntas: S2_36E,
   },
+  {
+    hoja: "S2 29(a)(iii)",
+    hojaExcel: "NIIF S2 29(a)(iii)",
+    titulo: "Medición de emisiones de gases de efecto invernadero",
+    etiquetaColumna: "Pregunta",
+    preguntas: S2_29AIII,
+  },
 ];
 
 export const HOJAS_CUESTIONARIO: HojaCuestionario[] = CUESTIONARIOS.map((s) => s.hoja);
 
-/** Valida que un `hoja` de entrada sea una de las 3 conocidas. */
+/** Valida que un `hoja` de entrada sea una de las conocidas. */
 export function esHojaCuestionario(v: string): v is HojaCuestionario {
   return (HOJAS_CUESTIONARIO as string[]).includes(v);
 }

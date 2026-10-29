@@ -1,5 +1,6 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
 import { filaExportada } from "@/lib/formato/objetivos";
+import { HOJA_GEI } from "@/lib/cuestionarios";
 import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
 import type { Alivios } from "@/lib/perfil-emisor";
@@ -327,6 +328,12 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (FILAS_POR_EFECTO.has(c.fila)) {
       const r = resp("formato", `fila:${c.fila}`);
       return r?.texto && r.estado === "respuesta" ? { texto: conE5(r.texto), origen: "respuesta", e5: ponE5(r.texto) } : { texto: null, origen: "regla", nota: "sin respuesta propia de este efecto: lo responden las demás celdas del párrafo" };
+    }
+    // NIIF S2 29(a)(iii)(3), cambios en el enfoque de medición (Fase 5): la respuesta de la emisora en el cuestionario de
+    // GEI; sin ella, vacía (§5: en el Formato, el pendiente es la celda vacía).
+    if (c.fila === 322) {
+      const t = (d.cuestionarios[HOJA_GEI] ?? [])[0]?.trim();
+      return t ? { texto: t, origen: "datos", nota: "cuestionario de GEI" } : { texto: null, origen: "pendiente", nota: "sin respuesta en el cuestionario de GEI" };
     }
     // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
     if (FILAS_29E.has(c.fila)) {

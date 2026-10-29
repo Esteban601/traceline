@@ -18,7 +18,7 @@ import {
 } from "@/lib/reporte/ensamblar";
 import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
-import { CONTINUACIONES } from "@/lib/excel/continuaciones";
+import { CONTINUACIONES, PENDIENTE_CONTINUACION } from "@/lib/excel/continuaciones";
 import { llenarFormato } from "@/lib/formato/llenar";
 import { esObjetivoDeEmisiones } from "@/lib/formato/objetivos";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
@@ -113,8 +113,11 @@ const EN_PREPARACION = "En preparación";
 function escribirRespuestas(
   ws: ExcelJS.Worksheet,
   respuestas: Map<string, string> | null,
-  delFormato: Map<string, string> = new Map()
+  delFormato: Map<string, string> = new Map(),
+  sectores: string[] = []
 ): { escritas: number; enPreparacion: number; hijos: number } {
+  // NIIF S2 32 (Fase 5): la lista de sectores marca con «Sí» la opción del sector del Perfil, por su clave [nnnnnn].
+  const clavesSector = new Set(sectores.map((x) => x.match(/\[(\d{6})\]/)?.[1]).filter((x): x is string => !!x));
   const norm = (v: unknown): string => {
     if (v === null || v === undefined) return "";
     if (typeof v === "object" && v !== null && "richText" in v) {
@@ -143,8 +146,18 @@ function escribirRespuestas(
       // requisito (columna D): la plantilla trae filas intermedias vacías que la depuración borra si quedan vacías.
       if (!norm(ws.getCell(`D${nf}`).value)) return;
       visto.veces++;
+      if (codigo === "NIIF S2 32" && respuestas) {
+        const clave = norm(ws.getCell(`D${nf}`).value).match(/\[(\d{6})\]/)?.[1];
+        if (clave && clavesSector.has(clave)) {
+          const celda = ws.getCell(`E${nf}`);
+          celda.value = "Sí";
+          celda.alignment = { vertical: "top", wrapText: true };
+          escritas++;
+        }
+        return;
+      }
       const de = CONTINUACIONES[codigo]?.[visto.veces - 1];
-      const t = !respuestas || !de ? null : de === "madre" ? visto.texto : delFormato.get(de) ?? null;
+      const t = !respuestas || !de ? null : de === "madre" ? visto.texto : delFormato.get(de) ?? PENDIENTE_CONTINUACION[de] ?? null;
       // «K:N» lo resuelve quien llama, con el llenado del Formato, y llega en delFormato con esa misma clave.
       if (t) {
         const celda = ws.getCell(`E${nf}`);
@@ -159,7 +172,7 @@ function escribirRespuestas(
     // Ninguna celda exportada lleva el marcador «[Pendiente: …]» (CLAUDE.md §5,
     // 1.10): en este libro va en texto plano.
     // La primera fila toma solo su parte si CONTINUACIONES la nombra (índice 0); si esa parte no existe, la del código.
-    const propia = respuestas && CONTINUACIONES[codigo]?.[0] ? delFormato.get(CONTINUACIONES[codigo][0]) ?? null : null;
+    const propia = respuestas && CONTINUACIONES[codigo]?.[0] ? delFormato.get(CONTINUACIONES[codigo][0]) ?? PENDIENTE_CONTINUACION[CONTINUACIONES[codigo][0]] ?? null : null;
     const r = propia ?? respuestas?.get(codigo);
     const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
     vistos.set(codigo, { veces: 1, texto: texto === EN_PREPARACION ? null : texto });
@@ -478,7 +491,8 @@ function escribirObjetivos(
       put(s33, `A${fila}`, nombre);
       put(s33, `B${fila}`, o.tipo);
       put(s33, `C${fila}`, o.metrica);
-      put(s33, `D${fila}`, o.meta);
+      // 33(b) «Objetivo de la meta»: el propósito del objetivo (Fase 4); sin él, el marcador de §5 en texto plano.
+      put(s33, `D${fila}`, o.proposito_objetivo?.trim() || pendienteObjetivo("propósito del objetivo (NIIF S2 33(b))", nombre));
       put(s33, `E${fila}`, o.parte_entidad);
       put(s33, `F${fila}`, o.periodo_aplicacion);
       put(s33, `G${fila}`, o.periodo_base);
@@ -821,9 +835,11 @@ export async function GET(request: Request) {
     const delFormato = new Map((filasFormato ?? []).filter((r) => r.estado === "respuesta" && r.texto).map((r) => [r.clave, r.texto!]));
     // «K:N»: el valor que escribe el Formato electrónico en su fila N (booleanos y ramas con sus reglas), para que las
     // dos entregas digan lo mismo. Si el Formato no se puede llenar, esas filas quedan vacías.
+    let sectores: string[] = [];
     if (respuestas && Object.values(CONTINUACIONES).some((x) => Object.values(x).some((v) => v.startsWith("K:")))) {
       const ins = await insumosDelFormato(supabase, reporteId);
       if (ins.ok) {
+        sectores = ins.datos.perfil.sector_sasb;
         const valores = llenarFormato(ins.datos);
         for (const v of Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((v) => v.startsWith("K:"))) {
           const t = valores.get(Number(v.slice(2)))?.texto;
@@ -831,7 +847,7 @@ export async function GET(request: Request) {
         }
       } else console.warn(`[export-taxonomia] reporte=${reporteId} sin llenado del Formato para las continuaciones: ${ins.error}`);
     }
-    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas, delFormato);
+    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas, delFormato, sectores);
     if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
   }
 

@@ -290,7 +290,12 @@ const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).m
  * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
  * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean }[] = [
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp }[] = [
+  // NIIF S2 29(a)(iii) por inciso (Fase 5): K596 el enfoque, K597 los datos de entrada y supuestos, K599 la razón (solo
+  // con un hecho que la dé; si no, vacía y el marcador de §5 en el Excel). K601 (cambios) sale del cuestionario de GEI.
+  { fila: 317, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "el enfoque de medición de las emisiones de GEI: la norma o el protocolo, el enfoque de consolidación y los factores de emisión. Sin los datos de entrada ni los supuestos, que van en la fila 318" },
+  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones). Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
+  { fila: 320, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, soloHechos: /(?<!\p{L})(porque|raz[oó]n|debido a|eligi[oó]|se eligi[oó]|a fin de|con el fin de)(?!\p{L})/iu, enfoque: "la razón por la que la Compañía eligió su enfoque de medición, sus datos de entrada y sus supuestos, tal como la dan los hechos" },
   // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
   // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
   { fila: 36, codigo: "NIIF S2 6 (a)(v)", porEfecto: true, sinHechos: /remuneraci[oó]n/i, enfoque: "cómo el órgano de gobierno supervisa el establecimiento de los objetivos relacionados con el clima y el seguimiento de su avance. Sin la remuneración, que va en las filas 38 y 39" },
@@ -784,7 +789,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         .filter((x) => !vistos.has(x.enunciado) && vistos.add(x.enunciado))
         .map((x) => x.id);
     })();
-    const propios = c.porEfecto ? (cob?.hechos ?? []).filter((id) => (c.conNegativas || hechos.get(id)?.tipo !== "declaracion_negativa") && !(c.sinHechos && c.sinHechos.test(hechos.get(id)?.enunciado ?? "")) && !(c.sinFechados && (fechado(id) || yaAsignados.get(c.codigo)?.has(id)))) : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
+    const propios = c.porEfecto ? (cob?.hechos ?? []).filter((id) => (c.conNegativas || hechos.get(id)?.tipo !== "declaracion_negativa") && !(c.sinHechos && c.sinHechos.test(hechos.get(id)?.enunciado ?? "")) && !(c.soloHechos && !c.soloHechos.test(hechos.get(id)?.enunciado ?? "")) && !(c.sinFechados && (fechado(id) || yaAsignados.get(c.codigo)?.has(id)))) : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
       const x = hechos.get(id);
       return !x || !PLAN_DISPOSICION_RE.test(x.enunciado) || disposicionAqui(x);
     });
