@@ -28,18 +28,18 @@ REF_STAGING="ewgnvjtjhvdltvkopptn"
 # el de v33 (sqpxcxewoznhpwvhxamy), el 5/10. Con el marcador, «ensayo» falla.
 REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# v41 (encargo 2026-10-14-excel-formato-a-produccion): las 5 del encargo
-# excel-respuestas-narrativas (PR #27), aditivas y sin relleno.
-# Anteriores: v40, las 18 de 20261006140000 a 20261011121000; v39,
+# v42 (runbook docs/encargos/2026-10-28-runbook-v42.md): las 4 de los encargos
+# deuda-s2-formato, carga-lectura-primero y formato-afirmaciones-y-voz, en un solo
+# db push, como en v41.
+# Anteriores: v41, las 5 de 20261013120000 a 20261014120000; v40, las 18 de 20261006140000 a 20261011121000; v39,
 # 20261006120000 y 20261006130000; v33, las 30 de 20261005120000 a
 # 20261005130100; v32.1, 20261004170000_jefe_area_sube_evidencia; v31,
 # 20261001140000; v30, 20261001120000; v29, las 20260929*.
 ESPERADAS=(
-  20261013120000_respuestas_datapoint.sql
-  20261013130000_perfil_formato_electronico.sql
-  20261013140000_perfil_actividad_sasb.sql
-  20261013150000_perfil_metricas_industria.sql
-  20261014120000_metricas_asociadas_origen_objetivo.sql
+  20261024120000_catalogo_s2_21a.sql
+  20261024130000_catalogo_padres_fase3.sql
+  20261026120000_decidir_sugerencia_sin_doble_captura.sql
+  20261027120000_perfil_fideicomitente_administrador.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
@@ -52,6 +52,8 @@ ESPERADAS=(
 # = 105 (medido en dev el 11/10/2026, también tras las 2 de fix/pre-v40).
 # v41: 105 + 3 de respuestas_datapoint = 108 (medido en local el 14/10/2026; las
 # otras 4 migraciones solo agregan columnas).
+# v42: 108; ninguna de las 4 crea tablas ni buckets (filas del catálogo, una
+# función y dos columnas).
 BARRERA_ESPERADA="${BARRERA_ESPERADA:-108}"
 
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"

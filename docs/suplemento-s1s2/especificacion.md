@@ -1677,9 +1677,9 @@ auditor; aplicada en dev el 27/10.
 (sha256 `eb09aa55…146786`); v42 lleva la limpia de la Fase 5 del encargo `2026-10-26-formato-afirmaciones-y-voz`
 (sha256 `217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46`, 6,423,970 bytes, sin la nota «pendiente de
 catálogo SASB» en A2 de «Métricas SASB»), en Storage de dev desde el 28/10. El registro por ambiente está en
-`scripts/formato/subir-plantilla.mjs` (`SHA_ESPERADO`): ese día, staging pasa al sha256 nuevo. El script sube sin
-reemplazar, así que el reemplazo en staging necesita un paso propio, que se escribe antes del despliegue. Sin el
-reemplazo, el Formato de staging sigue saliendo con esa nota.
+`scripts/formato/subir-plantilla.mjs` (`SHA_ESPERADO`), que para staging ya tiene el sha256 nuevo. El script sube sin
+reemplazar: Esteban reemplaza el archivo a mano y el script lo verifica en modo lectura, y esa verificación bloquea el
+despliegue. Guion del día: `docs/encargos/2026-10-28-runbook-v42.md`.
 
 **Antes de migrar, privilegios de `service_role`:** se corre `scripts/despliegue/privilegios-service-role.sql` (solo
 lectura) contra staging y se compara con dev, donde las 37 tablas de `public` tienen los 7 privilegios (consulta del
