@@ -20,7 +20,7 @@ import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
 import { CONTINUACIONES, PENDIENTE_CONTINUACION } from "@/lib/excel/continuaciones";
 import { llenarFormato } from "@/lib/formato/llenar";
-import { esObjetivoDeEmisiones } from "@/lib/formato/objetivos";
+import { esObjetivoDeEmisiones, nombreConMeta } from "@/lib/formato/objetivos";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { insumosDelFormato, verificacionGeiDelDocumento } from "@/lib/formato/datos";
@@ -488,7 +488,8 @@ function escribirObjetivos(
     const d = detallePorObj.get(o.id);
 
     if (s33) {
-      put(s33, `A${fila}`, nombre);
+      // «Nombre o descripción del objetivo»: con el valor de la meta, como la fila 217 del Formato.
+      put(s33, `A${fila}`, nombreConMeta({ nombre, meta: o.meta }));
       put(s33, `B${fila}`, o.tipo);
       put(s33, `C${fila}`, o.metrica);
       // 33(b) «Objetivo de la meta»: el propósito del objetivo (Fase 4); sin él, el marcador de §5 en texto plano.

@@ -59,7 +59,7 @@ export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; 
 export type ObjetivoFormato = {
   nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null;
   // Por inciso (encargo formato-respuesta-por-inciso, Fase 4): un bloque «Objetivo N» por objetivo.
-  descripcion?: string | null; metrica?: string | null; parte_entidad?: string | null; periodo_aplicacion?: string | null; periodo_base?: string | null;
+  descripcion?: string | null; metrica?: string | null; meta?: string | null; parte_entidad?: string | null; periodo_aplicacion?: string | null; periodo_base?: string | null;
   hito_intermedio?: string | null; alineacion?: string | null; proposito?: string | null; validacion_tercero?: string | null; procesos_revision?: string | null;
   metricas_supervision?: string | null; revisiones?: string | null; resultados?: string | null; analisis_tendencias?: string | null;
   enfoque_descarbonizacion?: string | null;
