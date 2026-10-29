@@ -928,8 +928,8 @@ const CUESTIONARIOS = {
     // 3 a 5 son enumeraciones y texto sobre créditos que no se usarán; se dejan
     // como estaban porque el documento no las contesta.
   ],
-  // Cuestionario de GEI (encargo formato-respuesta-por-inciso, Fase 5; migración 20261029130000_cuestionario_gei).
-  // PENDIENTE DE APROBACIÓN DE ESTEBAN: no correr poblar-demo antes de aplicar la migración.
+  // Cuestionario de GEI (encargo formato-respuesta-por-inciso, Fase 5; migración 20261029130000_cuestionario_gei,
+  // aprobada por Esteban con esta respuesta el 29/10/2026).
   "S2 29(a)(iii)": [
     // 1 · cambios en el enfoque de medición, los datos de entrada y los supuestos, y sus razones
     "Sin cambios en 2025: es el primer periodo en que la Compañía mide sus emisiones de Alcances 1 y 2 conforme al Protocolo GEI y el año base de sus objetivos, por lo que no hay un enfoque anterior con el cual comparar.",
