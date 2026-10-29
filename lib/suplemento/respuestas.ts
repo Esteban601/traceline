@@ -273,6 +273,8 @@ export const CLAVE_RAZON_36E = "fila:257";
 const esClaveDeHorizonte = (codigo: string) => TABLAS_POR_HORIZONTE.some((t) => HORIZONTES_TABLA.some((h) => codigo === `fila:${t.fila}:${h.clave}`));
 /** Palabras que afirman un flujo de efectivo; en una celda por efecto, solo si un hecho las sustenta (ajuste 2, K89). */
 const FLUJO_RE = /(?<!\p{L})(salidas?|pagos?|pagad[oa]s?|pag[oó]|desembols\p{L}*)(?!\p{L})/iu;
+/** La razón de no dar información cuantitativa (NIIF S2 19–21): va en 21(a), no en las síntesis. */
+const NO_CUANTIFICA_RE = /no proporciona informaci[oó]n cuantitativa|no cuantific|no son identificables por separado/i;
 /** Lo que no es despliegue de capital: importes registrados como gasto, o la aclaración de que algo no se incluye. */
 const GASTO_NO_CAPITAL_RE = /registrad[oa]s? como gasto|se registr[oó] como gasto|gastos? de (operaci[oó]n|administraci[oó]n)|primas?|no se incluy|no incluye/i;
 /** Dos oraciones que comparten ≥ 70 % de sus palabras (de más de 3 letras): la misma oración parafraseada. */
@@ -694,7 +696,9 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       const conBloque = planes.filter((p): p is Extract<Plan, { via: "bloque" }> => p.via === "bloque");
       if (conBloque.length) {
         const bloque = conBloque[0].bloque;
-        return { codigo, via: "bloque", bloque, hechos: [...new Set([...conBloque.flatMap((p) => p.hechos), ...hechosPorClave(HECHOS_DEL_PADRE[codigo] ?? [], porBloque.get(bloque)?.libro_id)])] };
+        // La razón de no cuantificar va solo en NIIF S2 21(a) (K100), no en la síntesis de 16(b)–(d) (K91; Fase 6).
+        const sinRazon = (id: string) => !(codigo === "NIIF S2 16 (b)a(d)" && NO_CUANTIFICA_RE.test(hechos.get(id)?.enunciado ?? ""));
+        return { codigo, via: "bloque", bloque, hechos: [...new Set([...conBloque.flatMap((p) => p.hechos), ...hechosPorClave(HECHOS_DEL_PADRE[codigo] ?? [], porBloque.get(bloque)?.libro_id)])].filter(sinRazon) };
       }
     }
     const cob = coberturaDe(codigo);
@@ -1077,6 +1081,10 @@ async function responderBloque(
           if (otra && oracionesDe(g.texto).some((o) => oracionesDe(otra).some((q) => q === o || seParecen(o, q)))) errores.push(`repite o parafrasea el texto del ${h.nombre.toLowerCase()}; cada plazo lleva solo lo suyo`);
         }
       }
+      // 21(a) (K100): la razón de 19(a)/(b) de la declaración de criterio (Fase 6, revisión externa v5.2).
+      if (p.codigo === "NIIF S2 21(a)" && p.hechos.some((h) => NO_CUANTIFICA_RE.test(h.enunciado)) && !(/identificables? por separado/i.test(g.texto) && /incertidumbre/i.test(g.texto))) {
+        errores.push("no da la razón de NIIF S2 19(a) y 19(b) de la declaración de criterio (efectos no identificables por separado; incertidumbre de medición): es la razón de esta celda; la limitación de los próximos periodos va como oración complementaria");
+      }
       // K576: ni igual ni parafraseada a la respuesta de 36(e)(i), ni con «No aplica».
       if (p.codigo === CLAVE_RAZON_36E) {
         const k = "formato|NIIF S2 36 (e)(i)";
@@ -1091,8 +1099,11 @@ async function responderBloque(
       // Código padre: ninguna oración de las respuestas de sus incisos (de esta corrida, reutilizadas o previas).
       for (const hijo of Object.keys(PADRE_DE).filter((h) => PADRE_DE[h] === p.codigo)) {
         const k = `${p.destino}|${hijo}`;
-        const repetidas = repetidasDe(finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === hijo && x.destino === p.destino)?.texto ?? ctx.previaDe?.get(k)?.texto ?? null);
-        if (repetidas.length) errores.push(`repite oraciones de la respuesta de su inciso ${hijo} (${repetidas.length}); el código padre da una síntesis propia`);
+        const deHijo = finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === hijo && x.destino === p.destino)?.texto ?? ctx.previaDe?.get(k)?.texto ?? null;
+        const repetidas = repetidasDe(deHijo);
+        // También parafraseadas (K91 repetía K92 con otras palabras; revisión externa v5.2).
+        const parafraseadas = deHijo ? oracionesDe(g.texto).filter((o) => oracionesDe(deHijo).some((q) => q !== o && seParecen(o, q))) : [];
+        if (repetidas.length || parafraseadas.length) errores.push(`repite oraciones de la respuesta de su inciso ${hijo} (${repetidas.length + parafraseadas.length}); el código padre da una síntesis propia`);
       }
       // B65(c) por celda: nombra su efecto y no se parece (≥ 70 % de las palabras) a otra celda del mismo inciso.
       const b65 = CONCEPTOS_B65C.findIndex((c) => `fila:${c.fila}` === p.codigo);
