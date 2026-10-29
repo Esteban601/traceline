@@ -21,14 +21,14 @@ export const SECCION_METRICAS = { desde: 145, hasta: 185, riesgos: 145, riesgo: 
 export type MetricaIterada = { nombre: string; valores: Map<number, string> };
 export type ElementoIterado = { nombre: string; metricas: MetricaIterada[] };
 
-const filaXml = (hoja: string, n: number) => hoja.match(new RegExp(`<row r="${n}"(?:\\s[^>]*?)?(?:/>|>[\\s\\S]*?</row>)`))?.[0] ?? null;
+export const filaXml = (hoja: string, n: number) => hoja.match(new RegExp(`<row r="${n}"(?:\\s[^>]*?)?(?:/>|>[\\s\\S]*?</row>)`))?.[0] ?? null;
 
 function renumerar(fila: string, de: number, a: number): string {
   return fila.replace(new RegExp(`<row r="${de}"`), `<row r="${a}"`).replace(new RegExp(`(<c r="[A-Z]+)${de}"`, "g"), `$1${a}"`);
 }
 
 /** Copia de la fila `de` con número `a` y los textos indicados por columna. */
-function clonar(hoja: string, de: number, a: number, textos: Record<string, string>): string {
+export function clonar(hoja: string, de: number, a: number, textos: Record<string, string>): string {
   const original = filaXml(hoja, de) ?? `<row r="${de}"/>`;
   let fila = renumerar(original, de, a);
   for (const [col, t] of Object.entries(textos)) {

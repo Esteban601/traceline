@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
 import { bloquesIterados, booleanosVaciosPorContradiccion, llenarFormato } from "@/lib/formato/llenar";
+import { SECCION_OBJETIVOS, bloquesDeObjetivos, expandirObjetivos } from "@/lib/formato/objetivos";
 import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
 import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA } from "@/lib/formato/plantilla";
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
   const { ens, datos } = ins;
   const valores = llenarFormato(datos);
   // Informe del validador (D1): booleanos que quedaron vacíos porque la respuesta narrativa los contradice.
-  for (const b of booleanosVaciosPorContradiccion(valores)) {
+  for (const b of booleanosVaciosPorContradiccion(valores, datos.objetivos.length)) {
     console.warn(`[export-formato] reporte=${reporteId} booleano vacío ${b.celda} (fila ${b.fila}): valor propuesto «${b.valor}», contradicho por «${b.oracion}»`);
   }
 
@@ -67,12 +68,16 @@ export async function GET(request: Request) {
     let est = await zip.file(rutaEst)!.async("string");
     let escritas = 0;
     for (const [fila, v] of valores) {
-      // La sección de métricas S1 46–50 se escribe al expandirla, abajo.
+      // Las secciones de métricas S1 46–50 y de objetivos (con bloques por objetivo) se escriben al expandirlas, abajo.
       if (!v.texto || (fila >= SECCION_METRICAS.desde && fila <= SECCION_METRICAS.hasta)) continue;
+      if (datos.objetivos.length && fila >= SECCION_OBJETIVOS.desde && fila <= SECCION_OBJETIVOS.hasta) continue;
       // Ninguna celda exportada empieza con «[» (CLAUDE.md §5, 1.10).
       est = ponerTexto(est, `K${fila}`, pendienteEnTextoPlano(v.texto));
       escritas++;
     }
+    // Objetivos (NIIF S1 51 y S2 33–36): un bloque «Objetivo N» por objetivo, en coordenadas de la plantilla, antes de
+    // expandir las métricas (que están antes en la hoja y desplazan todo lo de después).
+    est = expandirObjetivos(est, bloquesDeObjetivos(datos.objetivos, valores, !!datos.alivios.E5)).xml;
     // Métricas S1 46–50: una copia del bloque por métrica de NIIF S2 29 de cada riesgo u oportunidad.
     const it = bloquesIterados(valores, ins.instancias);
     est = expandirMetricas(est, it.riesgos, it.oportunidades).xml;

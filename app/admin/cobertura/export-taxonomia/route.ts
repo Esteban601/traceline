@@ -18,9 +18,13 @@ import {
 } from "@/lib/reporte/ensamblar";
 import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
+import { CONTINUACIONES, PENDIENTE_CONTINUACION } from "@/lib/excel/continuaciones";
+import { llenarFormato } from "@/lib/formato/llenar";
+import { esObjetivoDeEmisiones, nombreConMeta } from "@/lib/formato/objetivos";
+import { TIPOS_OBJETIVO } from "@/lib/objetivos-opciones";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
-import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
+import { insumosDelFormato, verificacionGeiDelDocumento } from "@/lib/formato/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -109,8 +113,12 @@ const EN_PREPARACION = "En preparación";
 
 function escribirRespuestas(
   ws: ExcelJS.Worksheet,
-  respuestas: Map<string, string> | null
+  respuestas: Map<string, string> | null,
+  delFormato: Map<string, string> = new Map(),
+  sectores: string[] = []
 ): { escritas: number; enPreparacion: number; hijos: number } {
+  // NIIF S2 32 (Fase 5): la lista de sectores marca con «Sí» la opción del sector del Perfil, por su clave [nnnnnn].
+  const clavesSector = new Set(sectores.map((x) => x.match(/\[(\d{6})\]/)?.[1]).filter((x): x is string => !!x));
   const norm = (v: unknown): string => {
     if (v === null || v === undefined) return "";
     if (typeof v === "object" && v !== null && "richText" in v) {
@@ -125,21 +133,50 @@ function escribirRespuestas(
   ws.getColumn(5).width = 90;
   ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false };
 
-  const vistos = new Set<string>();
+  const vistos = new Map<string, { veces: number; texto: string | null }>();
   let escritas = 0;
   let enPreparacion = 0;
   let hijos = 0;
   ws.eachRow((fila, nf) => {
     if (nf === 1) return;
     const codigo = norm(ws.getCell(`B${nf}`).value);
-    if (!codigo || vistos.has(codigo)) return;
-    vistos.add(codigo);
+    if (!codigo) return;
+    const visto = vistos.get(codigo);
+    if (visto) {
+      // Continuación: solo las de CONTINUACIONES, y solo con respuestas del documento aprobado. Cuenta solo filas con
+      // requisito (columna D): la plantilla trae filas intermedias vacías que la depuración borra si quedan vacías.
+      if (!norm(ws.getCell(`D${nf}`).value)) return;
+      visto.veces++;
+      if (codigo === "NIIF S2 32" && respuestas) {
+        const clave = norm(ws.getCell(`D${nf}`).value).match(/\[(\d{6})\]/)?.[1];
+        if (clave && clavesSector.has(clave)) {
+          const celda = ws.getCell(`E${nf}`);
+          celda.value = "Sí";
+          celda.alignment = { vertical: "top", wrapText: true };
+          escritas++;
+        }
+        return;
+      }
+      const de = CONTINUACIONES[codigo]?.[visto.veces - 1];
+      const t = !respuestas || !de ? null : de === "madre" ? visto.texto : delFormato.get(de) ?? PENDIENTE_CONTINUACION[de] ?? null;
+      // «K:N» lo resuelve quien llama, con el llenado del Formato, y llega en delFormato con esa misma clave.
+      if (t) {
+        const celda = ws.getCell(`E${nf}`);
+        celda.value = pendienteEnTextoPlano(t);
+        celda.alignment = { vertical: "top", wrapText: true };
+        escritas++;
+      }
+      return;
+    }
     const esHijo = Object.hasOwn(PADRE_DE, codigo);
     const celda = ws.getCell(`E${nf}`);
     // Ninguna celda exportada lleva el marcador «[Pendiente: …]» (CLAUDE.md §5,
     // 1.10): en este libro va en texto plano.
-    const r = respuestas?.get(codigo);
+    // La primera fila toma solo su parte si CONTINUACIONES la nombra (índice 0); si esa parte no existe, la del código.
+    const propia = respuestas && CONTINUACIONES[codigo]?.[0] ? delFormato.get(CONTINUACIONES[codigo][0]) ?? PENDIENTE_CONTINUACION[CONTINUACIONES[codigo][0]] ?? null : null;
+    const r = propia ?? respuestas?.get(codigo);
     const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
+    vistos.set(codigo, { veces: 1, texto: texto === EN_PREPARACION ? null : texto });
     celda.value = texto ?? EN_PREPARACION;
     if (texto === null || texto === EN_PREPARACION) enPreparacion++;
     else escritas++;
@@ -407,6 +444,9 @@ function escribirRegistros(
 const pendienteObjetivo = (que: string, nombre: string) => `Pendiente: ${que} — objetivo «${nombre}»`;
 
 
+/** Booleano capturado («Verdadero»/«Falso») como lo pide la plantilla: «Sí»/«No». Lo usan las hojas 34 y 36(a)-(d). */
+const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
+
 function escribirObjetivos(
   wb: ExcelJS.Workbook,
   objetivos: ObjRow[], // activos, ordenados por `orden`
@@ -452,15 +492,18 @@ function escribirObjetivos(
     const d = detallePorObj.get(o.id);
 
     if (s33) {
-      put(s33, `A${fila}`, nombre);
+      // «Nombre o descripción del objetivo»: con el valor de la meta, como la fila 217 del Formato.
+      put(s33, `A${fila}`, nombreConMeta({ nombre, meta: o.meta }));
       put(s33, `B${fila}`, o.tipo);
       put(s33, `C${fila}`, o.metrica);
-      put(s33, `D${fila}`, o.meta);
+      // 33(b) «Objetivo de la meta»: el propósito del objetivo (Fase 4); sin él, el marcador de §5 en texto plano.
+      put(s33, `D${fila}`, o.proposito_objetivo?.trim() || pendienteObjetivo("propósito del objetivo (NIIF S2 33(b))", nombre));
       put(s33, `E${fila}`, o.parte_entidad);
       put(s33, `F${fila}`, o.periodo_aplicacion);
       put(s33, `G${fila}`, o.periodo_base);
       put(s33, `H${fila}`, o.hito_intermedio);
-      put(s33, `I${fila}`, o.tipo_objetivo);
+      // 33(g): solo la enumeración de la plantilla; fuera de ella, el marcador de §5 (Fase 6).
+      put(s33, `I${fila}`, o.tipo_objetivo && TIPOS_OBJETIVO.includes(o.tipo_objetivo) ? o.tipo_objetivo : pendienteObjetivo("tipo de objetivo de la lista de la plantilla (Cuantitativo, Absoluto o De intensidad), NIIF S2 33(g)", nombre));
       put(s33, `J${fila}`, o.alineacion_acuerdo_internacional);
       const defVacia = !(
         o.tipo ||
@@ -477,7 +520,8 @@ function escribirObjetivos(
     }
     if (s34) {
       put(s34, `A${fila}`, nombre);
-      put(s34, `B${fila}`, d?.validacion_tercero);
+      // «No» en vez de «Falso» (revisión externa v5.2): la misma función que la hoja 36(a)-(d).
+      put(s34, `B${fila}`, siNo(d?.validacion_tercero));
       put(s34, `C${fila}`, d?.procesos_revision);
       put(s34, `D${fila}`, d?.metricas_supervision);
       put(s34, `E${fila}`, d?.revisiones);
@@ -505,9 +549,8 @@ function escribirObjetivos(
   // capturados como Verdadero/Falso se escriben «Sí»/«No», como en el Formato electrónico.
   const esObjetivoGei = (o: (typeof climaticos)[number]) => {
     const d = detallePorObj.get(o.id);
-    return !!(d?.alcances_cubiertos?.trim() || d?.bruto_neto?.trim()) && /t\s*CO(?:2|₂)\s*e/i.test(o.metrica ?? "");
+    return esObjetivoDeEmisiones({ metrica: o.metrica, alcances: d?.alcances_cubiertos, bruto_neto: d?.bruto_neto });
   };
-  const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
   if (s36) {
     climaticos.filter(esObjetivoGei).slice(0, S2_FIN - S2_INICIO + 1).forEach((o, i) => {
       const fila = S2_INICIO + i;
@@ -787,7 +830,30 @@ export async function GET(request: Request) {
       .eq("reporte_id", reporteId)
       .eq("destino", "taxonomia");
     const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
-    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas);
+    // Las respuestas propias del Formato que llenan filas de continuación (CONTINUACIONES), con estado «respuesta».
+    const clavesFormato = [...new Set(Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((x) => x.startsWith("fila:")))];
+    const { data: filasFormato } = await supabase
+      .from("respuestas_datapoint")
+      .select("clave, texto, estado")
+      .eq("reporte_id", reporteId)
+      .eq("destino", "formato")
+      .in("clave", clavesFormato);
+    const delFormato = new Map((filasFormato ?? []).filter((r) => r.estado === "respuesta" && r.texto).map((r) => [r.clave, r.texto!]));
+    // «K:N»: el valor que escribe el Formato electrónico en su fila N (booleanos y ramas con sus reglas), para que las
+    // dos entregas digan lo mismo. Si el Formato no se puede llenar, esas filas quedan vacías.
+    let sectores: string[] = [];
+    if (respuestas && Object.values(CONTINUACIONES).some((x) => Object.values(x).some((v) => v.startsWith("K:")))) {
+      const ins = await insumosDelFormato(supabase, reporteId);
+      if (ins.ok) {
+        sectores = ins.datos.perfil.sector_sasb;
+        const valores = llenarFormato(ins.datos);
+        for (const v of Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((v) => v.startsWith("K:"))) {
+          const t = valores.get(Number(v.slice(2)))?.texto;
+          if (t) delFormato.set(v, t);
+        }
+      } else console.warn(`[export-taxonomia] reporte=${reporteId} sin llenado del Formato para las continuaciones: ${ins.error}`);
+    }
+    respuestasEscritas = escribirRespuestas(hojaIndice, respuestas, delFormato, sectores);
     if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
   }
 

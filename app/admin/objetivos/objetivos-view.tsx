@@ -75,6 +75,7 @@ export type ObjetivoFila = {
   tipoObjetivo: string | null;
   origenObjetivo: string | null;
   alineacion: string | null;
+  proposito: string | null;
   orden: number;
   activo: boolean;
   ficha: FichaObjetivo;
@@ -443,6 +444,7 @@ type Campos = {
   tipoObjetivo: string;
   origenObjetivo: string;
   alineacion: string;
+  proposito: string;
   validacionTercero: string;
   procesosRevision: string;
   metricasSupervision: string;
@@ -473,6 +475,7 @@ function desdeObjetivo(o: ObjetivoFila | undefined, reportes: ReporteOpcion[]): 
     tipoObjetivo: o?.tipoObjetivo ?? "",
     origenObjetivo: o?.origenObjetivo ?? "",
     alineacion: o?.alineacion ?? "",
+    proposito: o?.proposito ?? "",
     validacionTercero: o?.ficha.validacionTercero ?? "",
     procesosRevision: o?.ficha.procesosRevision ?? "",
     metricasSupervision: o?.ficha.metricasSupervision ?? "",
@@ -600,6 +603,7 @@ function ObjetivoForm({
     fd.set("tipo_objetivo", c.tipoObjetivo);
     fd.set("origen_objetivo", c.origenObjetivo);
     fd.set("alineacion_acuerdo_internacional", c.alineacion);
+    fd.set("proposito_objetivo", c.proposito);
     fd.set("validacion_tercero", c.validacionTercero);
     fd.set("procesos_revision", c.procesosRevision);
     fd.set("metricas_supervision", c.metricasSupervision);
@@ -776,6 +780,7 @@ function ObjetivoForm({
           </div>
           {campoInput("Métrica utilizada", "metrica", "p. ej. tCO2e absolutas")}
           {campoInput("Objetivo de la meta", "meta", "p. ej. Reducir 42% al 2030")}
+          {campoInput("Propósito del objetivo (NIIF S2 33(b))", "proposito", "p. ej. Mitigación, adaptación o conformidad con iniciativas basadas en la ciencia")}
           {campoInput("Parte de la entidad", "parteEntidad", "p. ej. Toda la entidad")}
           {campoInput("Periodo de aplicación", "periodoAplicacion", "p. ej. 2024–2030")}
           {campoInput("Periodo base", "periodoBase", "p. ej. 2023")}
