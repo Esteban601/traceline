@@ -1678,9 +1678,11 @@ migrada dio el Excel idéntico en las cuatro emisoras.
    - Formato de Empresa Demo 409, «aún no hay un documento aprobado con sus respuestas», como en v41.
 7. **Logs desde el release:** 21 líneas y 3 peticiones; 0 respuestas 5xx, 0 `Error:`, 0 códigos H; máxima 672 ms.
 
-Respuestas: el despliegue no dispara ninguna. No se contaron los documentos aprobados de las demás emisoras (solo
-consta que Empresa Demo no tiene). La primera generación de respuestas de cada documento después del release las
-regenera todas.
+8. **Documentos aprobados** (consulta de solo lectura con autorización de Esteban, 29/10 después del release): en las 22
+   emisoras hay **0 documentos aprobados** y **0 filas de respuestas**. El único documento es uno de Empresa Demo, sin
+   aprobar. Como la firma por respuesta hace que la primera corrida de un aprobado regenere todas sus respuestas, en
+   staging esa regeneración completa no afecta hoy a ningún documento: ocurrirá con el primer aprobado de cada emisora,
+   igual que en cualquier generación nueva. El despliegue no dispara ninguna.
 
 
 **Deuda S2 del suplemento y corrección del mapeo del Formato electrónico.** Encargo
