@@ -98,7 +98,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
       return {
         nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), origen: o.origen_objetivo ?? null, tipo_objetivo: o.tipo_objetivo ?? null,
         gases: det?.gases_cubiertos ?? null, alcances: det?.alcances_cubiertos ?? null, bruto_neto: det?.bruto_neto ?? null,
-        descripcion: o.descripcion ?? null, metrica: o.metrica ?? null, parte_entidad: o.parte_entidad ?? null, periodo_aplicacion: o.periodo_aplicacion ?? null,
+        descripcion: o.descripcion ?? null, metrica: o.metrica ?? null, meta: o.meta ?? null, parte_entidad: o.parte_entidad ?? null, periodo_aplicacion: o.periodo_aplicacion ?? null,
         periodo_base: o.periodo_base ?? null, hito_intermedio: o.hito_intermedio ?? null, alineacion: o.alineacion_acuerdo_internacional ?? null,
         proposito: o.proposito_objetivo ?? null,
         validacion_tercero: det?.validacion_tercero ?? null, procesos_revision: det?.procesos_revision ?? null, metricas_supervision: det?.metricas_supervision ?? null,

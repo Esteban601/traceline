@@ -59,7 +59,7 @@ export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; 
 export type ObjetivoFormato = {
   nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null;
   // Por inciso (encargo formato-respuesta-por-inciso, Fase 4): un bloque «Objetivo N» por objetivo.
-  descripcion?: string | null; metrica?: string | null; parte_entidad?: string | null; periodo_aplicacion?: string | null; periodo_base?: string | null;
+  descripcion?: string | null; metrica?: string | null; meta?: string | null; parte_entidad?: string | null; periodo_aplicacion?: string | null; periodo_base?: string | null;
   hito_intermedio?: string | null; alineacion?: string | null; proposito?: string | null; validacion_tercero?: string | null; procesos_revision?: string | null;
   metricas_supervision?: string | null; revisiones?: string | null; resultados?: string | null; analisis_tendencias?: string | null;
   enfoque_descarbonizacion?: string | null;
@@ -207,6 +207,25 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const desde = c?.datapoint ?? null;
     const t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
     out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "pendiente" });
+  }
+  // Cierre (Fase 6, revisión externa v5.2): celdas que repetían a su vecina o quedaban vacías sin regla.
+  const fija = (fila: number, v: ValorFormato) => { if (out.has(fila)) out.set(fila, v); };
+  // K712 (S1 74–76, «Información sobre los juicios…»): repetía K710; vacía (decisión de Esteban).
+  fija(289, { texto: null, origen: "regla", nota: "repite la fila 287 (juicios)" });
+  // K836 (29(e), fila de sección «Despliegue de capital»): vacía; el inciso es K837.
+  fija(413, { texto: null, origen: "regla", nota: "fila de sección; responde la fila 414" });
+  // K847 (29(g), sección «Remuneración»): el mismo patrón que K839 (29(f)): el texto del código.
+  { const t = textoDe("NIIF S2 29 (g) (i) y (ii)"); out.set(424, t ? { texto: t, origen: "respuesta", nota: "como la fila 416" } : { texto: null, origen: "pendiente" }); }
+  // K845 y K853: con «No» en su booleano, una línea propia en lugar del párrafo.
+  if (out.get(417)?.texto === "No") fija(422, { texto: `No existe un precio por tonelada en ${d.ejercicio}.`, origen: "regla", nota: "el booleano de la fila 417 es «No»" });
+  if (out.get(425)?.texto === "No") fija(430, { texto: "Cero por ciento.", origen: "regla", nota: "el booleano de la fila 425 es «No»" });
+  // K786, K809, K832: la pregunta lleva el mismo valor que su fila de opciones, como K161/K162.
+  for (const [pregunta, opciones] of [[363, 364], [386, 387], [409, 410]]) if (out.get(opciones)?.texto) out.set(pregunta, { ...out.get(opciones)!, nota: `el valor de la fila ${opciones}` });
+  // K755 (29(a)(v), instrumentos contractuales): solo las oraciones del código que nombran instrumentos o el método.
+  {
+    const t = textoDe("NIIF S2 29 (a)(v)");
+    const oraciones = (t ?? "").split(/(?<=\.)\s+/).filter((o) => /instrumentos? contractual|certificad|energ[ií]a renovable|PPA|m[eé]todo basado en (la ubicaci[oó]n|el mercado)/i.test(o));
+    fija(332, oraciones.length ? { texto: oraciones.join(" "), origen: "respuesta", nota: "oraciones de 29(a)(v) sobre instrumentos contractuales y método" } : { texto: null, origen: "pendiente" });
   }
   // Una celda de texto no abre con «Sí.»: el booleano vecino ya lo dice (revisión externa v5, K126/K135/K137). El
   // validador de respuestas ya lo rechaza; esto cubre las respuestas guardadas antes.

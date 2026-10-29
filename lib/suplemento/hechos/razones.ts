@@ -26,7 +26,9 @@
 export const HECHO_RAZON: Record<string, { clave: RegExp; pide: string; uso: string }> = {
   "NIIF S2 21(a)": {
     clave: /^emisora\.(?:carta_)?compromiso_transparencia(?:_limitaciones)?$/,
-    pide: "Da como razón de que no haya información cuantitativa la del hecho sobre las limitaciones que la Compañía reconoce (cuantificar los efectos financieros es una tarea de los próximos periodos), y cita ese hecho.",
+    // Fase 6 de formato-respuesta-por-inciso (revisión externa v5.2): la razón es la de 19(a)/(b) de la declaración de
+    // criterio de cuantificación; la limitación de transparencia va como oración complementaria.
+    pide: "Da como razón de que no haya información cuantitativa la de la declaración de criterio de cuantificación (NIIF S2 19(a) y 19(b): los efectos no son identificables por separado y la incertidumbre de medición es tan alta que la información no sería útil), y cítala. Agrega, en una oración complementaria, la limitación que la Compañía reconoce (cuantificar los efectos financieros es una tarea de los próximos periodos), y cita ese hecho.",
     uso: "Es la razón de que no haya información cuantitativa sobre los efectos financieros previstos (NIIF S2 21(a)). Úsalo para eso, en la misma oración que un hecho propio de otro rango que la sostenga (por ejemplo, que no se identificaron efectos que reconocer), y ancla los dos.",
   },
 };

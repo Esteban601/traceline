@@ -1,6 +1,7 @@
 import { clonar, filaXml } from "@/lib/formato/metricas";
 import type { ObjetivoFormato, ValorFormato } from "@/lib/formato/llenar";
 import { remisionE5 } from "@/lib/suplemento/alivios";
+import { TIPOS_OBJETIVO } from "@/lib/objetivos-opciones";
 
 // =============================================================================
 // OBJETIVOS POR INCISO Y POR OBJETIVO (encargo formato-respuesta-por-inciso,
@@ -60,8 +61,16 @@ const S1_51: Record<number, { par: string; campo: keyof ObjetivoFormato }> = {
   214: { par: "NIIF S2 34 (d)", campo: "revisiones" },
 };
 /** S2 33–36 por inciso: el campo capturado del objetivo (223, 33(b): el propósito, migración 20261029120000). */
+/**
+ * «Nombre o descripción del objetivo» (fila 217; Excel, hoja «NIIF S2 33», columna A): el nombre y el valor de la meta,
+ * que la plantilla no pide en otro inciso (Esteban, 29/10: antes la meta no aparecía en ninguna celda del bloque).
+ */
+export const nombreConMeta = (o: { nombre: string; meta?: string | null }) => {
+  const meta = limpio(o.meta);
+  return meta ? `${o.nombre} (meta: ${meta.charAt(0).toLowerCase()}${meta.slice(1)})` : o.nombre;
+};
 const S2_CAMPOS: Record<number, (o: ObjetivoFormato) => string> = {
-  217: (o) => o.nombre,
+  217: (o) => nombreConMeta(o),
   219: (o) => limpio(o.origen),
   221: (o) => limpio(o.metrica),
   223: (o) => limpio(o.proposito),
@@ -69,7 +78,8 @@ const S2_CAMPOS: Record<number, (o: ObjetivoFormato) => string> = {
   227: (o) => limpio(o.periodo_aplicacion),
   229: (o) => limpio(o.periodo_base),
   231: (o) => limpio(o.hito_intermedio),
-  233: (o) => limpio(o.tipo_objetivo),
+  // 33(g) solo admite la enumeración de la plantilla (Fase 6): un valor fuera de la lista no se escribe.
+  233: (o) => (TIPOS_OBJETIVO.includes(limpio(o.tipo_objetivo)) ? limpio(o.tipo_objetivo) : ""),
   235: (o) => limpio(o.alineacion),
   237: (o) => siNo(o.validacion_tercero),
   239: (o) => limpio(o.procesos_revision),
