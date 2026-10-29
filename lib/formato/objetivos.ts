@@ -59,11 +59,12 @@ const S1_51: Record<number, { par: string; campo: keyof ObjetivoFormato }> = {
   212: { par: "NIIF S2 35", campo: "resultados" },
   214: { par: "NIIF S2 34 (d)", campo: "revisiones" },
 };
-/** S2 33–36 por inciso: el campo capturado del objetivo. 223 (33(b), propósito) espera su campo (Fase 4, migración). */
+/** S2 33–36 por inciso: el campo capturado del objetivo (223, 33(b): el propósito, migración 20261029120000). */
 const S2_CAMPOS: Record<number, (o: ObjetivoFormato) => string> = {
   217: (o) => o.nombre,
   219: (o) => limpio(o.origen),
   221: (o) => limpio(o.metrica),
+  223: (o) => limpio(o.proposito),
   225: (o) => limpio(o.parte_entidad),
   227: (o) => limpio(o.periodo_aplicacion),
   229: (o) => limpio(o.periodo_base),
