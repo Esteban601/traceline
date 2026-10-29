@@ -114,7 +114,7 @@ console.log("\nFormato electrónico · objetivos por inciso y por objetivo (Fase
   ok(!vacios.length, `NIIF S2 33(a), (c)–(h) y 34(a)–(d) con respuesta propia en cada objetivo${vacios.length ? ` — vacíos: ${vacios.join(", ")}` : ""}`);
   const repetidos = s2.filter((b) => { const v = Object.keys(incisos).map((f) => enBloque(b, Number(f), 216)).filter((t) => t.length > 12); return new Set(v).size !== v.length; });
   ok(!repetidos.length && !s2.some((b) => Object.keys(incisos).some((f) => /tiene tres objetivos/.test(enBloque(b, Number(f), 216)))), "ningún inciso repite el texto de otro ni el párrafo de NIIF S2 33 (antes los 11 incisos decían lo mismo)");
-  ok(s2.every((b) => !enBloque(b, 223, 216)), "NIIF S2 33(b) (propósito del objetivo) vacía en los tres: espera su campo (migración de la Fase 4)");
+  ok(s2.every((b) => !!enBloque(b, 223, 216)) && new Set(s2.map((b) => enBloque(b, 223, 216))).size === s2.length, "NIIF S2 33(b) (propósito del objetivo): el campo capturado, propio de cada objetivo");
   const gei = s2.map((b) => !!enBloque(b, 247, 216));
   ok(gei.filter(Boolean).length === 1 && s2.every((b, i) => gei[i] || [247, 249, 251, 253, 255, 256, 259].every((f) => !enBloque(b, f, 216))), "NIIF S2 36 solo en el bloque del objetivo de emisiones de GEI; vacío en los demás");
   ok(s1.every((b) => [202, 204, 206, 208, 210, 212, 214].every((f) => /se revela conforme a NIIF S2 3[345]/.test(enBloque(b, f, 196)))), "NIIF S1 51 (a)–(g) bajo E5: cada inciso remite a su inciso de NIIF S2 en cada objetivo");
@@ -166,7 +166,7 @@ console.log("\nFormato electrónico · NIIF S2 16(d) por efecto y por plazo (Fas
     const parecidas = cuerpos.some((a, i) => cuerpos.some((b, j) => i < j && (a === b || seParecen(a, b))));
     ok(lineas.every((l) => /^(Corto|Mediano|Largo) plazo: /.test(l)) && !parecidas && !cuerpos.some((x) => /^(en|durante|para) el (corto|mediano|largo) plazo/i.test(x)), `K${f}: una línea por plazo con hechos que caen en él, sin repetir texto entre plazos (${lineas.map((l) => l.split(":")[0]).join(", ") || "vacía"})`);
   }
-  ok(/^Corto plazo: .*61 millones/m.test(K(95)) && /^Mediano plazo: /m.test(K(95)) && !/^Largo plazo/m.test(K(95)), "K95: corto plazo con el plan 2026-2027, mediano con lo previsto en el mediano plazo y hasta 2028; sin largo plazo (ningún hecho cae en él)");
+  ok(/^Corto plazo: .*61 millones/m.test(K(95)) && /^Mediano plazo: /m.test(K(95)) && /^Largo plazo: .*reservas adicionales/m.test(K(95)), "K95: corto (plan 2026-2027), mediano (hasta 2028) y largo plazo (reservas adicionales: el efecto previsto de K662 que nombra la situación financiera, opción A)");
   const celdas = [94, 95, 96, 97, 98, 99, 110, 111];
   const choques = [];
   for (const a of celdas) for (const b of celdas) if (a < b) for (const o of oraciones(K(a))) for (const q of oraciones(K(b))) if (o === q || seParecen(o, q)) choques.push(`K${a}/K${b}`);
@@ -179,6 +179,7 @@ console.log("\nFormato electrónico · NIIF S2 36(e) en un solo estado");
   ok(!!K(538) && K(534) === remisionAIncisos(INCISOS_CREDITOS), "K534 (padre): remite a (i)–(iv), porque (i) responde (K538)");
   ok(K(535) === "No", "K535 ¿uso previsto de créditos? «No»");
   ok(!!K(536) && !/^No aplica/.test(K(536)), "K536 «¿Por qué?»: la razón, sin «No aplica» delante");
+  ok(K(536) !== K(538) && !K(536).split(/(?<=\.)\s+/).some((o) => K(538).split(/(?<=\.)\s+/).some((q) => q === o || seParecen(o, q))), "K536 (K576 con bloques) no repite ni parafrasea la respuesta de 36(e)(i)");
   todas([540, 542, 544, 546], es(NA), "K540, K542, K544, K546: una sola redacción de «No aplica»");
 }
 

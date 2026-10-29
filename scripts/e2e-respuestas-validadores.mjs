@@ -34,6 +34,7 @@ import {
   seParecen,
   plazosDeclarados,
   horizontesDeHecho,
+  tablaDeEfectoPrevisto,
 } from "../lib/suplemento/respuestas.ts";
 import { declaracionDeAlivios, noRevelado, remisionE5, textoAlivio } from "../lib/suplemento/alivios.ts";
 import fs from "node:fs";
@@ -229,6 +230,8 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
     const h = (t) => [...horizontesDeHecho(t, 2025, p)].sort().join(",");
     ok(h("La reubicación está prevista hasta 2028.") === "mediano" && h("El plan 2026-2027 asigna 61 millones.") === "corto,mediano" && h("Hacia 2040 aumentará la frecuencia.") === "largo" && h("El ICAP al cierre de 2025 fue de 15.8%.") === "", "años posteriores al ejercicio → su plazo (2028 mediano; 2026 corto; 2040 largo); el año del ejercicio no fecha un plazo");
     ok(h("Se prevé un efecto en el mediano plazo.") === "mediano", "un hecho que nombra el plazo cae en él");
+    // Opción A (Fase 4): un efecto previsto con plazo va a la tabla del inciso que nombra, en su texto o su clave.
+    ok(tablaDeEfectoPrevisto("En el largo plazo podría requerir reservas adicionales. efectos_financieros.situacion_financiera_largo_plazo") === 95 && tablaDeEfectoPrevisto("Se esperan menores resultados en el mediano plazo.") === 97 && tablaDeEfectoPrevisto("Mayores flujos de efectivo hacia 2030.") === 99 && tablaDeEfectoPrevisto("Deterioro de acreditados en el largo plazo.") === null, "ruta de los efectos previstos: situación financiera → 95, resultados → 97, flujos → 99; sin inciso nombrado, a ninguna");
   }
   ok(seParecen("Con la información disponible al cierre de 2025, la Compañía no identificó efectos climáticos que requirieran reconocer ajustes en los estados financieros.", "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio.") && !seParecen("Las primas de seguros se registraron en gastos de administración.", "Las adecuaciones de inmuebles se capitalizaron en propiedades, mobiliario y equipo."), "16(a) por efecto: la misma oración parafraseada se detecta; dos oraciones distintas no");
   ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
