@@ -15,7 +15,7 @@
 // revisión; las del Excel se buscan por su código de la columna A.
 // =============================================================================
 import ExcelJS from "exceljs";
-import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
+import { noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
 import { FILAS_FIDEICOMISO } from "../lib/formato/llenar.ts";
 
@@ -104,7 +104,7 @@ const C = (codigo) => (porCodigo.get(codigo) ?? [""])[0];
 
 console.log("\nExcel de taxonomía · respuestas categóricas (§3)");
 ok(C("NIIF S1 30(a)y(b)") === remisionE5("NIIF S2 10(a), (b)y(c)"), "S1 30(a)y(b) (fila 20): remite a NIIF S2 10(a)–(c), no «No aplica»");
-ok(C("NIIF S1 33(c)") === ORACION_E5, "S1 33(c) (fila 27): la oración del E5, no «No aplica»");
+ok(C("NIIF S1 33(c)") === remisionE5("NIIF S2 6 (a)(iv)"), "S1 33(c) (fila 27): remite a NIIF S2 6(a)(iv), no «No aplica» (revisión externa v5.1)");
 ok(C("NIIF S1 40(a)") === remisionE5("NIIF S2 21(a)"), "S1 40(a) (fila 38): remite a NIIF S2 21(a)");
 ok(C("NIIF S1 46 a 50") === remisionE5("NIIF S2 29"), "S1 46–50 (fila 55): remite a NIIF S2 29, como su hoja llena");
 ok(["NIIF S1 35(a)", "NIIF S1 35(b)", "NIIF S1 35(c)", "NIIF S1 35(d)"].filter((c) => porCodigo.has(c)).every((c) => /se revela conforme a NIIF S2 16/.test(C(c)) || !C(c)), "S1 35(a)–(d): remisión a S2 16 (las vacías van al encargo formato-respuesta-por-inciso)");

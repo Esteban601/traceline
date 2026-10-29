@@ -224,7 +224,8 @@ async function main() {
     tax.eachRow((row, f) => {
       if (f === 1) return;
       const c = cellText(tax, `C${f}`);
-      // La forma «requisito» del E5 sin par de NIIF S2 es la oración sola (S1 33(c), como K81 del Formato; Fase 5).
+      // La forma «requisito» del E5 sin par de NIIF S2 sería la oración sola; desde la revisión externa v5.1 todas las
+      // filas de NIIF S1 con E5 del demo tienen par (S1 33(c) remite a NIIF S2 6(a)(iv)).
       if (c.startsWith(E5) && c !== E5_COMPLETA) conE5++;
       if (!cellText(tax, `A${f}`) && c.startsWith(E5)) { pilares.push(cellText(tax, `B${f}`)); if (c === E5_COMPLETA) conE5++; }
     });
