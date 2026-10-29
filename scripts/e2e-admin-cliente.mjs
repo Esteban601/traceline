@@ -551,7 +551,7 @@ async function main() {
     ok(validadoPorAC, "la bitácora registra la validación con el rol 'admin_cliente'");
 
     // -----------------------------------------------------------------------
-    bloque("5) Su Excel lleva la nota de validación interna");
+    bloque("5) Su Excel lleva la cifra que validó el cliente (sin nota: solo preguntas y respuestas)");
     // -----------------------------------------------------------------------
     const { status: stExp, buf: bufExp } = await descargarConSesion(
       ac.ctx,
@@ -562,18 +562,17 @@ async function main() {
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(bufExp);
       const gei = wb.getWorksheet("NIIF S2 29(a)(i)");
+      // Sin fila de título (26/10): el Alcance 1 está en la fila 2.
       ok(
-        Number(texto(gei, "C3")) === FIXTURE.valorInterno,
-        `C3 (Alcance 1, ${FIXTURE.ejercicio}) = ${FIXTURE.valorInterno}, el valor que validó el cliente`
+        Number(texto(gei, "C2")) === FIXTURE.valorInterno,
+        `C2 (Alcance 1, ${FIXTURE.ejercicio}) = ${FIXTURE.valorInterno}, el valor que validó el cliente`
       );
-      ok(
-        texto(gei, "E3").includes("(validación interna del cliente)"),
-        `la nota de la fila declara la validación interna ("${texto(gei, "E3")}")`
-      );
-      ok(
-        !texto(gei, "E4").includes("validación interna del cliente"),
-        "la fila del rubro que pidió IRStrat NO lleva esa salvedad"
-      );
+      // La salvedad «(validación interna del cliente)» era una nota de la columna «Notas / Brechas», que ya no se
+      // exporta (regla de Esteban: el Excel lleva solo preguntas y respuestas). La trazabilidad queda en la
+      // bitácora, comprobada arriba.
+      const celdas = [];
+      wb.eachSheet((ws) => ws.eachRow((row) => row.eachCell((c) => celdas.push(String(c.value ?? "")))));
+      ok(!celdas.some((t) => t.includes("validación interna del cliente")) && gei.columnCount === 4, "ninguna celda lleva la salvedad: la hoja no tiene columna de notas");
     }
 
     // -----------------------------------------------------------------------

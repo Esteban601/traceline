@@ -15,7 +15,7 @@
  *     información oficial suya es la franja "Entorno de demostración". Se
  *     comprueba en el portal (usuario de área) Y en el panel (administrador del
  *     cliente): son las dos vistas que se enseñan en una reunión.
- *  2. EL PIE [DEMO] en su Excel de taxonomía, por lo mismo: el entregable sale de
+ *  2. LA MARCA [DEMO] en su Excel de taxonomía (en las propiedades del archivo, ya no en un pie), por lo mismo: el entregable sale de
  *     la plataforma y puede acabar en el correo de alguien.
  *  3. LAS CELDAS de NIIF S2 29(a)(i): que el mockup tenga números donde importa
  *     —si el Excel sale vacío, la demo no demuestra nada—.
@@ -75,11 +75,12 @@ const SLUGS = [
 ];
 const FRANJA = /entorno de demostraci.n/i;
 const EJERCICIO = 2025;
-// Las tres celdas que llenan las solicitudes validadas de la escena, y su valor.
+// Las tres celdas que llenan las solicitudes validadas de la escena, y su valor. Desde el 26/10 la hoja no tiene
+// fila de título: Alcance 1, 2 y 3 están en las filas 2, 3 y 4.
 const CELDAS_GEI = [
-  ["C3", 100000],
-  ["C4", 50000],
-  ["C5", 250000],
+  ["C2", 100000],
+  ["C3", 50000],
+  ["C4", 250000],
 ];
 
 const problemas = [];
@@ -283,16 +284,9 @@ async function main() {
         ok(v === esperado, `  ${celda} = ${esperado.toLocaleString("es-MX")} (leído ${texto(ws, celda) || "vacío"})`);
       }
 
-      // El pie va bajo la última fila tocada de cada hoja llenada: se busca en
-      // todas las celdas de la columna A en vez de adivinar el número de fila.
-      let pie = null;
-      ws.eachRow({ includeEmpty: false }, (row) => {
-        const v = row.getCell(1).value;
-        const s = typeof v === "string" ? v : "";
-        if (/^Generado por /.test(s)) pie = s;
-      });
-      ok(!!pie, `  la hoja lleva pie de generación (${pie ?? "ninguno"})`);
-      ok(!!pie && pie.includes("[DEMO]"), "  y el pie dice [DEMO]");
+      // Desde el 26/10 el libro lleva solo preguntas y respuestas: sin pie. La marca [DEMO] va en las propiedades
+      // del archivo (título y asunto).
+      ok(`${wb.title ?? ""} ${wb.subject ?? ""}`.includes("[DEMO]"), `  el archivo lleva la marca [DEMO] en sus propiedades («${wb.title ?? ""}»)`);
     }
 
     // -----------------------------------------------------------------------
@@ -322,18 +316,10 @@ async function main() {
       if (res.status !== 200) continue;
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(buf);
-      let pie = null;
-      for (const ws of wb.worksheets) {
-        ws.eachRow({ includeEmpty: false }, (row) => {
-          const v = row.getCell(1).value;
-          const s = typeof v === "string" ? v : "";
-          if (/^Generado por /.test(s)) pie = pie ?? s;
-        });
-      }
-      ok(!!pie, `  con su pie de generación (${pie ?? "ninguno"})`);
+      // Sin pie (solo preguntas y respuestas): la marca [DEMO] va en las propiedades del archivo.
       ok(
-        !!pie && pie.includes("[DEMO]") === debeLlevarDemo,
-        `  y ${debeLlevarDemo ? "SÍ" : "NO"} lleva [DEMO], como corresponde`
+        `${wb.title ?? ""} ${wb.subject ?? ""}`.includes("[DEMO]") === debeLlevarDemo,
+        `  ${debeLlevarDemo ? "SÍ" : "NO"} lleva [DEMO] en sus propiedades, como corresponde («${wb.title ?? ""}»)`
       );
     }
 

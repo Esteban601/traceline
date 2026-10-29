@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { declaracionDeCumplimiento } from "@/lib/suplemento/respuestas";
 import type { Database } from "@/lib/database.types";
 import { ensamblarReporte, type Ensamblado } from "@/lib/reporte/ensamblar";
 import { regimenDe } from "@/lib/perfil-emisor";
@@ -33,23 +34,17 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   const { data: filas } = await db.from("respuestas_datapoint").select("documento_id, destino, clave, estado, texto, hechos").eq("reporte_id", reporteId);
   if (!filas?.length) return { ok: false, status: 409, error: "El Formato electrónico se genera desde el suplemento aprobado; aún no hay un documento aprobado con sus respuestas." };
 
-  // Booleanos: ¿la respuesta se apoya en una declaración negativa?
-  const ids = [...new Set(filas.flatMap((f) => (f.hechos as string[] | null) ?? []))];
-  const negativos = new Set<string>();
-  for (let i = 0; i < ids.length; i += 100) {
-    const { data: hs } = await db.from("hechos").select("id").in("id", ids.slice(i, i + 100)).eq("tipo", "declaracion_negativa");
-    for (const h of hs ?? []) negativos.add(h.id);
-  }
+  // Los booleanos ya no se deciden por el tipo de los hechos anclados: leen el «Sí.»/«No.» de su respuesta propia
+  // (D1 del encargo formato-afirmaciones-y-voz; lib/formato/booleanos.ts).
   const respuestas: RespuestaLeida[] = filas.map((f) => ({
     destino: f.destino as "taxonomia" | "formato",
     clave: f.clave,
     estado: f.estado as RespuestaLeida["estado"],
     texto: f.texto,
-    hechosNegativos: ((f.hechos as string[] | null) ?? []).some((h) => negativos.has(h)),
   }));
 
   const [{ data: pe }, ens] = await Promise.all([
-    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
+    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, fideicomitente, administrador_patrimonio, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
     ensamblarReporte(db, reporteId),
   ]);
   if (!ens.ok) return { ok: false, status: 500, error: "No se pudo leer el reporte." };
@@ -86,7 +81,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
     const { data: b2 } = await db.from("documentos_bloques_versiones").select("texto").eq("id", aprobadas["2"].id).maybeSingle();
     declaraCumplimiento = /de conformidad con las Normas NIIF S1 y (?:NIIF )?S2/i.test(b2?.texto ?? "");
     // La declaración es la oración del bloque 2 que la hace, tal cual (bloque de plantilla, sin hechos).
-    declaracion = (b2?.texto ?? "").split(/\n+/).map((p) => p.trim()).find((p) => /de conformidad con las Normas NIIF S1/i.test(p)) ?? null;
+    declaracion = declaracionDeCumplimiento(b2?.texto ?? null);
   }
   // Instancias de métricas NIIF S1 46–50: la misma fuente que la hoja «NIIF S1 46-50» del Excel de taxonomía.
   const metodoGei = respuestas.find((r) => r.clave === "NIIF S2 29 (a)(iii)" && r.destino === "formato" && r.estado === "respuesta")?.texto
@@ -125,6 +120,8 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
         tipo_instrumento: pe?.tipo_instrumento ?? null,
         fiduciario: pe?.fiduciario ?? null,
         numero_fideicomiso: pe?.numero_fideicomiso ?? null,
+        fideicomitente: pe?.fideicomitente ?? null,
+        administrador_patrimonio: pe?.administrador_patrimonio ?? null,
         hechos_posteriores: pe?.hechos_posteriores ?? null,
         actividades_financieras: pe?.actividades_financieras ?? [],
         sector_sasb: pe?.sector_sasb ?? [],

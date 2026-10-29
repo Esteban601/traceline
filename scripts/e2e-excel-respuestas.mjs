@@ -68,10 +68,11 @@ async function bajarExcel(s) {
   wb.eachSheet((h) => h.eachRow((row) => row.eachCell((c) => todo.push(texto(c.value)))));
   const porCodigo = new Map();
   ws.eachRow((row, n) => {
-    const c = texto(row.getCell(2).value).replace(/\s+/g, " ").trim();
-    if (n > 1 && c && !porCodigo.has(c)) porCodigo.set(c, { e: texto(row.getCell(5).value), nivel: row.outlineLevel ?? 0 });
+    // Solo preguntas y respuestas (26/10): A código, B requisito, C respuesta.
+    const c = texto(row.getCell(1).value).replace(/\s+/g, " ").trim();
+    if (n > 1 && c && !porCodigo.has(c)) porCodigo.set(c, { e: texto(row.getCell(3).value), nivel: row.outlineLevel ?? 0 });
   });
-  return { status: 200, e1: texto(ws.getCell("E1").value), porCodigo, todo: todo.join("\n") };
+  return { status: 200, e1: texto(ws.getCell("C1").value), porCodigo, todo: todo.join("\n") };
 }
 
 // --- Preparación -----------------------------------------------------------------

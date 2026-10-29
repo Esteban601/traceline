@@ -78,6 +78,8 @@ export type PerfilData = {
   tipo_instrumento: string | null;
   fiduciario: string | null;
   numero_fideicomiso: string | null;
+  fideicomitente: string | null;
+  administrador_patrimonio: string | null;
   hechos_posteriores: string | null;
   actividades_financieras: string[] | null;
   sector_sasb: string[] | null;
@@ -458,6 +460,18 @@ export function PerfilView({
                   Número de fideicomiso
                 </label>
                 <input id={`${uid}-nf`} name="numero_fideicomiso" defaultValue={p?.numero_fideicomiso ?? ""} placeholder="Solo si la emisora es un fideicomiso" className={cn(INPUT, "mt-2")} />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-fc`}>
+                  Fideicomitente
+                </label>
+                <input id={`${uid}-fc`} name="fideicomitente" defaultValue={p?.fideicomitente ?? ""} placeholder="Solo si la emisora es un fideicomiso" className={cn(INPUT, "mt-2")} />
+              </div>
+              <div>
+                <label className={LABEL} htmlFor={`${uid}-ap`}>
+                  Administrador del patrimonio del fideicomiso
+                </label>
+                <input id={`${uid}-ap`} name="administrador_patrimonio" defaultValue={p?.administrador_patrimonio ?? ""} placeholder="Solo si la emisora es un fideicomiso" className={cn(INPUT, "mt-2")} />
               </div>
             </div>
             <div className="mt-4">

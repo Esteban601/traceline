@@ -15,7 +15,7 @@
 //   · «Estructura Formato Electronico»: la columna K vacía desde la fila 4;
 //   · «Tabla NIIF»: sin datos desde la fila 3;
 //   · la hoja de métricas SASB de la industria de la referencia queda vacía,
-//     renombrada «Métricas SASB», con la nota de Fase C;
+//     renombrada «Métricas SASB», solo con su título (sin nota interna: revisión externa v5, Fase 5);
 //   · sin la ruta de OneDrive (x15ac:absPath) ni nombres en las propiedades;
 //   · las cadenas compartidas que ya nadie usa, vacías (el texto de las
 //     respuestas no queda en el archivo).
@@ -60,14 +60,13 @@ let celdasTabla = 0;
 for (const m of [...tabla.matchAll(/<c r="([A-Z]+(\d+))"/g)]) if (Number(m[2]) >= 3) { tabla = vaciarCelda(tabla, m[1]); celdasTabla++; }
 zip.file(RUTAS.tabla, tabla);
 
-// 3. Métricas SASB: vacía, sin celdas combinadas, con la nota de Fase C.
+// 3. Métricas SASB: vacía, sin celdas combinadas, solo con su título.
 let wb2 = wbXml;
 if (RUTAS.sasb) {
   let sasb = await leer(RUTAS.sasb);
   for (const m of [...sasb.matchAll(/<c r="([A-Z]+\d+)"/g)]) sasb = vaciarCelda(sasb, m[1]);
   sasb = sasb.replace(/<mergeCells[\s\S]*?<\/mergeCells>/, "");
   sasb = ponerTexto(sasb, "A1", "Métricas por industria (SASB)");
-  sasb = ponerTexto(sasb, "A2", "Métricas por industria: pendiente de catálogo SASB (Fase C).");
   zip.file(RUTAS.sasb, sasb);
   wb2 = wb2.replace(`<sheet name="${nombreSasb}"`, '<sheet name="Métricas SASB"');
   const app = await leer("docProps/app.xml");

@@ -1578,6 +1578,7 @@ export type Database = {
           actividades_financieras: string[] | null
           actualizado_en: string | null
           actualizado_por: string | null
+          administrador_patrimonio: string | null
           cadena_valor: Json
           carta_cargo: string | null
           carta_firmante: string | null
@@ -1586,6 +1587,7 @@ export type Database = {
           created_at: string
           denominacion_formal: string | null
           entidad_que_informa: string | null
+          fideicomitente: string | null
           fiduciario: string | null
           forma_de_referencia: string | null
           glosario: Json
@@ -1612,6 +1614,7 @@ export type Database = {
           actividades_financieras?: string[] | null
           actualizado_en?: string | null
           actualizado_por?: string | null
+          administrador_patrimonio?: string | null
           cadena_valor?: Json
           carta_cargo?: string | null
           carta_firmante?: string | null
@@ -1620,6 +1623,7 @@ export type Database = {
           created_at?: string
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
+          fideicomitente?: string | null
           fiduciario?: string | null
           forma_de_referencia?: string | null
           glosario?: Json
@@ -1646,6 +1650,7 @@ export type Database = {
           actividades_financieras?: string[] | null
           actualizado_en?: string | null
           actualizado_por?: string | null
+          administrador_patrimonio?: string | null
           cadena_valor?: Json
           carta_cargo?: string | null
           carta_firmante?: string | null
@@ -1654,6 +1659,7 @@ export type Database = {
           created_at?: string
           denominacion_formal?: string | null
           entidad_que_informa?: string | null
+          fideicomitente?: string | null
           fiduciario?: string | null
           forma_de_referencia?: string | null
           glosario?: Json

@@ -23,8 +23,20 @@ import {
   respuestaDeCaptura,
   textoNoAplicaHeredado,
   validarRespuesta,
+  PLAN_DISPOSICION_RE,
+  disposicionesSinTipo,
+  tipoDeDisposicion,
+  erroresDeForma,
+  conSeparadoresDeMiles,
+  respuestaDeCuestionario36e,
 } from "../lib/suplemento/respuestas.ts";
+import { declaracionDeAlivios, noRevelado, remisionE5, textoAlivio } from "../lib/suplemento/alivios.ts";
+import fs from "node:fs";
 import { vocabularioProhibidoEn } from "../lib/suplemento/prompt.ts";
+import { TERMINOS_PLATAFORMA, glosarioDeClaudeMd, vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
+import { conceptoDeCifra } from "../lib/reporte/cifra.ts";
+import { avisosDeCoherencia, booleanosVaciosPorContradiccion, llenarFormato } from "../lib/formato/llenar.ts";
+import { BOOLEANOS_FORMATO, validarBooleano, valorBooleano } from "../lib/formato/booleanos.ts";
 import { numeracionConsecutiva } from "../lib/suplemento/numeracion.ts";
 import { HECHO_RAZON, hechosPrestados } from "../lib/suplemento/hechos/razones.ts";
 import { validarCobertura } from "../lib/suplemento/hechos/bloque.ts";
@@ -54,8 +66,65 @@ ok(validarRespuesta("La Compañía no identificó efectos según la evidencia va
 ok(validarRespuesta("La Compañía no identificó efectos [Pendiente: algo — campo].", "taxonomia", ctx()).some((e) => /marcador/.test(e)), "marcador [Pendiente] en un documento aprobado → rechazo");
 ok(LIMITES.taxonomia.oraciones === 4 && LIMITES.formato.oraciones === 6 && LIMITES.formato.caracteres === 900, "límites: taxonomía 4 oraciones; formato 6 oraciones y 900 caracteres");
 
+console.log("\n1b. Glosario único (CLAUDE.md §5)");
+{
+  const deClaude = glosarioDeClaudeMd(fs.readFileSync(new URL("../CLAUDE.md", import.meta.url), "utf8"));
+  ok(deClaude.length > 0 && JSON.stringify(deClaude) === JSON.stringify(TERMINOS_PLATAFORMA), `el validador y CLAUDE.md §5 dicen lo mismo (${deClaude.join(", ")})`);
+  const casos = {
+    "Cifras de los registros de clima, capturas validadas.": ["validado", "registros de clima"],
+    "Inventario GEI Alcance 1 con memoria de cálculo.": ["memoria de cálculo"],
+    "Se describe en los bloques 3 y 4.": ["bloque"],
+    "Según la plataforma, el expediente fue entregado.": ["expediente", "entregado", "plataforma"],
+    "id 3487cb77-1111-2222-3333-444455556666": ["ids"],
+  };
+  for (const [t, esperados] of Object.entries(casos)) ok(esperados.every((e) => vocabularioProhibidoEn(t).includes(e)), `detecta ${esperados.join(", ")} en «${t.slice(0, 50)}»`);
+  ok(["La validación del informe anual corre a cargo del Comité.", "Proyectos de captura de carbono.", "Intereses recibidos por 3 MDP.", "La Compañía mide sus emisiones."].every((t) => vocabularioProhibidoEn(t).length === 0), "voz legítima de la emisora: «validación», «captura», «recibidos»");
+  ok(["El objetivo ha sido validado por un tercero.", "¿Validada por tercero?", "No está validado por SBTi.", "Bloque de texto"].every((t) => vocabularioProhibidoEn(t).length === 0) && vocabularioProhibidoEn("Dato validado en la sección.").includes("validado") && vocabularioProhibidoEn("Cifra validada por IRStrat.").includes("IRStrat"), "excepciones por expresión: «validado por …» y «bloque de texto»; «validado» suelto y «por IRStrat» siguen prohibidos");
+  ok(vocabularioEnCeldaExportada("Pendiente: información de B65(e) — sin solicitud en el reporte").length === 0 && vocabularioProhibidoEn("Pendiente: información de B65(e) — sin solicitud en el reporte").length > 0, "celda exportada: el marcador en texto plano puede nombrar la solicitud (CLAUDE.md §5); en el texto del modelo, no");
+}
+
+console.log("\n1d. Booleanos del Formato (D1): «Sí.»/«No.» contra el hecho que contesta");
+{
+  const pregunta = (fila) => BOOLEANOS_FORMATO.find((b) => b.fila === fila);
+  ok(BOOLEANOS_FORMATO.length === 10 && [38, 44, 49, 134, 237, 253, 256, 313, 417, 425].every((f) => pregunta(f)), "los 10 booleanos con datapoint tienen pregunta");
+  // K38: remuneración. El hecho de tipo `politica` dice que NO forman parte: la respuesta es «No».
+  const rem = [{ local: "h1", enunciado: "Las métricas climáticas no forman parte de la remuneración variable en 2025." }];
+  ok(validarBooleano("No. Las métricas climáticas no forman parte de la remuneración variable en 2025.", { pregunta: pregunta(38), hechos: rem, citados: ["h1"], vecina: null }).length === 0, "K38: «No.» citando el hecho de la remuneración → aceptada");
+  ok(validarBooleano("Sí. Las métricas climáticas forman parte de la remuneración.", { pregunta: pregunta(38), hechos: rem, citados: ["h1"], vecina: null }).some((e) => /lo niega/.test(e)), "K38: «Sí.» con el hecho que lo niega → rechazo");
+  // K592: Protocolo GEI. El único negativo es de C5 (otra pregunta): la respuesta es «Sí».
+  const gei = [{ local: "h1", enunciado: "La Compañía no hace uso de la medida transitoria del párrafo C5: mide sus emisiones conforme al Protocolo GEI desde 2022." }];
+  ok(validarBooleano("Sí. La Compañía mide sus emisiones conforme al Protocolo GEI desde 2022.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: null }).length === 0, "K592: «Sí.» aunque el hecho niegue C5 (la negación es de otra pregunta) → aceptada");
+  ok(validarBooleano("No. No mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: null }).length > 0, "K592: «No.» contra el hecho que lo afirma → rechazo");
+  ok(validarBooleano("La Compañía mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: null }).some((e) => /abrir con/.test(e)), "sin «Sí.»/«No.» al inicio → rechazo");
+  ok(validarBooleano("Sí. Mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: [], vecina: null }).some((e) => /no cita/.test(e)), "sin citar el hecho que contesta → rechazo");
+  ok(validarBooleano("Sí. Mide conforme al Protocolo GEI.", { pregunta: pregunta(313), hechos: gei, citados: ["h1"], vecina: "La Compañía no mide sus emisiones conforme al Protocolo GEI." }).some((e) => /vecina/.test(e)), "la celda narrativa vecina dice lo contrario → rechazo");
+  ok(valorBooleano("Sí. Texto.") === "Sí" && valorBooleano("No. Texto.") === "No" && valorBooleano("Texto.") === null, "valorBooleano lee el «Sí.»/«No.» inicial");
+}
+
+console.log("\n1e. Booleano vacío por contradicción: el informe lo lista con fila, valor y oración");
+{
+  const base = { ejercicio: 2025, primerAnio: true, alivios: {}, perfil: { denominacion_formal: null, clave_cotizacion: null, tipo_instrumento: null, fiduciario: null, numero_fideicomiso: null, hechos_posteriores: null, actividades_financieras: [], sector_sasb: [], metricas_industria: null }, hayLogo: false, gei: [], registros: [], objetivos: [], cuestionarios: {}, declaraCumplimiento: false, declaracion: null, cumplimiento: { parciales: [], pendientes: 0 } };
+  const conceptos = [{ fila: 313, seccion: "x", tipo: "booleano", clasificacion: "concepto", capa: "1 · fuente", datapoint: "NIIF S2 29 (a)(ii)", bloque: 27, regla: null, alivioE5: false, respondidaEnReferencia: true }];
+  const respuestas = [
+    { destino: "taxonomia", clave: "NIIF S2 29 (a)(ii)", estado: "respuesta", texto: "La Compañía no mide sus emisiones conforme al Protocolo GEI." },
+    { destino: "formato", clave: "fila:313", estado: "respuesta", texto: "Sí. La Compañía mide conforme al Protocolo GEI." },
+  ];
+  const valores = llenarFormato({ ...base, respuestas }, conceptos);
+  const lista = booleanosVaciosPorContradiccion(valores);
+  ok(valores.get(313).texto === null && lista.length === 1 && lista[0].celda === "K592" && lista[0].valor === "Sí" && /no mide sus emisiones conforme al Protocolo GEI/.test(lista[0].oracion), `K592 vacío y listado: ${JSON.stringify(lista[0] ?? {})}`);
+}
+
+console.log("\n1c. Aviso de coherencia de métricas por industria (D2)");
+{
+  const perfil = (m, s) => ({ perfil: { metricas_industria: m, sector_sasb: s } });
+  ok(avisosDeCoherencia(perfil("No", ["[815200] Finanzas - Bancos comerciales (FN-CB)"])).length === 1, "Perfil en «No» con sector SASB capturado → aviso en la hoja de revisión");
+  ok(avisosDeCoherencia(perfil("Sí, parcialmente", ["[815200] Finanzas - Bancos comerciales (FN-CB)"])).length === 0 && avisosDeCoherencia(perfil("No", [])).length === 0, "sin choque (otro juicio, o sin sector SASB) → sin aviso");
+}
+
 console.log("\n2. Reglas sin modelo");
-ok(respuestaDeCaptura(1240, "tCO2e", 2025) === "1,240 tCO2e (ejercicio 2025), según captura validada.", "respuesta de captura: valor, unidad, periodo");
+ok(respuestaDeCaptura(1240, "tCO2e", 2025) === "1,240 tCO2e (ejercicio 2025).", "respuesta de captura: valor, unidad y periodo, sin «captura validada»");
+ok(respuestaDeCaptura(2643446.803, "tCO2e", 2025, "La cifra corresponde a la división Materiales.") === "2,643,446.803 tCO2e (ejercicio 2025); perímetro: La cifra corresponde a la división Materiales.", "con perímetro declarado: «<cifra>; perímetro: <perímetro>» dentro de la respuesta");
+ok(conceptoDeCifra("[DEMO] Inventario GEI Alcance 1 con memoria de cálculo") === "Emisiones de Alcance 1" && conceptoDeCifra("Cartera de crédito total 2025") === "Cartera de crédito total 2025" && vocabularioProhibidoEn(conceptoDeCifra("Consumo de diésel con su memoria de cálculo")).length === 0, "concepto publicable de una cifra: sin el título de captura ni «memoria de cálculo»");
 const anclas = [
   { oracion: "Primera oración anclada a u2.", hechos: [{ id: "h2", hecho: "u2" }] },
   { oracion: "Oración de otro hecho.", hechos: [{ id: "h3", hecho: "u3" }] },
@@ -110,6 +179,38 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(validarCobertura(cob("pendiente", []), REQ, 10, idsSin, null, TEXTO, rango).some((e) => /marcador/.test(e)), "SIN hecho: «pendiente» exige el marcador en el texto");
   ok(validarCobertura(cob("pendiente", []), REQ, 10, idsSin, null, `${TEXTO} [Pendiente: explicación de por qué no se cuantifican los efectos previstos — Efectos financieros, campo explicación]`, rango).length === 0, "SIN hecho: 21(a) «pendiente» con su marcador es válido");
   ok(validarCobertura(cob("cubierto", ["h2"]), REQ, 10, new Set(conHecho), null, TEXTO, rango).some((e) => /narrativos/.test(e)), "el hecho prestado (narrativo) no sostiene 21(a) solo: va con uno propio de otro rango");
+}
+
+// Planes de disposición de activos (regla de Esteban): al tipo de riesgo que el hecho nombra como motivo, nunca por
+// el bloque al que remite; sin riesgo nombrado (o con los dos), sin tipo para clasificación de IRStrat.
+{
+  const fisico = "No hay planes de disposición de activos distintos de la reubicación de seis sucursales ubicadas en zonas de inundación, prevista hasta 2028.";
+  const transicion = "La Compañía prevé la desinversión de activos varados en generación con carbón por el riesgo de transición.";
+  const sinRiesgo = "La Compañía prevé la venta de inmuebles administrativos en 2027.";
+  const ambos = "La reubicación de sucursales responde a zonas de inundación y al riesgo de transición de la región.";
+  ok(PLAN_DISPOSICION_RE.test(fisico) && tipoDeDisposicion(fisico) === 35, "disposición por zonas de inundación → riesgos físicos (35)");
+  ok(tipoDeDisposicion(transicion) === 34, "disposición por activos varados → riesgos de transición (34)");
+  ok(tipoDeDisposicion(sinRiesgo) === null && tipoDeDisposicion(ambos) === null, "sin riesgo nombrado, o con los dos, no tiene tipo");
+  const sin = disposicionesSinTipo([fisico, transicion, sinRiesgo, ambos, "Las emisiones de Alcance 1 fueron de 1,240 tCO2e."].map((enunciado) => ({ estado: "vigente", enunciado })));
+  ok(sin.length === 2 && sin.every((h) => [sinRiesgo, ambos].includes(h.enunciado)), "disposicionesSinTipo lista solo los planes sin tipo");
+}
+
+// Fase 5 (revisión externa v5): textos de alivio de una sola fuente, reglas de forma, separadores, 36(e) y glosario.
+{
+  ok(textoAlivio("C4", "requisito") === "No revelado · alivio C4" && textoAlivio("C4", "cifra") === noRevelado("C4") && textoAlivio("C3", "cifra") === "No revelado · alivio C3", "alivios: C3/C4 con la redacción del Formato («No revelado · alivio …»), también en un requisito");
+  ok(textoAlivio("E5", "requisito", "NIIF S2 21(a)") === remisionE5("NIIF S2 21(a)") && textoAlivio("E5", "requisito") === ORACION_E5 && textoAlivio("E5", "encabezado") === ORACION_E5, "alivios: E5 requisito = remisión a su par, o la oración sin par");
+  ok(textoNoAplicaE5("NIIF S2 21(a)") === `${ORACION_E5} ${remisionE5("NIIF S2 21(a)")}`, "textoNoAplicaE5 se arma con el módulo de alivios");
+  ok(PAR_S2_DE_S1.get("niifs130(a)y(b)") === "NIIF S2 10(a), (b)y(c)" && PAR_S2_DE_S1.get("niifs140(a)") === "NIIF S2 21(a)" && PAR_S2_DE_S1.get("niifs146a50") === "NIIF S2 29", "pares S1→S2: 30(a)y(b), 40(a) y 46–50 completos");
+  ok(declaracionDeAlivios({ E4: true, E5: true, C3: true, C4: true }) === "Alivios de transición aplicados en este ejercicio: NIIF S1 E4 y E5; NIIF S2 C3 y C4." && declaracionDeAlivios({}) === "Sin alivios de transición en este ejercicio.", "K12: la declaración de los alivios");
+  ok(erroresDeForma("Sí. La Compañía utiliza escenarios.", "NIIF S2 25 (a)(ii)").length === 1 && erroresDeForma("Sí. Respecto del periodo anterior…", "fila:134").length === 0, "una respuesta que no es booleano no abre con «Sí.»; el booleano sí");
+  const transicion = "fila:361"; // riesgo de ajuste material, transición (K640)
+  ok(erroresDeForma("No se identificó un riesgo significativo de ajuste material por los riesgos climáticos.", transicion).some((e) => /de transición/.test(e)) && !erroresDeForma("No se identificó un riesgo significativo de ajuste material por los riesgos de transición.", transicion).length, "B65(c): la celda nombra su tipo de riesgo (K640)");
+  ok(conSeparadoresDeMiles("fue de 488000 litros en 2025", [{ valor: "488000" }, { valor: 2025 }]) === "fue de 488,000 litros en 2025", "separador de miles en las cifras de los hechos; un año no lo lleva");
+  ok(conSeparadoresDeMiles("ISO 14064 y 488,000 litros", [{ valor: 488000 }]) === "ISO 14064 y 488,000 litros", "un número ya formateado o ajeno a los hechos no se toca");
+  const cuest = [{ hoja: "S2 36(e)", pregunta_orden: 1, respuesta: "No se basa en créditos de carbono." }, { hoja: "S2 36(e)", pregunta_orden: 3, respuesta: "Bajo" }];
+  ok(respuestaDeCuestionario36e("NIIF S2 36 (e)(i)", cuest) === "No se basa en créditos de carbono." && respuestaDeCuestionario36e("NIIF S2 36 (e)(iii)", cuest) === null && respuestaDeCuestionario36e("NIIF S2 36 (c)", cuest) === null, "36(e): la respuesta de texto del cuestionario por inciso (fila 276); las de lista no");
+  ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
+  ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
 }
 
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");

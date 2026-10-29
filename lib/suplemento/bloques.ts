@@ -266,11 +266,12 @@ export const BLOQUES: Bloque[] = [
     seccion: "I · Introducción",
     titulo: "Resumen de efectos financieros actuales y previstos",
     clase: "normativo",
-    respaldo: "NIIF S2 15–16 (efectos financieros actuales y previstos) y 21(a) (por qué no hay información cuantitativa).",
+    respaldo: "NIIF S2 15–16 (efectos financieros actuales y previstos), 21(a) (por qué no hay información cuantitativa) y B65(e) (conexiones con los estados financieros).",
     tipo: "D→T",
     regimen: "varia_por_regimen",
     // NIIF S2 21(a): alta del encargo 2026-10-24-deuda-s2-formato (fila 100 del Formato electrónico).
-    datapoints: ["NIIF S2 16(a)", "NIIF S2 16(b)", "NIIF S2 16(c)(i)(ii)", "NIIF S2 16(d)", "NIIF S2 21(a)"],
+    // NIIF S2 B65 inciso (e): dueño el bloque 10 (encargo formato-afirmaciones-y-voz, Fase 2; filas 365, 388 y 411).
+    datapoints: ["NIIF S2 16(a)", "NIIF S2 16(b)", "NIIF S2 16(c)(i)(ii)", "NIIF S2 16(d)", "NIIF S2 21(a)", "NIIF S2 B65 inciso (e)"],
     tablas: ["capturas_valor"],
     perfil: [],
   },

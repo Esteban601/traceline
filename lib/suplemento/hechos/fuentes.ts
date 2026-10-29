@@ -1,4 +1,5 @@
 import "server-only";
+import { conceptoDeCifra, conPerimetro } from "@/lib/reporte/cifra";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import type { Contenido } from "@/lib/evidencias/extraer";
@@ -165,7 +166,9 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
     directos.push({
       ...base,
       clave: `${slug(s.titulo)}.valor_${ejercicio}`,
-      enunciado: `${s.titulo}: ${e.valor}${s.unidad_esperada ? ` ${s.unidad_esperada}` : ""} (ejercicio ${ejercicio}).`,
+      // El concepto publicable, no el título de la solicitud («con memoria de cálculo» es de la captura), y el
+      // perímetro declarado dentro de la cifra (encargo formato-afirmaciones-y-voz, Fase 3).
+      enunciado: `${conPerimetro(`${conceptoDeCifra(s.titulo)}: ${e.valor}${s.unidad_esperada ? ` ${s.unidad_esperada}` : ""} (ejercicio ${ejercicio})`, s.nota_alcance)}.`,
       tipo: "cifra",
       valor: Number(e.valor),
       unidad: s.unidad_esperada,

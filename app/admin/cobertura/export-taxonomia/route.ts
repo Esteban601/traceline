@@ -5,9 +5,7 @@ import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeEntrarPanel } from "@/lib/data";
 import { registrarActividadAuditor } from "@/lib/auditoria";
-import { APP_NAME } from "@/lib/app";
 import { CUESTIONARIOS } from "@/lib/cuestionarios";
-import { fmtFecha } from "@/lib/fechas";
 import { PADRE_DE } from "@/lib/suplemento/catalogo-incisos";
 import {
   ensamblarReporte,
@@ -18,8 +16,9 @@ import {
   type RegValRow,
   noRevelado,
 } from "@/lib/reporte/ensamblar";
-import type { Alivios } from "@/lib/perfil-emisor";
-import { ORACION_E5, pendienteEnTextoPlano, sinRemision } from "@/lib/suplemento/respuestas";
+import { type Alivios } from "@/lib/perfil-emisor";
+import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
+import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -31,9 +30,7 @@ export const runtime = "nodejs";
 // de sensibilidad y web-extensions). Ver reporte de fidelidad en el PR de Fase 3.
 const PLANTILLA = path.join(process.cwd(), "assets", "taxonomia-base.xlsx");
 
-const GOLD = "FF8A6D1B";
 
-const NOTA_SIN_DATOS = "Sin datos del ejercicio";
 
 /**
  * Hoja principal del libro: el índice de los requisitos NIIF. Se llamaba
@@ -164,10 +161,19 @@ function escribirRespuestas(
  * falta más, se insertan antes de «OPORTUNIDADES»), oportunidades después de su
  * encabezado. Con E5, la oración fija del alivio en A2. Devuelve la última fila.
  */
-function escribirMetricasS1(ws: ExcelJS.Worksheet, inst: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] }, e5: boolean): number {
-  if (e5) ws.getCell("A2").value = ORACION_E5;
+function escribirMetricasS1(ws: ExcelJS.Worksheet, inst: { riesgos: InstanciaMetrica[]; oportunidades: InstanciaMetrica[] }): number {
+  // La oración del E5 ya no va en A2 (una nota): va en los encabezados de pilar de la hoja de taxonomía.
+  // Columna B «Tipo» (Riesgo / Oportunidad), decisión de Esteban del 26/10: sin las filas separadoras, es lo que
+  // distingue un riesgo de una oportunidad.
+  insertarColumna(ws, 2);
+  for (const f of [3, 4]) {
+    const c = ws.getCell(f, 2);
+    c.value = "Tipo";
+    c.style = { ...ws.getCell(f, 1).style };
+  }
+  ws.getColumn(2).width = 14;
   const fila = (n: number, m: InstanciaMetrica) => {
-    const valores = [m.riesgo, m.nombre, m.descripcion, `NIIF S2 párrafo ${m.parrafo}`, m.nombre, m.descripcion, "No", "No aplica: la métrica se toma sin ajuste de NIIF S2", m.tipoMedida, m.verificacion, m.metodo];
+    const valores = [m.riesgo, m.tipoRegistro === "oportunidad" ? "Oportunidad" : "Riesgo", m.nombre, m.descripcion, `NIIF S2 párrafo ${m.parrafo}`, m.nombre, m.descripcion, "No", "No aplica: la métrica se toma sin ajuste de NIIF S2", m.tipoMedida, m.verificacion, m.metodo];
     valores.forEach((v, i) => {
       const c = ws.getRow(n).getCell(i + 1);
       c.value = v || null;
@@ -181,35 +187,6 @@ function escribirMetricasS1(ws: ExcelJS.Worksheet, inst: { riesgos: InstanciaMet
   const inicioOpp = 19 + extra;
   inst.oportunidades.forEach((m, i) => fila(inicioOpp + i, m));
   return Math.max(21 + extra, inicioOpp + inst.oportunidades.length - 1);
-}
-
-/**
- * HOJA «LEYENDA» (revisión externa, puntos 1 y 3; especificación 0.41, §6.1).
- * Qué es cada parte del libro y por qué una celda dice «No revelado · alivio».
- */
-function escribirLeyenda(wb: ExcelJS.Workbook, alivios: Alivios): void {
-  const ws = wb.getWorksheet("Leyenda") ?? wb.addWorksheet("Leyenda");
-  ws.getColumn(1).width = 34;
-  ws.getColumn(2).width = 110;
-  const filas: [string, string][] = [
-    ["Leyenda", ""],
-    ["Hojas de datos", "Las hojas por párrafo (NIIF S2 29(a)(i), 29(b), 33, …) llevan capturas validadas en la plataforma. Se exportan con o sin suplemento: no dependen de que el documento esté aprobado."],
-    ["Columna «Respuesta»", "La columna E de la hoja «Taxonomía NIIF S1 S2» lleva la respuesta a cada requisito, redactada desde el último documento del Suplemento NIIF S1/S2 APROBADO, con remisión a su sección. Mientras no haya documento aprobado dice «En preparación»: nunca se exporta un borrador."],
-    ["«Pendiente: …»", "El requisito no tiene información en el documento aprobado: dice qué falta y de dónde debe salir."],
-    ["«No aplica»", "El requisito no aplica en este ejercicio, por el régimen o por la condición de la emisora."],
-    ["«No revelado · alivio C4»", "Alivio transitorio del primer año (NIIF S2 C4): no se revelan las emisiones de Alcance 3, ni su total ni sus categorías."],
-    ["«No revelado · alivio C3»", "Alivio transitorio del primer año (NIIF S2 C3): no se presentan comparativos del ejercicio anterior."],
-    ["Alivio E5 en las hojas de NIIF S1", "Alivio transitorio del primer año (NIIF S1 E5): el informe trata solo los riesgos y oportunidades relacionados con el clima. «NIIF S1 46-50» lleva las métricas de NIIF S2 29 por riesgo y oportunidad, con la oración del alivio, y «NIIF S1 51» los objetivos climáticos: el mismo contenido que el Formato electrónico."],
-    ["Alivios de este reporte", (["C3", "C4", "E5"] as const).filter((k) => alivios[k]).join(", ") || "Ninguno vigente en este ejercicio."],
-  ];
-  filas.forEach(([a, b], i) => {
-    const fila = ws.getRow(i + 1);
-    fila.getCell(1).value = a;
-    fila.getCell(2).value = b;
-    fila.getCell(1).font = { bold: true };
-    fila.getCell(2).alignment = { wrapText: true, vertical: "top" };
-  });
-  ws.getRow(1).getCell(1).font = { bold: true, size: 14 };
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -392,8 +369,8 @@ function escribirRegistros(
               if (monto != null) num(ws, `${grupo.capValue}${subFila}`, monto, "#,##0.###");
             });
           } else {
-            // Sin valores del ejercicio: brecha en la primera celda del grupo.
-            ws.getCell(`${grupo.cantidad}${fila}`).value = NOTA_SIN_DATOS;
+            // Sin valores del ejercicio: el marcador de pendiente en la primera celda del grupo (CLAUDE.md §5).
+            ws.getCell(`${grupo.cantidad}${fila}`).value = `Pendiente: cifras de ${anio} — ${limpiarNombre(r.nombre)}`;
           }
         }
       }
@@ -406,7 +383,7 @@ function escribirRegistros(
       const filaNombre = sec.filaInicio + (visibles.length - 1) * paso;
       ws.getCell(`${sec.cols.nombre}${filaNombre}`).value = `${limpiarNombre(
         visibles[visibles.length - 1].nombre
-      )}  (+${extras} registros adicionales en plataforma)`;
+      )}  (+${extras} más que no caben en esta hoja)`;
     }
 
     // Pie: bajo el último slot de la hoja (no en medio de una sección).
@@ -426,7 +403,8 @@ function escribirRegistros(
 // Campos vacíos → nota en Notas/Brechas de la fila (las hojas S2 tienen esa
 // columna; S1 51 no la tiene, así que las celdas ausentes quedan en blanco).
 // -----------------------------------------------------------------------------
-const NOTA_SECCION = "Sección pendiente en plataforma";
+// Sin captura: el marcador de pendiente en la primera celda de respuesta de la fila (CLAUDE.md §5), no una nota.
+const pendienteObjetivo = (que: string, nombre: string) => `Pendiente: ${que} — objetivo «${nombre}»`;
 
 
 function escribirObjetivos(
@@ -495,10 +473,7 @@ function escribirObjetivos(
         o.tipo_objetivo ||
         o.alineacion_acuerdo_internacional
       );
-      // Notas/Brechas (col K): la nota de sección pendiente si la definición está
-      // vacía; en caso contrario, la nota libre de la ficha (si la hay).
-      if (defVacia) s33.getCell(`K${fila}`).value = NOTA_SECCION;
-      else put(s33, `K${fila}`, d?.notas);
+      if (defVacia) s33.getCell(`B${fila}`).value = pendienteObjetivo("definición del objetivo", nombre);
     }
     if (s34) {
       put(s34, `A${fila}`, nombre);
@@ -513,42 +488,50 @@ function escribirObjetivos(
           d.metricas_supervision ||
           d.revisiones)
       );
-      if (vacia) s34.getCell(`F${fila}`).value = NOTA_SECCION;
+      if (vacia) s34.getCell(`B${fila}`).value = pendienteObjetivo("validación, supervisión y revisión del objetivo", nombre);
     }
     if (s35) {
       put(s35, `A${fila}`, nombre);
       put(s35, `B${fila}`, d?.resultados);
       put(s35, `C${fila}`, d?.analisis_tendencias);
       const vacia = !(d && (d.resultados || d.analisis_tendencias));
-      if (vacia) s35.getCell(`D${fila}`).value = NOTA_SECCION;
-    }
-    if (s36) {
-      put(s36, `A${fila}`, nombre);
-      put(s36, `B${fila}`, d?.gases_cubiertos);
-      put(s36, `C${fila}`, d?.alcances_cubiertos);
-      put(s36, `D${fila}`, d?.bruto_neto);
-      put(s36, `E${fila}`, d?.enfoque_descarbonizacion);
-      const vacia = !(
-        d &&
-        (d.gases_cubiertos ||
-          d.alcances_cubiertos ||
-          d.bruto_neto ||
-          d.enfoque_descarbonizacion)
-      );
-      if (vacia) s36.getCell(`F${fila}`).value = NOTA_SECCION;
+      if (vacia) s35.getCell(`B${fila}`).value = pendienteObjetivo("resultados y análisis de tendencias del objetivo", nombre);
     }
     escritas++;
   });
+
+  // NIIF S2 36(a)–(d) es de objetivos de emisiones de GEI (decisión de Esteban, Fase 5 del encargo
+  // formato-afirmaciones-y-voz): alcances cubiertos o bruto/neto capturados y métrica en tCO2e. Los booleanos
+  // capturados como Verdadero/Falso se escriben «Sí»/«No», como en el Formato electrónico.
+  const esObjetivoGei = (o: (typeof climaticos)[number]) => {
+    const d = detallePorObj.get(o.id);
+    return !!(d?.alcances_cubiertos?.trim() || d?.bruto_neto?.trim()) && /t\s*CO(?:2|₂)\s*e/i.test(o.metrica ?? "");
+  };
+  const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
+  if (s36) {
+    climaticos.filter(esObjetivoGei).slice(0, S2_FIN - S2_INICIO + 1).forEach((o, i) => {
+      const fila = S2_INICIO + i;
+      const d = detallePorObj.get(o.id);
+      put(s36, `A${fila}`, limpiarNombre(o.nombre));
+      put(s36, `B${fila}`, d?.gases_cubiertos);
+      put(s36, `C${fila}`, d?.alcances_cubiertos);
+      put(s36, `D${fila}`, d?.bruto_neto);
+      put(s36, `E${fila}`, siNo(d?.enfoque_descarbonizacion));
+      if (!(d && (d.gases_cubiertos || d.alcances_cubiertos || d.bruto_neto || d.enfoque_descarbonizacion))) {
+        s36.getCell(`B${fila}`).value = pendienteObjetivo("cobertura del objetivo (gases, alcances, bruto o neto, enfoque)", limpiarNombre(o.nombre));
+      }
+    });
+  }
 
   // Overflow climáticos: nota '+N' en la última fila (col nombre) de las 4 hojas.
   const extrasClim = climaticos.length - visClim.length;
   if (extrasClim > 0 && visClim.length > 0) {
     const filaUlt = S2_INICIO + visClim.length - 1;
     const ultNombre = limpiarNombre(visClim[visClim.length - 1].nombre);
-    for (const ws of [s33, s34, s35, s36]) {
+    for (const ws of [s33, s34, s35]) {
       if (ws)
         ws.getCell(`A${filaUlt}`).value =
-          `${ultNombre}  (+${extrasClim} objetivos adicionales en plataforma)`;
+          `${ultNombre}  (+${extrasClim} más que no caben en esta hoja)`;
     }
   }
 
@@ -583,7 +566,7 @@ function escribirObjetivos(
       if (extras > 0 && vis.length > 0) {
         const filaUlt = inicio + vis.length - 1;
         s51.getCell(`A${filaUlt}`).value =
-          `${limpiarNombre(vis[vis.length - 1].nombre)}  (+${extras} adicionales en plataforma)`;
+          `${limpiarNombre(vis[vis.length - 1].nombre)}  (+${extras} más que no caben en esta hoja)`;
       }
     };
     seccion("riesgo", 4, 12);
@@ -603,14 +586,17 @@ function escribirObjetivos(
 // Pregunta sin respuesta → nota de brecha en Notas (col D). El catálogo de
 // preguntas es fijo y vive en lib/cuestionarios.ts.
 // -----------------------------------------------------------------------------
-const NOTA_CUEST_PENDIENTE = "Pendiente en plataforma";
+// Una pregunta sin respuesta: el marcador de pendiente en texto plano (CLAUDE.md §5), no «Pendiente en plataforma».
+const notaCuestPendiente = (hojaExcel: string) => `Pendiente: respuesta de la emisora a esta pregunta — cuestionario ${hojaExcel}`;
 const CUEST_FILA_INICIO = 3;
 
 
 function escribirCuestionarios(
   wb: ExcelJS.Workbook,
   respuestas: CuestRow[], // ya acotadas al reporte objetivo
-  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>
+  hojasTocadas: Map<string, { ws: ExcelJS.Worksheet; ultimaFila: number }>,
+  /** El «no aplica» de 36(e) del documento aprobado: llena las preguntas sin respuesta de esa hoja. */
+  noAplica36e: string | null = null
 ): number {
   let escritas = 0;
   // Índice respuesta por (hoja, orden).
@@ -631,21 +617,12 @@ function escribirCuestionarios(
       ws.getCell(`A${fila}`).value = p.texto;
 
       const r = porClave.get(`${sec.hoja}#${p.orden}`);
-      const respuesta = r?.respuesta?.trim() || null;
-      const tipoDato = r?.tipo_dato?.trim() || null;
-      const notas = r?.notas?.trim() || null;
+      const respuesta = r?.respuesta?.trim() || (sec.hoja === "S2 36(e)" ? noAplica36e : null);
 
-      if (respuesta) {
-        ws.getCell(`B${fila}`).value = respuesta;
-        escritas++;
-      }
-      // Tipo de dato: fijo de la estructura oficial en 22(b) (se muestra aunque no
-      // haya respuesta); capturado libre en 36(e). El catálogo tiene prioridad.
-      const tipoC = p.tipoDatoLabel ?? tipoDato;
-      if (tipoC) ws.getCell(`C${fila}`).value = tipoC;
-      // Notas/Brechas: la nota libre si la hay; si no hay respuesta, la brecha.
-      const notaCelda = notas ?? (respuesta ? null : NOTA_CUEST_PENDIENTE);
-      if (notaCelda) ws.getCell(`D${fila}`).value = notaCelda;
+      // Solo pregunta y respuesta (regla de Esteban del 26/10): sin «Tipo de dato» ni «Notas / Brechas». Una
+      // pregunta sin respuesta lleva el marcador de pendiente en la celda de la respuesta.
+      ws.getCell(`B${fila}`).value = respuesta ?? notaCuestPendiente(sec.hojaExcel);
+      if (respuesta) escritas++;
 
       ultimaFila = fila;
     });
@@ -764,13 +741,11 @@ export async function GET(request: Request) {
     }
   }
 
-  // Notas de brecha/perímetro. Sin texto no se escribe: sobreescribir con ""
-  // borraría lo que la plantilla oficial ya trae en esa celda.
-  for (const n of ens.notas) {
-    if (!n.texto) continue;
-    const ws = wb.getWorksheet(n.hoja);
-    if (!ws) continue;
-    ws.getCell(n.celda).value = n.texto;
+  // Cifras que faltan: el marcador de pendiente EN la celda de la cifra (CLAUDE.md §5). Sin columna de notas: el
+  // libro lleva solo preguntas y respuestas (regla de Esteban del 26/10).
+  for (const p of ens.pendientes) {
+    const ws = wb.getWorksheet(p.hoja);
+    if (ws) ws.getCell(p.celda).value = p.texto;
   }
 
   // Escritura POSICIONAL. Se queda aquí y no en el ensamblador porque no es
@@ -802,14 +777,18 @@ export async function GET(request: Request) {
     .maybeSingle();
   const generadorActivo = (repTenant?.tenant as unknown as { generador_activo: boolean } | null)?.generador_activo === true;
   let respuestasEscritas: { escritas: number; enPreparacion: number; hijos: number } | null = null;
+  // 36(e) en un solo estado (encargo formato-afirmaciones-y-voz): si el documento aprobado dice que no aplica, la hoja
+  // del cuestionario dice lo mismo que la columna de respuestas y el Formato electrónico.
+  let noAplica36e: string | null = null;
   if (hojaIndice && generadorActivo) {
     const { data: filasResp } = await supabase
       .from("respuestas_datapoint")
-      .select("clave, texto")
+      .select("clave, texto, estado")
       .eq("reporte_id", reporteId)
       .eq("destino", "taxonomia");
     const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
     respuestasEscritas = escribirRespuestas(hojaIndice, respuestas);
+    if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
   }
 
   const registrosEscritos = escribirRegistros(
@@ -849,38 +828,26 @@ export async function GET(request: Request) {
         hayDocumentoAprobado: !!documentoAprobado,
       })
     );
-    const ultima = escribirMetricasS1(s4650, inst, reporte.aliviosVigentes.E5 === true);
+    const ultima = escribirMetricasS1(s4650, inst);
     const prev = hojasTocadas.get("NIIF S1 46-50") ?? { ws: s4650, ultimaFila: 0 };
     prev.ultimaFila = Math.max(prev.ultimaFila, ultima);
     hojasTocadas.set("NIIF S1 46-50", prev);
   }
 
-  escribirLeyenda(wb, reporte.aliviosVigentes);
-
   // Cuestionarios narrativos (3 hojas: S2 22(b)(i)/(ii) y 36(e)).
-  const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas);
+  const cuestionariosEscritos = escribirCuestionarios(wb, ens.cuestionarios, hojasTocadas, noAplica36e);
 
-  // Pie discreto en cada hoja llenada. La marca [DEMO] SOLO para el tenant de
-  // demostración: estampar "[DEMO]" en el entregable oficial de una emisora real
-  // sería falsear su documento.
-  //
-  // La condición es la columna `tenants.es_demo`, la misma que enciende la franja
-  // en la UI: antes se infería del prefijo "[DEMO]" del nombre, y una emisora real
-  // que se llamara así —o la demo renombrada— habría cambiado su entregable con un
-  // renombre.
-  const tenantRep = reporte.tenant as unknown as {
-    nombre: string;
-    slug: string | null;
-    es_demo: boolean;
-  } | null;
-  const esDemo = tenantRep?.es_demo === true;
-  const fechaHoy = fmtFecha(new Date());
-  const pie = `Generado por ${APP_NAME} — ${fechaHoy}${esDemo ? " — [DEMO]" : ""}`;
-  for (const { ws, ultimaFila } of hojasTocadas.values()) {
-    const cell = ws.getCell(`A${ultimaFila + 2}`);
-    cell.value = pie;
-    cell.font = { italic: true, size: 9, color: { argb: GOLD } };
-  }
+  // Solo preguntas y respuestas (regla de Esteban del 26/10): sin «Leyenda», títulos, pies, notas ni columnas
+  // auxiliares. Antes, los alivios que no tienen celda propia se enuncian dentro de las respuestas.
+  if (hojaIndice) enunciarAlivios(hojaIndice, reporte.aliviosVigentes);
+  soloPreguntasYRespuestas(wb, HOJA_TAXONOMIA);
+  const tenantRep = reporte.tenant as unknown as { nombre: string; slug: string | null; es_demo: boolean } | null;
+  // La marca [DEMO] ya no va en un pie (no es pregunta ni respuesta): va en las propiedades del archivo, y solo para
+  // el tenant de demostración (`tenants.es_demo`). Estampar «[DEMO]» en el entregable de una emisora real sería
+  // falsear su documento.
+  const tituloLibro = `Taxonomía NIIF S1 S2 · ${reporte.ejercicio}`;
+  wb.title = tenantRep?.es_demo === true ? `${tituloLibro} · [DEMO]` : tituloLibro;
+  wb.subject = tenantRep?.es_demo === true ? "[DEMO] datos ilustrativos" : "";
 
   // ---------------------------------------------------------------------------
   // Nombre de archivo: taxonomia-{slug-tenant}-{ejercicio}-{fecha}.
