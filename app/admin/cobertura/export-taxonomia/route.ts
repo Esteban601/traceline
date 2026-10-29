@@ -20,6 +20,7 @@ import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
 import { CONTINUACIONES } from "@/lib/excel/continuaciones";
 import { llenarFormato } from "@/lib/formato/llenar";
+import { esObjetivoDeEmisiones } from "@/lib/formato/objetivos";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { insumosDelFormato, verificacionGeiDelDocumento } from "@/lib/formato/datos";
@@ -527,7 +528,7 @@ function escribirObjetivos(
   // capturados como Verdadero/Falso se escriben «Sí»/«No», como en el Formato electrónico.
   const esObjetivoGei = (o: (typeof climaticos)[number]) => {
     const d = detallePorObj.get(o.id);
-    return !!(d?.alcances_cubiertos?.trim() || d?.bruto_neto?.trim()) && /t\s*CO(?:2|₂)\s*e/i.test(o.metrica ?? "");
+    return esObjetivoDeEmisiones({ metrica: o.metrica, alcances: d?.alcances_cubiertos, bruto_neto: d?.bruto_neto });
   };
   const siNo = (x: string | null | undefined) => (x === "Verdadero" ? "Sí" : x === "Falso" ? "No" : x);
   if (s36) {

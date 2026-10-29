@@ -1,4 +1,5 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
+import { filaExportada } from "@/lib/formato/objetivos";
 import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
 import type { Alivios } from "@/lib/perfil-emisor";
@@ -54,7 +55,14 @@ export const CONCEPTOS_FORMATO = (mapeoFormato as unknown as { conceptos: Concep
 
 export type RespuestaLeida = { destino: "taxonomia" | "formato"; clave: string; estado: EstadoRespuesta; texto: string | null };
 
-export type ObjetivoFormato = { nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null };
+export type ObjetivoFormato = {
+  nombre: string; origen: string | null; tipo_objetivo: string | null; gases: string | null; alcances: string | null; bruto_neto: string | null;
+  // Por inciso (encargo formato-respuesta-por-inciso, Fase 4): un bloque «Objetivo N» por objetivo.
+  descripcion?: string | null; metrica?: string | null; parte_entidad?: string | null; periodo_aplicacion?: string | null; periodo_base?: string | null;
+  hito_intermedio?: string | null; alineacion?: string | null; validacion_tercero?: string | null; procesos_revision?: string | null;
+  metricas_supervision?: string | null; revisiones?: string | null; resultados?: string | null; analisis_tendencias?: string | null;
+  enfoque_descarbonizacion?: string | null;
+};
 
 export type DatosFormato = {
   ejercicio: number;
@@ -453,17 +461,21 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   }
 }
 
-/** Fila del mapeo → celda K del Formato exportado (las filas > 185 se desplazan 279 por las métricas iteradas). */
-export const celdaK = (fila: number) => `K${fila > 185 ? fila + 279 : fila}`;
+/**
+ * Fila del mapeo → celda K del Formato exportado: las filas > 185 se desplazan 279 por las métricas iteradas del demo, y
+ * las de después de 270 además por los bloques «Objetivo N» (`objetivos`, Fase 4 de respuesta por inciso); las del
+ * bloque, en la copia del primer objetivo.
+ */
+export const celdaK = (fila: number, objetivos = 0) => `K${filaExportada(fila, { objetivos, deltaMetricas: 279 })}`;
 
 /**
  * Booleanos que quedaron vacíos porque la respuesta narrativa de su código los contradice: fila, celda, valor
  * propuesto y la oración que lo contradijo. Para el informe del validador (hoja de revisión y log de la descarga).
  */
-export function booleanosVaciosPorContradiccion(valores: Map<number, ValorFormato>): { fila: number; celda: string; valor: "Sí" | "No"; oracion: string }[] {
+export function booleanosVaciosPorContradiccion(valores: Map<number, ValorFormato>, objetivos = 0): { fila: number; celda: string; valor: "Sí" | "No"; oracion: string }[] {
   return [...valores.entries()]
     .filter(([, v]) => v.contradiccion)
-    .map(([fila, v]) => ({ fila, celda: celdaK(fila), valor: v.contradiccion!.valor, oracion: v.contradiccion!.oracion }));
+    .map(([fila, v]) => ({ fila, celda: celdaK(fila, objetivos), valor: v.contradiccion!.valor, oracion: v.contradiccion!.oracion }));
 }
 
 /**
