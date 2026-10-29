@@ -120,6 +120,14 @@ console.log("\nFormato electrónico · objetivos por inciso y por objetivo (Fase
   ok(s1.every((b) => [202, 204, 206, 208, 210, 212, 214].every((f) => /se revela conforme a NIIF S2 3[345]/.test(enBloque(b, f, 196)))), "NIIF S1 51 (a)–(g) bajo E5: cada inciso remite a su inciso de NIIF S2 en cada objetivo");
 }
 
+console.log("\nFormato electrónico · NIIF S2 29(a)(iii) por inciso (Fase 5)");
+{
+  const [enfoque, datos, razon, cambios] = [K(596), K(597), K(599), K(601)];
+  ok(/Protocolo GEI/.test(enfoque) && !/488,000/.test(enfoque) && /488,000/.test(datos) && !/Protocolo GEI/.test(datos), "K596 el enfoque (protocolo, consolidación, factores) y K597 los datos de entrada y supuestos, sin repetirse");
+  ok(!razon, "K599 (razón de la elección): vacía, ningún hecho la da (§5: en el Formato el pendiente es la celda vacía)");
+  ok(!cambios || !/Protocolo GEI, con enfoque de control/.test(cambios), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo");
+}
+
 console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
 {
   const [tr, fi, op] = [K(629), K(652), K(675)];
@@ -245,6 +253,17 @@ ok(["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"].every((c)
   const d = porCodigo.get("NIIF S2 16(d)") ?? [];
   ok(d.length === 2 && d[1] === K(99) && d[1] !== d[0], "Excel 104 (16(d) flujos previstos a corto, medio y largo plazo): la tabla por plazo de K99, distinta de la 103, sin fila intermedia");
   ok(s97 === K(85) && d[0] === K(96), "Excel 97 y 103: solo su parte (K85 y K96), sin repetir lo que dan las filas siguientes");
+  // Fase 5.
+  const g = porCodigo.get("NIIF S2 29 (a)(iii)") ?? [];
+  ok(g[0] === K(596) && g[1] === K(597) && (g[2] === K(599) || /^Pendiente: razón/.test(g[2])) && (g[3] === K(601) || /^Pendiente: respuesta de la emisora/.test(g[3])) && g.slice(4).every((t) => !t), "Excel 130–133 (29(a)(iii)): enfoque, datos, razón y cambios (o el marcador de §5); la copia 134–137 de la plantilla, vacía");
+  const tipos = ["NIIF S2 29 (b)", "NIIF S2 29 (c)", "NIIF S2 29 (d)"].map((c) => (porCodigo.get(c) ?? [])[1] ?? "");
+  ok(tipos[0] === K(629) && tipos[1] === K(652) && tipos[2] === K(675), "Excel 153, 162 y 171 (29(e) por tipo): las mismas celdas que K629, K652 y K675");
+  const sectores = [];
+  wt.getWorksheet("Taxonomía NIIF S1 S2").eachRow((row) => { if (texto(row.getCell(1).value) === "NIIF S2 32" && /^▫/.test(texto(row.getCell(2).value))) sectores.push([texto(row.getCell(2).value), texto(row.getCell(3).value)]); });
+  const si = sectores.filter(([, r]) => r === "Sí");
+  ok(sectores.length === 70 && si.length === 1 && /\[815200\]/.test(si[0][0]) && sectores.every(([, r]) => !r || r === "Sí"), `lista de sectores de NIIF S2 32 (70 opciones): «Sí» solo en el sector del Perfil (${si.map(([o]) => o.slice(2, 40)).join(", ")})`);
+  const s33 = wt.getWorksheet("NIIF S2 33");
+  ok([2, 3, 4].every((f) => !!texto(s33.getCell(`D${f}`).value) && !/^\d+% (al|en) \d{4}$/.test(texto(s33.getCell(`D${f}`).value))), "hoja «NIIF S2 33», columna «Objetivo de la meta» (33(b)): el propósito de cada objetivo (o el marcador de §5), no la meta");
 }
 // Fase 3: NIIF S1 bajo E5 y booleanos de NIIF S2 con sus ramas, como el Formato.
 {
