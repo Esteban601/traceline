@@ -210,7 +210,22 @@ acumulado del encargo en dev sería menor de 0.20 USD. No se regenera el documen
 - Vocabulario 0 en los dos libros.
 - `tsc` limpio, `eslint` sin errores nuevos, `verify:export` y los e2e del área en verde.
 
-## 5. Decisiones que necesito antes de la Fase 1
+## 5. Decisiones de Esteban (28/10/2026, Paso 0)
+
+1. Fases 1–5 aprobadas, en ese orden.
+2. 36(e): el padre remite a los incisos (i)–(iv) cuando (i) tiene respuesta; «No aplica» solo si ningún inciso
+   responde; una sola redacción.
+3. Las 12 filas de continuación de NIIF S1 bajo E5 llevan la remisión de su fila madre.
+4. Sí a los dos:
+   - la pregunta «cambios en el enfoque de medición» va al cuestionario de GEI en la Fase 5;
+   - el campo «propósito del objetivo» (S2 33(b)) entra en la Fase 4, con migración aditiva y parada con el SQL antes
+     de aplicarla en dev.
+5. Sin códigos nuevos: se responde por fila y Cobertura no cambia.
+
+Fase 1, además: las ramas que su booleano cierra quedan vacías por regla general, no solo K41 y K50. 29(e) físicos son
+los 12.3 millones de adecuaciones del sureste; transición y oportunidades, lo que el libro sustente, o vacío.
+
+### 5.1 Preguntas del Paso 0 (ya respondidas arriba)
 
 1. **Fases y orden de §2:** ¿los apruebas? La Fase 1 es la que pediste: contenido falso y 36(e).
 2. **36(e), el padre:** ¿remite a (i)–(iv) en lugar de «No aplica» cuando (i) tiene respuesta del cuestionario? Es mi
@@ -234,3 +249,4 @@ acumulado del encargo en dev sería menor de 0.20 USD. No se regenera el documen
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 28/10/2026 | **Paso 0** (lectura). Inventario de 50 celdas del Formato y 132 filas del Excel; 5 celdas con contenido falso; 34(c)/(d) ya no lo son; 0 códigos nuevos necesarios; ~12 respuestas con el modelo por documento (~0.05 USD por corrida); cinco fases, 6.5 jornadas | **Parada:** decisiones de §5 |
+| 28/10/2026 | **Fase 1**, parada | **Ramas de los booleanos, regla general:** `RAMAS_BOOLEANO` en `llenar.ts`, con las 14 ramas de la plantilla, sustituye a `POR_QUE` y `SI_COMO`. Un e2e comprueba contra la columna D que no falte ninguna. Cerradas y vacías: K41, K45, K50, K135, K594, K699 y K707. K39 («¿Por qué?» con «No») da la razón: la respuesta propia de K38 sin el «No.». **29(e) por tipo** (`CONCEPTOS_29E`, filas 350, 373 y 396): reciben solo los hechos de despliegue de capital del libro de su tipo; validador de tipo nombrado y de cifras que salgan de sus hechos. K652, 12.3 millones de adecuaciones; K675, 31.0 de eficiencia más 0.4 de medición del inventario; K629 vacía, porque el libro no sustenta ninguno de transición. K693 conserva el total de 31.4. **36(e):** el padre (K534, Excel f272) remite a (i)–(iv); K535 «No» por regla, porque (ii)–(iv) no aplican; K536 da la razón (la respuesta de (i)); una respuesta del cuestionario que solo dice «No aplica…» toma la redacción de regla (K540, f277). **Regeneración:** solo las 6 filas que cambian, en una corrida (`regenerar-una-respuesta.mjs`, ahora con varias claves y `--crear`): **0.0268 USD**, de los que 2 respuestas son nuevas y el resto son las 3 que se regeneran siempre. **Antes y después:** 9 celdas del Formato y 2 del Excel, ninguna más (`~/Downloads/formato-respuesta-por-inciso/fase1-antes-despues-*.txt`). **Pruebas:** `e2e-celdas-categoricas` en verde con 13 casos nuevos, que fallan los 13 sobre v5.1; `e2e-respuestas-validadores` 83; métricas 19, Formato 29, alivios 20, respuestas 22 y regeneración 9, contra el stack local; `verify:export` 81 contra dev; vocabulario 0 en los dos libros; `tsc` limpio | **Parada:** revisión de Esteban |
