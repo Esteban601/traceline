@@ -245,7 +245,11 @@ const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).m
  * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
  * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean }[] = [
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[] }[] = [
+  // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
+  // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
+  { fila: 36, codigo: "NIIF S2 6 (a)(v)", porEfecto: true, sinHechos: /remuneraci[oó]n/i, enfoque: "cómo el órgano de gobierno supervisa el establecimiento de los objetivos relacionados con el clima y el seguimiento de su avance. Sin la remuneración, que va en las filas 38 y 39" },
+  { fila: 43, codigo: "NIIF S2 6(b)", porEfecto: true, distintaDe: ["NIIF S2 6(b)(i)", "NIIF S2 6(b)(ii)"], enfoque: "el papel de la gerencia en la gestión de los riesgos y oportunidades relacionados con el clima: qué funciones de dirección los gestionan y de qué se encarga cada una. Sin cómo se supervisa a esos cargos (fila 47, NIIF S2 6(b)(i)) ni los controles y procedimientos (fila 52, NIIF S2 6(b)(ii))" },
   // 16(d) por efecto (Fase 2, ajuste 3 de Esteban): K96 rendimiento previsto, con la razón de no cuantificar (NIIF S2 21);
   // K98 flujos previstos, sin ella. Las tablas por horizonte (97 y 99) van aparte: TABLAS_POR_HORIZONTE.
   { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) a corto, mediano y largo plazo, y la razón por la que la Compañía no da información cuantitativa adicional si los hechos la dan. Sin el ahorro que los hechos dan como menor gasto de efectivo, que va en la fila 98" },
@@ -725,7 +729,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         .filter((x) => !vistos.has(x.enunciado) && vistos.add(x.enunciado))
         .map((x) => x.id);
     })();
-    const propios = c.porEfecto && !c.conNegativas ? (cob?.hechos ?? []).filter((id) => hechos.get(id)?.tipo !== "declaracion_negativa") : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
+    const propios = c.porEfecto ? (cob?.hechos ?? []).filter((id) => (c.conNegativas || hechos.get(id)?.tipo !== "declaracion_negativa") && !(c.sinHechos && c.sinHechos.test(hechos.get(id)?.enunciado ?? ""))) : c.prestadosDe == null || !cob ? cob?.hechos ?? [] : cob.hechos.filter((id) => {
       const x = hechos.get(id);
       return !x || !PLAN_DISPOSICION_RE.test(x.enunciado) || disposicionAqui(x);
     });
@@ -971,6 +975,12 @@ async function responderBloque(
         const previa = finales.get(`formato|fila:${otro.fila}`)?.texto ?? reutilizadas.get(`formato|fila:${otro.fila}`)?.texto ?? null;
         const parafraseadas = yo?.porEfecto && previa ? oracionesDe(g.texto).filter((o) => oracionesDe(previa).some((q) => seParecen(o, q))) : [];
         if (parafraseadas.length) errores.push(`repite casi igual una oración de la fila ${otro.fila}; esta fila responde solo su efecto, con oraciones propias`);
+      }
+      // Por efecto: tampoco repite ni parafrasea la respuesta de los códigos vecinos que nombra (K43 frente a K47 y K52).
+      for (const otro of yo?.distintaDe ?? []) {
+        const k = `formato|${otro}`;
+        const suya = finales.get(k)?.texto ?? reutilizadas.get(k)?.texto ?? salida.find((x) => x.codigo === otro && x.destino === "formato")?.texto ?? ctx.previaDe?.get(k)?.texto ?? null;
+        if (suya && oracionesDe(g.texto).some((o) => oracionesDe(suya).some((q) => q === o || seParecen(o, q)))) errores.push(`repite o parafrasea una oración de la respuesta de ${otro}; esta fila responde solo su parte`);
       }
       // Por efecto o por plazo: «salida», «pago» o «desembolso» solo si un hecho lo dice (ajuste 2 de Esteban, K89).
       if ((yo?.porEfecto || esClaveDeHorizonte(p.codigo)) && FLUJO_RE.test(g.texto) && !p.hechos.some((h) => FLUJO_RE.test(h.enunciado))) {

@@ -298,6 +298,13 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       const propia = /^text/.test(tipo) ? textoDe(`fila:${c.fila}`) : null;
       return propia ? { texto: propia, origen: "respuesta", nota: "parte cuantitativa del inciso" } : { texto: null, origen: "regla", nota: `instrucción sin tipo de la pregunta de la fila ${FILAS_INSTRUCCION[c.fila]}, que la responde` };
     }
+    // Una fila sin tipo en la plantilla que sigue a otra con el mismo código es su detalle («Indicar el órgano…», «(por
+    // ejemplo…)»): la de arriba ya la responde, así que va vacía en vez de repetirla (encargo formato-respuesta-por-inciso,
+    // Fase 3; K26 repetía K25). Las ramas de los booleanos se resuelven después, con su propia regla.
+    if (c.tipo === "(sin tipo)" && c.datapoint) {
+      const anterior = [...conceptos].reverse().find((x) => x.fila < c.fila && x.clasificacion === "concepto");
+      if (anterior?.datapoint === c.datapoint) return { texto: null, origen: "regla", nota: `detalle sin tipo de la fila ${anterior.fila}, que la responde` };
+    }
     // 29(e) por tipo: la respuesta propia de la celda o nada (el párrafo repetiría el total en los tres tipos).
     if (FILAS_29E.has(c.fila)) {
       const r = resp("formato", `fila:${c.fila}`);

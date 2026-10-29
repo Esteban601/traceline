@@ -19,9 +19,10 @@ import {
 import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
 import { CONTINUACIONES } from "@/lib/excel/continuaciones";
+import { llenarFormato } from "@/lib/formato/llenar";
 import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
-import { verificacionGeiDelDocumento } from "@/lib/formato/datos";
+import { insumosDelFormato, verificacionGeiDelDocumento } from "@/lib/formato/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -143,6 +144,7 @@ function escribirRespuestas(
       visto.veces++;
       const de = CONTINUACIONES[codigo]?.[visto.veces - 1];
       const t = !respuestas || !de ? null : de === "madre" ? visto.texto : delFormato.get(de) ?? null;
+      // «K:N» lo resuelve quien llama, con el llenado del Formato, y llega en delFormato con esa misma clave.
       if (t) {
         const celda = ws.getCell(`E${nf}`);
         celda.value = pendienteEnTextoPlano(t);
@@ -155,7 +157,9 @@ function escribirRespuestas(
     const celda = ws.getCell(`E${nf}`);
     // Ninguna celda exportada lleva el marcador «[Pendiente: …]» (CLAUDE.md §5,
     // 1.10): en este libro va en texto plano.
-    const r = respuestas?.get(codigo);
+    // La primera fila toma solo su parte si CONTINUACIONES la nombra (índice 0); si esa parte no existe, la del código.
+    const propia = respuestas && CONTINUACIONES[codigo]?.[0] ? delFormato.get(CONTINUACIONES[codigo][0]) ?? null : null;
+    const r = propia ?? respuestas?.get(codigo);
     const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
     vistos.set(codigo, { veces: 1, texto: texto === EN_PREPARACION ? null : texto });
     celda.value = texto ?? EN_PREPARACION;
@@ -806,7 +810,7 @@ export async function GET(request: Request) {
       .eq("destino", "taxonomia");
     const respuestas = filasResp?.length ? new Map(filasResp.map((r) => [r.clave.trim(), r.texto ?? EN_PREPARACION])) : null;
     // Las respuestas propias del Formato que llenan filas de continuación (CONTINUACIONES), con estado «respuesta».
-    const clavesFormato = [...new Set(Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((x) => x !== "madre"))];
+    const clavesFormato = [...new Set(Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((x) => x.startsWith("fila:")))];
     const { data: filasFormato } = await supabase
       .from("respuestas_datapoint")
       .select("clave, texto, estado")
@@ -814,6 +818,18 @@ export async function GET(request: Request) {
       .eq("destino", "formato")
       .in("clave", clavesFormato);
     const delFormato = new Map((filasFormato ?? []).filter((r) => r.estado === "respuesta" && r.texto).map((r) => [r.clave, r.texto!]));
+    // «K:N»: el valor que escribe el Formato electrónico en su fila N (booleanos y ramas con sus reglas), para que las
+    // dos entregas digan lo mismo. Si el Formato no se puede llenar, esas filas quedan vacías.
+    if (respuestas && Object.values(CONTINUACIONES).some((x) => Object.values(x).some((v) => v.startsWith("K:")))) {
+      const ins = await insumosDelFormato(supabase, reporteId);
+      if (ins.ok) {
+        const valores = llenarFormato(ins.datos);
+        for (const v of Object.values(CONTINUACIONES).flatMap((x) => Object.values(x)).filter((v) => v.startsWith("K:"))) {
+          const t = valores.get(Number(v.slice(2)))?.texto;
+          if (t) delFormato.set(v, t);
+        }
+      } else console.warn(`[export-taxonomia] reporte=${reporteId} sin llenado del Formato para las continuaciones: ${ins.error}`);
+    }
     respuestasEscritas = escribirRespuestas(hojaIndice, respuestas, delFormato);
     if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
   }
