@@ -13,7 +13,30 @@ function nombreDesde(cd: string | null): string {
   return "taxonomia.xlsx";
 }
 
-export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null }) {
+/** Los dos libros por reporte: la plantilla oficial NIIF y el libro aparte de GRI y SASB. */
+const LIBROS = {
+  taxonomia: {
+    ruta: "export-taxonomia",
+    etiqueta: "Excel de taxonomía",
+    hecho: "Excel de taxonomía generado.",
+    titulo: "Genera la plantilla oficial llena con los datos validados del reporte",
+  },
+  "gri-sasb": {
+    ruta: "export-gri-sasb",
+    etiqueta: "Libro GRI/SASB",
+    hecho: "Libro GRI/SASB generado.",
+    titulo: "Genera el libro de contenidos GRI y métricas SASB del reporte, aparte de la plantilla oficial",
+  },
+} as const;
+
+export function TaxonomiaExportButton({
+  reporteId,
+  libro = "taxonomia",
+}: {
+  reporteId: string | null;
+  libro?: keyof typeof LIBROS;
+}) {
+  const L = LIBROS[libro];
   const [cargando, setCargando] = useState(false);
   const toast = useToast();
 
@@ -24,7 +47,7 @@ export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null 
       // El libro es SIEMPRE de un reporte concreto: sin él, el endpoint responde
       // 400 en vez de adivinar (adivinar fue el bug que entregaba libros ajenos).
       const res = await fetch(
-        `/admin/cobertura/export-taxonomia?reporte=${encodeURIComponent(reporteId)}`
+        `/admin/cobertura/${L.ruta}?reporte=${encodeURIComponent(reporteId)}`
       );
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const blob = await res.blob();
@@ -37,7 +60,7 @@ export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null 
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Excel de taxonomía generado.");
+      toast.success(L.hecho);
     } catch {
       toast.error("No se pudo generar la plantilla. Intenta de nuevo.");
     } finally {
@@ -52,8 +75,8 @@ export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null 
       disabled={!reporteId}
       title={
         reporteId
-          ? "Genera la plantilla oficial llena con los datos validados del reporte"
-          : "Elige un reporte para generar su Excel de taxonomía"
+          ? L.titulo
+          : `Elige un reporte para generar su ${L.etiqueta}`
       }
       variant="secondary"
       size="md"
@@ -73,7 +96,7 @@ export function TaxonomiaExportButton({ reporteId }: { reporteId: string | null 
           <path d="M14 4v5h5M8 13h8M8 17h5" />
         </svg>
       )}
-      {cargando ? "Generando…" : "Excel de taxonomía"}
+      {cargando ? "Generando…" : L.etiqueta}
     </Button>
   );
 }
