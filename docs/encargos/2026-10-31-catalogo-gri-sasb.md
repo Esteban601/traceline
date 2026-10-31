@@ -346,6 +346,147 @@ Consecuencia: GRI se carga con su texto oficial en español. SASB va en inglés 
 
 ---
 
+## 1. Fase 2 · Paso 0 (lectura, sin cambios)
+
+Que el libro GRI/SASB del demo salga con respuestas, y no con «En preparación». Leído el 31/10/2026 en
+`lib/suplemento/respuestas.ts`, `lib/suplemento/hechos/fuentes.ts`, `lib/formato/llenar.ts`,
+`scripts/formato/preparar-plantilla.mjs` y los datos del demo en dev. No se cambió nada.
+
+### 1.1 Cómo se generarían hoy las respuestas de GRI y SASB
+
+**Hoy no se generan.** `generarRespuestas` corre al aprobar un documento del suplemento y filtra el catálogo con
+`codigo.startsWith("NIIF")`, así que ningún código GRI ni SASB recibe fila en `respuestas_datapoint`. El libro las
+busca ahí por clave (= código), y por eso las 54 dicen «En preparación».
+
+Las vías que existen para NIIF, en el orden en que `planDe` las prueba, y si servirían para GRI o SASB:
+
+| Vía de NIIF | Fuente | ¿Sirve para GRI/SASB? |
+|---|---|---|
+| Regla (alivio, «no aplica» heredado, 36(e) desde cuestionario, 72) | Alivios, cuestionarios | No: son reglas de códigos NIIF concretos |
+| **Bloque dueño** con cobertura | Texto aprobado del bloque y los hechos que su cobertura cita para el código | **No tal cual.** Los 40 bloques solo listan códigos NIIF en `BLOQUES[].datapoints`, y la cobertura del respaldo es por código NIIF; ningún bloque cubre un código GRI o SASB |
+| Declaración del Perfil por clave (21(a), B65(e)) | Hecho del Perfil con clave fija | Es el patrón: una tabla código → claves de hechos |
+| **Captura confirmada** de solicitud cuantitativa ligada | `capturas_valor` vía el ensamblador | **Sí, sin cambios de lógica**: basta incluir los códigos y ligar la solicitud |
+| Pendiente | Marcador de §5 con la solicitud | Sí |
+
+**Qué falta para que un código GRI 2 o FN-CB con solicitud y evidencia confirmada tenga respuesta:**
+
+1. **Incluir GRI y SASB en `generarRespuestas`.** Hoy el filtro los excluye. SASB entra solo si la industria está en el
+   Perfil, con la misma regla que Cobertura.
+2. **Captura cuantitativa:** con (1), ya funciona. Una solicitud cuantitativa ligada a `FN-CB-000.B` y entregada sale
+   como «<valor> <unidad> en 2025», sin modelo.
+3. **Texto (políticas, descripciones):** no hay vía.
+   - El extracto confirmado de una solicitud entra al libro de hechos solo con los bloques que la usan
+     (`bloquesDeSolicitud`, de la completitud NIIF). Una solicitud ligada **solo** a GRI/SASB no tiene bloque.
+   - Sus capturas caen en `fueraDelSuplemento` y sus extractos quedan sin bloque sugerido: el libro no la da como
+     hecho de ningún bloque.
+
+   Hace falta una vía nueva, **«evidencia directa»**: el modelo resume el extracto confirmado de las solicitudes
+   ligadas al código. Es una llamada por código, con los mismos validadores (cifras solo de la fuente, longitud,
+   vocabulario), sin bloque ni libro.
+4. **Fuente prestada de un bloque aprobado:** muchos contenidos GRI 2 los responde un bloque NIIF ya aprobado.
+
+   | Contenidos GRI 2 | Bloques NIIF |
+   |---|---|
+   | 2-9 a 2-18 (gobernanza) | 15–18 |
+   | 2-22 (declaración de estrategia) | 1, la carta |
+   | 2-29 y GRI 3-1/3-2 | 7, materialidad |
+   | 2-1, 2-2 y 2-6 | 2 y 4 (identidad y perímetro), 12 y 13 (modelo y cadena de valor) |
+   | FN-CB-410a.2 | El de gestión de riesgos |
+
+   Hace falta una tabla código GRI/SASB → bloque(s) y claves de hechos, como `HECHOS_POR_CLAVE`. Con ella el modelo
+   resume la sección aprobada, como hace con NIIF.
+5. **Remisión en vez de repetir:** cuando el contenido GRI es el mismo que un NIIF ya respondido (2-9 con NIIF S2 6(a),
+   por ejemplo), la respuesta puede remitir («Ver NIIF S2 6(a)») en lugar de llamar al modelo. Es tu decisión
+   (pregunta 2 de §1.5).
+
+**¿Intervienen los bloques del suplemento?** Hoy no. Con la propuesta, **solo como fuente de lectura**: no se cambia
+ningún bloque, prompt ni cobertura, y no se regenera nada. Las respuestas GRI/SASB se generan, como las NIIF, al aprobar
+el documento, desde su texto aprobado y sus libros.
+
+**En el demo hay con qué.**
+- 44 solicitudes con extracto de texto confirmado.
+- El Perfil tiene denominación, entidad, perímetro, carta, materialidad, modelo, cadena de valor, gobierno, sector y
+  las dos declaraciones.
+- 17 solicitudes tienen, por título, tema de GRI 2 o FN-CB:
+  - Consejo: composición, competencias, frecuencia de información y remuneración vinculada a clima;
+  - plantilla, rotación, mujeres en plantilla y Consejo, y capacitación;
+  - cartera total, cartera sostenible y cartera expuesta a transición.
+- Ninguna está ligada todavía a un código GRI ni SASB.
+
+### 1.2 Las nueve solicitudes de demostración de staging
+
+Ligar es N:N: una solicitud conserva sus códigos NIIF y suma los GRI/SASB. **Juicio mío, por título**; se confirma
+con el documento que suba RH.
+
+| Solicitud | Nivel mínimo (ya en el catálogo) | Necesita nivel medio |
+|---|---|---|
+| 1. Política de Inversión Responsable (S2 25(a)) | FN-CB-410a.2 (factores ESG en el análisis de crédito), si la política cubre crédito | — |
+| 2. Política de Gestión y Comunicación Responsable (Stewardship) (S2 6(a)) | GRI 2-23 (compromisos y políticas) | — |
+| 3. Declaración sobre la relevancia del desarrollo sostenible 2026 (S2 13(a)) | **GRI 2-22** (declaración sobre la estrategia de desarrollo sostenible): coincide casi literal | — |
+| 4. Políticas Generales de Inversión (S2 14(a)(i)) | FN-CB-410a.2, si incluye criterios de crédito | — |
+| 5. Código de Ética y Conducta | **GRI 2-23**, **2-24** (incorporación) y **2-26** (mecanismos para plantear inquietudes, si el código los trae) | GRI 205 (anticorrupción) |
+| 6. Manifiesto de Tolerancia Cero a la Corrupción 2026 | GRI 2-23 (compromiso de política) | **GRI 205-2** (comunicación y formación) y 205-3 |
+| 7. Política de Diversidad, Equidad e Inclusión | GRI 2-23 (compromiso), solo en parte | **GRI 405-1** y 405-2: las cifras de diversidad son 405 |
+| 8. Política de Integridad y Anticorrupción | **GRI 2-23**, **2-26**; **2-27** solo si informa casos de incumplimiento y multas (una política no los da: hace falta una cifra) | GRI 205-1 a 205-3 |
+| 9. Política de Privacidad | GRI 2-23, solo en parte | **GRI 418-1** (reclamaciones por violación de la privacidad; pide cifras) y, para un banco, **FN-CB-230a.1/230a.2** (seguridad de datos: ya en el mínimo) |
+
+En resumen:
+- **Solo con el nivel mínimo:** la 3 (2-22); la 2, 5 y 8 (2-23, 2-24, 2-26); la 1 y la 4 (FN-CB-410a.2, según su
+  contenido); y la 9 en parte (FN-CB-230a.2).
+- **Necesitan el nivel medio:** la 6 (205), la 7 (405), la 8 en su parte de 205, y la 9 en su parte de 418.
+- **Ninguna de las nueve da cifras:** 2-27, 205-3, 405-1 y 418-1 piden números que una política no trae.
+
+### 1.3 FN-CB en la hoja «Métricas SASB» del Formato
+
+**Hoy:** `preparar-plantilla.mjs` deja la hoja vacía, sin celdas combinadas y con solo «Métricas por industria (SASB)»
+en A1. `llenar.ts` no la toca, y las 68 secciones [8xxxxx] de la hoja de estructura van vacías («fuera de alcance»). En
+el Formato de dev (v32) la hoja tiene esa sola celda.
+
+**Con las 17 métricas y sus respuestas:**
+- Una fila de encabezado (Código / Métrica / Respuesta) y una fila por métrica de la industria del Perfil, en el orden
+  de la norma (contables por tema y después las de actividad).
+- La métrica va con su texto literal, en inglés.
+- La respuesta sale de `respuestas_datapoint` con la regla del Formato: pendiente o sin respuesta deja la celda vacía
+  (CLAUDE.md §5).
+- La plantilla de la BMV no se toca: se escribe sobre la hoja que ya existe, con `llenar.ts`/`export-formato`.
+- La categoría y la unidad de la tabla SASB **no** están en el catálogo. Si las quieres como columnas, hacen falta
+  dos columnas más en `datapoints_taxonomia` (migración aditiva) o sacarlas del PDF al generar. Por defecto no las
+  propongo.
+
+**Emisora sin sector SASB:** la hoja queda como hoy (solo A1). NIIF S2 32 (K866–K870), el juicio de K786/K787 y las
+[8xxxxx] no cambian. Con sector SASB pero sin métricas de esa industria en el catálogo (cualquiera menos FN-CB, en el
+mínimo), igual: solo A1. El validador del Formato lo avisaría, como ya avisa el juicio «No» con sector capturado.
+
+### 1.4 Estimación y fases propuestas
+
+| Parte | Qué | Jornadas | Costo del modelo |
+|---|---|---|---|
+| A | Vía de respuestas GRI/SASB en `generarRespuestas`: incluir los marcos (SASB por industria), tabla código → bloque(s) y claves (fuente prestada), vía «evidencia directa» para extractos confirmados de solicitudes ligadas, captura cuantitativa (ya existe), pendiente con marcador; validadores y e2e sin modelo | 2–2.5 | — |
+| B | Datos del demo: ligar en `poblar-demo` las 17 solicitudes de tema GRI 2/FN-CB (y las del Perfil que correspondan); FN-CB cuantitativas que falten (000.A cuentas por segmento, 000.B préstamos por segmento, 410b.1–410b.3 emisiones financiadas, si el demo las declara, o su negativa); plantilla de solicitudes | 0.75–1 | — |
+| C | Hoja «Métricas SASB» del Formato con las métricas de la industria y sus respuestas | 0.5–0.75 | — |
+| D | Generación en el demo: con la corrida del libro v6 (el 1 de noviembre o después, «esperan v6») y la nueva aprobación, una sola corrida produce NIIF y GRI/SASB | 0.25 | ~54 respuestas, ~0.3–0.5 USD (sin regenerar bloques) |
+| E | `traceline-dev` con humo, PR y runbook (sin migración, salvo que se pida categoría/unidad) | 0.75 | — |
+| **Total** | | **~4.25–5.25** | **~0.5 USD** |
+
+**Fases:**
+1. **2a:** partes A y C, en código, probadas en local sin modelo. Parada con la tabla código → fuente para revisión.
+2. **2b:** parte B en dev, sin generar. Parada con la tabla de las 54 filas: código, vía y fuente que la responderá.
+3. **2c:** parte D, dentro de la corrida v6 ya prevista: el libro GRI/SASB y la hoja «Métricas SASB» del demo con
+   respuestas, y las que no tengan fuente, con su marcador. Parada con el libro.
+4. **3:** parte E.
+
+Así la Fase 2 no gasta una corrida aparte ni pide subir el tope: entra en la v6.
+
+### 1.5 Preguntas
+
+1. ¿Fases 2a–2c y la estimación como están?
+2. ¿Un contenido GRI que repite un requisito NIIF ya respondido **remite** («Ver NIIF S2 6(a)»), sin modelo, o lleva
+   **respuesta propia** resumida de la misma sección?
+3. ¿«Métricas SASB» con solo Código / Métrica / Respuesta, o también categoría y unidad (dos columnas más en el
+   catálogo, con migración)?
+4. ¿Ligo ya en staging las nueve solicitudes de demostración a sus códigos del mínimo (§1.2)? Lo correrías tú, con un
+   script como el de su creación.
+
 ## 5. Decisiones de Esteban (31/10/2026)
 
 1. **Licencias: vigentes** (§0.4). Texto literal de la norma, sin redacción propia ni marcador de licencia pendiente.
@@ -390,4 +531,5 @@ directo del español, sin paso por el inglés ni marcador de «texto en español
 | 31/10/2026 | **Fase 1** (nivel mínimo), parada con el SQL antes de aplicarlo en dev | **Migraciones:** `20261031120000_catalogo_marco_sasb` (CHECK de `marco` sustituido por uno más amplio con `SASB`; `estandar`, `edicion` y `pagina_origen` nullable; CHECK nuevo «edición obligatoria para GRI y SASB», que las filas existentes cumplen porque las cuatro de la Extensión GRI se llenan antes; índice; barrera) y `20261031130000_catalogo_gri2_gri3_fncb` (50 filas, upsert idempotente, GENERADA por `scripts/catalogo/generar-gri-sasb.mjs` desde los PDF). **Conteo por estándar:** GRI 2: 30 · GRI 3: 3 · SASB FN-CB: 17 (15 contables y 2 de actividad), más las 4 de la Extensión GRI con su estándar y edición; NIIF sin cambio. **Texto:** GRI 2 y 3, el bloque «REQUERIMIENTOS» del PDF oficial en español, leído por posición en la página (el PDF es a dos columnas y la etiqueta «ORIENTACIONES» va al margen); FN-CB, el encabezado del protocolo y la tabla 2, en inglés. **Aplicadas solo en el stack local** (barrera 108); tipos de las tres columnas escritos a mano en `lib/database.types.ts`, iguales a los que genera la CLI. **Cobertura:** secciones GRI y SASB aparte (`lib/catalogo-marcos.ts`), SASB solo con la industria del Perfil; informe y Excel de cobertura con el estándar y la edición; el selector de datapoints rotula «GRI»/«SASB». **Libro GRI/SASB:** `/admin/cobertura/export-gri-sasb` (`lib/excel/gri-sasb.ts`), hojas «GRI» y «SASB <industria>», Código / Requisito (/ Respuesta con el generador encendido, como el Excel de taxonomía), edición en las propiedades; botón «Libro GRI/SASB» junto al Excel de taxonomía. **Pruebas:** `e2e-catalogo-gri-sasb` (nuevo) 30 en verde y un aviso (GRI 2-5, «solicitud», §5.1); validadores 90, métricas 19, Formato 29, alivios 20, respuestas 22, regeneración 9, declaraciones 20 y efectos 15 contra el stack local; `tsc` limpio, eslint sin errores. `verify:export` y `e2e-celdas-categoricas` necesitan dev con la migración: van después de aplicarla. **Errores propios:** el extractor de FN-CB cortaba el «3» final de «(3) Scope 3» (quitaba un número de nota al pie que ya no existía), y la primera versión del extractor GRI mezclaba la columna de orientaciones; corregidos y comprobados. **Errata de la fuente:** GRI 2-5 «de de gobierno», conservada (literal) | **Parada:** SQL y §5.1 |
 | 31/10/2026 | **Fase 1 aprobada** y aplicada en dev y local; parada | **CLAUDE.md v1.14:** §5 no aplica a la columna «Requisito» del libro GRI/SASB (texto literal); el glosario sigue igual al del validador (e2e, 22 términos). **Extensión GRI:** migración nueva `20261031140000_catalogo_extension_gri_literal` (generada con `--extension`): texto literal en español de GRI 303-5 (2018), 306-3 (2020), 404-1 (2016) y 401-1 (2016, nueva); `GRI 2-7 / 401-1` retirada (`activo = false`), con sus enlaces y renglones de plantilla pasados a GRI 2-7 y GRI 401-1 (0 en dev). Cobertura y su Excel ocultan GRI/SASB retirados (NIIF, como siempre). **Deuda** `relleno-norma-pilar-gri-sasb` en la especificación §10 (0.51). **Migraciones:** las tres en dev (`db push --linked`, con la traza de `pg-delta` de siempre) y en local; 101 de 101 con 0 desalineadas en los dos; barrera 108 en los dos. **Tipos** regenerados desde dev: iguales, byte por byte, a los escritos a mano. **Conteo final (dev, activos):** GRI 2: 30 · GRI 3: 3 · GRI 303: 1 · GRI 306: 1 · GRI 401: 1 · GRI 404: 1 (GRI 37) · SASB FN-CB: 17 · NIIF: 117 sin cambio; retirada 1. **Fotos de Cobertura** (`~/Downloads/catalogo-gri-sasb/`): 121 → 172 códigos; diferencia exactamente la esperada, 52 celdas (51 nuevas sin solicitud y la compuesta que cambia a retirada); NIIF 117 → 117 con 0 celdas distintas y totales iguales. **Pruebas:** `verify:export` 81 contra dev con el código de la rama; `e2e-celdas-categoricas` 128 sobre el Formato y el Excel de dev; esos dos libros iguales celda por celda a los de `traceline-dev` v32 (4582 y 1251 celdas, 0 distintas); `e2e-catalogo-gri-sasb` 33 en verde; validadores con el glosario igual. **Libro GRI/SASB de dev:** `gri-sasb-empresa-demo-sab-2025-2026-10-31.xlsx`, hojas GRI (37) y SASB FN-CB (17), Código / Requisito / Respuesta («En preparación» en las 54: el generador está encendido y no hay respuestas GRI/SASB aún) | **Parada** |
 | 31/10/2026 | **Desviación de regla** (anotada a pedido de Esteban) | La migración `20261031140000_catalogo_extension_gri_literal` se aplicó en dev **sin la parada del SQL**: implementaba la decisión del mismo mensaje (Extensión GRI literal y partida por contenido), pero su SQL no se presentó antes de aplicarla, como pide la práctica del encargo para toda migración contra dev. Es una desviación de regla, no un error de resultado: el SQL está en `~/Downloads/catalogo-gri-sasb/`, la foto de Cobertura dio exactamente la diferencia esperada y NIIF no cambió. En adelante, toda migración nueva se presenta antes de aplicarla en dev, aunque la decisión que implementa ya esté tomada | Anotado |
+| 31/10/2026 | **Fase 2 · Paso 0** (lectura), parada | Hoy `generarRespuestas` excluye GRI y SASB (`startsWith("NIIF")`): las 54 dicen «En preparación». La captura cuantitativa ya serviría; para texto falta una vía («evidencia directa») porque una solicitud ligada solo a GRI/SASB no entra al libro de hechos; GRI 2 puede tomar como fuente bloques NIIF aprobados (lectura, sin regenerar). Nueve de staging: 2-22, 2-23, 2-24, 2-26 y FN-CB-410a.2/230a.2 en el mínimo; 205, 405 y 418 en el medio. «Métricas SASB» hoy solo con su título; con FN-CB, Código/Métrica/Respuesta. ~4.25–5.25 jornadas, ~0.5 USD dentro de la corrida v6 | **Parada:** §1.5 |
 
