@@ -164,10 +164,11 @@ export default async function InformeCoberturaPage({
     reporte: reporteParam,
   });
 
-  // Mismo criterio que el tablero: el avance es de la norma NIIF; la extensión GRI
-  // va aparte y no entra a los conteos.
+  // Mismo criterio que el tablero: el avance es de la norma NIIF; GRI y SASB van
+  // aparte y no entran a los conteos (SASB ya viene acotado a la industria de la emisora).
   const niif = datos.filas.filter((d) => d.marco === "NIIF");
   const gri = datos.filas.filter((d) => d.marco === "GRI");
+  const sasb = datos.filas.filter((d) => d.marco === "SASB");
   // Los padres que agrupan incisos se listan pero no cuentan (lib/cobertura-vista.ts, contables).
   const universo = contables(niif).length;
   const dist = distribucion(niif);
@@ -353,18 +354,29 @@ export default async function InformeCoberturaPage({
           ))}
         </section>
 
-        {/* Extensión GRI — separada, como en el tablero y por la misma razón */}
+        {/* GRI y SASB — separados, como en el tablero y por la misma razón */}
         {gri.length > 0 && (
           <section className="mt-8">
             <h2 className="bloque text-[11px] font-semibold uppercase tracking-wide text-muted">
-              Extensión GRI
+              GRI
             </h2>
             <p className="bloque mt-1 max-w-2xl text-[11px] leading-relaxed text-muted">
-              Fuera de la taxonomía NIIF S1/S2: conceptos normados por GRI que la
-              firma recaba además. No cuentan en el avance de arriba ni entran a la
-              plantilla oficial.
+              Fuera de la taxonomía NIIF S1/S2: contenidos de los Estándares GRI. No
+              cuentan en el avance de arriba ni entran a la plantilla oficial.
             </p>
-            <Grupo titulo="Métricas con código GRI" items={gri} />
+            <Grupo titulo="Contenidos con código GRI" items={gri} />
+          </section>
+        )}
+        {sasb.length > 0 && (
+          <section className="mt-8">
+            <h2 className="bloque text-[11px] font-semibold uppercase tracking-wide text-muted">
+              SASB
+            </h2>
+            <p className="bloque mt-1 max-w-2xl text-[11px] leading-relaxed text-muted">
+              Fuera de la taxonomía NIIF S1/S2: métricas de la norma SASB de la
+              industria de la emisora. No cuentan en el avance de arriba.
+            </p>
+            <Grupo titulo="Métricas con código SASB" items={sasb} />
           </section>
         )}
 

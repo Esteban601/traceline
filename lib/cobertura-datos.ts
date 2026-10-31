@@ -7,6 +7,7 @@ import type { EstadoSolicitud } from "@/lib/estados";
 import type { OrigenSolicitud } from "@/lib/origen";
 import type { DatapointCobertura } from "@/lib/cobertura-vista";
 import { PADRE_DE } from "@/lib/suplemento/catalogo-incisos";
+import { aplicaAEmisora, industriasSasb, type Marco } from "@/lib/catalogo-marcos";
 
 /** Códigos padre que agrupan incisos: filas de agrupación, fuera de conteos y porcentajes. */
 const PADRES = new Set(Object.values(PADRE_DE));
@@ -73,7 +74,7 @@ export async function cargarCobertura(
   ] = await Promise.all([
     db
       .from("datapoints_taxonomia")
-      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods")
+      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion")
       .eq("version_taxonomia", "2025")
       .order("norma")
       .order("pilar")
@@ -104,11 +105,13 @@ export async function cargarCobertura(
     id: string;
     codigo: string;
     norma: "S1" | "S2";
-    marco: "NIIF" | "GRI";
+    marco: Marco;
     pilar: string;
     seccion_indice: string | null;
     descripcion: string;
     ods: string | null;
+    estandar: string | null;
+    edicion: string | null;
   }[];
 
   const tenantsLista = (tenants ?? []) as TenantOpcion[];
@@ -155,7 +158,14 @@ export async function cargarCobertura(
     solsPorDatapoint.set(m.datapoint_id, arr);
   }
 
-  const filas: DatapointCobertura[] = datapoints.map((d) => {
+  // SASB: solo la industria del Perfil de la emisora seleccionada (sin selección, todas).
+  let industrias: Set<string> | null = null;
+  if (tenantSel) {
+    const { data: perfilEmisor } = await db.from("perfil_emisor").select("sector_sasb").eq("tenant_id", tenantSel).maybeSingle();
+    industrias = industriasSasb(perfilEmisor?.sector_sasb);
+  }
+
+  const filas: DatapointCobertura[] = datapoints.filter((d) => aplicaAEmisora(d, industrias)).map((d) => {
     const ligadas = (solsPorDatapoint.get(d.id) ?? []).sort((a, b) =>
       a.titulo.localeCompare(b.titulo, "es")
     );
@@ -164,6 +174,8 @@ export async function cargarCobertura(
       codigo: d.codigo,
       norma: d.norma,
       marco: d.marco,
+      estandar: d.estandar,
+      edicion: d.edicion,
       pilar: d.pilar,
       seccionIndice: d.seccion_indice,
       descripcion: d.descripcion,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeEntrarPanel } from "@/lib/data";
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
   ] = await Promise.all([
     supabase
       .from("datapoints_taxonomia")
-      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods")
+      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion")
       .eq("version_taxonomia", "2025")
       .order("norma")
       .order("pilar")
@@ -118,7 +119,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const datapoints = (dps ?? []) as {
+  const catalogo = (dps ?? []) as {
     id: string;
     codigo: string;
     norma: string;
@@ -127,7 +128,14 @@ export async function GET(request: Request) {
     seccion_indice: string | null;
     descripcion: string;
     ods: string | null;
+    estandar: string | null;
+    edicion: string | null;
   }[];
+  // SASB: solo la industria del Perfil del cliente seleccionado (sin selección, todas), como el tablero.
+  const industrias = tenantParam
+    ? industriasSasb((await supabase.from("perfil_emisor").select("sector_sasb").eq("tenant_id", tenantParam).maybeSingle()).data?.sector_sasb)
+    : null;
+  const datapoints = catalogo.filter((d) => aplicaAEmisora(d, industrias));
 
   // Índice de solicitudes, acotado al cliente seleccionado si lo hay. Todo lo
   // que se escribe después pasa por este índice, así que filtrar aquí acota el
@@ -266,10 +274,10 @@ export async function GET(request: Request) {
     if (ligadas.length === 0) {
       t.addRow([
         d.codigo,
-        d.marco === "GRI" ? "Extensión GRI" : "NIIF",
-        // La norma solo aplica a los NIIF: rotular "S1" un datapoint de GRI le
-        // atribuiría a la taxonomía oficial algo que no dice.
-        d.marco === "GRI" ? "GRI" : d.norma,
+        d.marco,
+        // La norma solo aplica a los NIIF: rotular "S1" un datapoint de GRI o SASB le
+        // atribuiría a la taxonomía oficial algo que no dice. Para ellos va su estándar y edición.
+        d.marco === "NIIF" ? d.norma : `${d.estandar ?? d.marco}${d.edicion ? ` (${d.edicion})` : ""}`,
         d.pilar,
         d.seccion_indice ?? "",
         d.descripcion,
@@ -292,10 +300,10 @@ export async function GET(request: Request) {
       const ev = ultimaEv.get(sid);
       t.addRow([
         d.codigo,
-        d.marco === "GRI" ? "Extensión GRI" : "NIIF",
-        // La norma solo aplica a los NIIF: rotular "S1" un datapoint de GRI le
-        // atribuiría a la taxonomía oficial algo que no dice.
-        d.marco === "GRI" ? "GRI" : d.norma,
+        d.marco,
+        // La norma solo aplica a los NIIF: rotular "S1" un datapoint de GRI o SASB le
+        // atribuiría a la taxonomía oficial algo que no dice. Para ellos va su estándar y edición.
+        d.marco === "NIIF" ? d.norma : `${d.estandar ?? d.marco}${d.edicion ? ` (${d.edicion})` : ""}`,
         d.pilar,
         d.seccion_indice ?? "",
         d.descripcion,

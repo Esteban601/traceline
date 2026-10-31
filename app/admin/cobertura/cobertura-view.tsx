@@ -82,16 +82,20 @@ export function CoberturaView({
    */
   suplemento?: React.ReactNode;
 }) {
-  // La extensión GRI se aparta ANTES de cualquier cálculo: los KPIs, los anillos
-  // y el universo son de la norma NIIF. Si los 4 datapoints GRI entraran al
-  // conteo, el "X de 91" dejaría de hablar de NIIF S1/S2 y le atribuiría a esa
-  // norma requerimientos que son de otra.
+  // GRI y SASB se apartan ANTES de cualquier cálculo: los KPIs, los anillos y el
+  // universo son de la norma NIIF. Si entraran al conteo, el "X de N" dejaría de
+  // hablar de NIIF S1/S2 y le atribuiría a esa norma requerimientos que son de
+  // otra (lib/catalogo-marcos.ts).
   const datapoints = useMemo(
     () => todosLosDatapoints.filter((d) => d.marco === "NIIF"),
     [todosLosDatapoints]
   );
   const datapointsGri = useMemo(
     () => todosLosDatapoints.filter((d) => d.marco === "GRI"),
+    [todosLosDatapoints]
+  );
+  const datapointsSasb = useMemo(
+    () => todosLosDatapoints.filter((d) => d.marco === "SASB"),
     [todosLosDatapoints]
   );
 
@@ -192,6 +196,7 @@ export function CoberturaView({
           {selector}
           {informe}
           <TaxonomiaExportButton reporteId={reporteId} />
+          <TaxonomiaExportButton reporteId={reporteId} libro="gri-sasb" />
           {suplemento}
           <ExportButton tenantId={tenantId} />
         </div>
@@ -346,10 +351,24 @@ export function CoberturaView({
       )}
 
       {datapointsGri.length > 0 && (
-        <ExtensionGri
+        <SeccionMarco
+          titulo="GRI"
+          unidad={["contenido", "contenidos"]}
+          nota="Fuera de la taxonomía NIIF S1/S2: contenidos de los Estándares GRI, con su código y su edición. No cuentan en el avance de arriba ni entran a la plantilla oficial; van en el libro GRI/SASB."
           items={datapointsGri}
           abierto={abiertos.has("gri")}
           onToggle={() => toggleGrupo("gri")}
+        />
+      )}
+
+      {datapointsSasb.length > 0 && (
+        <SeccionMarco
+          titulo="SASB"
+          unidad={["métrica", "métricas"]}
+          nota="Fuera de la taxonomía NIIF S1/S2: métricas de la norma SASB de la industria de la emisora (sector del Perfil), en inglés hasta que haya traducción oficial. No cuentan en el avance de arriba; van en el libro GRI/SASB."
+          items={datapointsSasb}
+          abierto={abiertos.has("sasb")}
+          onToggle={() => toggleGrupo("sasb")}
         />
       )}
     </div>
@@ -357,42 +376,45 @@ export function CoberturaView({
 }
 
 /**
- * Extensión GRI — lo que la firma recaba ADEMÁS de NIIF S1/S2, con su código GRI.
- *
- * Van en su propia sección, con su propio conteo y un rótulo que dice de qué
- * marco son. Nunca se mezclan con los 91 de NIIF S1/S2: son requerimientos de
- * otra norma, y confundirlos sería atribuirle a NIIF algo que no dice. Cada
- * tarjeta muestra su código GRI igual que las NIIF muestran el suyo, para que
- * quien lea el entregable pueda ir a la norma y comprobarlo.
+ * GRI y SASB — requerimientos de otras normas, cada marco en su propia sección,
+ * con su propio conteo y un rótulo que dice de qué marco son. Nunca se mezclan con
+ * NIIF S1/S2: confundirlos sería atribuirle a NIIF algo que no dice. Cada tarjeta
+ * muestra su código igual que las NIIF muestran el suyo, para que quien lea el
+ * entregable pueda ir a la norma y comprobarlo. SASB llega ya acotado a la
+ * industria de la emisora (lib/cobertura-datos.ts).
  */
-function ExtensionGri({
+function SeccionMarco({
+  titulo,
+  unidad,
+  nota,
   items,
   abierto,
   onToggle,
 }: {
+  titulo: "GRI" | "SASB";
+  unidad: [string, string];
+  nota: string;
   items: DatapointCobertura[];
   abierto: boolean;
   onToggle: () => void;
 }) {
   const conteo = distribucion(items);
+  const normas = [...new Set(items.map((d) => (d.estandar && d.edicion ? `${d.estandar} (${d.edicion})` : null)).filter(Boolean))];
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-6">
         <h2 className="font-display text-lg font-semibold text-ink">
-          Extensión GRI
+          {titulo}
           <span className="ml-2 text-sm font-normal text-muted">
-            {items.length} {items.length === 1 ? "datapoint" : "datapoints"} con código GRI
+            {items.length} {items.length === 1 ? unidad[0] : unidad[1]}
+            {normas.length > 0 ? ` · ${normas.join(" · ")}` : ""}
           </span>
         </h2>
-        <p className="max-w-2xl text-xs leading-relaxed text-muted">
-          Fuera de la taxonomía NIIF S1/S2: conceptos normados por GRI que la firma
-          recaba además. No cuentan en el avance de arriba ni entran a la plantilla
-          oficial.
-        </p>
+        <p className="max-w-2xl text-xs leading-relaxed text-muted">{nota}</p>
       </div>
       <div className="rounded-card border border-gold/30 bg-gold/[0.04]">
         <GrupoCobertura
-          norma={"GRI" as Norma}
+          norma={titulo as unknown as Norma}
           pilar="extension"
           items={items}
           abierto={abierto}
