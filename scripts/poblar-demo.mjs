@@ -536,6 +536,82 @@ const CIFRAS_NUEVAS = [
 ];
 
 /** La descripción de una solicitud es lo que se le pide al cliente, no su respuesta. */
+/**
+ * GRI y SASB (encargo catalogo-gri-sasb, Fase 2b; docs/suplemento-s1s2/demo/contenido.md §7b). Ligas N:N de
+ * solicitudes que ya existen: conservan sus códigos NIIF y suman el GRI 2 o FN-CB que su tema responde. Las que no se
+ * ligan, y por qué, están en el contenido.
+ */
+const LIGAS_GRI_SASB = [
+  { titulo: "Composición y responsabilidades del Consejo en sostenibilidad", codigos: ["GRI 2-9", "GRI 2-12", "GRI 2-14"] },
+  { titulo: "Competencias del Consejo en temas ESG y clima", codigos: ["GRI 2-17"] },
+  { titulo: "Frecuencia de información al Consejo sobre riesgos climáticos", codigos: ["GRI 2-12", "GRI 2-16"] },
+  { titulo: "Supervisión de objetivos climáticos y su vínculo con la remuneración", codigos: ["GRI 2-12", "GRI 2-19"] },
+  { titulo: "Remuneración vinculada a métricas climáticas 2025", codigos: ["GRI 2-19", "GRI 2-20"] },
+  { titulo: "Diversidad e inclusión en plantilla y órganos de gobierno", codigos: ["GRI 2-9"] },
+  { titulo: "Plantilla y rotación de personal 2025", codigos: ["GRI 2-7"] },
+  { titulo: "Índice de rotación voluntaria 2025 (%)", codigos: ["GRI 401-1"] },
+  { titulo: "Esfuerzos indirectos de reducción y adaptación a través de la cartera", codigos: ["FN-CB-410a.2"] },
+];
+
+/** Métricas FN-CB nuevas, con su cifra ilustrativa del ejercicio (contenido §7b). Su evidencia no se lee: el extracto se confirma directo. */
+const CUANTITATIVAS_FN_CB = [
+  {
+    titulo: "Cuentas sin costo abiertas a clientes antes no bancarizados o subbancarizados 2025",
+    codigos: ["FN-CB-240a.3"],
+    area: "Crédito y Banca",
+    valor: 21500,
+    unidad: "cuentas",
+    descripcion: "Número de cuentas de depósito sin costo abiertas en el ejercicio a clientes que antes no estaban bancarizados o estaban subbancarizados (SASB FN-CB-240a.3).",
+    texto: "En 2025 la Compañía abrió 21,500 cuentas de depósito sin costo a clientes que antes no estaban bancarizados o estaban subbancarizados.",
+  },
+  {
+    titulo: "Participantes en iniciativas de educación financiera 2025",
+    codigos: ["FN-CB-240a.4"],
+    area: "Sostenibilidad",
+    valor: 14200,
+    unidad: "participantes",
+    descripcion: "Número de participantes en iniciativas de educación financiera para clientes no bancarizados, subbancarizados o desatendidos (SASB FN-CB-240a.4), con una descripción de las iniciativas.",
+    texto: "En 2025 participaron 14,200 personas en los talleres de educación financiera de la Compañía para clientes no bancarizados, subbancarizados o desatendidos, impartidos en sucursales y en línea.",
+  },
+  {
+    titulo: "Pérdidas monetarias por procedimientos legales 2025",
+    codigos: ["FN-CB-510a.1"],
+    area: "Riesgos",
+    valor: 0,
+    unidad: "MDP",
+    descripcion: "Importe total de pérdidas monetarias por procedimientos legales relacionados con fraude, uso de información privilegiada, competencia, manipulación de mercado, mala praxis u otras leyes del sector financiero (SASB FN-CB-510a.1).",
+    texto: "En 2025 la Compañía no registró pérdidas monetarias por procedimientos legales relacionados con fraude, uso de información privilegiada, competencia económica, manipulación de mercado, mala praxis u otras leyes o regulaciones del sector financiero.",
+  },
+];
+
+/** Pasos 10 y 11: ligas GRI/SASB y métricas FN-CB. También solos, con `--solo gri-sasb`. */
+async function griSasb() {
+  log("\n10. Ligas GRI y SASB de solicitudes existentes");
+  for (const l of LIGAS_GRI_SASB) {
+    const sol = ok("liga?", await db.from("solicitudes").select("id").eq("reporte_id", REPORTE).eq("titulo", l.titulo).maybeSingle());
+    if (!sol) {
+      log(`  ✗ no existe la solicitud "${l.titulo}" — se omite`);
+      continue;
+    }
+    await ligar(sol.id, l.codigos);
+    log(`  ligada   ${l.titulo.slice(0, 62).padEnd(64)} ${l.codigos.join(", ")}`);
+  }
+  log("\n11. Métricas FN-CB");
+  for (const s of CUANTITATIVAS_FN_CB) {
+    const r = await solicitudCompleta({ ...s, cuantitativa: true, confirmarTexto: true });
+    // Sin lectura con el modelo: el extracto ya está confirmado (como en los e2e).
+    ok(
+      "lectura omitida",
+      await db
+        .from("evidencias_contenido")
+        .update({ estado: "omitido", mensaje: "poblar-demo: extracto confirmado directo, sin lectura" })
+        .eq("solicitud_id", r.id)
+        .eq("estado", "pendiente")
+    );
+    log(`  ${r.nueva ? "creada  " : "vigente "} ${s.titulo.slice(0, 62).padEnd(64)} ${s.valor} ${s.unidad}`);
+  }
+}
+
 function preguntaDe(titulo, codigos) {
   return `Documento de respaldo que describa: ${titulo}${codigos?.length ? ` (requisitos ${codigos.join(", ")})` : ""}. Lo que el documento diga se confirma como extracto de texto.`;
 }
@@ -1586,6 +1662,14 @@ async function main() {
   await cargarUsuarios();
   await cargarCatalogo();
 
+  // `--solo gri-sasb`: solo los pasos 10 y 11 (encargo catalogo-gri-sasb, Fase 2b), sin tocar el resto del demo.
+  if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "gri-sasb") {
+    await griSasb();
+    log("\n=== resumen ===");
+    log(SIN_CODIGO.length ? `✗ CÓDIGOS QUE EL CATÁLOGO NO TIENE: ${[...new Set(SIN_CODIGO)].join(", ")}` : "todos los códigos citados existen en el catálogo ✓");
+    return;
+  }
+
   log("1. Perfil del emisor");
   await perfilEmisor();
 
@@ -1638,6 +1722,8 @@ async function main() {
 
   log("\n9. Objetivos");
   await objetivos();
+
+  await griSasb();
 
   log("\n=== resumen ===");
   log(`solicitudes creadas: ${cuenta.creado} · actualizadas: ${cuenta.actualizado}`);
