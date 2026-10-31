@@ -457,10 +457,13 @@ export type Database = {
           codigo: string
           created_at: string
           descripcion: string
+          edicion: string | null
+          estandar: string | null
           id: string
           marco: string
           norma: Database["public"]["Enums"]["norma_niif"]
           ods: string | null
+          pagina_origen: number | null
           pilar: Database["public"]["Enums"]["pilar_niif"]
           seccion_indice: string | null
           version_taxonomia: string
@@ -470,10 +473,13 @@ export type Database = {
           codigo: string
           created_at?: string
           descripcion: string
+          edicion?: string | null
+          estandar?: string | null
           id?: string
           marco?: string
           norma: Database["public"]["Enums"]["norma_niif"]
           ods?: string | null
+          pagina_origen?: number | null
           pilar: Database["public"]["Enums"]["pilar_niif"]
           seccion_indice?: string | null
           version_taxonomia?: string
@@ -483,10 +489,13 @@ export type Database = {
           codigo?: string
           created_at?: string
           descripcion?: string
+          edicion?: string | null
+          estandar?: string | null
           id?: string
           marco?: string
           norma?: Database["public"]["Enums"]["norma_niif"]
           ods?: string | null
+          pagina_origen?: number | null
           pilar?: Database["public"]["Enums"]["pilar_niif"]
           seccion_indice?: string | null
           version_taxonomia?: string
