@@ -487,6 +487,97 @@ Así la Fase 2 no gasta una corrida aparte ni pide subir el tope: entra en la v6
 4. ¿Ligo ya en staging las nueve solicitudes de demostración a sus códigos del mínimo (§1.2)? Lo correrías tú, con un
    script como el de su creación.
 
+### 1.6 Decisiones de Esteban sobre la Fase 2 (31/10/2026)
+
+1. **Fase 2 aprobada, con un cambio:** la 2c (respuestas GRI/SASB del demo) corre **después de la aprobación del v6**,
+   como regeneración de respuestas sin libro nuevo, no dentro de la corrida.
+2. **Respuesta propia** desde la misma sección cuando un contenido GRI coincide con un NIIF ya respondido; nada de
+   remisiones.
+3. **Hoja «Métricas SASB»** con Código / Métrica / Respuesta, sin migración.
+4. **Script de ligado** de las nueve solicitudes de staging a sus códigos del nivel mínimo, para el día de v45, después
+   de las migraciones; probado en local.
+
+### 1.7 Tabla código → sección (Fase 2a, en seco)
+
+`lib/suplemento/gri-sasb.ts` (`FUENTE_GRI_SASB`): por contenido, los bloques que lo tratan y la expresión que reconoce
+su tema en los hechos de esos bloques. Orden de las vías: captura confirmada → sección aprobada (el primer bloque de la
+lista, aprobado, con hechos del tema) → evidencia directa (extractos confirmados de las solicitudes ligadas) →
+pendiente. Planeada sobre el documento aprobado v5 del demo en dev **sin llave del modelo y sin guardar** (costo 0):
+
+| Código | Bloques de la tabla | Vía en el demo (dev, documento v5) | Sección o fuente | Hechos del tema | Sin modelo |
+|---|---|---|---|---:|---|
+| `FN-CB-000.A` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-000.B` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-230a.1` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-230a.2` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-240a.1` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-240a.2` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-240a.3` | — | captura | Cuentas sin costo abiertas a clientes antes no bancarizados o subbancarizados 2025 |  | 21,500 cuentas (ejercicio 2025). |
+| `FN-CB-240a.4` | — | captura | Participantes en iniciativas de educación financiera 2025 |  | 14,200 participantes (ejercicio 2025). |
+| `FN-CB-410a.2` | 27, 22 | sección | 27 · Gestión y mitigación de riesgos y oportunidades | 10 | respaldo con oraciones ancladas |
+| `FN-CB-410b.1` | 33 | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-410b.2` | 33, 34 | sección | 34 · Riesgos de transición: concentración, exposición y capital | 9 | respaldo con oraciones ancladas |
+| `FN-CB-410b.3` | 33 | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-410b.4` | 33 | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-510a.1` | — | captura | Pérdidas monetarias por procedimientos legales 2025 |  | 0 MDP (ejercicio 2025). |
+| `FN-CB-510a.2` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-550a.1` | — | pendiente | — |  | Pendiente: marcador |
+| `FN-CB-550a.2` | 26, 34 | sección | 26 · Resiliencia de la estrategia y análisis de escenarios | 1 | respaldo con oraciones ancladas |
+| `GRI 2-1` | 2, 4 | sección | 4 · Entidad que informa, periodo y conectividad | 2 | respaldo con oraciones ancladas |
+| `GRI 2-2` | 4 | sección | 4 · Entidad que informa, periodo y conectividad | 6 | respaldo con oraciones ancladas |
+| `GRI 2-3` | 2, 4 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-4` | 3, 6 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-5` | 2, 30 | sección | 30 · Método de medición y datos de entrada | 1 | respaldo con oraciones ancladas |
+| `GRI 2-6` | 12, 13 | sección | 12 · Modelo de negocio y cadena de valor | 10 | respaldo con oraciones ancladas |
+| `GRI 2-7` | — | captura | Plantilla y rotación de personal 2025 |  | 2,860 personas (ejercicio 2025). |
+| `GRI 2-8` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-9` | 15, 18 | sección | 15 · Roles y responsabilidades del órgano de gobierno | 35 | respaldo con oraciones ancladas |
+| `GRI 2-10` | 15, 18 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-11` | 15, 18 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-12` | 15, 16 | sección | 15 · Roles y responsabilidades del órgano de gobierno | 31 | respaldo con oraciones ancladas |
+| `GRI 2-13` | 15, 17 | sección | 15 · Roles y responsabilidades del órgano de gobierno | 29 | respaldo con oraciones ancladas |
+| `GRI 2-14` | 15, 16, 2 | sección | 15 · Roles y responsabilidades del órgano de gobierno | 15 | respaldo con oraciones ancladas |
+| `GRI 2-15` | 18, 15 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-16` | 16, 17, 15 | sección | 16 · Supervisión de la estrategia, objetivos y remuneración | 17 | respaldo con oraciones ancladas |
+| `GRI 2-17` | 15 | sección | 15 · Roles y responsabilidades del órgano de gobierno | 14 | respaldo con oraciones ancladas |
+| `GRI 2-18` | 15, 16 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-19` | 16, 37 | sección | 16 · Supervisión de la estrategia, objetivos y remuneración | 6 | respaldo con oraciones ancladas |
+| `GRI 2-20` | 16, 37 | sección | 16 · Supervisión de la estrategia, objetivos y remuneración | 6 | respaldo con oraciones ancladas |
+| `GRI 2-21` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-22` | 1 | sección | 1 · Carta de la Dirección | 1 | respaldo con oraciones ancladas |
+| `GRI 2-23` | 27, 17 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-24` | 27, 17 | sección | 27 · Gestión y mitigación de riesgos y oportunidades | 5 | respaldo con oraciones ancladas |
+| `GRI 2-25` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-26` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-27` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-28` | 19, 1 | sección | 19 · Trayectoria en sostenibilidad y clima | 1 | respaldo con oraciones ancladas |
+| `GRI 2-29` | 7 | pendiente | — |  | Pendiente: marcador |
+| `GRI 2-30` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 3-1` | 7 | sección | 7 · Materialidad: contexto y proceso | 2 | respaldo con oraciones ancladas |
+| `GRI 3-2` | 7 | pendiente | — |  | Pendiente: marcador |
+| `GRI 3-3` | 7, 27 | sección | 27 · Gestión y mitigación de riesgos y oportunidades | 7 | respaldo con oraciones ancladas |
+| `GRI 303-5` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 306-3` | — | pendiente | — |  | Pendiente: marcador |
+| `GRI 401-1` | — | captura | Índice de rotación voluntaria 2025 (%) |  | 11.8 % (ejercicio 2025). |
+| `GRI 404-1` | — | pendiente | — |  | Pendiente: marcador |
+
+Notas de la tabla:
+- **«Sin modelo»** es lo que sale hoy sin llave: por sección, el respaldo de oraciones ancladas; con modelo, en la 2c,
+  una respuesta propia del contenido, validada.
+- **Evidencia directa: 0 en el demo.** Las solicitudes ligadas a GRI/SASB del demo caen antes en captura o en sección.
+  La vía la ejercitan el e2e y las nueve de staging cuando RH suba sus documentos.
+- **Temas ajustados al revisar la tabla:**
+  - GRI 2-3 tomaba la cartera por «31 de diciembre»;
+  - FN-CB-410a.2 tomaba la matriz de riesgos, porque «ESG» sin límite de palabra casa dentro de «riesgos»;
+  - FN-CB-550a.2 tomaba el análisis de escenarios;
+  - GRI 2-23 tomaba una decisión de riesgo, no una política.
+
+  Revisados y aceptados: GRI 2-5 (inventario verificado por un tercero con aseguramiento limitado) y FN-CB-550a.2 (la
+  prueba de estrés de cartera reduce el ICAP).
+- **Quedan 29 pendientes:** contenidos sin sección ni fuente en el demo (2-3, 2-4, 2-8, 2-10, 2-11, 2-15, 2-18, 2-21,
+  2-23, 2-25 a 2-27, 2-29, 2-30, 3-2), la Extensión GRI sin captura que corresponda (303-5, 306-3, 404-1) y 12
+  métricas FN-CB sin dato.
+
 ## 5. Decisiones de Esteban (31/10/2026)
 
 1. **Licencias: vigentes** (§0.4). Texto literal de la norma, sin redacción propia ni marcador de licencia pendiente.
@@ -532,4 +623,5 @@ directo del español, sin paso por el inglés ni marcador de «texto en español
 | 31/10/2026 | **Fase 1 aprobada** y aplicada en dev y local; parada | **CLAUDE.md v1.14:** §5 no aplica a la columna «Requisito» del libro GRI/SASB (texto literal); el glosario sigue igual al del validador (e2e, 22 términos). **Extensión GRI:** migración nueva `20261031140000_catalogo_extension_gri_literal` (generada con `--extension`): texto literal en español de GRI 303-5 (2018), 306-3 (2020), 404-1 (2016) y 401-1 (2016, nueva); `GRI 2-7 / 401-1` retirada (`activo = false`), con sus enlaces y renglones de plantilla pasados a GRI 2-7 y GRI 401-1 (0 en dev). Cobertura y su Excel ocultan GRI/SASB retirados (NIIF, como siempre). **Deuda** `relleno-norma-pilar-gri-sasb` en la especificación §10 (0.51). **Migraciones:** las tres en dev (`db push --linked`, con la traza de `pg-delta` de siempre) y en local; 101 de 101 con 0 desalineadas en los dos; barrera 108 en los dos. **Tipos** regenerados desde dev: iguales, byte por byte, a los escritos a mano. **Conteo final (dev, activos):** GRI 2: 30 · GRI 3: 3 · GRI 303: 1 · GRI 306: 1 · GRI 401: 1 · GRI 404: 1 (GRI 37) · SASB FN-CB: 17 · NIIF: 117 sin cambio; retirada 1. **Fotos de Cobertura** (`~/Downloads/catalogo-gri-sasb/`): 121 → 172 códigos; diferencia exactamente la esperada, 52 celdas (51 nuevas sin solicitud y la compuesta que cambia a retirada); NIIF 117 → 117 con 0 celdas distintas y totales iguales. **Pruebas:** `verify:export` 81 contra dev con el código de la rama; `e2e-celdas-categoricas` 128 sobre el Formato y el Excel de dev; esos dos libros iguales celda por celda a los de `traceline-dev` v32 (4582 y 1251 celdas, 0 distintas); `e2e-catalogo-gri-sasb` 33 en verde; validadores con el glosario igual. **Libro GRI/SASB de dev:** `gri-sasb-empresa-demo-sab-2025-2026-10-31.xlsx`, hojas GRI (37) y SASB FN-CB (17), Código / Requisito / Respuesta («En preparación» en las 54: el generador está encendido y no hay respuestas GRI/SASB aún) | **Parada** |
 | 31/10/2026 | **Desviación de regla** (anotada a pedido de Esteban) | La migración `20261031140000_catalogo_extension_gri_literal` se aplicó en dev **sin la parada del SQL**: implementaba la decisión del mismo mensaje (Extensión GRI literal y partida por contenido), pero su SQL no se presentó antes de aplicarla, como pide la práctica del encargo para toda migración contra dev. Es una desviación de regla, no un error de resultado: el SQL está en `~/Downloads/catalogo-gri-sasb/`, la foto de Cobertura dio exactamente la diferencia esperada y NIIF no cambió. En adelante, toda migración nueva se presenta antes de aplicarla en dev, aunque la decisión que implementa ya esté tomada | Anotado |
 | 31/10/2026 | **Fase 2 · Paso 0** (lectura), parada | Hoy `generarRespuestas` excluye GRI y SASB (`startsWith("NIIF")`): las 54 dicen «En preparación». La captura cuantitativa ya serviría; para texto falta una vía («evidencia directa») porque una solicitud ligada solo a GRI/SASB no entra al libro de hechos; GRI 2 puede tomar como fuente bloques NIIF aprobados (lectura, sin regenerar). Nueve de staging: 2-22, 2-23, 2-24, 2-26 y FN-CB-410a.2/230a.2 en el mínimo; 205, 405 y 418 en el medio. «Métricas SASB» hoy solo con su título; con FN-CB, Código/Métrica/Respuesta. ~4.25–5.25 jornadas, ~0.5 USD dentro de la corrida v6 | **Parada:** §1.5 |
+| 31/10/2026 | **Fase 2 aprobada** (§1.6) y **Fases 2a y 2b**, parada con la tabla código → sección | **2a:** `generarRespuestas` incluye GRI y SASB (SASB solo de la industria del Perfil) con `lib/suplemento/gri-sasb.ts`: captura → sección aprobada (`FUENTE_GRI_SASB`, §1.7) → evidencia directa (`responderEvidencia`: extractos confirmados de las solicitudes ligadas, mismos validadores y reintentos que las NIIF, lotes de 8) → pendiente con marcador; sin remisión «Ver sección» en GRI/SASB; solo destino «taxonomia». Hoja «Métricas SASB» del Formato (`lib/formato/metricas-sasb.ts`): Código / Métrica / Respuesta, pendiente vacío. **Pruebas:** `e2e-respuestas-gri-sasb` (nuevo) 26 en verde (sección 15 y 7, captura, evidencia sin modelo → pendiente, sin sector → 0 SASB, libro y Formato); validadores 90, métricas 19, Formato 29, alivios 20, respuestas 22, regeneración 9, declaraciones 20 y catálogo 34 contra el stack local; `tsc` y eslint limpios. **Script de ligado de staging** `~/Downloads/solicitudes-demo-rh/ligar-gri-sasb-demo-rh.mjs` (revisar y `--aplicar`, comandos L1–L4 en `comandos.md`): en local, 12 enlaces nuevos, los 6 de antes conservados, 9 filas de bitácora de demostración, segunda pasada en cero; local limpio después. **2b en dev** (`poblar-demo.mjs --solo gri-sasb`, contenido §7b): 9 de las 17 solicitudes con tema GRI 2/FN-CB ligadas; 8 no, con su razón (horas de capacitación es un total y 404-1 pide promedio; mujeres en plantilla es 405; cartera total, sostenible y expuesta no son métricas FN-CB tal cual; Alcance 3 y créditos de carbono no son GRI 2 ni FN-CB). Tres métricas FN-CB nuevas validadas con captura y extracto (240a.3, 240a.4, 510a.1), lectura omitida (0 lecturas pendientes del demo); segunda corrida sin cambios. **Tabla en seco** sobre el v5 de dev: 20 por sección, 5 por captura, 29 pendientes, costo 0. **Errores propios:** la primera corrida del e2e se cayó antes de su limpieza (el trigger de evidencias ya crea la fila de lectura); limpié a mano lo que dejó en el stack local (documento, libro, dos solicitudes, fila de perfil; tenant de vuelta a generador apagado y tope 10) y moví la preparación dentro del bloque con limpieza. Cuatro temas demasiado amplios en la primera tabla (§1.7), ajustados | **Parada:** tabla código → sección; nada generado con modelo |
 
