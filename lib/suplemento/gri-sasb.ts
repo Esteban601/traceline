@@ -21,9 +21,9 @@
  */
 export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp }> = {
   // GRI 2 · 1. La organización y sus prácticas de presentación de informes
-  "GRI 2-1": { bloques: [2, 4], tema: /denominaci|raz[oó]n social|S\.A\.B|sociedad an[oó]nima|forma jur[ií]dica|sede|domicilio|opera en|pa[ií]s/i },
+  "GRI 2-1": { bloques: [2, 4], tema: /denominaci|raz[oó]n social|S\.A\.B|sociedad an[oó]nima|forma jur[ií]dica|\bsede\b|domicilio|opera en|\bpa[ií]s(es)?\b/i },
   "GRI 2-2": { bloques: [4], tema: /subsidiari|entidades?|per[ií]metro|consolid/i },
-  "GRI 2-3": { bloques: [2, 4], tema: /periodo|ejercicio|anual|publica|contacto/i },
+  "GRI 2-3": { bloques: [2, 4], tema: /periodo (objeto|del informe|que cubre|de reporte)|frecuencia (del|de los) informe|se publica|punto de contacto|contacto/i },
   "GRI 2-4": { bloques: [3, 6], tema: /reexpres|actualizaci[oó]n de (la )?informaci|correcci[oó]n de (cifras|informaci)/i },
   "GRI 2-5": { bloques: [2, 30], tema: /verificaci[oó]n externa|aseguramiento|auditor[ií]a externa|tercero independiente/i },
   // 2. Actividades y trabajadores
@@ -43,7 +43,7 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp }
   "GRI 2-20": { bloques: [16, 37], tema: /remuneraci|compensaci|incentivo|bono/i },
   // 4. Estrategia, políticas y prácticas
   "GRI 2-22": { bloques: [1], tema: /sostenib|estrategia|compromiso|desarrollo|clima/i },
-  "GRI 2-23": { bloques: [27, 17], tema: /pol[ií]tica|compromiso|c[oó]digo de [eé]tica/i },
+  "GRI 2-23": { bloques: [27, 17], tema: /pol[ií]tica de|c[oó]digo de [eé]tica|compromiso de|derechos humanos|principio precautorio|debida diligencia|conducta empresarial/i },
   "GRI 2-24": { bloques: [27, 17], tema: /pol[ií]tica|procedimient|integra|incorpora|capacitaci/i },
   "GRI 2-28": { bloques: [19, 1], tema: /asociaci|adhesi|iniciativa|firmante|signatari|principios/i },
   // 5. Participación de los grupos de interés
@@ -53,12 +53,13 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp }
   "GRI 3-2": { bloques: [7], tema: /temas? material/i },
   "GRI 3-3": { bloques: [7, 27], tema: /gesti[oó]n|medidas|pol[ií]tica|impacto|seguimiento/i },
   // SASB FN-CB
-  "FN-CB-410a.2": { bloques: [27, 22], tema: /cr[eé]dito|otorgamiento|an[aá]lisis de riesgo|cartera|ASG|ESG|ambiental/i },
+  // Siglas con límite de palabra: «ESG» sin él casa dentro de «riesgos».
+  "FN-CB-410a.2": { bloques: [27, 22], tema: /cr[eé]dito|otorgamiento|originaci|l[ií]mites? (de concentraci[oó]n|sectorial)|criterios? (ambientales|sociales)|\bASG\b|\bESG\b/i },
   "FN-CB-410b.1": { bloques: [33], tema: /emisiones financiadas|PCAF/i },
   "FN-CB-410b.2": { bloques: [33, 34], tema: /exposici[oó]n|cartera.*sector|sector.*cartera/i },
   "FN-CB-410b.3": { bloques: [33], tema: /PCAF|porcentaje de la cartera|cartera empresarial cubierta|medici[oó]n/i },
   "FN-CB-410b.4": { bloques: [33], tema: /PCAF|metodolog|calidad de (los )?datos/i },
-  "FN-CB-550a.2": { bloques: [26, 34], tema: /pruebas? de estr[eé]s|escenario|capital|solvencia/i },
+  "FN-CB-550a.2": { bloques: [26, 34], tema: /pruebas? de estr[eé]s|estr[eé]s financiero|suficiencia de capital|planeaci[oó]n de capital|solvencia/i },
 };
 
 /** Contenido GRI o SASB (no NIIF): lo que entra por esta vía. */
