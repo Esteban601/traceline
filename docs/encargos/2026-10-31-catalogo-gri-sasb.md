@@ -169,6 +169,11 @@ Las industrias SASB de los 20 mockups y de Empresa Demo, con sus métricas conta
 
 ### 0.4 Licencias
 
+> **Resuelto el 31/10/2026 (confirmación de Esteban).** Las licencias de la IFRS Foundation (NIIF S1/S2 y SASB) y la
+> de GRI existen y son de reproducción en producto; los contratos los resguarda el equipo legal de Apalache y no se
+> copian aquí. Con eso, el texto de los datapoints se carga literal de la norma, sin redacción propia y sin marcador
+> de licencia pendiente. Lo que sigue es la lectura de los términos públicos del Paso 0; queda como antecedente.
+
 Consulta del 31/10/2026 a fuentes primarias. **No es una opinión legal.** Las citas están en el idioma original.
 
 **GRI.**
@@ -266,6 +271,7 @@ Agregado el 31/10/2026, a pedido de Esteban.
 | SASB Standards, en 11 sectores | 77 | 74 en «VERSION 2023-12»; FN-AC, FN-CB y FN-IN en «2025-12»; IF-RE en «2023-06» |
 | SASB Standards / Estandares ASG | 1 | «NIS 2024» (189 págs.): Normas de Información de Sostenibilidad del CINIF, no es de SASB |
 | NIIF S1 y S2 | 2 | IFRS S1 e IFRS S2 (2023), en inglés |
+| gri-es (agregada el 31/10/2026) | 43 | El juego oficial de GRI en español, 50.0 MB (ver «Traducciones») |
 
 El juego GRI tiene:
 - GRI 1, 2 y 3 (2021);
@@ -275,7 +281,8 @@ El juego GRI tiene:
 - las sectoriales 11, 12, 13 y 14 (V1.1);
 - el Glosario 2025.
 
-Faltan GRI 304 y GRI 412.
+Al juego en inglés le faltan GRI 304 (la sustituye GRI 101) y GRI 412. El juego en español (`gri-es/`) sí trae GRI 304
+(2016); GRI 412 no está en ninguno de los dos.
 
 **Qué normas GRI sustituyen a otras.** Se tomó del aviso de cada PDF; la fecha es la de vigencia.
 
@@ -319,52 +326,54 @@ Notas:
   la versión importa.
 - Las [8xxxxx] del Formato listan las 68 industrias, así que cualquiera de estas tiene su sección.
 
-**Traducciones oficiales al español.**
+**Traducciones oficiales al español.** Corregido el 31/10/2026: el juego completo de GRI en español ya está en
+`normas/_fuentes/gri-es/` (43 PDF), así que GRI no tiene traducciones faltantes que importen al catálogo.
 
-| Norma | Traducción oficial | Enlace |
+| Norma | Traducción oficial | Dónde |
 |---|---|---|
-| GRI 1, 2 y 3 (2021) | Sí, 1/08/2022 | https://www.globalreporting.org/how-to-use-the-gri-standards/gri-standards-spanish-translations/ |
-| GRI temáticas 2016 (201–206, 301, 302, 305, 308, 401, 402, 404–411, 413–418) | Sí, 24/04/2017; 304 del 10/10/2016 | Mismo enlace |
-| GRI 303 (2018) y 403 (2018) | Sí, 8/03/2019 | Mismo enlace |
-| GRI 306: Residuos 2020 | Sí, 2/12/2020 | Mismo enlace |
-| GRI 207 (2019) | Sí, 8/05/2020 | Mismo enlace |
-| GRI 101 (2024) | Sí, 3/05/2024 | Mismo enlace |
-| GRI 102 y 103 (2025) | Sí, 17/10/2025 | Mismo enlace |
-| GRI 11–14 | Las versiones anteriores, sí; **las alineadas en 2025 solo en inglés** | Mismo enlace |
-| GRI 412 | No aparece en la lista en español | Mismo enlace |
+| GRI 1, 2 y 3 (2021) | Sí | `gri-es/`; https://www.globalreporting.org/how-to-use-the-gri-standards/gri-standards-spanish-translations/ |
+| GRI temáticas 201–207, 301–306 (304 de 2016; 306 de 2016 y de 2020), 308, 401–411 y 413–418 (303 y 403 de 2018) | Sí | `gri-es/` |
+| GRI 101 (2024), 102 y 103 (2025) | Sí | `gri-es/` |
+| GRI 11–14 | Sí, en su versión original (entrada en vigor 2023, 2024, 2024 y 2026). La versión 1.1, alineada en 2025 con 101–103, existe solo en inglés | `gri-es/` (original); `Full set…/` (V1.1) |
+| Glosario GRI | Sí | `gri-es/` |
+| GRI 412 | No está en ninguno de los dos juegos | — |
 | SASB, 77 industrias | **Solo la de las normas de 2018** (anunciada en marzo de 2021). **No se encontró traducción oficial de las versiones 2023-12 ni 2025-12**; la página antigua de SASB redirige a ifrs.org, que no la lista. Sin verificar en fuente primaria | https://sust4in.com/en/sust4in-welcomes-the-spanish-translations-of-all-77-sasb-industry-standards/ (secundaria) |
 | SASB, enmiendas 2025–2026 | Borradores en español, **no aprobados** por el Review Committee de la Fundación IFRS | https://www.ifrs.org/content/dam/ifrs/project/enhancing-sasb-standards-cont/es-sasb-ifrs-s2-ibg-ed-2026-1-proposed-amends.pdf |
 | NIIF S1 y S2 | Sí (octubre de 2023), ya en `normas/` | https://www.iasplus.com/en/news/2023/10/ifrs-s1-spanish |
 
-Consecuencia: GRI puede cargarse con texto oficial en español, si hay licencia. Para SASB vigente no hay texto oficial
-en español. Las opciones son mostrarlo en inglés, traducirlo con permiso de la Fundación IFRS (la traducción propia
-choca con su licencia) o usar la de 2018, que no coincide con FN-CB 2025-12. Es la decisión 8.
+Consecuencia: GRI se carga con su texto oficial en español. SASB va en inglés hasta que haya traducción oficial
+(decisión 8).
 
 ---
 
-## 5. Decisiones de Esteban (pendientes)
+## 5. Decisiones de Esteban (31/10/2026)
 
-1. **Licencias.** Ninguna carga empieza sin esta decisión. Las opciones:
-   - **(a)** pedir cotización a la Fundación IFRS (SASB, y regularizar S1/S2) y al programa de GRI, y no cargar texto
-     hasta tener contrato;
-   - **(b)** cargar solo códigos y títulos cortos, sin el texto del requisito, con permiso escrito de GRI y de IFRS;
-   - **(c)** solo GRI, que tiene traducción oficial al español, con licencia de GRI, y SASB después.
+1. **Licencias: vigentes** (§0.4). Texto literal de la norma, sin redacción propia ni marcador de licencia pendiente.
+2. **Nivel mínimo:** GRI 2, GRI 3 y SASB FN-CB.
+3. **FN-CB en la hoja «Métricas SASB»** del Formato, sin tocar la plantilla de la BMV (Fase 3).
+4. **Libro aparte para GRI y SASB**, sin tocar el Excel de taxonomía.
+5. **GRI 2021 con 302 y 305 de 2016;** la edición es columna obligatoria.
+6. **Un código por contenido.**
+7. **Marco NIIF/GRI/SASB** y columnas `estandar` y `edicion`.
+8. **SASB en inglés** hasta que haya traducción oficial.
+9. Las industrias de **Fibra Inn, CLEPSA, PINFRA y Rotoplas las confirma Esteban.**
 
-   Además: quién lleva el contacto, y si pasa por asesoría legal de propiedad intelectual.
-2. **Nivel:** mínimo, medio o completo (§0.3). Mi recomendación es el mínimo, para tener FN-CB en el demo y el índice
-   GRI 2/3, con el medio como segunda entrega.
-3. **FN-CB en el Formato:** ¿insertar las filas de métrica dentro de [815200] (cambia la plantilla en Storage y lleva
-   runbook con plantilla) o escribir la tabla en la hoja «Métricas SASB» (sin tocar la estructura)?
-4. **Excel:** ¿libro aparte para GRI y SASB, que es mi propuesta, o filas en el Excel de taxonomía?
-5. **Edición de las normas:** ¿GRI 2021 con 302 y 305, o ya GRI 102 y 103 (2025)? ¿SASB FN-CB «2025-12»?
-6. **Las 4 GRI actuales:** ¿partir `GRI 2-7 / 401-1` en dos códigos y re-mapear las solicitudes (dato del cliente),
-   o dejarlo compuesto?
-7. **Columna `norma`:** ¿columnas nuevas `estandar` y `edicion` (mi propuesta), o un valor nuevo en el enum
-   `norma_niif` (va en migración propia)?
-8. **Idioma de SASB:** ¿inglés (la versión vigente), traducción con permiso de la Fundación IFRS, o la traducción de
-   2018 aunque no coincida con la versión vigente?
-9. **Industria de cuatro mockups** (Fibra Inn, CLEPSA, PINFRA y Rotoplas): confirmar contra su Perfil en staging, o
-   que tú las fijes.
+Complemento del mismo día: el juego de GRI en español está en `normas/_fuentes/gri-es/`; GRI 2 y GRI 3 se cargan
+directo del español, sin paso por el inglés ni marcador de «texto en español pendiente».
+
+### 5.1 Preguntas de la Fase 1 (pendientes)
+
+1. **Vocabulario del glosario (CLAUDE.md §5) en texto literal de la norma.** GRI 2-5 dice «su práctica de solicitud
+   de verificación externa», y «solicitud» está en el glosario, que aplica a toda celda exportada. El texto es
+   literal (decisión 1). Propuesta: una excepción en §5 para la columna «Requisito» del libro GRI/SASB, que es texto
+   de la norma, como ya existe para «validado por …» y «bloque de texto». Cambia CLAUDE.md, así que es tuya. Hoy el
+   e2e lo reporta como aviso.
+2. **La Extensión GRI en el libro.** Las cuatro filas (303-5, 306-3, 404-1 y 2-7 / 401-1) tienen la descripción que
+   redactó la firma en 2026-08, no texto literal, y salen en la hoja «GRI». ¿Se dejan fuera del libro hasta el nivel
+   medio, o se cargan ya con el texto literal de su norma en español (son cuatro, de normas que ya están en
+   `gri-es/`)? Con la decisión 6, `GRI 2-7 / 401-1` además se parte en dos, y `GRI 2-7` ya existe ahora con su texto
+   de GRI 2.
+3. **Aplicar en dev:** el SQL de las dos migraciones (§7, Fase 1).
 
 ## 6. Paradas
 
@@ -380,3 +389,6 @@ choca con su licencia) o usar la de 2018, que no coincide con FN-CB 2025-12. Es 
 |---|---|---|
 | 31/10/2026 | **Paso 0** (lectura). Catálogo de dev: 117 NIIF y 4 GRI («Extensión GRI», sin solicitudes ligadas), 0 SASB; `norma` no sirve para GRI/SASB. Plantilla de dev: 37 renglones, ninguno con GRI, ~15 con tema GRI. Excel de taxonomía: el esqueleto GRI 2/3 y 8 secciones temáticas sin códigos, retirado por la depuración del 26/10. Formato: 68 secciones [8xxxxx], [815200] FN-CB sin filas, las [8xxxxx] vacías «fuera de alcance». `normas/` sin GRI ni SASB. Licencias: GRI y la Fundación IFRS exigen licencia para uso en software comercial, también para el texto de S1/S2 que ya está en la plataforma. Tres niveles: ~5–6, ~9 y ~15–17 jornadas | **Parada:** decisiones de §5 |
 | 31/10/2026 | **Complemento del Paso 0** (Esteban): fuentes en `normas/_fuentes/` (122 PDF, 74.4 MB; inventario en `~/Downloads/catalogo-gri-sasb/inventario-fuentes.md`), sin commitear y con línea explícita en `.gitignore`; sustituciones GRI tomadas del aviso de cada PDF (306 de 2016 solo con 306-3 vigente; 305-1 a 305-5 y 201-2 a GRI 102, y 302 a GRI 103, desde el 1/01/2027; 304 a GRI 101, sin verificar en el PDF); industrias SASB de los mockups con sus métricas contadas (FN-CB 2025-12: 17); traducciones al español con enlace (GRI completa salvo 412 y las sectoriales de 2025; SASB solo de 2018). Decisiones 8 y 9 agregadas | **Parada:** decisiones de §5 |
+| 31/10/2026 | **Decisiones del Paso 0** (§5): licencias vigentes (registradas aquí y en el README en lugar de «pendiente de escalar», sin copiar el contrato) y (2)–(9). Complemento: juego GRI en español en `gri-es/` (43 PDF, 50.0 MB); traducciones de §0.6 corregidas | Hecho |
+| 31/10/2026 | **Fase 1** (nivel mínimo), parada con el SQL antes de aplicarlo en dev | **Migraciones:** `20261031120000_catalogo_marco_sasb` (CHECK de `marco` sustituido por uno más amplio con `SASB`; `estandar`, `edicion` y `pagina_origen` nullable; CHECK nuevo «edición obligatoria para GRI y SASB», que las filas existentes cumplen porque las cuatro de la Extensión GRI se llenan antes; índice; barrera) y `20261031130000_catalogo_gri2_gri3_fncb` (50 filas, upsert idempotente, GENERADA por `scripts/catalogo/generar-gri-sasb.mjs` desde los PDF). **Conteo por estándar:** GRI 2: 30 · GRI 3: 3 · SASB FN-CB: 17 (15 contables y 2 de actividad), más las 4 de la Extensión GRI con su estándar y edición; NIIF sin cambio. **Texto:** GRI 2 y 3, el bloque «REQUERIMIENTOS» del PDF oficial en español, leído por posición en la página (el PDF es a dos columnas y la etiqueta «ORIENTACIONES» va al margen); FN-CB, el encabezado del protocolo y la tabla 2, en inglés. **Aplicadas solo en el stack local** (barrera 108); tipos de las tres columnas escritos a mano en `lib/database.types.ts`, iguales a los que genera la CLI. **Cobertura:** secciones GRI y SASB aparte (`lib/catalogo-marcos.ts`), SASB solo con la industria del Perfil; informe y Excel de cobertura con el estándar y la edición; el selector de datapoints rotula «GRI»/«SASB». **Libro GRI/SASB:** `/admin/cobertura/export-gri-sasb` (`lib/excel/gri-sasb.ts`), hojas «GRI» y «SASB <industria>», Código / Requisito (/ Respuesta con el generador encendido, como el Excel de taxonomía), edición en las propiedades; botón «Libro GRI/SASB» junto al Excel de taxonomía. **Pruebas:** `e2e-catalogo-gri-sasb` (nuevo) 30 en verde y un aviso (GRI 2-5, «solicitud», §5.1); validadores 90, métricas 19, Formato 29, alivios 20, respuestas 22, regeneración 9, declaraciones 20 y efectos 15 contra el stack local; `tsc` limpio, eslint sin errores. `verify:export` y `e2e-celdas-categoricas` necesitan dev con la migración: van después de aplicarla. **Errores propios:** el extractor de FN-CB cortaba el «3» final de «(3) Scope 3» (quitaba un número de nota al pie que ya no existía), y la primera versión del extractor GRI mezclaba la columna de orientaciones; corregidos y comprobados. **Errata de la fuente:** GRI 2-5 «de de gobierno», conservada (literal) | **Parada:** SQL y §5.1 |
+

@@ -937,27 +937,27 @@ mapeo):
 | Capacitación: horas, temáticas y cobertura | **GRI 404-1** | `VERT-SOC-02` |
 | Plantilla total y rotación | **GRI 2-7 / 401-1** | `VERT-SOC-01` |
 
-`datapoints_taxonomia.marco` vale `'NIIF'` (los 91 de la norma) o `'GRI'` (estos
-cuatro), y en `/admin/cobertura` aparecen en una **sección propia, "Extensión
-GRI"**, con su propio conteo y fuera del avance de la norma. Cada tarjeta muestra
-su código GRI igual que las NIIF muestran el suyo, para que quien lea el
-entregable pueda ir a la norma y comprobarlo. Nunca se presentan como parte de
-NIIF S1/S2, y el Excel oficial de taxonomía sigue siendo solo de la norma.
+`datapoints_taxonomia.marco` vale `'NIIF'`, `'GRI'` o `'SASB'` (desde el encargo `catalogo-gri-sasb`, 31/10/2026:
+GRI 2 y GRI 3 con su texto literal en español, y las 17 métricas de SASB FN-CB 2025-12 en inglés; cada fila GRI y
+SASB lleva `estandar`, `edicion` y `pagina_origen`, y la edición es obligatoria). En `/admin/cobertura` GRI y SASB
+aparecen en **secciones propias**, con su propio conteo y fuera del avance de la norma; SASB, solo con la industria
+del Perfil de la emisora (`perfil_emisor.sector_sasb`). Cada tarjeta muestra su código, igual que las NIIF muestran
+el suyo, para que quien lea el entregable pueda ir a la norma y comprobarlo. Nunca se presentan como parte de NIIF
+S1/S2: el Excel oficial de taxonomía sigue siendo solo de la norma, y GRI y SASB van en el **libro GRI/SASB**
+(`/admin/cobertura/export-gri-sasb`), con la misma regla de solo preguntas y respuestas.
 
 **El de plantilla/rotación lleva dos códigos** (`GRI 2-7 / 401-1`) porque el
 datapoint cubre las dos cosas. Partirlo en dos habría cambiado el universo y el
 mapeo de las solicitudes ya ligadas —que es dato del cliente—, así que se deja
 compuesto y se explica.
 
-> **Licenciamiento IFRS Foundation — pendiente de escalar.** La portada del mapeo
-> de importación deja constancia: el checklist de Carso usa métricas y códigos
-> SASB verbatim (CG-MR, RT-EE, IF-EN, EM-CM) y el informe incluye las secciones
-> de industria `[805600]+`. Integrar ese contenido en una plataforma **comercial**
-> requiere licencia de la IFRS Foundation (el uso no comercial es libre). El
-> import respeta la instrucción de no traer esas secciones y las solicitudes SASB
-> quedan ligadas a la hoja bloqueada `NIIF S1 46 a 50`, que se recaba pero no se
-> exporta. La recomendación registrada es escalarlo a dirección y contactar a
-> `licensing@sasb.org` **antes** de dar acceso a Grupo Carso.
+> **Licencias — vigentes desde el 31 de octubre de 2026** (confirmación de Esteban; encargo
+> `docs/encargos/2026-10-31-catalogo-gri-sasb.md`). Las licencias de la IFRS Foundation (NIIF S1/S2 y SASB) y la
+> de GRI existen y son de reproducción en producto. Los contratos los resguarda el equipo legal de Apalache; este
+> repositorio no los copia. Con ellas, el texto de los datapoints GRI y SASB se carga **literal de la norma**, sin
+> redacción propia y sin marcador de licencia pendiente. Antes decía «pendiente de escalar»: el checklist de Carso
+> usa métricas y códigos SASB literales (CG-MR, RT-EE, IF-EN, EM-CM), y la importación no trajo las secciones
+> `[805600]+`; sus solicitudes SASB siguen ligadas a `NIIF S1 46 a 50`.
 
 ### Histórico: el comparativo 2024
 

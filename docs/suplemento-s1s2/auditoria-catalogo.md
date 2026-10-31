@@ -349,3 +349,76 @@ es una revelación sino una instrucción de preparación —usar la información
 razonable disponible sin costo o esfuerzo desproporcionado—, así que no le
 corresponde una fila de requisito. Si se decide que debe aparecer, hay que darle
 una fila propia, no reutilizar la de otro.
+
+## Catálogo GRI y SASB, nivel mínimo · 31 de octubre de 2026
+
+Encargo `docs/encargos/2026-10-31-catalogo-gri-sasb.md`, Fase 1. Migraciones `20261031120000_catalogo_marco_sasb`
+(marco `SASB`, columnas `estandar`, `edicion` y `pagina_origen`, edición obligatoria para GRI y SASB) y
+`20261031130000_catalogo_gri2_gri3_fncb` (datos, GENERADA por `scripts/catalogo/generar-gri-sasb.mjs` desde los PDF
+oficiales de `normas/_fuentes/`, que no se versionan).
+
+- **Texto literal, sin redacción propia** (licencias vigentes de la IFRS Foundation y de GRI, confirmación de Esteban del
+  31/10/2026). GRI 2 y GRI 3: el bloque «REQUERIMIENTOS» de cada contenido del PDF oficial en español, sin las
+  orientaciones. SASB FN-CB 2025-12: el encabezado del protocolo técnico de cada métrica contable y la fila de la
+  tabla 2 de las de actividad, en inglés hasta que haya traducción oficial; el tema va en `seccion_indice`.
+- **Página:** la del archivo PDF (empezando en 1), no la impresa.
+- **Relleno de columnas NIIF:** `norma` = S1 (GRI) o S2 (SASB) y `pilar` por sección, como ya hacía la Extensión GRI;
+  ninguna pantalla los muestra para estos marcos.
+- **Errata de la fuente, conservada:** GRI 2-5 dice «el máximo órgano de de gobierno» en el PDF oficial en español
+  (pág. 12). Es texto literal; no se corrige.
+- **Extensión GRI** (las cuatro de 2026-08): reciben estándar y edición (GRI 303-5: GRI 303, 2018; GRI 306-3: GRI 306,
+  2020, porque su texto es «residuos generados»; GRI 404-1: GRI 404, 2016; GRI 2-7 / 401-1: GRI 2 / GRI 401, 2021 /
+  2016). Su descripción sigue siendo la redactada por la firma: el texto literal entra con el nivel medio.
+
+| Código | Estándar | Edición | Página | Fuente | Veredicto |
+|---|---|---|---:|---|---|
+| `GRI 2-1` | GRI 2 | 2021 | 8 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-2` | GRI 2 | 2021 | 9 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-3` | GRI 2 | 2021 | 10 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-4` | GRI 2 | 2021 | 11 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-5` | GRI 2 | 2021 | 12 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-6` | GRI 2 | 2021 | 13 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-7` | GRI 2 | 2021 | 15 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-8` | GRI 2 | 2021 | 18 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-9` | GRI 2 | 2021 | 20 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-10` | GRI 2 | 2021 | 22 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-11` | GRI 2 | 2021 | 23 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-12` | GRI 2 | 2021 | 24 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-13` | GRI 2 | 2021 | 25 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-14` | GRI 2 | 2021 | 26 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-15` | GRI 2 | 2021 | 27 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-16` | GRI 2 | 2021 | 28 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-17` | GRI 2 | 2021 | 29 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-18` | GRI 2 | 2021 | 30 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-19` | GRI 2 | 2021 | 31 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-20` | GRI 2 | 2021 | 32 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-21` | GRI 2 | 2021 | 33 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-22` | GRI 2 | 2021 | 35 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-23` | GRI 2 | 2021 | 36 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-24` | GRI 2 | 2021 | 39 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-25` | GRI 2 | 2021 | 41 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-26` | GRI 2 | 2021 | 44 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-27` | GRI 2 | 2021 | 45 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-28` | GRI 2 | 2021 | 47 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-29` | GRI 2 | 2021 | 48 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 2-30` | GRI 2 | 2021 | 50 | GRI 2_ Contenidos Generales 2021 - Spanish.pdf | Literal |
+| `GRI 3-1` | GRI 3 | 2021 | 18 | GRI 3_ Temas Materiales 2021 - Spanish.pdf | Literal |
+| `GRI 3-2` | GRI 3 | 2021 | 20 | GRI 3_ Temas Materiales 2021 - Spanish.pdf | Literal |
+| `GRI 3-3` | GRI 3 | 2021 | 21 | GRI 3_ Temas Materiales 2021 - Spanish.pdf | Literal |
+| `FN-CB-000.A` | SASB FN-CB | 2025-12 | 7 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-000.B` | SASB FN-CB | 2025-12 | 7 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-230a.1` | SASB FN-CB | 2025-12 | 8 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-230a.2` | SASB FN-CB | 2025-12 | 9 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-240a.1` | SASB FN-CB | 2025-12 | 11 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-240a.2` | SASB FN-CB | 2025-12 | 12 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-240a.3` | SASB FN-CB | 2025-12 | 12 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-240a.4` | SASB FN-CB | 2025-12 | 13 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-410a.2` | SASB FN-CB | 2025-12 | 14 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-410b.1` | SASB FN-CB | 2025-12 | 17 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-410b.2` | SASB FN-CB | 2025-12 | 17 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-410b.3` | SASB FN-CB | 2025-12 | 18 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-410b.4` | SASB FN-CB | 2025-12 | 18 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-510a.1` | SASB FN-CB | 2025-12 | 19 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-510a.2` | SASB FN-CB | 2025-12 | 20 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-550a.1` | SASB FN-CB | 2025-12 | 21 | commercial-banks-standard_en-gb.pdf | Literal |
+| `FN-CB-550a.2` | SASB FN-CB | 2025-12 | 22 | commercial-banks-standard_en-gb.pdf | Literal |
