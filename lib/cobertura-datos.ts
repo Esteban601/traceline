@@ -76,6 +76,9 @@ export async function cargarCobertura(
       .from("datapoints_taxonomia")
       .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion")
       .eq("version_taxonomia", "2025")
+      // GRI y SASB retirados (activo = false, p. ej. «GRI 2-7 / 401-1», partido por contenido) no se listan. NIIF, como
+      // siempre: este filtro no lo toca.
+      .or("activo.eq.true,marco.eq.NIIF")
       .order("norma")
       .order("pilar")
       .order("codigo"),
