@@ -117,10 +117,8 @@ de SASB.
 - **Hoja «Métricas SASB»:** está vacía en la plantilla de Storage desde v42. La copia de `referencia/` es anterior y
   todavía tiene la nota en A2.
 
-**`normas/`.** Solo tiene NIIF S1 y S2, en español e inglés. **No hay ningún documento de GRI ni de SASB.**
-Tendrían que entrar, sin versionarse (CLAUDE.md §4):
-- GRI 1, 2 y 3 (2021) y las temáticas en su edición vigente. La traducción oficial al español es del 1/08/2022.
-- Las normas SASB por industria, en la versión que se adopte: FN-CB va en «VERSION 2025-12».
+**`normas/`.** En el worktree principal solo tiene NIIF S1 y S2, en español e inglés. Las fuentes de GRI y SASB
+llegaron después a `normas/_fuentes/`; están en §0.6.
 
 **Antecedente.** El README («Extensión GRI del catálogo») deja la licencia de SASB **«pendiente de escalar»** desde la
 importación de Grupo Carso. Su checklist usa métricas SASB literales (CG-MR, RT-EE, IF-EN, EM-CM). La importación no
@@ -157,7 +155,7 @@ cuando esté en `normas/`; las normas 302 y 305 serán reemplazadas por GRI 102 
 | | Mínimo | Medio | Completo |
 |---|---|---|---|
 | **Qué entra** | GRI 2 (2-1 a 2-30) y GRI 3 (3-1 a 3-3), y FN-CB para el demo | Mínimo, más las temáticas que ya aparecen en las solicitudes y en el esqueleto del Excel: 201, 205, 302, 303, 305, 306, 401, 403, 404, 405, 406, 408, 409, 413 y 418 | Medio, más las industrias SASB de los 20 mockups y de Carso |
-| **Datapoints nuevos** | 30 + 3 + ~14 de FN-CB (12 contables y 2 de actividad; confirmar contra la versión 2025-12) ≈ **47** | ≈ **53** más (201:4, 205:3, 302:5, 303:5, 305:7, 306:5, 401:3, 403:10, 404:3, 405:2, 406:1, 408:1, 409:1, 413:2, 418:1), ≈ 100 en total | ~11 industrias más (abajo), ~10–15 métricas cada una: ≈ **120–170** más |
+| **Datapoints nuevos** | 30 + 3 + 17 de FN-CB (15 contables y 2 de actividad, versión 2025-12, contadas en el PDF) = **50** | ≈ **53** más (201:4, 205:3, 302:5, 303:5, 305:7, 306:5, 401:3, 403:10, 404:3, 405:2, 406:1, 408:1, 409:1, 413:2, 418:1), ≈ 100 en total | 10 industrias más para los mockups (§0.6): **156–172** métricas más según cómo se clasifique Rotoplas, y 27 más con Carso (CG-MR y RT-EE) |
 | **Vínculo con solicitudes** | El de siempre (`mapeo_solicitud_datapoint`, lo hace el staff). En el demo, 2 o 3 solicitudes nuevas para FN-CB (`poblar-demo`); GRI 2 se cubre en gran parte con Perfil y Gobierno | Se re-mapean ~15 de los 37 renglones de la plantilla (columna `datapoint_ids`) y las solicitudes ya creadas que se quieran; las 4 GRI actuales pasan a su código propio (decisión 6) | Por mockup, solicitudes SASB nuevas con `crear-demo-prospecto` (sin regenerar contraseñas, como siempre) |
 | **Cobertura** | Dos secciones propias, «GRI» y «SASB · industria», **con conteo aparte**, fuera del avance NIIF (el patrón de «Extensión GRI»). La foto de despliegue sigue contando NIIF | Igual | Igual, filtrando SASB por el `sector_sasb` del Perfil |
 | **Migraciones** | (1) CHECK de `marco` sustituido por uno más amplio (`'NIIF','GRI','SASB'`); (2) columnas nullable `estandar` (p. ej. «GRI 305», «SASB FN-CB»), `edicion` y `tipo_metrica`; (3) datos idempotentes del catálogo, una fila por cambio en `auditoria-catalogo.md`. Todas aditivas y con barrera | (3) con más filas; re-código de las 4 GRI | (3) con más filas |
@@ -165,23 +163,7 @@ cuando esté en `normas/`; las normas 302 y 305 serán reemplazadas por GRI 102 
 | **Jornadas** | **~5–6**: esquema y catálogo 1.5; FN-CB del demo 1; Cobertura 1; Formato y libro aparte 1.5; runbook 0.5 | **+3–4**, ≈ 9 | **+6–8**, ≈ 15–17 |
 | **Costo del modelo** | ~0 (catálogo y salidas por regla); regenerar el bloque de NIIF S2 32 del demo, ~0.3 USD | ~0 | ~0 |
 
-Industrias SASB probables de los 20 mockups. Es **juicio mío, por giro; hay que confirmarlas** con el `sector_sasb`
-de cada Perfil en staging:
-
-| Industria | Mockups |
-|---|---|
-| IF-RE, bienes raíces | GAV, Fibra Inn, Planigrupo, Frisa, O'Donnell |
-| IF-HB, desarrolladores de vivienda | CADU, Inmobilia |
-| FN-CB, bancos comerciales | Afirme, Banco Base |
-| FN-CF, crédito al consumo | TRATON FS, Montepío |
-| FN-AC, gestión y custodia de activos | Fondo de Fondos, AINDA, Portafolio Durango |
-| FB-MP, carne, aves y lácteos | Bafar |
-| EM-CM, materiales de construcción | GCC |
-| IF-EN, ingeniería y construcción | CLEPSA, PINFRA |
-| TC-TL, telecomunicaciones | Megacable |
-| CG-BF o IF-WU | Rotoplas |
-
-Carso agrega CG-MR, RT-EE, IF-EN y EM-CM.
+Las industrias SASB de los 20 mockups y de Empresa Demo, con sus métricas contadas, están en §0.6.
 
 **El Informe Anual GRI/SASB queda fuera de los tres niveles.** Es un encargo aparte, estimado en más de 10 jornadas.
 
@@ -267,6 +249,97 @@ nombre indica: lectura de texto en la carga de evidencias (captura sugerida de t
      PR lo resuelve con revisión.
 - **Si `carga-lectura-texto` ya existe en otro lugar** (Notion, otra rama), conviene leerlo antes de la Fase 1.
 
+### 0.6 Complemento: fuentes, sustituciones, industrias y traducciones
+
+Agregado el 31/10/2026, a pedido de Esteban.
+
+**Fuentes en `normas/_fuentes/`.**
+- **Dónde:** en el worktree `vert-evidencia-dev`. Ya las cubre `normas/` en `.gitignore`; se agregó también la línea
+  explícita `normas/_fuentes/` hasta la decisión de licencia.
+- **Qué hay:** 122 PDF, 74.4 MB, más un zip con el mismo juego GRI.
+- **Inventario completo** (archivo, edición, KB y páginas), fuera del repositorio:
+  `~/Downloads/catalogo-gri-sasb/inventario-fuentes.md`.
+
+| Carpeta | PDF | Ediciones |
+|---|---|---|
+| Full set of GRI Standards - English | 42 | Ver abajo |
+| SASB Standards, en 11 sectores | 77 | 74 en «VERSION 2023-12»; FN-AC, FN-CB y FN-IN en «2025-12»; IF-RE en «2023-06» |
+| SASB Standards / Estandares ASG | 1 | «NIS 2024» (189 págs.): Normas de Información de Sostenibilidad del CINIF, no es de SASB |
+| NIIF S1 y S2 | 2 | IFRS S1 e IFRS S2 (2023), en inglés |
+
+El juego GRI tiene:
+- GRI 1, 2 y 3 (2021);
+- las temáticas: 201–207 (207 de 2019), 301, 302, 303 (2018), 305, 306 (2016 y 2020), 308, 401–411, 413–418 (403 de
+  2018), todas de 2016 salvo las señaladas;
+- GRI 101 (2024), 102 y 103 (2025);
+- las sectoriales 11, 12, 13 y 14 (V1.1);
+- el Glosario 2025.
+
+Faltan GRI 304 y GRI 412.
+
+**Qué normas GRI sustituyen a otras.** Se tomó del aviso de cada PDF; la fecha es la de vigencia.
+
+| Norma | Estado | Fuente |
+|---|---|---|
+| GRI 306: Effluents and Waste 2016 | 306-1, 306-2, 306-4 y 306-5 **ya no están vigentes**: los sustituyeron GRI 303 (2018) y GRI 306: Waste 2020 (vigente desde el 1/01/2022). **306-3, Derrames significativos, sigue vigente** | Aviso de GRI 306 (2016) |
+| GRI 305: Emissions 2016 | El requisito 1.2 y **305-1 a 305-5** los sustituye **GRI 102: Climate Change 2025** desde el **1/01/2027**. 305-6 y 305-7 siguen | Aviso de GRI 305 |
+| GRI 201: Economic Performance 2016 | **201-2** (implicaciones financieras del cambio climático) la sustituye **GRI 102** desde el 1/01/2027 | Aviso de GRI 201 |
+| GRI 302: Energy 2016 | Vigente **hasta el 31/12/2026**; la sustituye entera **GRI 103: Energy 2025** desde el 1/01/2027 | Aviso de GRI 302 |
+| GRI 304: Biodiversity 2016 | La sustituye **GRI 101: Biodiversity 2024**, vigente desde el 1/01/2026. GRI 304 no está en el juego y GRI 101 no lo dice en su texto: el dato sale de la página de GRI, no del PDF | Página de GRI, sin verificar en el PDF |
+
+Consecuencia para el catálogo: el informe de 2025 (publicado en 2026) usa 302 y 305-1 a 305-5; el de 2026 (publicado
+en 2027) usa 102 y 103. Los dos datapoints `GRI 303-5` y `GRI 306-3` de la «Extensión GRI» hoy:
+- **GRI 303-5** (consumo de agua) es de GRI 303 (2018): vigente.
+- **GRI 306-3 es ambiguo.** En GRI 306 (2020), 306-3 es «Residuos generados», y eso es lo que mide el datapoint. En
+  GRI 306 (2016), 306-3 es «Derrames significativos». El catálogo debe decir la edición (decisión 5).
+
+**Industrias SASB de Empresa Demo y de los 20 mockups.**
+- Empresa Demo es FN-CB por su Perfil (`sector_sasb`).
+- La de cada mockup es **juicio mío por giro**; hay que confirmarla con el `sector_sasb` de cada Perfil en staging.
+- El número de métricas se contó en los PDF: códigos distintos, contables más de actividad.
+
+| Industria (código, versión) | Métricas | Emisoras |
+|---|---|---|
+| FN-CB Commercial Banks (2025-12) | 15 + 2 = **17** | **Empresa Demo**, Afirme, Banco Base |
+| IF-RE Real Estate (2023-06) | 14 + 4 = 18 | GAV, Planigrupo, Frisa, O'Donnell; Fibra Inn (o SV-HL) |
+| SV-HL Hotels & Lodging (2023-12) | 9 + 4 = 13 | Fibra Inn, si se clasifica por su operación hotelera |
+| IF-HB Home Builders (2023-12) | 14 + 3 = 17 | CADU, Inmobilia |
+| FN-CF Consumer Finance (2023-12) | 10 + 2 = 12 | TRATON FS, Montepío |
+| FN-AC Asset Management & Custody (2025-12) | 13 + 2 = 15 | Fondo de Fondos, AINDA, Portafolio Durango |
+| FB-MP Meat, Poultry & Dairy (2023-12) | 24 + 2 = 26 | Bafar |
+| EM-CM Construction Materials (2023-12) | 13 + 1 = 14 | GCC (y Carso) |
+| IF-EN Engineering & Construction Services (2023-12) | 13 + 3 = 16 | CLEPSA, PINFRA (SASB no tiene industria de autopistas concesionadas: es la más cercana; y Carso) |
+| TC-TL Telecommunication Services (2023-12) | 13 + 4 = 17 | Megacable |
+| Rotoplas: CG-BF (8), RT-CP (18) o IF-WU (24) | 8–24 | Rotoplas (tinacos y soluciones de agua: a decidir) |
+| CG-MR Multiline & Specialty Retailers (2023-12) | 11 + 2 = 13 | Carso |
+| RT-EE Electrical & Electronic Equipment (2023-12) | 12 + 2 = 14 | Carso |
+
+Notas:
+- **FN-CB 2025-12 ya no tiene FN-CB-410a.1.** Trae 410a.2 y las cuatro de emisiones financiadas (410b.1 a 410b.4):
+  la versión importa.
+- Las [8xxxxx] del Formato listan las 68 industrias, así que cualquiera de estas tiene su sección.
+
+**Traducciones oficiales al español.**
+
+| Norma | Traducción oficial | Enlace |
+|---|---|---|
+| GRI 1, 2 y 3 (2021) | Sí, 1/08/2022 | https://www.globalreporting.org/how-to-use-the-gri-standards/gri-standards-spanish-translations/ |
+| GRI temáticas 2016 (201–206, 301, 302, 305, 308, 401, 402, 404–411, 413–418) | Sí, 24/04/2017; 304 del 10/10/2016 | Mismo enlace |
+| GRI 303 (2018) y 403 (2018) | Sí, 8/03/2019 | Mismo enlace |
+| GRI 306: Residuos 2020 | Sí, 2/12/2020 | Mismo enlace |
+| GRI 207 (2019) | Sí, 8/05/2020 | Mismo enlace |
+| GRI 101 (2024) | Sí, 3/05/2024 | Mismo enlace |
+| GRI 102 y 103 (2025) | Sí, 17/10/2025 | Mismo enlace |
+| GRI 11–14 | Las versiones anteriores, sí; **las alineadas en 2025 solo en inglés** | Mismo enlace |
+| GRI 412 | No aparece en la lista en español | Mismo enlace |
+| SASB, 77 industrias | **Solo la de las normas de 2018** (anunciada en marzo de 2021). **No se encontró traducción oficial de las versiones 2023-12 ni 2025-12**; la página antigua de SASB redirige a ifrs.org, que no la lista. Sin verificar en fuente primaria | https://sust4in.com/en/sust4in-welcomes-the-spanish-translations-of-all-77-sasb-industry-standards/ (secundaria) |
+| SASB, enmiendas 2025–2026 | Borradores en español, **no aprobados** por el Review Committee de la Fundación IFRS | https://www.ifrs.org/content/dam/ifrs/project/enhancing-sasb-standards-cont/es-sasb-ifrs-s2-ibg-ed-2026-1-proposed-amends.pdf |
+| NIIF S1 y S2 | Sí (octubre de 2023), ya en `normas/` | https://www.iasplus.com/en/news/2023/10/ifrs-s1-spanish |
+
+Consecuencia: GRI puede cargarse con texto oficial en español, si hay licencia. Para SASB vigente no hay texto oficial
+en español. Las opciones son mostrarlo en inglés, traducirlo con permiso de la Fundación IFRS (la traducción propia
+choca con su licencia) o usar la de 2018, que no coincide con FN-CB 2025-12. Es la decisión 8.
+
 ---
 
 ## 5. Decisiones de Esteban (pendientes)
@@ -288,6 +361,10 @@ nombre indica: lectura de texto en la carga de evidencias (captura sugerida de t
    o dejarlo compuesto?
 7. **Columna `norma`:** ¿columnas nuevas `estandar` y `edicion` (mi propuesta), o un valor nuevo en el enum
    `norma_niif` (va en migración propia)?
+8. **Idioma de SASB:** ¿inglés (la versión vigente), traducción con permiso de la Fundación IFRS, o la traducción de
+   2018 aunque no coincida con la versión vigente?
+9. **Industria de cuatro mockups** (Fibra Inn, CLEPSA, PINFRA y Rotoplas): confirmar contra su Perfil en staging, o
+   que tú las fijes.
 
 ## 6. Paradas
 
@@ -302,3 +379,4 @@ nombre indica: lectura de texto en la carga de evidencias (captura sugerida de t
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 31/10/2026 | **Paso 0** (lectura). Catálogo de dev: 117 NIIF y 4 GRI («Extensión GRI», sin solicitudes ligadas), 0 SASB; `norma` no sirve para GRI/SASB. Plantilla de dev: 37 renglones, ninguno con GRI, ~15 con tema GRI. Excel de taxonomía: el esqueleto GRI 2/3 y 8 secciones temáticas sin códigos, retirado por la depuración del 26/10. Formato: 68 secciones [8xxxxx], [815200] FN-CB sin filas, las [8xxxxx] vacías «fuera de alcance». `normas/` sin GRI ni SASB. Licencias: GRI y la Fundación IFRS exigen licencia para uso en software comercial, también para el texto de S1/S2 que ya está en la plataforma. Tres niveles: ~5–6, ~9 y ~15–17 jornadas | **Parada:** decisiones de §5 |
+| 31/10/2026 | **Complemento del Paso 0** (Esteban): fuentes en `normas/_fuentes/` (122 PDF, 74.4 MB; inventario en `~/Downloads/catalogo-gri-sasb/inventario-fuentes.md`), sin commitear y con línea explícita en `.gitignore`; sustituciones GRI tomadas del aviso de cada PDF (306 de 2016 solo con 306-3 vigente; 305-1 a 305-5 y 201-2 a GRI 102, y 302 a GRI 103, desde el 1/01/2027; 304 a GRI 101, sin verificar en el PDF); industrias SASB de los mockups con sus métricas contadas (FN-CB 2025-12: 17); traducciones al español con enlace (GRI completa salvo 412 y las sectoriales de 2025; SASB solo de 2018). Decisiones 8 y 9 agregadas | **Parada:** decisiones de §5 |

@@ -75,6 +75,9 @@ logos-demo/
 # con licencia: se consulta para auditar el catálogo de datapoints, no se
 # redistribuye. Versionarlo lo publicaría con el repositorio.
 normas/
+# Fuentes de GRI y SASB del encargo catalogo-gri-sasb (31/10/2026). Ya las cubre normas/; la línea explícita queda
+# mientras no haya decisión de licencia, para que nadie las saque de normas/ por error.
+normas/_fuentes/
 
 # Informes de referencia de terceros (CADU y los que vengan): material con
 # licencia que se consulta para calibrar el estilo del generador, no se
