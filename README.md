@@ -946,10 +946,10 @@ el suyo, para que quien lea el entregable pueda ir a la norma y comprobarlo. Nun
 S1/S2: el Excel oficial de taxonomía sigue siendo solo de la norma, y GRI y SASB van en el **libro GRI/SASB**
 (`/admin/cobertura/export-gri-sasb`), con la misma regla de solo preguntas y respuestas.
 
-**El de plantilla/rotación lleva dos códigos** (`GRI 2-7 / 401-1`) porque el
-datapoint cubre las dos cosas. Partirlo en dos habría cambiado el universo y el
-mapeo de las solicitudes ya ligadas —que es dato del cliente—, así que se deja
-compuesto y se explica.
+**El de plantilla/rotación llevaba dos códigos** (`GRI 2-7 / 401-1`). Desde el 31 de octubre de 2026 (encargo
+`catalogo-gri-sasb`) las cuatro tienen el texto literal de su contenido en español, y la compuesta se partió: `GRI 2-7`
+viene de la carga de GRI 2 y `GRI 401-1` es fila propia. La fila compuesta quedó retirada (`activo = false`, sin
+borrar) y sus solicitudes y renglones de plantilla pasaron a las dos.
 
 > **Licencias — vigentes desde el 31 de octubre de 2026** (confirmación de Esteban; encargo
 > `docs/encargos/2026-10-31-catalogo-gri-sasb.md`). Las licencias de la IFRS Foundation (NIIF S1/S2 y SASB) y la

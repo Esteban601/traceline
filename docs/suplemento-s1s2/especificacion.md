@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.50** · 29 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.51** · 31 de octubre de 2026.
+
+**Cambios respecto a 0.50** (encargo 2026-10-31-catalogo-gri-sasb, Fase 1): §10, deuda conocida
+«relleno-norma-pilar-gri-sasb».
 
 **Cambios respecto a 0.49** (encargo 2026-10-29-perfil-declaraciones-alta, cierre): §10, registro de v44 (pendiente),
 con la migración del encargo y sin plantilla.
@@ -1892,6 +1895,14 @@ Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
     de `service_role` que hoy da por hecho el alojado se declaran en una
     migración, para que local, dev y staging queden iguales por código y no por
     configuración de la plataforma.
+- **`relleno-norma-pilar-gri-sasb`** (31 de octubre de 2026, encargo `catalogo-gri-sasb`, decisión de Esteban). En
+  `datapoints_taxonomia`, `norma` (enum `S1`/`S2`) y `pilar` (los cuatro pilares NIIF) son NOT NULL y solo tienen
+  sentido para NIIF. Las filas GRI llevan `norma = 'S1'` y las SASB `norma = 'S2'`, y el pilar por sección (GRI 2:
+  gobernanza en 2-9 a 2-21, estrategia en lo demás; GRI 3: estrategia; temáticas GRI y SASB: métricas), como ya
+  hacía la Extensión GRI desde 2026-08. Ninguna pantalla ni entregable los muestra para esos marcos: los rotulan
+  `marco`, `estandar` y `edicion`. **Riesgo:** un filtro nuevo por `norma = 'S1'` o por pilar que olvide `marco =
+  'NIIF'` contaría GRI o SASB como NIIF. **Salida:** hacer nullables las dos columnas para GRI y SASB (no es
+  aditivo: requiere decisión) o un enum propio; hasta entonces, todo filtro de NIIF va por `marco`.
 - **`tenants.generaciones_mes_max` no se aplica.** La columna existe (§5,
   default 10), pero ningún camino del generador la consulta. Se dejó así en la
   decisión 3 del Paso 0 del encargo de captura sugerida. El tope nuevo de

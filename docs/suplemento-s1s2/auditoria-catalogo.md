@@ -422,3 +422,19 @@ oficiales de `normas/_fuentes/`, que no se versionan).
 | `FN-CB-510a.2` | SASB FN-CB | 2025-12 | 20 | commercial-banks-standard_en-gb.pdf | Literal |
 | `FN-CB-550a.1` | SASB FN-CB | 2025-12 | 21 | commercial-banks-standard_en-gb.pdf | Literal |
 | `FN-CB-550a.2` | SASB FN-CB | 2025-12 | 22 | commercial-banks-standard_en-gb.pdf | Literal |
+
+### Extensión GRI con texto literal, una fila por contenido · 31 de octubre de 2026
+
+Migración `20261031140000_catalogo_extension_gri_literal`, GENERADA por `scripts/catalogo/generar-gri-sasb.mjs
+--extension` (decisión de Esteban del 31/10/2026). El texto es el bloque «REQUERIMIENTOS» del contenido, sin los
+«Requerimientos de recopilación» ni las recomendaciones. `GRI 2-7 / 401-1` se parte: GRI 2-7 ya existía por la carga
+de GRI 2 y GRI 401-1 entra aquí; la fila compuesta se retira (`activo = false`, no se borra) y sus solicitudes y
+renglones de plantilla pasan a las dos (en dev no tenía ninguno).
+
+| Código | Estándar | Edición | Página | Fuente | Veredicto |
+|---|---|---|---:|---|---|
+| `GRI 303-5` | GRI 303 | 2018 | 18 | GRI 303_ Agua y efluentes 2018 - Spanish.pdf | Literal (sustituye la redacción de 2026-08) |
+| `GRI 306-3` | GRI 306 | 2020 | 12 | GRI 306_ Residuos 2020 - Spanish.pdf | Literal (sustituye la redacción de 2026-08) |
+| `GRI 404-1` | GRI 404 | 2016 | 8 | GRI 404_ Formación y educación 2016 - Spanish.pdf | Literal (sustituye la redacción de 2026-08) |
+| `GRI 401-1` | GRI 401 | 2016 | 9 | GRI 401_ Empleo 2016 - Spanish.pdf | Literal (nuevo) |
+| `GRI 2-7 / 401-1` | GRI 2 / GRI 401 | 2021 / 2016 | — | — | Retirado (`activo = false`) |
