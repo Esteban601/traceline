@@ -19,6 +19,8 @@ import { leerAlivios, type Alivios } from "@/lib/perfil-emisor";
 import { ALCANCE_E5, E4_EN_DECLARACION, ORACION_E4, ORACION_E5, textoAlivio } from "@/lib/suplemento/alivios";
 import { ensamblarReporte } from "@/lib/reporte/ensamblar";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
+import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
+import { descripcionGriSasb, esGriSasb, seccionDe } from "@/lib/suplemento/gri-sasb";
 
 // =============================================================================
 // RESPUESTAS POR DATAPOINT (encargo 2026-10-13-excel-respuestas-narrativas,
@@ -552,6 +554,9 @@ type Previa = {
   hechos: string[]; notas: string[]; costo_usd: number; tokens_entrada: number; tokens_cache_escritura: number; tokens_cache_lectura: number; tokens_salida: number;
 };
 
+/** GRI/SASB por evidencia directa: los extractos confirmados de las solicitudes ligadas (lib/suplemento/gri-sasb.ts). */
+type PlanEvidencia = { codigo: string; via: "evidencia"; extractos: { solicitud: string; titulo: string; texto: string }[] };
+
 type Plan =
   | { codigo: string; via: "regla"; estado: "no_aplica" | "pendiente" | "respuesta"; texto: string; notas?: string[] }
   | { codigo: string; via: "captura"; texto: string; valor: Record<string, unknown> }
@@ -582,8 +587,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // solo cambia lo que el código añade, como la remisión. Al reaprobar con un
     // bloque cambiado, solo se regeneran las respuestas de ese bloque.
     db.from("respuestas_datapoint").select("documento_id, destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("reporte_id", doc.reporte_id).eq("origen", "modelo"),
-    db.from("datapoints_taxonomia").select("id, codigo, descripcion").eq("activo", true),
-    db.from("perfil_emisor").select("glosario").eq("tenant_id", doc.tenant_id).maybeSingle(),
+    db.from("datapoints_taxonomia").select("id, codigo, descripcion, marco, estandar, edicion").eq("activo", true),
+    db.from("perfil_emisor").select("glosario, sector_sasb").eq("tenant_id", doc.tenant_id).maybeSingle(),
     db.from("mapeo_solicitud_datapoint").select("datapoint_id, solicitud:solicitudes!inner(id, reporte_id, titulo)").eq("solicitud.reporte_id", doc.reporte_id),
   ]);
 
@@ -636,8 +641,28 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     solsPorDatapoint.set(e.datapoint_id, [...(solsPorDatapoint.get(e.datapoint_id) ?? []), e.solicitud]);
   }
 
-  const codigos = ((catalogo ?? []) as { id: string; codigo: string; descripcion: string }[]).filter((c) => c.codigo.startsWith("NIIF"));
+  type FilaCatalogo = { id: string; codigo: string; descripcion: string; marco: string; estandar: string | null; edicion: string | null };
+  const codigos = ((catalogo ?? []) as FilaCatalogo[]).filter((c) => c.codigo.startsWith("NIIF"));
   const descripcion = new Map(codigos.map((c) => [c.codigo, c.descripcion]));
+  // GRI y SASB (encargo catalogo-gri-sasb, Fase 2a): SASB solo de la industria del Perfil. Su descripción para el
+  // modelo es el texto literal de la norma, con el aviso de que no es NIIF (lib/suplemento/gri-sasb.ts).
+  const industrias = industriasSasb((perfil as { sector_sasb?: string[] | null } | null)?.sector_sasb);
+  const codigosGS = ((catalogo ?? []) as FilaCatalogo[]).filter((c) => (c.marco === "GRI" || c.marco === "SASB") && aplicaAEmisora(c, industrias));
+  for (const c of codigosGS) descripcion.set(c.codigo, descripcionGriSasb(c));
+  const idDe = new Map([...codigos, ...codigosGS].map((c) => [c.codigo, c.id]));
+  // Extractos de texto confirmados de las solicitudes ligadas a GRI/SASB: el más reciente por solicitud (como el libro).
+  const extractoDe = new Map<string, string>();
+  {
+    const ids = [...new Set(codigosGS.flatMap((c) => (solsPorDatapoint.get(c.id) ?? []).map((s) => s.id)))];
+    const { data: ext } = ids.length
+      ? await db.from("sugerencias_captura").select("solicitud_id, extracto, extracto_final, estado, decidido_en").in("solicitud_id", ids).eq("tipo", "texto").in("estado", ["confirmada", "corregida"]).order("decidido_en", { ascending: false })
+      : { data: [] };
+    for (const x of ext ?? []) {
+      if (extractoDe.has(x.solicitud_id)) continue;
+      const t = (x.estado === "corregida" && x.extracto_final ? x.extracto_final : x.extracto) ?? "";
+      if (t.trim()) extractoDe.set(x.solicitud_id, t);
+    }
+  }
   const hijosDe = new Map<string, string[]>();
   for (const [hijo, padre] of Object.entries(PADRE_DE)) hijosDe.set(padre, [...(hijosDe.get(padre) ?? []), hijo]);
 
@@ -666,6 +691,42 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       .sort((a, b) => Number(b.libro_id === libro) - Number(a.libro_id === libro));
     for (const x of candidatos) if (!unoPorClave.has(x.clave)) unoPorClave.set(x.clave, x);
     return [...unoPorClave.values()].map((x) => x.id);
+  };
+
+  const solicitudesDe = (codigo: string) => { const id = idDe.get(codigo); return id ? solsPorDatapoint.get(id) ?? [] : []; };
+  /** Sin bloque dueño, con captura confirmada de una solicitud cuantitativa ligada: la cifra, sin modelo. */
+  const deCaptura = (codigo: string): Extract<Plan, { via: "captura" }> | null => {
+    for (const s of solicitudesDe(codigo)) {
+      const e = ens.entregaPorSolicitud.get(s.id);
+      const sol = ens.solicitudes.find((x) => x.id === s.id);
+      if (e?.estado === "entregado" && e.valor != null && sol?.es_cuantitativa) {
+        return {
+          codigo,
+          via: "captura",
+          texto: respuestaDeCaptura(e.valor, sol.unidad_esperada, ens.reporte.ejercicio, sol.nota_alcance),
+          valor: { valor: e.valor, unidad: sol.unidad_esperada, periodo: ens.reporte.ejercicio, solicitud: sol.titulo },
+        };
+      }
+    }
+    return null;
+  };
+  /** GRI/SASB: captura → sección aprobada (FUENTE_GRI_SASB) → evidencia directa → pendiente (lib/suplemento/gri-sasb.ts). */
+  const planGriSasb = (codigo: string): Plan | PlanEvidencia => {
+    const captura = deCaptura(codigo);
+    if (captura) return captura;
+    const seccion = seccionDe(codigo, porBloque, hechos.values());
+    if (seccion) return { codigo, via: "bloque", bloque: seccion.bloque, hechos: seccion.hechos };
+    const sols = solicitudesDe(codigo);
+    const extractos = sols.filter((s) => extractoDe.has(s.id)).map((s) => ({ solicitud: s.id, titulo: s.titulo, texto: extractoDe.get(s.id)! }));
+    if (extractos.length) return { codigo, via: "evidencia", extractos };
+    return {
+      codigo,
+      via: "regla",
+      estado: "pendiente",
+      texto: sols.length
+        ? marcador(`captura confirmada, extracto confirmado o sección del suplemento que responda ${codigo}`, `solicitud ${sols[0].titulo}`)
+        : marcador(`información que responda ${codigo}`, "sin solicitud en el reporte ni sección del suplemento"),
+    };
   };
 
   const planDe = (codigo: string): Plan => {
@@ -741,20 +802,9 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       const par = PAR_S2_DE_S1.get(sinCodigoNorma(codigo));
       return { codigo, via: "regla", estado: "no_aplica", texto: textoNoAplicaE5(par ?? null) };
     }
-    const catId = codigos.find((c) => c.codigo === codigo)?.id;
-    const sols = catId ? solsPorDatapoint.get(catId) ?? [] : [];
-    for (const s of sols) {
-      const e = ens.entregaPorSolicitud.get(s.id);
-      const sol = ens.solicitudes.find((x) => x.id === s.id);
-      if (e?.estado === "entregado" && e.valor != null && sol?.es_cuantitativa) {
-        return {
-          codigo,
-          via: "captura",
-          texto: respuestaDeCaptura(e.valor, sol.unidad_esperada, ens.reporte.ejercicio, sol.nota_alcance),
-          valor: { valor: e.valor, unidad: sol.unidad_esperada, periodo: ens.reporte.ejercicio, solicitud: sol.titulo },
-        };
-      }
-    }
+    const sols = solicitudesDe(codigo);
+    const captura = deCaptura(codigo);
+    if (captura) return captura;
     if (h?.estado === "pendiente") return { codigo, via: "regla", estado: "pendiente", texto: `[Pendiente: ${h.motivo}]` };
     return {
       codigo,
@@ -767,6 +817,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   };
 
   const planes = codigos.map((c) => planDe(c.codigo));
+  const planesEvidencia: PlanEvidencia[] = [];
+  for (const c of codigosGS) {
+    const p = planGriSasb(c.codigo);
+    if (p.via === "evidencia") planesEvidencia.push(p);
+    else planes.push(p);
+  }
   // Códigos padre: síntesis propia del párrafo, sin copiar a sus incisos (el validador lo exige).
   for (const p of planes) {
     const hijos = hijosDe.get(p.codigo);
@@ -928,6 +984,12 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     filas.push(...r.filas);
   });
   await enParalelo(trabajos, 4);
+  // GRI/SASB por evidencia directa: los extractos confirmados como fuente, con los mismos validadores.
+  if (planesEvidencia.length) {
+    const r = await responderEvidencia(planesEvidencia, { descripcion, glosario, apiKey, previas: (previas ?? []) as Previa[] });
+    uso = sumar(uso, r.uso);
+    filas.push(...r.filas);
+  }
 
   const costo = costoUsd(MODELO_RESPUESTAS, uso);
   const cuenta = (k: "origen" | "estado") => filas.reduce<Record<string, number>>((a, f) => ((a[`${f.destino}:${f[k]}`] = (a[`${f.destino}:${f[k]}`] ?? 0) + 1), a), {});
@@ -1039,7 +1101,7 @@ async function responderBloque(
   for (let intento = 1; intento <= 3 && pendientes.length && ctx.apiKey; intento++) {
     let salida: Salida[] = [];
     try {
-      const r = await llamar(v, titulo, pendientes, ctx, motivos, ctx.apiKey);
+      const r = await llamar(`# Sección ${v.numero} · ${titulo} (texto aprobado)\n\n${v.texto}`, pendientes, ctx, motivos, ctx.apiKey);
       uso = sumar(uso, r.uso);
       salida = r.respuestas;
     } catch (e) {
@@ -1203,7 +1265,7 @@ async function responderBloque(
         tipo_campo: p.destino === "formato" ? "text block" : "text",
         estado: "respuesta",
         origen: "modelo",
-        texto: conSeparadoresDeMiles(p.destino === "taxonomia" && rem ? `${sinRemision(prev.texto!)} ${rem}.` : prev.texto!, p.hechos),
+        texto: conSeparadoresDeMiles(p.destino === "taxonomia" && rem && !esGriSasb(p.codigo) ? `${sinRemision(prev.texto!)} ${rem}.` : prev.texto!, p.hechos),
         valor: null,
         bloque: v.numero,
         bloque_version: v.version,
@@ -1240,7 +1302,8 @@ async function responderBloque(
       tipo_campo: p.destino === "formato" ? "text block" : "text",
       estado: "respuesta",
       origen: f.origen,
-      texto: p.destino === "taxonomia" && rem ? `${f.texto} ${rem}.` : f.texto,
+      // GRI y SASB: respuesta propia, sin remisión a la sección (decisión de Esteban, 31/10/2026).
+      texto: p.destino === "taxonomia" && rem && !esGriSasb(p.codigo) ? `${f.texto} ${rem}.` : f.texto,
       valor: null,
       bloque: v.numero,
       bloque_version: v.version,
@@ -1256,9 +1319,90 @@ async function responderBloque(
   return { filas, uso };
 }
 
+/**
+ * GRI/SASB por EVIDENCIA DIRECTA (encargo catalogo-gri-sasb, Fase 2a): el modelo resume los extractos de texto
+ * confirmados de las solicitudes ligadas al código, sin sección ni libro. Mismos validadores que las NIIF
+ * (validarRespuesta y erroresDeForma) y mismos tres intentos con el motivo del rechazo. Sin respuesta validada, o sin
+ * llave del modelo: «Pendiente», con el marcador que nombra la solicitud. Se reutiliza una respuesta anterior si su
+ * firma (requisito y extractos) es la misma. Lotes de 8 contenidos por llamada.
+ */
+async function responderEvidencia(
+  planes: PlanEvidencia[],
+  ctx: { descripcion: Map<string, string>; glosario: EntradaGlosario[]; apiKey?: string; previas: Previa[] }
+): Promise<{ filas: FilaRespuesta[]; uso: Uso }> {
+  const destino: Destino = "taxonomia";
+  const pedidos: Pedido[] = planes.map((p) => {
+    const hechos: HechoDeRequisito[] = p.extractos.map((x, i) => ({ id: `sol:${x.solicitud}`, local: `h${i + 1}`, tipo: "otro", enunciado: `Documento de la emisora «${x.titulo}»`, extracto: x.texto, valor: null, unidad: null }));
+    return { codigo: p.codigo, destino, hechos, uuids: hechos.map((h) => h.id) };
+  });
+  const firma = (p: Pedido) =>
+    `${PROMPT_RESPUESTAS}·ev·${createHash("sha256").update(`${ctx.descripcion.get(p.codigo) ?? ""}|${p.hechos.map((h) => `${h.id}:${h.extracto}`).sort().join("\n")}`).digest("hex").slice(0, 10)}`;
+  const previa = new Map(ctx.previas.filter((x) => x.bloque == null && x.texto).map((x) => [`${x.destino}|${x.clave}`, x]));
+  let uso: Uso = { ...USO_CERO };
+  const finales = new Map<string, { texto: string; notas: string[] }>();
+  const motivos = new Map<string, string[]>();
+  const reutilizadas = new Map<string, Previa>();
+  for (const p of pedidos) {
+    const prev = previa.get(`${p.destino}|${p.codigo}`);
+    if (prev && prev.prompt_version === firma(p) && !erroresDeForma(prev.texto!, p.codigo).length) reutilizadas.set(p.codigo, prev);
+  }
+  const lotes: Pedido[][] = [];
+  const porLlamar = pedidos.filter((p) => !reutilizadas.has(p.codigo));
+  for (let i = 0; i < porLlamar.length; i += 8) lotes.push(porLlamar.slice(i, i + 8));
+  for (const lote of lotes) {
+    let pendientes = lote;
+    for (let intento = 1; intento <= 3 && pendientes.length && ctx.apiKey; intento++) {
+      let salida: Salida[] = [];
+      try {
+        const r = await llamar(
+          "# Fuente: documentos de la emisora (extractos confirmados por la emisora sobre su evidencia)\n\nNo hay sección aprobada para estos contenidos: la fuente son los extractos que se dan como hechos de cada requisito. Trátalos como trataría la sección aprobada: solo lo que dicen.",
+          pendientes,
+          ctx,
+          motivos,
+          ctx.apiKey
+        );
+        uso = sumar(uso, r.uso);
+        salida = r.respuestas;
+      } catch (e) {
+        for (const p of pendientes) motivos.set(`${p.destino}|${p.codigo}`, [`falló la llamada: ${e instanceof Error ? e.message.slice(0, 120) : String(e)}`]);
+        continue;
+      }
+      const siguientes: Pedido[] = [];
+      for (const p of pendientes) {
+        const k = `${p.destino}|${p.codigo}`;
+        const x = salida.find((y) => y.codigo === p.codigo && y.destino === p.destino);
+        if (!x) { motivos.set(k, ["faltó la respuesta de este requisito"]); siguientes.push(p); continue; }
+        const g = aplicarGlosario(x.texto.trim(), ctx.glosario);
+        const errores = [...validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: "", hechos: p.hechos, citados: x.hechos }), ...erroresDeForma(g.texto, p.codigo)];
+        if (errores.length) { motivos.set(k, errores); siguientes.push(p); continue; }
+        const notas = [`Fuente: extracto confirmado de ${p.hechos.map((h) => h.enunciado.replace(/^Documento de la emisora /, "")).join(", ")}.`, ...g.cambios.map((c) => `Glosario: «${c.variante}» → «${c.canonico}» (${c.veces}).`)];
+        if (intento > 1) notas.push(`Aceptada en el reintento; el primer intento falló: ${(motivos.get(k) ?? []).join("; ")}`);
+        finales.set(p.codigo, { texto: g.texto, notas });
+      }
+      pendientes = siguientes;
+    }
+  }
+  const porRespuesta = porLlamar.length ? costoUsd(MODELO_RESPUESTAS, uso) / porLlamar.length : 0;
+  const filas: FilaRespuesta[] = [];
+  for (const p of pedidos) {
+    const base = { destino: p.destino, clave: p.codigo, tipo_campo: "text" as const, valor: null, bloque: null, bloque_version: null, hechos: [] as string[], prompt_version: firma(p) };
+    const prev = reutilizadas.get(p.codigo);
+    const f = finales.get(p.codigo);
+    if (prev) {
+      filas.push({ ...base, estado: "respuesta", origen: "modelo", texto: prev.texto, notas: prev.notas, modelo: MODELO_RESPUESTAS, uso: { entrada: prev.tokens_entrada, cacheEscritura: prev.tokens_cache_escritura, cacheLectura: prev.tokens_cache_lectura, salida: prev.tokens_salida }, costo_usd: Number(prev.costo_usd) });
+    } else if (f) {
+      filas.push({ ...base, estado: "respuesta", origen: "modelo", texto: f.texto, notas: f.notas, modelo: MODELO_RESPUESTAS, uso: { entrada: Math.round(uso.entrada / porLlamar.length), cacheEscritura: Math.round(uso.cacheEscritura / porLlamar.length), cacheLectura: Math.round(uso.cacheLectura / porLlamar.length), salida: Math.round(uso.salida / porLlamar.length) }, costo_usd: Math.round(porRespuesta * 10_000) / 10_000 });
+    } else {
+      const titulo = p.hechos[0]?.enunciado.replace(/^Documento de la emisora /, "").replace(/[«»]/g, "") ?? "";
+      filas.push({ ...base, estado: "pendiente", origen: "regla", texto: marcador(`respuesta de ${p.codigo} desde su evidencia`, `solicitud ${titulo}`), notas: [`Sin respuesta: ${(motivos.get(`${p.destino}|${p.codigo}`) ?? ["sin llave del modelo"]).join("; ")}`], modelo: null, uso: USO_CERO, costo_usd: 0 });
+    }
+  }
+  return { filas, uso };
+}
+
 async function llamar(
-  v: VersionAprobada,
-  titulo: string,
+  /** La fuente: la sección aprobada con su texto, o los documentos de la emisora (evidencia directa). */
+  encabezado: string,
   pedidos: Pedido[],
   ctx: { descripcion: Map<string, string>; glosario: EntradaGlosario[] },
   motivos: Map<string, string[]>,
@@ -1287,7 +1431,7 @@ async function llamar(
         messages: [
           {
             role: "user",
-            content: `# Sección ${v.numero} · ${titulo} (texto aprobado)\n\n${v.texto}\n\n# Requisitos\n\n${requisitos.join("\n\n")}`,
+            content: `${encabezado}\n\n# Requisitos\n\n${requisitos.join("\n\n")}`,
           },
         ],
         output_config: { effort: "low", format: { type: "json_schema", schema: ESQUEMA } },
