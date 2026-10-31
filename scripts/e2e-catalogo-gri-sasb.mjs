@@ -7,8 +7,9 @@
 //
 // SOLO contra el stack local, con `next dev` en el puerto dado y la sesión del staff del seed.
 //   A. Catálogo: GRI 2 = 30 y GRI 3 = 3 con texto literal en español (empieza como requisito, sin inglés ni
-//      marcadores), SASB FN-CB 2025-12 = 17 en inglés; cada fila con estándar, edición y página; las cuatro de la
-//      Extensión GRI con su estándar y edición; el CHECK rechaza una fila SASB sin edición; NIIF sin cambio.
+//      marcadores), SASB FN-CB 2025-12 = 17 en inglés; cada fila con estándar, edición y página; la Extensión GRI
+//      con texto literal y partida por contenido («GRI 2-7 / 401-1» retirada); el CHECK rechaza una fila SASB sin
+//      edición; NIIF sin cambio.
 //   B. Cobertura: sin sector SASB en el Perfil, la emisora no ve SASB; con «[815200] … (FN-CB)», ve las 17. GRI
 //      siempre. El avance NIIF no cambia (el universo es solo NIIF). Se prueba con el Excel de cobertura y con la
 //      pantalla.
@@ -61,7 +62,9 @@ try {
   ok(psql(`select count(*) from datapoints_taxonomia where estandar in ('GRI 2','GRI 3') and descripcion !~ '^(La organización debe|Para cada tema material)'`) === "0", "GRI 2 y 3: texto literal del requisito en español");
   ok(psql(`select count(*) from datapoints_taxonomia where estandar in ('GRI 2','GRI 3') and (descripcion ~* 'organization shall|pendiente de carga|orientaciones para' or descripcion like '[%')`) === "0", "GRI 2 y 3: sin inglés, sin marcador de pendiente y sin orientaciones");
   ok(psql(`select edicion from datapoints_taxonomia where codigo = 'FN-CB-410b.1'`) === "2025-12" && psql(`select descripcion from datapoints_taxonomia where codigo = 'FN-CB-410b.1'`).endsWith("(3) Scope 3"), "FN-CB-410b.1 de 2025-12, literal hasta «(3) Scope 3»");
-  ok(psql(`select string_agg(codigo||'='||estandar||'/'||edicion, ', ' order by codigo) from datapoints_taxonomia where codigo in ('GRI 303-5','GRI 306-3','GRI 404-1','GRI 2-7 / 401-1')`) === "GRI 2-7 / 401-1=GRI 2 / GRI 401/2021 / 2016, GRI 303-5=GRI 303/2018, GRI 306-3=GRI 306/2020, GRI 404-1=GRI 404/2016", "Extensión GRI: estándar y edición de las cuatro");
+  ok(psql(`select string_agg(codigo||'='||estandar||'/'||edicion, ', ' order by codigo) from datapoints_taxonomia where activo and codigo in ('GRI 303-5','GRI 306-3','GRI 404-1','GRI 401-1')`) === "GRI 303-5=GRI 303/2018, GRI 306-3=GRI 306/2020, GRI 401-1=GRI 401/2016, GRI 404-1=GRI 404/2016", "Extensión GRI partida por contenido: 303-5, 306-3, 401-1 y 404-1 con su estándar y edición");
+  ok(psql(`select count(*) from datapoints_taxonomia where codigo in ('GRI 303-5','GRI 306-3','GRI 404-1','GRI 401-1') and descripcion !~ '^La organización informante debe' `) === "0", "las cuatro con el texto literal del requisito en español");
+  ok(psql(`select activo from datapoints_taxonomia where codigo = 'GRI 2-7 / 401-1'`) === "f", "«GRI 2-7 / 401-1» retirada (activo = false), sin borrar");
   let rechaza = false;
   try { psql(`insert into datapoints_taxonomia (codigo, marco, norma, pilar, descripcion) values ('E2E-SIN-EDICION','SASB','S2','metricas','x')`); } catch { rechaza = true; }
   ok(rechaza, "el CHECK rechaza una fila SASB sin estándar ni edición");
@@ -110,10 +113,10 @@ try {
       ok(!celdas.some((x) => x.startsWith("[")), `${s.name}: ninguna celda empieza con «[»`);
       const voc = celdas.flatMap((x) => vocabularioEnCeldaExportada(x));
       ok(voc.length === 0, `${s.name}: sin vocabulario de plataforma en código y respuesta${voc.length ? ` (${[...new Set(voc)].join(", ")})` : ""}`);
-      // La columna «Requisito» es texto LITERAL de la norma (decisión de Esteban): si trae un término del glosario de
-      // CLAUDE.md §5, es la norma la que lo dice. Se reporta como aviso para la decisión de §5, no se reescribe.
-      const literal = requisitos.map(([cod, txt]) => [cod, vocabularioEnCeldaExportada(txt)]).filter(([, v]) => v.length);
-      if (literal.length) console.log(`  ⚠ ${s.name}: texto literal de la norma con términos del glosario de §5 (decisión pendiente): ${literal.map(([c, v]) => `${c} (${v.join(", ")})`).join("; ")}`);
+      // La columna «Requisito» es texto LITERAL de la norma: el glosario no aplica (CLAUDE.md v1.14 §5). Se comprueba
+      // que sea el texto del catálogo, sin reescribir.
+      const cat = new Map(psql(`select codigo||'\t'||descripcion from datapoints_taxonomia where marco in ('GRI','SASB') and activo`).split("\n").map((l) => l.split("\t")));
+      ok(requisitos.every(([cod, txt]) => cat.get(cod) === txt), `${s.name}: «Requisito» igual al texto literal del catálogo`);
     }
     ok(/GRI 2 \(2021\)/.test(w.description ?? "") && /SASB FN-CB \(2025-12\)/.test(w.description ?? ""), `edición en las propiedades: ${w.description}`);
   }
