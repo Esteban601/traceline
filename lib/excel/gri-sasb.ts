@@ -24,7 +24,7 @@ function clave(c: string): (string | number)[] {
   const actividad = /-000\.[A-Z]$/.test(c) ? 1 : 0;
   return [actividad, ...c.split(/(\d+)/).map((x) => (/^\d+$/.test(x) ? Number(x) : x))];
 }
-function comparar(a: string, b: string): number {
+export function compararCodigos(a: string, b: string): number {
   const ka = clave(a), kb = clave(b);
   for (let i = 0; i < Math.max(ka.length, kb.length); i++) {
     const x = ka[i] ?? "", y = kb[i] ?? "";
@@ -47,7 +47,7 @@ export function armarLibroGriSasb(params: {
 }): { wb: ExcelJS.Workbook; hojas: { nombre: string; filas: number }[] } {
   const wb = new ExcelJS.Workbook();
   const grupos = new Map<string, FilaGriSasb[]>();
-  for (const f of [...params.filas].sort((a, b) => comparar(a.codigo, b.codigo))) {
+  for (const f of [...params.filas].sort((a, b) => compararCodigos(a.codigo, b.codigo))) {
     const hoja = f.marco === "GRI" ? "GRI" : `SASB ${industriaDe(f.estandar) ?? f.estandar ?? ""}`.trim();
     const arr = grupos.get(hoja) ?? [];
     arr.push(f);
