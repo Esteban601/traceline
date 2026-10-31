@@ -37,7 +37,7 @@ const opcion = (n) => { const i = argv.indexOf(n); return i === -1 ? null : argv
 const salida = opcion("--salida");
 const probar = argv.includes("--probar-extractor");
 const salir = (m) => { console.error(`✗ ${m}`); process.exit(2); };
-if (!salida && !probar) salir("Uso: --salida <archivo.sql> | --probar-extractor");
+if (!salida && !probar) salir("Uso: [--extension] --salida <archivo.sql> | [--extension] --probar-extractor");
 
 const paginas = (pdf) => Number(execFileSync("pdfinfo", [pdf], { encoding: "utf8" }).match(/^Pages:\s+(\d+)/m)[1]);
 const texto = (pdf, p, layout = false) =>
@@ -122,7 +122,8 @@ function requisitoGri(pdf, c) {
     const etiquetas = palabras.filter((w) => w.x < MARGEN && /^(ORIENTACIONES|RECOMENDACIONES)$/.test(w.t) && w.y > desde);
     const cortes = [
       ...etiquetas.map((w) => Math.min(w.y, ...bloques.filter((b) => b.x0 >= MARGEN && b.y0 <= w.y + 1 && b.y1 >= w.y - 1 && b.y0 > desde).map((b) => b.y0))),
-      ...bloques.filter((b) => b.x0 >= MARGEN && /^(Contenido \d-\d+ |Orientaciones para |Orientaciones$)/.test(b.texto) && b.y0 > desde).map((b) => b.y0),
+      // «Requerimientos de recopilación» (normas temáticas): requisitos de cómo compilar, no del contenido.
+      ...bloques.filter((b) => b.x0 >= MARGEN && /^(Contenido \d+-\d+ |Orientaciones para |Orientaciones$|Requerimientos de recopilación)/.test(b.texto) && b.y0 > desde).map((b) => b.y0),
     ];
     const hasta = cortes.length ? Math.min(...cortes) : PIE;
     const zona = palabras.filter((w) => w.x >= MARGEN && w.y >= desde - 0.5 && w.y < hasta - 0.5 && w.y1 <= PIE);
@@ -135,6 +136,90 @@ function requisitoGri(pdf, c) {
     if (cortes.length) break;
   }
   return limpio(renglones.map((r) => r.ws.sort((a, b) => a.x - b.x).map((w) => w.t).join(" ")).join(" "));
+}
+
+// -----------------------------------------------------------------------------
+// --extension: las cuatro filas de la «Extensión GRI» (2026-08) con su texto literal en español, una por contenido
+// (decisión de Esteban, 31/10/2026). «GRI 2-7 / 401-1» se parte: GRI 2-7 ya viene de la carga de GRI 2, así que la
+// fila compuesta se RETIRA (activo = false) y sus solicitudes y renglones de plantilla pasan a GRI 2-7 y GRI 401-1.
+// -----------------------------------------------------------------------------
+const EXTENSION = [
+  { codigo: "303-5", estandar: "GRI 303", edicion: "2018", es: /^GRI 303_ Agua y efluentes 2018.*\.pdf$/i },
+  { codigo: "306-3", estandar: "GRI 306", edicion: "2020", es: /^GRI 306_ Residuos 2020.*\.pdf$/i },
+  { codigo: "404-1", estandar: "GRI 404", edicion: "2016", es: /^GRI 404_ .*2016.*\.pdf$/i },
+  { codigo: "401-1", estandar: "GRI 401", edicion: "2016", es: /^GRI 401_ .*2016.*\.pdf$/i },
+];
+const COMPUESTO = "GRI 2-7 / 401-1";
+if (argv.includes("--extension")) {
+  const filasExt = [];
+  for (const e of EXTENSION) {
+    const archivo = fs.readdirSync(GRI_ES).find((f) => e.es.test(f));
+    if (!archivo) salir(`${e.estandar}: no está su PDF en español en normas/_fuentes/gri-es/.`);
+    const pdf = path.join(GRI_ES, archivo);
+    const es = contenidosGri(pdf, e.codigo.split("-")[0]);
+    const c = es.out.find((x) => x.codigo === e.codigo);
+    if (!c?.pagina) salir(`GRI ${e.codigo}: no se encontró en ${archivo}.`);
+    const req = requisitoGri(pdf, { ...c, paginas: es.porPagina.length - 1 });
+    if (!/^La organización informante debe/.test(req) || req.length < 40) salir(`GRI ${e.codigo}: el requisito extraído no empieza como un requisito (${req.slice(0, 80)}…).`);
+    filasExt.push({ codigo: `GRI ${e.codigo}`, estandar: e.estandar, edicion: e.edicion, descripcion: req, pagina_origen: c.pagina, archivo });
+    console.log(`  GRI ${e.codigo} (${e.estandar} ${e.edicion}) p${c.pagina}: ${req}`);
+  }
+  if (probar) process.exit(0);
+  const q = (v) => (v === null ? "null" : typeof v === "number" ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
+  const sqlExt = `-- =============================================================================
+-- EXTENSIÓN GRI CON TEXTO LITERAL, UNA FILA POR CONTENIDO (encargo docs/encargos/2026-10-31-catalogo-gri-sasb.md,
+-- decisión de Esteban del 31/10/2026). GENERADA por scripts/catalogo/generar-gri-sasb.mjs --extension desde los PDF
+-- oficiales en español de normas/_fuentes/gri-es/ el ${new Date().toISOString().slice(0, 10)}. No se edita a mano.
+--
+--   · GRI 303-5, GRI 306-3 y GRI 404-1: la descripción que redactó la firma en 2026-08 se sustituye por el texto
+--     literal del requisito; estándar, edición y página de origen.
+--   · ${COMPUESTO}: se parte por contenido. GRI 2-7 ya existe (carga de GRI 2) y GRI 401-1 entra aquí. Las solicitudes
+--     ligadas a la fila compuesta y los renglones de plantilla que la llevan pasan a las dos; la fila compuesta se
+--     RETIRA (activo = false). No se borra: conserva su historia y sus enlaces originales.
+--
+-- IDEMPOTENTE: upsert por (codigo, version_taxonomia); los enlaces, con on conflict do nothing; la plantilla, sin
+-- duplicar ids. Pilar «metricas», como ya tenían las cuatro; norma S1 de relleno (deuda «relleno-norma-pilar-gri-sasb»).
+-- =============================================================================
+
+insert into public.datapoints_taxonomia
+  (codigo, marco, norma, pilar, seccion_indice, estandar, edicion, descripcion, pagina_origen, version_taxonomia)
+values
+${filasExt.map((f) => `  (${[q(f.codigo), "'GRI'", "'S1'::public.norma_niif", "'metricas'::public.pilar_niif", "null", q(f.estandar), q(f.edicion), q(f.descripcion), q(f.pagina_origen), "'2025'"].join(", ")})`).join(",\n")}
+on conflict (codigo, version_taxonomia) do update set
+  marco = excluded.marco,
+  norma = excluded.norma,
+  pilar = excluded.pilar,
+  seccion_indice = excluded.seccion_indice,
+  estandar = excluded.estandar,
+  edicion = excluded.edicion,
+  descripcion = excluded.descripcion,
+  pagina_origen = excluded.pagina_origen,
+  activo = true
+where public.datapoints_taxonomia.marco in ('GRI', 'SASB');
+
+-- Enlaces de solicitudes: de la fila compuesta a GRI 2-7 y GRI 401-1.
+insert into public.mapeo_solicitud_datapoint (solicitud_id, datapoint_id)
+select m.solicitud_id, n.id
+  from public.mapeo_solicitud_datapoint m
+  join public.datapoints_taxonomia o on o.id = m.datapoint_id and o.codigo = ${q(COMPUESTO)}
+  join public.datapoints_taxonomia n on n.version_taxonomia = o.version_taxonomia and n.codigo in ('GRI 2-7', 'GRI 401-1')
+on conflict do nothing;
+
+-- Renglones de plantilla: el id compuesto se cambia por los dos, sin duplicar.
+update public.plantilla_solicitudes p
+   set datapoint_ids = (
+     select array_agg(distinct x)
+       from unnest(array_remove(p.datapoint_ids, o.id) || array[(select id from public.datapoints_taxonomia where codigo = 'GRI 2-7' and version_taxonomia = o.version_taxonomia), (select id from public.datapoints_taxonomia where codigo = 'GRI 401-1' and version_taxonomia = o.version_taxonomia)]) x
+   )
+  from public.datapoints_taxonomia o
+ where o.codigo = ${q(COMPUESTO)} and o.id = any(p.datapoint_ids);
+
+-- La fila compuesta se retira.
+update public.datapoints_taxonomia set activo = false where codigo = ${q(COMPUESTO)} and activo;
+`;
+  fs.writeFileSync(salida, sqlExt);
+  console.log(`✓ ${salida}: 4 filas de la Extensión GRI con texto literal; ${COMPUESTO} retirada.`);
+  process.exit(0);
 }
 
 const filasGri = [];
