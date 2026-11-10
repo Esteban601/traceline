@@ -71,7 +71,7 @@ const SLUGS = [
   "planigrupo",
   "frisa",
   "fondo-de-fondos",
-  "odonnell",
+  // «odonnell» salió: pasó a cliente real (encargo odonnell-alta-real); el mockup es odonnell-demo e inactivo.
 ];
 const FRANJA = /entorno de demostraci.n/i;
 const EJERCICIO = 2025;
@@ -439,13 +439,12 @@ async function main() {
       ["bafar", "gcc"],
       ["gcc", "gav"],
       ["cadu", "inmobilia"],
-      // Las tres desarrolladoras se cruzan entre ellas a propósito: O'Donnell,
-      // CADU e Inmobilia tienen áreas con el MISMO nombre ("Desarrollo y
-      // Construcción", "Comercialización"). Si algún día un perfil se colgara
-      // del tenant equivocado, el nombre del área no delataría nada — la fuga
-      // se vería como datos plausibles. Aquí sí salta.
-      ["odonnell", "cadu"],
-      ["odonnell", "inmobilia"],
+      // Las desarrolladoras se cruzan entre ellas a propósito: CADU e Inmobilia
+      // tienen áreas con el MISMO nombre ("Desarrollo y Construcción",
+      // "Comercialización"). Si algún día un perfil se colgara del tenant
+      // equivocado, el nombre del área no delataría nada — la fuga se vería como
+      // datos plausibles. Aquí sí salta. (O'Donnell salió: es cliente real.)
+      ["inmobilia", "cadu"],
       // Y las dos financieras entre sí, por la misma razón: Fondo de Fondos y
       // Afirme comparten "Cumplimiento" y "Administración y Finanzas".
       ["fondo-de-fondos", "afirme"],
