@@ -367,6 +367,56 @@ presenta en 2027, así que hay margen.
     numéricas en `objetivos` o con la liga a la solicitud de su métrica? (§0.9)
 12. **Forma de referencia** del fideicomiso («el Fideicomiso», «ODOCK»…), para el glosario del Perfil.
 
+### 5.1 Decisiones del complemento (Esteban, 10/11/2026)
+
+1. **C3:** no se invocó en 2025 (el Formato publicado no lo menciona). 2026 lleva comparativo.
+2. **Slug y prefijo:** el real toma `odonnell` / `ODN`; el mockup pasa a `odonnell-demo` / `ODND` y se desactiva con
+   `activo = false`, sin borrar. **El contrato cubre** el envío de datos a la API de Anthropic: lectura y generador
+   encendidos.
+3. **Segunda industria SASB: IF-EN.** El IAS 2025 dice IF-EN y el Formato BMV 2025 publicó IF-RS con métricas en cero.
+   **Discrepancia a señalar a O'Donnell antes del Formato 2026** (registrada aquí y en la lista de datos del alta).
+4. **Orden:** S1 72 con reserva primero; el régimen sin E5 en rama propia, en paralelo con A9.
+5. **La declaración de cumplimiento,** con o sin reserva, vive en el reporte. Su texto lo escribe la emisora; para 2025
+   es el de la p. 41 del Formato publicado («preparado procurando el cumplimiento…»). El generador nunca la redacta.
+6. **Avance de objetivos:** con liga a su solicitud. Los valores de 2023, si O'Donnell los entrega, se cargan como
+   cifras con su año real.
+7. **Forma de referencia «la Emisora».** Un campo del Perfil, con «la Compañía» por defecto, que lean el prompt y el
+   validador de voz; entra en el alta.
+
+### 5.2 Estado de staging antes de la Fase 1 (10/11/2026)
+
+- **Staging en v43.**
+- **v44 sin desplegar:** sección «Efectos financieros»; runbook listo y PR #50 en `main`.
+- **v45 aún no existe:** `catalogo-gri-sasb` sin mezclar.
+- **Lo que el alta ya tiene:** los campos de fideicomiso (v42), la forma de referencia y el sector SASB.
+- **El orden:**
+  - el alta va **después de v44**, porque `comprobar-v44.mjs` espera 22 emisoras y el alta deja 23;
+  - «Efectos financieros» se llena en la carga.
+
+### 5.3 Hallazgos de la Fase 1
+
+1. **El Formato no reconoce un CKD como fideicomiso.**
+   - `llenar.ts` decide el bloque «Para: Fideicomisos» (K13–K21) y el fiduciario con `/fideicomiso/i` sobre
+     `tipo_instrumento`.
+   - La opción del Formato para ODOCK es «Certificados Bursátiles Fiduciarios de Desarrollo (CKD)», sin esa palabra,
+     así que saldría «No aplica».
+   - Lo mismo pasaría con CERPI, FIBRA y FIBRAE.
+   - Corrección: reconocer las opciones fiduciarias de la lista. Va con la pieza 4 (~0.25 jornada).
+   - El guion lo avisa en `verificar`.
+2. **«Forma de referencia»: el campo ya existe** (`perfil_emisor.forma_de_referencia`, sección Identidad), sin
+   default.
+   - **Lo leen:** el prompt de los bloques (con «la Emisora» si falta), las plantillas y la coherencia.
+   - **No lo leen:** el sistema de respuestas («la Compañía»), los textos fijos de reglas («No aplica… a la Compañía»,
+     36(c)), las oraciones de alivios (E5, E4, C3/C4) y los enfoques del Formato. Con «la Emisora» saldrían mezcladas.
+   - Falta:
+     - el default «la Compañía» en la lectura;
+     - pasar la forma a esos textos y al sistema de respuestas;
+     - que el validador de voz acepte la forma del Perfil.
+   - **~0.75–1 jornada.** Va con la pieza 4, antes del documento 2026. El alta ya la escribe: «la Emisora».
+3. **El mockup en `crear-demo-prospecto.mjs`** queda como `retirado`: no se toca ni con `--solo`. Así no hay que
+   cambiar su slug en el script, que regeneraría contraseñas. `e2e-demo-prospectos.mjs` lo saca de su lista; CADU e
+   Inmobilia siguen cubriendo el cruce de áreas homónimas.
+
 ## 6. Paradas
 
 1. **Paso 0:** este documento. Parada para las decisiones de §5.
@@ -381,4 +431,5 @@ presenta en 2027, así que hay margen.
 |---|---|---|
 | 10/11/2026 | **Paso 0** (lectura). Alta real por el panel, con `es_demo = false`, vitrina a apagar a mano y banderas de generador y lectura apagadas hasta el contrato; slug y prefijo del mockup ocupados; mockup desactivado con `activo = false`. La conversión de CLEPSA quedó planeada en `rol-auditor`, sin registro de ejecución: O'Donnell sería la primera. Comparativos: hoy solo dentro del mismo reporte (vía Carso); dos reportes del mismo tenant conviven sin vínculo; A9 estimado en ~6.25–8.5 jornadas (solo el Excel: ~1.5–1.75). Carga 2025: vía B recomendada. Alta + carga: ~1.5–1.75 jornadas | **Parada:** decisiones de §5 |
 | 10/11/2026 | **Complemento del Paso 0** (lectura), con el mapa del informe 2025 de O'Donnell | Fideicomiso CKD (ODOCK), sin E5, S1 72 con reserva, base 2023 e industrias IF-RE e IF-RS. **Sin E5:** 33 de 35 códigos S1 sin sección; respuestas pendientes; Excel y Formato sin probar; registros sin tipo para riesgos no climáticos; encargo «régimen sin E5» de ~5.5–7 jornadas. **S1 72:** el bloque 2 siempre afirma conformidad; la fila 286 ya puede decir «No» y se contradice con la 285; la reserva necesita dato y ramas (~1–1.5). **Año base 2023:** sin campo de valor base ni de avance; offset 2–3 fuera del Excel; A9 necesita continuidad de objetivos (+0.75–1). **Catálogo:** IF-RE 18 métricas (versión 2023-06), IF-RS 11, IF-EN 16; generalizar el generador SASB (~1.25–1.5). **Hasta el primer documento 2026:** ~17–22 jornadas; la carga de 2025 es solo de datos y no espera al generador | **Parada:** decisiones de §5 |
+| 10/11/2026 | **Decisiones del complemento** (§5.1) y **Fase 1**: guion del alta, parada | **Guion** `scripts/alta/alta-cliente-real.mjs`, genérico (sirve para CLEPSA). Pasos `tenant` / `reportes` / `verificar`, cada uno con revisar y `--aplicar` (confirmación del ref). Sesión de staff del seed con RLS; bitácora con los eventos del panel; idempotente. Datos fuera del repo (`~/Downloads/odonnell-alta/datos.json`, 600, con «CONFIRMAR» donde falta un dato: el guion no corre mientras quede alguno). Usuarios por invitación desde el panel, entre `tenant` y `reportes`. **Comandos** en `~/Downloads/odonnell-alta/comandos.md` (T1–T3, P, R1–R2, V) y la lista de datos a tener a mano. **Prueba en el stack local** con un mockup `odonnell` de prueba: mockup a `odonnell-demo` / `ODND` inactivo, conservando su reporte; tenant real con banderas, 4 áreas y 10 campos del Perfil; reporte 2025 con 37 solicitudes en «pendiente», sin fecha ni evidencias, responsables por área, y 2026 vacío; segunda pasada de cada paso sin cambios; `verificar` todo en verde; sin usuarios, `reportes` se detiene. Local limpio después (0 tenants `odonnell*`, 0 usuarios de prueba, 0 filas de bitácora). **Error propio:** la primera versión buscaba el mockup por el slug original, que después del alta es del real, y la segunda pasada se detenía; corregido (por el slug nuevo, o por el original solo si es de demostración). **Hallazgos** en §5.3: el Formato no reconoce un CKD como fideicomiso; la forma de referencia existe pero las respuestas y los textos fijos dicen «la Compañía»; el mockup queda `retirado` en `crear-demo-prospecto` y fuera de `e2e-demo-prospectos` | **Parada:** revisión del guion |
 
