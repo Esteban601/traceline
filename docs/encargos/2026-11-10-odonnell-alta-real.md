@@ -196,12 +196,161 @@ sin comparativo). La carga de 2025 es, entonces, **su reporte 2025 completo**, q
 Solo para que el **Excel** de 2026 muestre 2025, bastan a y b (**~1.5–1.75**). El suplemento y el Formato
 subsecuentes son el resto, y hacen falta hasta el reporte 2026, que se presenta en 2027.
 
+### 0.6 Complemento (10/11/2026): lo que dice el informe 2025 de O'Donnell
+
+Fuente: `~/Downloads/mapa-odonnell-2025.md`, que copió Esteban. Es un mapa del Formato electrónico publicado (ODOCK) y
+del IAS 2025.
+
+**Qué dice el informe:**
+- **Es un fideicomiso:** CKD CIB2659, clave ODOCK. Fiduciario: Banco Multiva. Fideicomitente y administrador: O'Donnell
+  Capital Management.
+- **No adoptó E5:** reporta NIIF S1 completo.
+- **Declara cumplimiento con reserva:** a NIIF S1 72 respondió «No», «preparado procurando el cumplimiento».
+- **Adoptó en 2025 y publicó.** 2026 es su primer año subsecuente.
+- **Objetivos con año base 2023,** sin meta numérica.
+- **Industrias SASB publicadas:** IF-RE e IF-RS.
+
+**Qué cambia en §0.1:**
+- **La emisora:**
+  - el bloque «Para: Fideicomisos» del Formato (K13–K21) aplica completo, con fiduciario, número de fideicomiso,
+    fideicomitente y administrador del Perfil, que se usan por primera vez;
+  - la forma de referencia de la emisora es otra (p. ej. «el Fideicomiso»): el generador y las respuestas solo se han
+    probado con «la Compañía».
+- **Decisiones de §5 que se resuelven:**
+  - la 1: adopta en 2025 y publicó;
+  - la 8: queda abierta entre IF-RS (lo que publicó) e IF-EN (lo que dijo Esteban).
+
+### 0.7 Qué pasa hoy cuando el tenant NO tiene E5
+
+Con E5 vigente, los 33 códigos de NIIF S1 que no tienen bloque (de 35; abajo) se responden «No aplica · E5», con la
+remisión a su par de NIIF S2 (`respuestas.ts`). La oración del E5 va en los encabezados de pilar de S1, en el Excel
+(`depurar.ts`) y en el Formato (`llenar.ts`, `ENCABEZADOS_E5`). Las filas de continuación de S1 llevan la remisión de
+su fila madre (`continuaciones.ts`).
+
+**Sin E5** (código leído, nunca ejercitado con un documento):
+
+| Pieza | Qué hace hoy | Probado |
+|---|---|---|
+| Suplemento (40 bloques) | Solo hay bloques de clima. **Ninguna sección trata la sostenibilidad general de NIIF S1**: gobernanza (27), estrategia (30–35), gestión de riesgos (44), métricas y objetivos (46–51). La especificación §3.1 prevé ampliar los bloques 6, 7 y 10; no está hecho | No |
+| Respuestas | Los **33 códigos de NIIF S1 sin bloque** (de 35: 9 de gobernanza, 13 de estrategia, 8 de riesgos y 3 de métricas) caen a captura, si una solicitud cuantitativa ligada está validada, o a **pendiente** («sin solicitud en el reporte ni sección del suplemento») | No |
+| Bloque 3 | Lo dice bien: «no se acoge a ninguna de las medidas transitorias» (`frasesDeAlivios`) | Sí, por plantilla |
+| Excel | Sin la oración del E5 en los encabezados. Las filas de continuación de S1 llevan la respuesta de S1, que hoy es pendiente. La hoja «NIIF S1 51» lleva **todos** los objetivos, no solo los de clima (`export-taxonomia`) | Solo la ausencia de la oración del E5 (`e2e-excel-alivios`, caso «sin alivios») |
+| Formato | Sin E5 en los encabezados; la fila del alivio dice «No». Las 45 filas «revisión (S1→S2)» y las 17 de «correspondencia S1→S2» toman la respuesta del código S1: pendiente, vacías | No |
+| Registros de clima | Sus tipos son de clima (riesgo físico, de transición, oportunidad). Un riesgo de sostenibilidad general, como el n.º 8 de O'Donnell (salud y seguridad de ocupantes), no tiene tipo | — |
+| Semáforo | No evalúa los códigos de NIIF S1: no están en ningún bloque | — |
+
+**Encargo «régimen sin E5»:**
+
+| Parte | Qué | Jornadas |
+|---|---|---|
+| a | Secciones de sostenibilidad general de S1: ampliar 6, 7 y 10, o bloques nuevos para gobernanza, estrategia, riesgos y métricas no climáticos, con prompts, cobertura y completitud | 2.5–3.5 |
+| b | Riesgos y oportunidades de sostenibilidad general: un tipo nuevo en registros (migración aditiva; `ADD VALUE` en migración propia si es enum) y su captura | 0.5–0.75 |
+| c | Respuestas: los 33 códigos S1 a sus bloques; regla para S1 integrado con S2 cuando el mismo órgano o proceso cubre clima y lo demás | 0.75 |
+| d | Excel y Formato sin E5: filas de continuación, las 45 + 17 de correspondencia, encabezados | 0.75–1 |
+| e | Pruebas: e2e del régimen y una corrida completa sin E5, del demo con E5 apagado (~12 USD, con el tope) | 1 |
+| **Total** | | **~5.5–7** |
+
+### 0.8 NIIF S1 72 con reserva
+
+**Hoy el generador siempre declara cumplimiento.**
+- **Bloque 2:** es una plantilla, sin modelo, que dice «preparada **de conformidad con** las Normas NIIF S1 y NIIF S2».
+- **Respuesta de NIIF S1 72:** toma ese párrafo (`declaracionDeCumplimiento`), con el alcance del E5 y del E4.
+- **Formato, fila 285:** lleva el mismo párrafo.
+- **Formato, fila 286** («¿cumple con todos los requerimientos…?»): «Sí» solo con cero pendientes y cero requisitos
+  «parcial» en la cobertura aprobada; si no, «No. Falta completar…».
+
+**Con O'Donnell** saldría una declaración de conformidad que la emisora no hace. Es una afirmación falsa y choca con
+CLAUDE.md §5: cero dato inventado.
+
+**Hoy ya hay una incoherencia, aun sin reserva:** con pendientes o parciales, la fila 286 dice «No» mientras la 285 y
+el bloque 2 afirman conformidad.
+
+**Qué falta:**
+1. En el reporte o el Perfil, la declaración de la emisora: sin reserva o con reserva, y el texto de la reserva
+   (migración aditiva).
+2. Bloque 2 con dos ramas: con reserva, «preparada procurando el cumplimiento…», con la razón.
+3. NIIF S1 72 y la fila 285, desde esa declaración.
+4. Fila 286: «No» si la emisora declara con reserva, aunque no haya pendientes.
+5. La regla de coherencia: una declaración sin reserva con pendientes o parciales es un aviso del validador, no un «Sí»
+   escondido.
+6. e2e de las cuatro combinaciones.
+
+**~1–1.5 jornadas.**
+
+### 0.9 Año base 2023 en los objetivos
+
+**Hoy:** `objetivos` guarda `periodo_base` (texto) y `meta` (texto), por reporte. **No hay campo para el valor del año
+base ni para el avance.** Las hojas «NIIF S2 34/35» llevan el periodo base como texto y el avance (35) sale de
+`objetivos_detalle.resultados`, en narrativa. Sin meta numérica, 33(f) y la meta en el nombre quedan vacíos, que es lo
+correcto: no se inventan.
+
+**Para el comparativo:**
+- El Excel solo conoce `anio_offset` 0 y 1. 2023 no es columna en 2025 (offset 2) ni en 2026 (offset 3): el año base
+  no entra por ahí.
+- Si O'Donnell da sus valores de 2023 (EDGE, agua, cobertura de GEI), se cargan como capturas con `periodo = 2023` en
+  las solicitudes de esas métricas: «el año es el año», como en Carso. Sirven de evidencia del avance y de fuente del
+  libro de hechos.
+
+**Para A9:**
+- Los objetivos son por reporte. En 2026 hay que **continuar** el mismo objetivo, con su base 2023, no recapturarlo:
+  vínculo `objetivo_anterior_id` al crear el reporte siguiente.
+- Para que el avance sea comparable año contra año hacen falta el valor base y el valor del periodo: dos columnas
+  numéricas en `objetivos`, o la liga objetivo ↔ solicitud de su métrica.
+- Suma **~0.75–1 jornada** a A9.
+
+### 0.10 Catálogo SASB para O'Donnell
+
+Hoy el catálogo solo tiene FN-CB, y en `feat/catalogo-gri-sasb`, sin mezclar ni desplegar. Contadas en los PDF de
+`normas/_fuentes/`:
+
+| Industria | Versión | Métricas | Lo que publicó O'Donnell |
+|---|---|---|---|
+| **IF-RE** Real Estate | **2023-06** (las demás son 2023-12) | 18: 14 contables (130a energía, 140a agua, 410a gestión de impactos de inquilinos, 450a adaptación al clima) y 4 de actividad | 130a.1, 130a.2, 130a.4, 130a.5 y 140a.1 |
+| **IF-RS** Real Estate Services | 2023-12 | 11: 6 contables (410a, 510a) y 5 de actividad | 410a.1–410a.3 (en cero) |
+| **IF-EN** Engineering & Construction Services | 2023-12 | 16 | — |
+
+**Qué falta:**
+- **El generador SASB:** está escrito para FN-CB, con el prefijo y la tabla 2 a la medida. Hay que generalizarlo a
+  cualquier industria (prefijo y versión por parámetro), con su comprobación de conteo.
+- **Una migración de datos** con IF-RE y la segunda industria, más sus filas en `auditoria-catalogo.md`.
+- **`FUENTE_GRI_SASB` para IF-RE:**
+  - 450a (adaptación) → bloques 21 y 35;
+  - 130a (energía) → bloques 29 y 32;
+  - 140a (agua) → sin bloque mientras no haya S1 general (§0.7).
+- **El sector del Perfil** con las dos etiquetas del Formato.
+- **La hoja «Métricas SASB» y el libro** ya sirven para cualquier industria.
+
+**~1.25–1.5 jornadas**, después de mezclar `catalogo-gri-sasb` y desplegar v45.
+
+**Aparte:** el IAS de O'Donnell tiene índice GRI. El libro GRI/SASB le servirá completo con el nivel medio de GRI.
+
+### 0.11 Estimación reordenada antes del primer documento 2026
+
+**Clave:** la carga de 2025 es **solo de datos**. O'Donnell ya publicó su 2025, así que no se genera ningún documento
+2025 en la plataforma. Por eso el régimen sin E5 y la reserva de S1 72 no bloquean la carga: hacen falta para el
+documento 2026.
+
+| Orden | Pieza | Jornadas | Depende de |
+|---|---|---|---|
+| 0 | `catalogo-gri-sasb` mezclado y v45 en staging (en curso) | — | — |
+| 1 | **Alta real** (§0.1), con Perfil de fideicomiso, alivios en el reporte (sin E5) y declaración con reserva **como dato** | 0.75–1 | Decisiones de §5 |
+| 2 | **Catálogo IF-RE + segunda industria** (§0.10) | 1.25–1.5 | 0 |
+| 3 | **Carga 2025** por la vía B, con las cifras del mapa, los 9 registros, los 3 objetivos con base 2023 y sus valores 2023 si los da | 0.5 de plataforma, más la carga de IRStrat | 1, 2 |
+| 4 | **S1 72 con reserva** (§0.8) | 1–1.5 | — |
+| 5 | **A9** (§0.2) con continuidad de objetivos y año base (§0.9) | 7–9.5 | 3 |
+| 6 | **Régimen sin E5** (§0.7) | 5.5–7 | — (se prueba con 5) |
+| 7 | **Primer documento 2026** de O'Donnell: corrida completa (~12 USD), revisión y entregables | 1 + revisión | 4, 5, 6 y contrato (decisión 3) |
+| **Total hasta el primer documento 2026** | | **~17–22** | |
+
+Las piezas 4, 5 y 6 pueden ir en paralelo a la carga, en ramas distintas: tocan el generador, el ensamblador y las
+exportaciones. Para no chocar, 4 va antes que 6, porque las dos tocan el bloque 2 y S1 72. El documento 2026 se
+presenta en 2027, así que hay margen.
+
 ---
 
 ## 5. Decisiones de Esteban (pendientes)
 
-1. **Año de adopción:** ¿O'Donnell adopta en 2025 (reporte 2025 de primer año, con C3)? ¿Ya publicó su informe 2025,
-   o el reporte 2025 se arma en la plataforma?
+1. ~~Año de adopción~~ Resuelta por el complemento: adoptó en 2025 y publicó (§0.6). Queda: ¿usó C3 en 2025?
 2. **Slug y prefijo del real:** ¿nuevos (p. ej. `odonnell-sa` / `ODNL`) o se liberan los del mockup antes del alta?
 3. **Contrato:** ¿cubre mandar sus datos a la API de Anthropic? De eso dependen la lectura de evidencias (vía B con
    lectura) y el generador.
@@ -210,7 +359,13 @@ subsecuentes son el resto, y hacen falta hasta el reporte 2026, que se presenta 
    cuando toque)?
 6. **MFA:** ¿sale de la cola con este cliente?
 7. **Usuarios:** ¿invitación o contraseña temporal con cambio forzado? ¿Hay auditor externo desde el inicio?
-8. **Sector SASB de O'Donnell** (encargo `catalogo-gri-sasb`, decisión 9): IF-RE, a confirmar.
+8. **Segunda industria SASB:** IF-RS (lo publicado) o IF-EN (lo que dijo Esteban); IF-RE confirmada (§0.10).
+9. **Régimen sin E5:** ¿encargo propio antes de A9, o en paralelo (§0.11)?
+10. **S1 72 con reserva:** ¿dónde vive la declaración, en el reporte o en el Perfil? ¿Quién escribe el texto de la
+    reserva? (§0.8)
+11. **Año base 2023:** ¿O'Donnell entrega sus valores 2023 para los tres objetivos? ¿El avance se guarda como columnas
+    numéricas en `objetivos` o con la liga a la solicitud de su métrica? (§0.9)
+12. **Forma de referencia** del fideicomiso («el Fideicomiso», «ODOCK»…), para el glosario del Perfil.
 
 ## 6. Paradas
 
@@ -225,3 +380,5 @@ subsecuentes son el resto, y hacen falta hasta el reporte 2026, que se presenta 
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 10/11/2026 | **Paso 0** (lectura). Alta real por el panel, con `es_demo = false`, vitrina a apagar a mano y banderas de generador y lectura apagadas hasta el contrato; slug y prefijo del mockup ocupados; mockup desactivado con `activo = false`. La conversión de CLEPSA quedó planeada en `rol-auditor`, sin registro de ejecución: O'Donnell sería la primera. Comparativos: hoy solo dentro del mismo reporte (vía Carso); dos reportes del mismo tenant conviven sin vínculo; A9 estimado en ~6.25–8.5 jornadas (solo el Excel: ~1.5–1.75). Carga 2025: vía B recomendada. Alta + carga: ~1.5–1.75 jornadas | **Parada:** decisiones de §5 |
+| 10/11/2026 | **Complemento del Paso 0** (lectura), con el mapa del informe 2025 de O'Donnell | Fideicomiso CKD (ODOCK), sin E5, S1 72 con reserva, base 2023 e industrias IF-RE e IF-RS. **Sin E5:** 33 de 35 códigos S1 sin sección; respuestas pendientes; Excel y Formato sin probar; registros sin tipo para riesgos no climáticos; encargo «régimen sin E5» de ~5.5–7 jornadas. **S1 72:** el bloque 2 siempre afirma conformidad; la fila 286 ya puede decir «No» y se contradice con la 285; la reserva necesita dato y ramas (~1–1.5). **Año base 2023:** sin campo de valor base ni de avance; offset 2–3 fuera del Excel; A9 necesita continuidad de objetivos (+0.75–1). **Catálogo:** IF-RE 18 métricas (versión 2023-06), IF-RS 11, IF-EN 16; generalizar el generador SASB (~1.25–1.5). **Hasta el primer documento 2026:** ~17–22 jornadas; la carga de 2025 es solo de datos y no espera al generador | **Parada:** decisiones de §5 |
+
