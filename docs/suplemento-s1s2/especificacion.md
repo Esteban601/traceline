@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.54** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.55** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.54** (cierre del demo v6, decisión de Esteban): §10, «Deudas conocidas»: el encargo
+`sintesis-de-padres-por-regla`, `correccion-puntual-de-bloque-aprobado` en cola y K43 como deuda de datos del demo.
 
 **Cambios respecto a 0.53** (decisión de Esteban del 10/11/2026): §10, v44, v45 y v46 van en **un solo despliegue**
 desde `main` (`b13998e`), con las cinco migraciones en un `db push`; runbook `2026-11-10-runbook-v46.md` (versión 2).
@@ -1958,6 +1961,20 @@ Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
   `marco`, `estandar` y `edicion`. **Riesgo:** un filtro nuevo por `norma = 'S1'` o por pilar que olvide `marco =
   'NIIF'` contaría GRI o SASB como NIIF. **Salida:** hacer nullables las dos columnas para GRI y SASB (no es
   aditivo: requiere decisión) o un enum propio; hasta entonces, todo filtro de NIIF va por `marco`.
+- **`sintesis-de-padres-por-regla`** (10 de noviembre de 2026, encargo registrado:
+  `docs/encargos/2026-11-10-sintesis-de-padres-por-regla.md`). En el demo v6 quedan sin respuesta los padres NIIF S2
+  16(b)–(d) (K91), 25(a)(i)–(v), 36(a)–(d) y 22(a)–(b). La causa: cuando los incisos ya se reparten los hechos, la
+  síntesis del padre no tiene oración propia y el validador la rechaza. **Salida propuesta:** sin hechos propios, la
+  síntesis sale por regla, como remisión a sus incisos (como 36(e)).
+- **`correccion-puntual-de-bloque-aprobado`** (10 de noviembre de 2026, en cola, sin documento). Hoy un documento
+  aprobado no admite edición: corregir una remisión o una oración obliga a abrir una versión nueva, que regenera. El
+  encargo permitiría corregir una remisión o una oración de un bloque aprobado sin regenerar el documento, con versión
+  nueva del bloque, bitácora y las respuestas de ese bloque al día. Primer uso: las cuatro remisiones falsas del Word v6
+  (bloques 15, 30, 35 y 36; `~/Downloads/formato-v6/deudas-conocidas.md`, §3).
+- **K43 del demo: deuda de datos** (10 de noviembre de 2026). En `poblar-demo.mjs`, el papel de la gerencia (NIIF S2
+  6(b)) y la integración con otras funciones (6(b)(ii)) salen de la misma oración («la Dirección de Crédito y Banca
+  aplica los criterios climáticos en la originación»). K43 repite a 6(b)(ii) y el validador la rechaza. **Salida:**
+  separar esa oración en `poblar-demo` antes del próximo libro de hechos del demo; no se cambia el validador.
 - **`tenants.generaciones_mes_max` no se aplica.** La columna existe (§5,
   default 10), pero ningún camino del generador la consulta. Se dejó así en la
   decisión 3 del Paso 0 del encargo de captura sugerida. El tope nuevo de
