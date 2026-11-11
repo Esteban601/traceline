@@ -117,7 +117,10 @@ function comparar(antes, despues, esperado) {
     const e = esperado.find((y) => y.codigo === codigo && y.cambio === cambio);
     const cuantas = xs.length;
     const estados = [...new Set(xs.map((x) => `${x.solicitudes ?? "?"} solicitudes · ${x.cobertura ?? JSON.stringify(x.despues)}`))];
-    const ok = e && (e.emisoras === "todas" ? cuantas === total : cuantas === e.emisoras) && (cambio !== "nuevo" || xs.every((x) => x.solicitudes === e.solicitudes && x.cobertura === e.cobertura));
+    // `excepciones` (opcional): por emisora, el estado que tiene en lugar del general (p. ej. los enlaces que una
+    // migración arrastra a un código nuevo en la única emisora que los tenía; v46, Grupo Carso).
+    const de = (x) => ({ ...e, ...(e?.excepciones?.[x.emisora] ?? {}) });
+    const ok = e && (e.emisoras === "todas" ? cuantas === total : cuantas === e.emisoras) && (cambio !== "nuevo" || xs.every((x) => x.solicitudes === de(x).solicitudes && x.cobertura === de(x).cobertura));
     console.log(`${ok ? "✓" : "✗"} ${codigo} · ${cambio} en ${cuantas} de ${total} emisoras · ${estados.join(" | ")}${ok ? " (prevista)" : " (NO PREVISTA)"}`);
     if (!ok) noPrevistas.push(k);
   }

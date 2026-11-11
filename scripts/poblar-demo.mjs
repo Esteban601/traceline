@@ -218,7 +218,10 @@ const PERFIL = {
   // Sección «Efectos financieros» (encargo perfil-declaraciones-alta): las dos declaraciones del bloque 10, en voz de la
   // emisora e ilustrativas (decisión de Esteban del 27/10; antes eran dos solicitudes de NARRATIVAS).
   criterio_cuantificacion:
-    "La Compañía no proporciona información cuantitativa sobre los efectos financieros previstos de los riesgos y oportunidades relacionados con el clima porque, conforme a los criterios de los párrafos 19 y 20 de la NIIF S2, esos efectos no son identificables por separado de los demás factores que inciden en el riesgo de crédito y en el margen financiero, y la incertidumbre de medición de las estimaciones es tan alta que la información cuantitativa resultante no sería útil. Evaluará su cuantificación en los próximos ejercicios, conforme avance la medición de emisiones financiadas y la sensibilidad de la cartera por sector.",
+    // Acotada (decisión de Esteban del 10/11/2026, pendientes del demo v6): el criterio cubre los efectos previstos de los
+    // riesgos físicos y de transición sobre los estados financieros (19(a)/(b)); no los planes de inversión ni los ahorros
+    // de iniciativas propias (16(c)), que se revelan, ni la prueba de estrés, que es una sensibilidad del capital.
+    "La Compañía no proporciona información cuantitativa sobre los efectos financieros previstos de los riesgos físicos y de transición relacionados con el clima sobre su situación financiera, su rendimiento financiero y sus flujos de efectivo porque, conforme a los criterios de los párrafos 19 y 20 de la NIIF S2, esos efectos no son identificables por separado de los demás factores que inciden en el riesgo de crédito y en el margen financiero, y la incertidumbre de medición de las estimaciones es tan alta que la información cuantitativa resultante no sería útil. Este criterio no comprende los planes de inversión ni los ahorros esperados de sus propias iniciativas, que revela con sus cifras, ni los resultados de la prueba de estrés de la cartera, que son sensibilidades del capital ante escenarios y no estimaciones de efectos financieros. Evaluará la cuantificación de los efectos previstos en los próximos ejercicios, conforme avance la medición de emisiones financiadas y la sensibilidad de la cartera por sector.",
   congruencia_estados_financieros:
     "Los datos y supuestos empleados en la información relacionada con el clima son congruentes con los utilizados en la preparación de los estados financieros consolidados de 2025: el gasto de capital de la red del sureste, las primas de seguros y la inversión ambiental provienen de los mismos registros contables, y la estimación preventiva para riesgos crediticios se analiza con los mismos supuestos de los estados financieros.",
   proceso_materialidad:
@@ -549,6 +552,9 @@ const LIGAS_GRI_SASB = [
   { titulo: "Remuneración vinculada a métricas climáticas 2025", codigos: ["GRI 2-19", "GRI 2-20"] },
   { titulo: "Diversidad e inclusión en plantilla y órganos de gobierno", codigos: ["GRI 2-9"] },
   { titulo: "Plantilla y rotación de personal 2025", codigos: ["GRI 2-7"] },
+  // v6.1 (Esteban, 10/11/2026): la composición por género (54 % de mujeres en la plantilla, 3 de 11 en el Consejo) entra
+  // en 2-7 y 2-9; el libro descartó el hecho, pero la solicitud sigue validada con su extracto y su captura.
+  { titulo: "Mujeres en plantilla y en el Consejo 2025", codigos: ["GRI 2-7", "GRI 2-9"] },
   { titulo: "Índice de rotación voluntaria 2025 (%)", codigos: ["GRI 401-1"] },
   { titulo: "Esfuerzos indirectos de reducción y adaptación a través de la cartera", codigos: ["FN-CB-410a.2"] },
 ];
@@ -568,10 +574,11 @@ const CUANTITATIVAS_FN_CB = [
     titulo: "Participantes en iniciativas de educación financiera 2025",
     codigos: ["FN-CB-240a.4"],
     area: "Sostenibilidad",
-    valor: 14200,
+    // 13,900 (v6.1): 14,200 coincidía con los 14,200 MDP de deuda de mercado del Perfil.
+    valor: 13900,
     unidad: "participantes",
     descripcion: "Número de participantes en iniciativas de educación financiera para clientes no bancarizados, subbancarizados o desatendidos (SASB FN-CB-240a.4), con una descripción de las iniciativas.",
-    texto: "En 2025 participaron 14,200 personas en los talleres de educación financiera de la Compañía para clientes no bancarizados, subbancarizados o desatendidos, impartidos en sucursales y en línea.",
+    texto: "En 2025 participaron 13,900 personas en los talleres de educación financiera de la Compañía para clientes no bancarizados, subbancarizados o desatendidos, impartidos en sucursales y en línea.",
   },
   {
     titulo: "Pérdidas monetarias por procedimientos legales 2025",
@@ -666,7 +673,7 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 14(a)(iv)", "NIIF S2 36 (a)a(d)", "NIIF S2 36 (a)", "NIIF S2 36 (b)", "NIIF S2 36 (c)", "NIIF S2 36 (d)", "NIIF S2 33"],
     area: "Sostenibilidad",
     texto:
-      "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. El plan depende de la disponibilidad de fondeo verde de la banca de desarrollo, de la regulación de la CNBV sobre taxonomía sustentable y de la descarbonización de la red eléctrica nacional. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; se fijó con el método de contracción absoluta (6% anual), sin evaluación formal de su alineación con el Acuerdo de París ni validación de SBTi. El de cartera sostenible es relativo, con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, alineado con la Taxonomía Sostenible de México.",
+      "El plan de transición 2025-2030 establece: reducción de 30% de las emisiones de Alcances 1 y 2 respecto de 2025; cartera sostenible de al menos 20% de la cartera total en 2028; medición de emisiones financiadas con PCAF para el 80% de la cartera empresarial en 2027; y revisión anual de límites sectoriales. Sus supuestos son la continuidad de la Taxonomía Sostenible de México, la disponibilidad de fondeo verde de banca de desarrollo y la trayectoria regulatoria de la CNBV. El plan depende de la disponibilidad de fondeo verde de la banca de desarrollo, de la regulación de la CNBV sobre taxonomía sustentable y de la descarbonización de la red eléctrica nacional. Los objetivos son de ámbito climático y alcanzan a toda la Compañía salvo el de emisiones financiadas, acotado a la cartera empresarial. El de emisiones es absoluto, cubre CO2, CH4 y N2O en Alcances 1 y 2 en términos brutos, con periodo base 2025, periodo de aplicación 2026-2030 e hito intermedio de 12% al 2027; se fijó con el método de contracción absoluta (6% anual), sin evaluación formal de su alineación con el Acuerdo de París ni validación de SBTi. El de cartera sostenible es de intensidad (un porcentaje de la cartera total), con periodo base 2025 (8.0%), aplicación 2026-2028 e hito de 12% en 2026, conforme a la Taxonomía Sostenible de México. Los tres objetivos son estratégicos: los fijó la Compañía y ninguno es exigido por ley o regulación.",
   },
   {
     titulo: "Precio interno del carbono aplicado en decisiones de inversión",
@@ -775,7 +782,7 @@ const NARRATIVAS = [
     ],
     area: "Riesgos",
     texto:
-      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 1-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El análisis de escenarios fundamenta la identificación de riesgos: los dos escenarios, transición ordenada (NGFS Net Zero 2050) y altas emisiones, definen los sectores de la cartera y las zonas geográficas que entran a la matriz de riesgos. El monitoreo es trimestral. Respecto del periodo anterior, en 2025 los procesos incorporaron el análisis de exposición física de colaterales, los criterios de disponibilidad hídrica en la evaluación del crédito agropecuario y la evaluación de riesgo de transición en las propuestas de crédito de más de 150 millones de pesos en sectores intensivos en carbono. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios.",
+      "Los riesgos climáticos se identifican con el análisis de exposición física (CENAPRED) y sectorial (intensidad de carbono), se evalúan con la matriz corporativa de probabilidad e impacto (escala 1-5, severidad 1-25), se priorizan en el Comité de Riesgos y se integran al mapa corporativo de riesgos con los mismos criterios que los riesgos de crédito, mercado y operacional. El análisis de escenarios fundamenta la identificación de riesgos: los dos escenarios, transición ordenada (NGFS Net Zero 2050) y altas emisiones, definen los sectores de la cartera y las zonas geográficas que entran a la matriz de riesgos. El monitoreo es trimestral. Respecto del periodo anterior, en 2025 los procesos incorporaron el análisis de exposición física de colaterales, los criterios de disponibilidad hídrica en la evaluación del crédito agropecuario y la evaluación de riesgo de transición en las propuestas de crédito de más de 150 millones de pesos en sectores intensivos en carbono. Los mismos procesos se aplican a la identificación y supervisión de las oportunidades relacionadas con el clima. El análisis de escenarios se utiliza también para identificar oportunidades: el escenario de transición ordenada fundamentó la meta de cartera sostenible y el producto de vivienda eficiente, al mostrar crecimiento de la demanda de financiamiento verde y menor costo de fondeo; el de altas emisiones fundamentó la línea de riego tecnificado como producto de adaptación para acreditados agropecuarios. Los resultados de la evaluación climática informan el apetito de riesgo: los límites de concentración en sectores intensivos en carbono y en zonas de alta exposición física forman parte de la declaración de apetito de riesgo que el Consejo de Administración aprueba y revisa cada año. El resultado del monitoreo trimestral se informa al Comité de Riesgos en el reporte trimestral de administración integral de riesgos y al Consejo de Administración en el informe semestral de riesgos.",
   },
   {
     titulo: "Enfoque de medición de emisiones y datos de entrada",
@@ -852,14 +859,16 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 30"],
     area: "Riesgos",
     texto:
-      "La Compañía no se acoge a la exención por costo o esfuerzo desproporcionado para las métricas de los párrafos 29(b) a (d): la cantidad y el porcentaje de activos vulnerables se revelan a partir de la clasificación de cartera por sector y ubicación. Las emisiones financiadas se difieren por el alivio C4, no por esta exención.",
+      // NIIF S2 30 no es una exención (v6.1): es el uso de información razonable y sustentable sin costo o esfuerzo
+      // desproporcionado. Entra con el próximo libro de hechos.
+      "Para las métricas de los párrafos 29(b) a (d), la Compañía usa toda la información razonable y sustentable disponible a la fecha del informe sin costo o esfuerzo desproporcionado: la cantidad y el porcentaje de activos vulnerables se determinan a partir de la clasificación de la cartera por sector y ubicación. Las emisiones financiadas se difieren por el alivio C4.",
   },
   {
     titulo: "Métricas basadas en la industria: sector de bancos comerciales",
     codigos: ["NIIF S2 32"],
     area: "Sostenibilidad",
     texto:
-      "La Compañía pertenece al sector de bancos comerciales conforme a la clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. Al 31 de diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, con la siguiente composición por producto: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960 millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090 millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La Compañía consideró la aplicabilidad de las métricas del sector de bancos comerciales conforme al juicio previsto en NIIF S2 párrafo 32 y revela las que resultan aplicables a su modelo de negocio y para las que dispone de información fiable: composición de la cartera por sector económico, proporción de cartera sostenible y exposición a sectores intensivos en carbono. Las métricas restantes del sector se evaluarán conforme la Compañía disponga de información con la calidad requerida, y esa evaluación se documenta como juicio significativo en las bases de preparación.",
+      "La Compañía pertenece al sector de bancos comerciales conforme a la clasificación SASB (Commercial Banks) y considera para su revelación las métricas de ese sector relativas a la incorporación de factores ambientales en el análisis de crédito y a la exposición de cartera por sector. Al 31 de diciembre de 2025 la cartera de crédito total ascendió a 86,400 millones de pesos, con la siguiente composición por producto: crédito empresarial 52% (44,930 millones), hipotecario 21% (18,140 millones), consumo 15% (12,960 millones) y agropecuario 12% (10,370 millones). La cartera con etiqueta sostenible conforme a la Taxonomía Sostenible de México ascendió a 6,910 millones de pesos, 8.0% de la cartera total. Dentro del crédito empresarial, 8,090 millones (9.4% de la cartera total) corresponden a sectores intensivos en carbono. La Compañía consideró la aplicabilidad de las métricas del sector de bancos comerciales conforme al juicio previsto en NIIF S2 párrafo 32 y revela las que resultan aplicables a su modelo de negocio y para las que dispone de información fiable: composición de la cartera por producto, proporción de cartera sostenible y exposición a sectores intensivos en carbono. Las métricas restantes del sector se evaluarán conforme la Compañía disponga de información con la calidad requerida, y esa evaluación se documenta como juicio significativo en las bases de preparación.",
     // Las siete cifras van además como capturas confirmadas. El modelo NO las ve
     // por ahí —`entregaPorSolicitud` colapsa cada solicitud a UN valor, el
     // último confirmado— y por eso van también en la descripción, que es lo que
@@ -999,7 +1008,10 @@ const CUESTIONARIOS = {
   // aprobada por Esteban con esta respuesta el 29/10/2026).
   "S2 29(a)(iii)": [
     // 1 · cambios en el enfoque de medición, los datos de entrada y los supuestos, y sus razones
-    "Sin cambios en 2025: es el primer periodo en que la Compañía mide sus emisiones de Alcances 1 y 2 conforme al Protocolo GEI y el año base de sus objetivos, por lo que no hay un enfoque anterior con el cual comparar.",
+    // Decisión de Esteban del 10/11/2026 (pendientes del demo v6): mide con el Protocolo GEI desde 2022 (hito del Perfil);
+    // 2025 es el año base de los objetivos, no el primer año de medición.
+    // Solo los cambios en el enfoque (Esteban, 10/11/2026): la razón de la elección va solo en K743, desde el libro.
+    "Sin cambios en 2025: la Compañía mide conforme al Protocolo GEI con el mismo enfoque desde 2022; 2025 es el año base de sus objetivos.",
   ],
 };
 
@@ -1147,6 +1159,10 @@ async function perfilEmisor() {
     ok("perfil insert", await db.from("perfil_emisor").insert(fila));
     log("  perfil del emisor · creado");
   }
+  // FN-CB-550a.1 (v6.1): el demo no es un banco de importancia sistémica global. Solo si la columna ya existe
+  // (migración 20261111120000); sin ella, se avisa y se sigue.
+  const gsib = await db.from("perfil_emisor").update({ banco_sistemico_global: false }).eq("tenant_id", TENANT);
+  log(gsib.error ? "  perfil del emisor · sin la columna banco_sistemico_global (falta la migración 20261111120000); se omite" : "  perfil del emisor · no es banco de importancia sistémica global");
 }
 
 // --- 2. Régimen del reporte --------------------------------------------------
@@ -1671,6 +1687,13 @@ async function main() {
     await griSasb();
     log("\n=== resumen ===");
     log(SIN_CODIGO.length ? `✗ CÓDIGOS QUE EL CATÁLOGO NO TIENE: ${[...new Set(SIN_CODIGO)].join(", ")}` : "todos los códigos citados existen en el catálogo ✓");
+    return;
+  }
+
+  // `--solo perfil`: solo el paso 1 (el Perfil del emisor, con el dato G-SIB de FN-CB-550a.1; v6.1), sin tocar el resto.
+  if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "perfil") {
+    log("1. Perfil del emisor");
+    await perfilEmisor();
     return;
   }
 

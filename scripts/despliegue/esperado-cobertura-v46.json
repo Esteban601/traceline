@@ -1,1 +1,378 @@
-[]
+[
+ {
+  "codigo": "FN-CB-000.A",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-000.B",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-230a.1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-230a.2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-240a.1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-240a.2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-240a.3",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-240a.4",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-410a.2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-410b.1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-410b.2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-410b.3",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-410b.4",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-510a.1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-510a.2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-550a.1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "FN-CB-550a.2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-10",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-11",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-12",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-13",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-14",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-15",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-16",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-17",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-18",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-19",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-20",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-21",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-22",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-23",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-24",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-25",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-26",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-27",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-28",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-29",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-3",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-30",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-4",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-5",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-6",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-7",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud",
+  "excepciones": {
+   "Grupo Carso": {
+    "solicitudes": 9,
+    "cobertura": "parcial"
+   }
+  },
+  "nota": "La migración 20261031140000 copia los enlaces de la compuesta a GRI 2-7 y GRI 401-1; Grupo Carso tenía 9 solicitudes en la compuesta (release v44 de staging, 10/11/2026)."
+ },
+ {
+  "codigo": "GRI 2-8",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 2-9",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 3-1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 3-2",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 3-3",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud"
+ },
+ {
+  "codigo": "GRI 401-1",
+  "cambio": "nuevo",
+  "emisoras": "todas",
+  "solicitudes": 0,
+  "cobertura": "sin_solicitud",
+  "excepciones": {
+   "Grupo Carso": {
+    "solicitudes": 9,
+    "cobertura": "parcial"
+   }
+  },
+  "nota": "La migración 20261031140000 copia los enlaces de la compuesta a GRI 2-7 y GRI 401-1; Grupo Carso tenía 9 solicitudes en la compuesta (release v44 de staging, 10/11/2026)."
+ },
+ {
+  "codigo": "GRI 2-7 / 401-1",
+  "cambio": "cambia",
+  "emisoras": "todas"
+ }
+]

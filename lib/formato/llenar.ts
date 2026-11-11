@@ -2,7 +2,7 @@ import { datapointsExentos } from "@/lib/suplemento/bloques";
 import { filaExportada } from "@/lib/formato/objetivos";
 import { HOJA_GEI } from "@/lib/cuestionarios";
 import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
-import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
+import { ORACION_E5, declaracionDeAlivios, noRevelado, remisionE5 } from "@/lib/suplemento/alivios";
 import { esInstrumentoFiduciario, type Alivios } from "@/lib/perfil-emisor";
 import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
 import type { ModoDeclaracion } from "@/lib/suplemento/declaracion";
@@ -164,6 +164,11 @@ export const RAMAS_BOOLEANO: Record<number, { booleano: number; rama: "No" | "S�
  * sin ella, la regla (opción 1 de Esteban). Antes copiaba la respuesta de 36(e)(i).
  */
 const RAZON_36E_REGLA = textoNoAplicaHeredado("NIIF S2 36 (e)").replace(/^No aplica\.\s*/, "");
+/**
+ * Rama «No» → fila de sección del mismo datapoint (29(f) y 29(g)). Regla de ramas (v5.2 §9, K38/K39; v6.2): la rama que
+ * el booleano abre lleva la razón y la fila de sección queda vacía, para no decir lo mismo dos veces.
+ */
+const SECCION_DE_RAMA: Record<number, number> = { 418: 416, 426: 424 };
 /** El «No» de un booleano que se deduce de sus incisos: no hay uso previsto de créditos si (ii)–(iv) no aplican. */
 const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
@@ -249,6 +254,27 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (!vistos.has(enc)) vistos.add(enc);
     else out.set(fila, { ...v, texto: v.texto.slice(oracionE5.length).trim(), e5: false });
   }
+  // Regla de ramas (v6.2): con la rama abierta, la razón va en la rama con el texto de la fila de sección del datapoint
+  // (el más completo: K839 trae el precio sombra que la respuesta del booleano omite) y la fila de sección queda vacía.
+  // Al final, cuando las dos ya tienen su texto definitivo.
+  for (const [fila, seccionFila] of Object.entries(SECCION_DE_RAMA).map(([f, v]) => [Number(f), v] as const)) {
+    const rama = out.get(fila);
+    const seccion = out.get(seccionFila);
+    const abierta = out.get(RAMAS_BOOLEANO[fila].booleano)?.texto === RAMAS_BOOLEANO[fila].rama;
+    if (!abierta || !seccion?.texto) continue;
+    out.set(fila, { texto: seccion.texto, origen: seccion.origen, nota: `razón del «No» de la fila ${RAMAS_BOOLEANO[fila].booleano}${rama?.texto ? "" : " (la rama no tenía texto propio)"}` });
+    out.set(seccionFila, { texto: null, origen: "regla", nota: `la razón va en la rama (fila ${fila})` });
+  }
+  // Sin «Sí,» ni «Sí.» al inicio (v6.2, K52 → Excel 79), después de dejar la oración del E5 una vez por encabezado (antes
+  // la oración la ocultaba): celdas de texto y ramas «Sí» (K52 tiene tipo booleano en la plantilla), nunca un valor de
+  // lista («Sí, parcialmente»). Con la oración del E5 delante, se limpia lo que sigue a ella.
+  for (const [fila, v] of out) {
+    const tipo = conceptos.find((x) => x.fila === fila)?.tipo ?? "";
+    if (!v.texto || !(/^text/.test(tipo) || RAMAS_BOOLEANO[fila]?.rama === "Sí")) continue;
+    const pre = v.texto.startsWith(`${oracionE5} `) ? `${oracionE5} ` : "";
+    const resto = v.texto.slice(pre.length);
+    if (/^Sí[.,]\s+\S/.test(resto)) out.set(fila, { ...v, texto: pre + resto.replace(/^Sí[.,]\s+(\p{L})/u, (_m, l: string) => l.toUpperCase()) });
+  }
   // Los alivios del reporte, en K12 (la fila sin etiqueta tras el año de reporte): la hoja «Leyenda» ya no se entrega
   // (decisión de Esteban, Fase 5).
   out.set(FILA_ALIVIOS, { texto: declaracionDeAlivios(d.alivios), origen: "alivio" });
@@ -305,6 +331,13 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const tipo = c.tipo === "(sin tipo)" ? "" : c.tipo ?? "";
     const ponE5 = (t: string) => c.alivioE5 && !!d.alivios.E5 && !t.includes("párrafo E5");
     const conE5 = (t: string) => (ponE5(t) ? `${oracionE5} ${t}` : t);
+
+    // S1 → S2 bajo E5 con un par que es código padre («(a)a(b)», v6.1, K103): la remisión a su par, como la fila del
+    // Excel, sin depender de que el padre tenga respuesta propia.
+    if (c.capa === "1 · correspondencia S1→S2" && c.alivioE5 && d.alivios.E5 && c.datapoint && /\)\s*a\s*\(/.test(c.datapoint)) {
+      const t = remisionE5(c.datapoint);
+      return { texto: conE5(t), origen: "alivio", nota: `NIIF S1 bajo E5: remite a ${c.datapoint}`, e5: ponE5(t) };
+    }
 
     // Fila 62 (NIIF S2 13(b), dónde se concentran; la 63 pide zonas, instalaciones y tipos de activos): el texto del
     // modelo y, después, la concentración por código desde los registros de clima (encargo 2026-10-24; antes iba en la 64).

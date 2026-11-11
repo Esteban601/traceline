@@ -207,3 +207,36 @@ export function cifrasHuerfanas(
   }
   return out;
 }
+
+/**
+ * Carácter de un objetivo en la prosa (decisión de Esteban del 10/11/2026, pendientes del demo v6): la prosa usa el
+ * valor de 33(g) de la enumeración de la plantilla (Cuantitativo, Absoluto, De intensidad) que capturó la emisora.
+ * Por cada objetivo nombrado en una oración (desde su nombre hasta el siguiente objetivo nombrado), rechaza
+ * «relativo», que no es un valor de la enumeración, y «absoluto» o «de intensidad» si no es su valor. Las tablas
+ * (renglones «|») no se miran: salen del dato. «Relativo a…» («en lo relativo al clima») no cuenta.
+ */
+export function caracterDeObjetivoIncoherente(texto: string, objetivos: { nombre: string; tipo_objetivo: string | null }[]): string[] {
+  const out: string[] = [];
+  const conTipo = objetivos
+    .map((o) => ({ nombre: o.nombre.replace(/\[DEMO\]\s*/i, "").trim(), tipo: (o.tipo_objetivo ?? "").trim() }))
+    .filter((o) => o.nombre && o.tipo);
+  if (!conTipo.length) return out;
+  const prosa = texto.split(/\n+/).filter((l) => !l.trim().startsWith("|")).join(" ");
+  for (const oracion of prosa.split(/(?<=[.;])\s+/)) {
+    const baja = oracion.toLowerCase();
+    const posiciones = conTipo
+      .map((o) => ({ o, i: baja.indexOf(o.nombre.toLowerCase()) }))
+      .filter((x) => x.i >= 0)
+      .sort((a, b) => a.i - b.i);
+    posiciones.forEach(({ o, i }, k) => {
+      const tramo = oracion.slice(i, posiciones[k + 1]?.i ?? oracion.length);
+      const t = o.tipo.toLowerCase();
+      let dice: string | null = null;
+      if (/(?<!\p{L})relativ[oa]s?(?!\p{L})(?!\s+(?:a|al|de|del)\s)/iu.test(tramo)) dice = "relativo";
+      else if (/(?<!\p{L})absolut[oa]s?(?!\p{L})/iu.test(tramo) && t !== "absoluto") dice = "absoluto";
+      else if (/(?<!\p{L})de intensidad(?!\p{L})/iu.test(tramo) && t !== "de intensidad") dice = "de intensidad";
+      if (dice) out.push(`El objetivo «${o.nombre}» se describe como «${dice}», pero su carácter capturado (NIIF S2 33(g)) es «${o.tipo}»: usa ese valor.`);
+    });
+  }
+  return [...new Set(out)];
+}

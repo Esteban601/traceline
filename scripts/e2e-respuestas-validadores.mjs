@@ -137,7 +137,7 @@ const anclas = [
   { oracion: "Segunda oración anclada a u1.", hechos: [{ id: "h1", hecho: "u1" }] },
 ];
 ok(oracionesAncladas(anclas, ["u1", "u2"], 4) === "Primera oración anclada a u2. Segunda oración anclada a u1.", "respaldo: solo las oraciones ancladas a los hechos del requisito, en orden");
-ok(remision(15) === "Ver sección 15 · Roles y responsabilidades del órgano de gobierno", "remisión «Ver sección N · título» desde BLOQUES");
+ok(remision(15) === "Ver sección «Roles y responsabilidades del órgano de gobierno»", "remisión «Ver sección «título»» desde BLOQUES, sin número (v6.1)");
 for (const c of ["NIIF S2 36 (c)", "NIIF S2 36 (e)(ii)"]) {
   ok(vocabularioProhibidoEn(textoNoAplicaHeredado(c)).length === 0 && !/emisora|cuestionario/i.test(textoNoAplicaHeredado(c)), `«no aplica» heredado de ${c} en voz de la emisora`);
 }
@@ -152,7 +152,8 @@ ok(["La Compañía reconoce que completará la medición.", "Los eventos extremo
 ok(textoNoAplicaE5("NIIF S2 6 (a)").endsWith("en lo relativo al clima, se revela conforme a NIIF S2 6 (a).") && textoNoAplicaE5(null) === ORACION_E5 && !/suplemento|solicitud|evidencia|IRStrat/i.test(textoNoAplicaE5("NIIF S2 6 (a)")), "«No aplica · E5»: la oración E5 y el par de NIIF S2, sin vocabulario de plataforma");
 const num = numeracionConsecutiva([21, 19, 15, 33, 19]);
 ok(num.get(15) === 1 && num.get(19) === 2 && num.get(21) === 3 && num.get(33) === 4, "numeración consecutiva: 15, 19, 21, 33 → 1, 2, 3, 4");
-ok(remision(21, num) === "Ver sección 3 · Riesgos climáticos prioritarios", "la remisión usa la numeración del documento");
+ok(remision(21, num) === "Ver sección «Riesgos climáticos prioritarios»" && !/sección \d/.test(remision(21, num)), "la remisión nombra la sección, nunca su número (v6.1, Excel 268)");
+ok(sinRemision("La Compañía revela X. Ver sección «Riesgos climáticos prioritarios».") === "La Compañía revela X.", "sinRemision quita también la remisión por nombre");
 ok(sinRemision("La Compañía revela X. Ver sección 22 · Riesgos climáticos prioritarios.") === "La Compañía revela X.", "la remisión se quita para reutilizar el texto con la numeración vigente");
 
 console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (hechos/razones.ts)");
@@ -236,6 +237,8 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(seParecen("Con la información disponible al cierre de 2025, la Compañía no identificó efectos climáticos que requirieran reconocer ajustes en los estados financieros.", "Con la información disponible al cierre de 2025, la Compañía no identificó efectos de los riesgos climáticos que requirieran reconocer ajustes en los importes de los estados financieros del ejercicio.") && !seParecen("Las primas de seguros se registraron en gastos de administración.", "Las adecuaciones de inmuebles se capitalizaron en propiedades, mobiliario y equipo."), "16(a) por efecto: la misma oración parafraseada se detecta; dos oraciones distintas no");
   ok(vocabularioEnCeldaExportada("Métricas por industria: pendiente de catálogo SASB (Fase C).").length >= 2 && vocabularioEnCeldaExportada("Escenarios NGFS fase IV e IPCC AR6.").length === 0, "glosario: «Fase C» y «pendiente de catálogo» se detectan; «fase IV» de NGFS no");
   ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
+  ok(["La respuesta cubre solo la prueba climática.", "Esta respuesta describe el enfoque.", "Esta celda no aplica.", "Este campo queda vacío."].every((t) => vocabularioEnCeldaExportada(t).length), "glosario (CLAUDE.md 1.15): «la respuesta» de proceso, «esta celda» y «este campo» → rechazo");
+  ok(!vocabularioEnCeldaExportada("La respuesta de la Compañía a los riesgos físicos incluye la reubicación de sucursales.").length && !vocabularioEnCeldaExportada("Las acciones de respuesta se describen en el plan.").length, "«la respuesta de la Compañía a los riesgos» y «acciones de respuesta» son voz legítima");
 }
 
 console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
@@ -243,14 +246,38 @@ console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
   const { descripcionGriSasb, erroresGriSasb, REGLAS_GRI_SASB } = await import("../lib/suplemento/gri-sasb.ts");
   const d = (codigo) => descripcionGriSasb({ codigo, estandar: "GRI 2: Contenidos Generales", edicion: "2021", descripcion: "Texto literal." });
   ok(d("GRI 2-5").includes(REGLAS_GRI_SASB["GRI 2-5"]) && /inventario de emisiones de GEI/.test(d("GRI 2-5")), "GRI 2-5: la descripción pide el alcance de lo verificado");
-  ok(["GRI 2-24", "GRI 3-3"].every((c) => /qué parte del contenido no se revela/.test(d(c))), "GRI 2-24 y 3-3: la descripción pide decir qué parte no cubre");
-  ok(!/no se revela/.test(d("GRI 2-9")), "los demás contenidos, sin regla añadida");
+  ok(["GRI 2-24", "GRI 3-3", "GRI 2-9", "GRI 2-1"].every((c) => /nombre los incisos que no se revelan/.test(d(c))), "regla general GRI (v6.1): toda descripción GRI pide nombrar los incisos que no cubre");
+  ok(!/incisos que no se revelan/.test(descripcionGriSasb({ codigo: "FN-CB-410b.2", estandar: "SASB FN-CB", edicion: "2025-12", descripcion: "Text." })), "SASB sin la regla de incisos");
   ok(erroresGriSasb("El presente informe fue verificado por un tercero independiente.", "GRI 2-5").length > 0, "GRI 2-5 que presenta el informe como verificado → rechazo");
   ok(erroresGriSasb("La Compañía cuenta con verificación externa.", "GRI 2-5").some((e) => /alcance/.test(e)), "GRI 2-5 que afirma verificación sin alcance → rechazo");
-  ok(!erroresGriSasb("El inventario de emisiones de GEI de Alcances 1 y 2 de 2025 fue verificado por un tercero independiente con aseguramiento limitado.", "GRI 2-5").length, "GRI 2-5 con el alcance (inventario de GEI) → aceptada");
+  ok(!erroresGriSasb("El inventario de emisiones de GEI de Alcances 1 y 2 de 2025 fue verificado por un tercero independiente con aseguramiento limitado. Del inciso b.ii no se revelan los estándares de verificación.", "GRI 2-5").length, "GRI 2-5 con el alcance (inventario de GEI) y lo que falta de b.ii (v6.2) → aceptada");
   ok(!erroresGriSasb("La Compañía no cuenta con verificación externa de su información.", "GRI 2-5").length, "GRI 2-5 que declara que no hay verificación → aceptada");
   ok(!erroresGriSasb("El presente informe fue verificado.", "GRI 2-9").length && !erroresDeForma("El presente informe fue verificado.", "NIIF S2 29 (a)(i)").some((e) => /verificado/.test(e)), "la regla solo toca GRI 2-5");
   ok(erroresDeForma("El presente informe fue verificado por un tercero.", "GRI 2-5").length > 0, "erroresDeForma aplica la regla de 2-5 (respuestas nuevas y reutilizadas)");
+}
+
+console.log("\n9b. Cifra del hecho sin separador y respuesta con separador (demo v6, K741)");
+{
+  const H = [{ id: "u", local: "h1", tipo: "cifra", enunciado: "Consumo de combustibles fósiles 2025: 488000 litros (ejercicio 2025).", extracto: "488000", valor: 488000, unidad: "litros" }];
+  ok(!validarRespuesta("Los datos de entrada son 488,000 litros de gasolina y diésel en 2025.", "formato", { codigo: "fila:318", textoBloque: "", hechos: H, citados: ["h1"] }).some((e) => /cifras/.test(e)), "«488,000» con un hecho que dice «488000» → sin rechazo por cifras");
+  ok(validarRespuesta("Los datos de entrada son 489,000 litros en 2025.", "formato", { codigo: "fila:318", textoBloque: "", hechos: H, citados: ["h1"] }).some((e) => /cifras/.test(e)), "«489,000» → rechazo por cifras");
+}
+
+console.log("\n10. Carácter de los objetivos en la prosa (33(g), 10/11/2026)");
+{
+  const { caracterDeObjetivoIncoherente: car } = await import("../lib/suplemento/hechos/validadores.ts");
+  const objs = [
+    { nombre: "Reducción de emisiones de Alcances 1 y 2", tipo_objetivo: "Absoluto" },
+    { nombre: "Cartera sostenible", tipo_objetivo: "De intensidad" },
+    { nombre: "[DEMO] Medición de emisiones financiadas", tipo_objetivo: "De intensidad" },
+  ];
+  const v6 = "Los tres objetivos son de ámbito climático. El objetivo de cartera sostenible es un objetivo relativo, y la Compañía lo considera alineado con la Taxonomía Sostenible de México.";
+  ok(car(v6, objs).some((e) => /«Cartera sostenible» se describe como «relativo».*«De intensidad»/.test(e)), "la frase del v6 («cartera sostenible … relativo») → rechazo");
+  ok(car("El objetivo de cartera sostenible es de intensidad.", objs).length === 0, "«de intensidad» cuando es su valor → aceptado");
+  ok(car("El objetivo de cartera sostenible es absoluto.", objs).length === 1, "«absoluto» cuando es «De intensidad» → rechazo");
+  ok(car("El objetivo de reducción de emisiones de Alcances 1 y 2 es absoluto y el de cartera sostenible es de intensidad.", objs).length === 0, "dos objetivos en una oración, cada uno con su valor → aceptado");
+  ok(car("La medición de emisiones financiadas es absoluta.", objs).length === 1, "nombre con «[DEMO]» se reconoce sin el prefijo");
+  ok(car("| Cartera sostenible | … | Relativo |\nEn lo relativo a la cartera sostenible, la meta es 20%.", objs).length === 0, "tablas y «en lo relativo a» no cuentan");
 }
 
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");

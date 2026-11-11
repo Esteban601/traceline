@@ -28,20 +28,15 @@ REF_STAGING="ewgnvjtjhvdltvkopptn"
 # el de v33 (sqpxcxewoznhpwvhxamy), el 5/10. Con el marcador, «ensayo» falla.
 REF_ENSAYO="PENDIENTE_REF_ENSAYO"
 # Lo que este despliegue debe aplicar, en orden. Cambia con cada despliegue.
-# Despliegue combinado v44+v45+v46 (runbook docs/encargos/2026-11-10-runbook-v46.md;
-# decisión de Esteban del 10/11/2026: un solo despliegue desde main): las cinco
-# pendientes en staging, en orden — perfil-declaraciones-alta (v44),
-# catalogo-gri-sasb (v45, tres) y s1-72-reserva-y-emisora (v46).
-# Anteriores: v43, 20261029120000 y 20261029130000; v42, las 4 de 20261024120000 a 20261027120000; v41, las 5 de 20261013120000 a 20261014120000; v40, las 18 de 20261006140000 a 20261011121000; v39,
+# v47 (runbook docs/encargos/2026-11-11-runbook-v47.md): la columna G-SIB del
+# Perfil (correcciones v6.1 del demo). Va después del despliegue combinado.
+# Anteriores: combinado v44+v45+v46 (b13998e), las cinco de 20261029140000 a
+# 20261110120000; v43, 20261029120000 y 20261029130000; v42, las 4 de 20261024120000 a 20261027120000; v41, las 5 de 20261013120000 a 20261014120000; v40, las 18 de 20261006140000 a 20261011121000; v39,
 # 20261006120000 y 20261006130000; v33, las 30 de 20261005120000 a
 # 20261005130100; v32.1, 20261004170000_jefe_area_sube_evidencia; v31,
 # 20261001140000; v30, 20261001120000; v29, las 20260929*.
 ESPERADAS=(
-  20261029140000_perfil_efectos_financieros.sql
-  20261031120000_catalogo_marco_sasb.sql
-  20261031130000_catalogo_gri2_gri3_fncb.sql
-  20261031140000_catalogo_extension_gri_literal.sql
-  20261110120000_reporte_declaracion_cumplimiento.sql
+  20261111120000_perfil_banco_sistemico_global.sql
 )
 # Medido en ensayo el 30/09/2026 (dos pasadas): 24 tablas de public con RLS,
 # menos comentarios_auditor y auditor_actividad, que la función excluye = 22 × 3
@@ -62,6 +57,7 @@ ESPERADAS=(
 # amplio; medido en dev y en local el 29/10/2026).
 # v45: 108; las tres no crean tablas ni buckets (columnas, un CHECK más amplio y filas del catálogo).
 # v46: 108; dos columnas en reportes y el relleno de los es_demo (medido en dev y en local el 10/11/2026).
+# v47: 108; una columna en perfil_emisor (medido en dev y en local el 10/11/2026).
 BARRERA_ESPERADA="${BARRERA_ESPERADA:-108}"
 
 RAIZ="$(cd "$(dirname "$0")/../.." && pwd)"

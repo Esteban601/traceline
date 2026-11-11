@@ -1,6 +1,11 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.14 · 31 de octubre de 2026.
+Versión 1.15 · 10 de noviembre de 2026.
+
+**Cambios respecto a 1.14** (10 de noviembre de 2026, decisión de Esteban, correcciones v6.2 del demo):
+- §5: el glosario suma las formas de voz de proceso «la respuesta», «esta celda» y «este campo». «La respuesta» cuenta
+  solo como sujeto de un verbo de proceso («la respuesta cubre…»); «la respuesta de la Compañía a los riesgos» es voz
+  legítima. La nota de la plantilla BMV «Este campo es opcional…» queda como excepción por expresión.
 
 **Cambios respecto a 1.13** (31 de octubre de 2026, decisión de Esteban, encargo catalogo-gri-sasb):
 - §5: el glosario no aplica a la columna «Requisito» del libro GRI/SASB, que es texto literal de la norma (GRI 2-5
@@ -138,12 +143,14 @@ después el código.
 - **Glosario de vocabulario de plataforma** (única fuente del validador; `lib/suplemento/vocabulario.ts` debe decir
   lo mismo y un e2e lo compara): solicitud, evidencia, expediente, entregado, recibido, validado, IRStrat,
   plataforma, bloque, datapoint, suplemento, registros de clima, memoria de cálculo, ids, Fase <letra o número>,
-  sprint, encargo, pendiente de catálogo, catálogo SASB, ampliación del catálogo, por decidir, sin mapeo. Aplica al
+  sprint, encargo, pendiente de catálogo, catálogo SASB, ampliación del catálogo, por decidir, sin mapeo, la respuesta,
+  esta celda, este campo. Aplica al
   texto del modelo y a toda celda exportada (todas las hojas del Formato electrónico y del Excel de taxonomía), también
   a la que arma el código. «Fase» cuenta con una sola letra o número detrás («Fase C»); «fase IV» de los escenarios
-  NGFS es voz legítima. Fuera de él, a propósito: «validación», «captura» y «recibidos», que son voz legítima de una
+  NGFS es voz legítima. «La respuesta» cuenta solo como sujeto de un verbo de proceso («la respuesta cubre…», «esta
+  respuesta describe…»); «la respuesta de la Compañía a los riesgos» es voz legítima (v1.15). Fuera de él, a propósito: «validación», «captura» y «recibidos», que son voz legítima de una
   emisora, y las expresiones de la norma y de la plantilla «validado por …», la validación de un tercero (NIIF S2 34),
-  y «bloque de texto» (tipo de dato de la plantilla). Tampoco aplica a la columna «Requisito» del libro GRI/SASB:
+  y «bloque de texto» (tipo de dato de la plantilla), y la nota de la plantilla «Este campo es opcional…» (v1.15). Tampoco aplica a la columna «Requisito» del libro GRI/SASB:
   es texto literal de la norma y no se reescribe (v1.14); sí aplica a sus columnas de código y de respuesta.
 - Prompt en dos capas: estable (con caché) y volátil. Cambiar la capa estable o el esfuerzo invalida el caché;
   se anota la versión de prompt en cada bloque.

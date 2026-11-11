@@ -23,7 +23,7 @@ import { CONTINUACIONES, PENDIENTE_CONTINUACION } from "@/lib/excel/continuacion
 import { llenarFormato } from "@/lib/formato/llenar";
 import { esObjetivoDeEmisiones, nombreConMeta } from "@/lib/formato/objetivos";
 import { TIPOS_OBJETIVO } from "@/lib/objetivos-opciones";
-import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado } from "@/lib/suplemento/respuestas";
+import { pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, sinSiInicial } from "@/lib/suplemento/respuestas";
 import { insumosDeInstancias, instanciasDeMetricas, type InstanciaMetrica } from "@/lib/formato/instancias";
 import { insumosDelFormato, verificacionGeiDelDocumento } from "@/lib/formato/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -163,7 +163,8 @@ function escribirRespuestas(
       // «K:N» lo resuelve quien llama, con el llenado del Formato, y llega en delFormato con esa misma clave.
       if (t) {
         const celda = ws.getCell(`E${nf}`);
-        celda.value = pendienteEnTextoPlano(t);
+        // También en las filas de continuación (v6.2, fila 79: la rama «Si ¿Cómo se integran…?» de 6(b)(ii)).
+        celda.value = sinSiInicial(pendienteEnTextoPlano(t));
         celda.alignment = { vertical: "top", wrapText: true };
         escritas++;
       }
@@ -176,7 +177,8 @@ function escribirRespuestas(
     // La primera fila toma solo su parte si CONTINUACIONES la nombra (índice 0); si esa parte no existe, la del código.
     const propia = respuestas && CONTINUACIONES[codigo]?.[0] ? delFormato.get(CONTINUACIONES[codigo][0]) ?? PENDIENTE_CONTINUACION[CONTINUACIONES[codigo][0]] ?? null : null;
     const r = propia ?? respuestas?.get(codigo);
-    const texto = respuestas ? (r != null ? pendienteEnTextoPlano(r) : null) : EN_PREPARACION;
+    // Una respuesta de texto no abre con «Sí,» (v6.1, fila 79): la pregunta de sí o no es otra fila.
+    const texto = respuestas ? (r != null ? sinSiInicial(pendienteEnTextoPlano(r)) : null) : EN_PREPARACION;
     vistos.set(codigo, { veces: 1, texto: texto === EN_PREPARACION ? null : texto });
     celda.value = texto ?? EN_PREPARACION;
     if (texto === null || texto === EN_PREPARACION) enPreparacion++;

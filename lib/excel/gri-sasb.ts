@@ -36,6 +36,16 @@ export function compararCodigos(a: string, b: string): number {
 }
 
 /**
+ * La respuesta como va en el libro (v6.1): un pendiente se escribe en voz de la emisora, «Pendiente: información no
+ * disponible en el reporte <ejercicio>», sin nombrar solicitudes ni secciones (la base conserva el marcador de
+ * CLAUDE.md §5 con su causa). Lo demás, en texto plano como el Excel de taxonomía.
+ */
+export function textoDelLibro(r: string, ejercicio?: number): string {
+  if (/^\s*\[Pendiente:/.test(r)) return `Pendiente: información no disponible en el reporte${ejercicio ? ` ${ejercicio}` : ""}`;
+  return pendienteEnTextoPlano(r);
+}
+
+/**
  * Arma el libro. `respuestas` nulo = generador apagado para la emisora: sin columna de respuesta. Con un Map, cada
  * código lleva su respuesta o «En preparación».
  */
@@ -44,6 +54,8 @@ export function armarLibroGriSasb(params: {
   respuestas: Map<string, string> | null;
   titulo: string;
   esDemo: boolean;
+  /** Ejercicio del reporte, para el texto del pendiente en voz de la emisora (v6.1). */
+  ejercicio?: number;
 }): { wb: ExcelJS.Workbook; hojas: { nombre: string; filas: number }[] } {
   const wb = new ExcelJS.Workbook();
   const grupos = new Map<string, FilaGriSasb[]>();
@@ -62,7 +74,7 @@ export function armarLibroGriSasb(params: {
     enc.font = { bold: true };
     for (const f of grupos.get(nombre)!) {
       const r = params.respuestas?.get(f.codigo);
-      const fila = ws.addRow([f.codigo, f.descripcion, ...(conRespuesta ? [r ? pendienteEnTextoPlano(r) : EN_PREPARACION] : [])]);
+      const fila = ws.addRow([f.codigo, f.descripcion, ...(conRespuesta ? [r ? textoDelLibro(r, params.ejercicio) : EN_PREPARACION] : [])]);
       fila.alignment = { vertical: "top", wrapText: true };
     }
     ws.views = [{ state: "frozen", ySplit: 1 }];

@@ -1,30 +1,39 @@
 #!/usr/bin/env node
 // =============================================================================
-// COMPROBACIONES DE v46 DESPUÉS DEL RELEASE (runbook docs/encargos/2026-11-10-
-// runbook-v46.md, paso 5). SOLO LECTURA: no migra, no sube, no genera, no llama
-// al modelo. Se probó contra dev. Copia de comprobar-v45.mjs con lo de v46
-// (encargo s1-72-reserva-y-emisora).
+// COMPROBACIONES DEL DESPLIEGUE COMBINADO v44+v45+v46 DESPUÉS DEL RELEASE (runbook
+// docs/encargos/2026-11-10-runbook-v46.md, paso 5; decisión de Esteban del
+// 10/11/2026: un solo despliegue desde main con las cinco migraciones). SOLO
+// LECTURA: no migra, no sube, no genera, no llama al modelo. Se probó contra dev.
+// Reúne comprobar-v44.mjs, comprobar-v45.mjs y lo propio de v46.
 //
 //   staging (Esteban o, con su OK, Claude Code):
 //     (set -a; source .env.staging.local; set +a; \
 //      node --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs \
 //        scripts/despliegue/comprobar-v46.mjs --destino staging --antes ~/Downloads/v46/foto-antes.json \
 //        --despues ~/Downloads/v46/foto-despues.json --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json)
-//   dev (prueba):
+//   dev (prueba; dev ya tiene las cinco migraciones, así que su esperado es vacío):
 //     node --env-file=<.env.local de dev> --experimental-strip-types --import ./scripts/captura-sugerida/node/registrar.mjs \
 //       scripts/despliegue/comprobar-v46.mjs --destino dev --antes <foto-antes.json> --despues <foto-despues.json>
 //
 // Comprueba:
 //   1. /login de la app del destino: 200.
 //   2. Emisoras: staging, 22; dev, las de la foto «antes».
-//   3. Foto «después» contra la «antes»: ninguna diferencia (esperado-cobertura-v46.json vacío; v46 no toca el
-//      catálogo ni las solicitudes).
-//   4. La plantilla del Formato en Storage: sha256 2179124…bad46 (v46 no la cambia).
-//   5. El Formato de Empresa Demo: staging, 409 (sin documento aprobado); dev, 200. Excel de taxonomía: 200.
-//   6. La migración desde la app: reportes.declaracion_cumplimiento y _texto se leen. Reportes de tenants reales:
-//      ninguno con declaración (la captura la emisora); de tenants es_demo: todos «sin_reserva», con texto si su Perfil
-//      tiene denominación formal (y entonces el texto abre con ella y dice «de conformidad con»).
-//   7. /admin/reportes: 200 (la pantalla lee las columnas nuevas; el formulario se pinta al abrir el régimen).
+//   3. Foto «después» contra la «antes» con esperado-cobertura-v46.json (staging): 51 códigos GRI/SASB nuevos sin
+//      solicitud en todas las emisoras, la fila compuesta «GRI 2-7 / 401-1» cambia (se retira) y NIIF sin cambio en
+//      códigos ni totales. En dev (esperado-cobertura-v46-dev.json), ninguna diferencia.
+//   4. La plantilla del Formato en Storage: sha256 2179124…bad46 (ninguna de las tres releases la cambia).
+//   5. El Formato de Empresa Demo: staging, 409 (sin documento aprobado); dev, 200 con la hoja «Métricas SASB»
+//      (Código / Métrica / Respuesta y las 17 FN-CB si el Perfil tiene FN-CB). Excel de taxonomía: 200.
+//   6. v45 · el catálogo desde la app: activos GRI 37 (GRI 2: 30, GRI 3: 3), SASB FN-CB 17, NIIF 117;
+//      «GRI 2-7 / 401-1» con activo = false.
+//   7. v45 · libro GRI/SASB de Empresa Demo: 200, hoja «GRI» con 37 y, si el Perfil tiene FN-CB, «SASB FN-CB» con 17.
+//   8. v44 · perfil_emisor.criterio_cuantificacion y congruencia_estados_financieros se leen; la pantalla del Perfil,
+//      sección «Efectos financieros», responde 200 con la sección y sus dos campos.
+//   9. v44 · completitud del bloque 10 en cada reporte: un faltante «Falta en el Perfil» por campo vacío y ninguno por
+//      campo lleno. Emisoras con los dos faltantes: staging, 22; dev, 0.
+//  10. v46 · reportes.declaracion_cumplimiento y _texto se leen; reportes reales sin declaración; es_demo todos
+//      «sin_reserva» con la oración (o sin texto si su Perfil no tiene denominación formal).
+//  11. v46 · /admin/reportes: 200.
 // La sesión de staff: en staging, el analista del seed con la contraseña del archivo de credenciales (no se
 // imprime); en dev, sesion-dev.mjs, sin contraseña. Ninguna llave ni URL de base se imprime.
 // =============================================================================
@@ -36,6 +45,9 @@ import { fileURLToPath } from "node:url";
 import { createServerClient } from "@supabase/ssr";
 import { RUTA_PLANTILLA_FORMATO } from "../../lib/formato/plantilla.ts";
 import { sesionStaffDev } from "../formato/sesion-dev.mjs";
+import ExcelJS from "exceljs";
+import { evaluarCompletitud } from "../../lib/suplemento/completitud.ts";
+import { DECLARACIONES_PERFIL } from "../../lib/suplemento/hechos/razones.ts";
 
 const DESTINOS = {
   staging: {
@@ -44,17 +56,20 @@ const DESTINOS = {
     emisoras: 22,
     esperado: "esperado-cobertura-v46.json",
     formatoDemo: 409,
+    sinDeclaraciones: 22,
   },
   dev: {
     ref: "kmjkoxecxcujxixlxwlb",
     app: "https://traceline-dev-d4fd7a3cda04.herokuapp.com",
     emisoras: "foto-antes",
-    esperado: "esperado-cobertura-v46.json",
+    esperado: "esperado-cobertura-v46-dev.json",
     formatoDemo: 200,
+    sinDeclaraciones: 0,
   },
 };
 const SHA_PLANTILLA = "217912465e5c0d2141604250f3946f147c6cc0953a4b10df3a8cbeecec9bad46";
 const REPORTE_DEMO = "20000000-0000-0000-0000-000000000001";
+const TENANT_DEMO = "10000000-0000-0000-0000-000000000001";
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 
 const argv = process.argv.slice(2);
@@ -126,15 +141,88 @@ else {
   ok(sha(b) === SHA_PLANTILLA, `${b.length} bytes · sha256 ${sha(b).slice(0, 12)}… (se espera ${SHA_PLANTILLA.slice(0, 12)}…)`);
 }
 
+const { data: perfilDemo } = await db.from("perfil_emisor").select("sector_sasb").eq("tenant_id", TENANT_DEMO).maybeSingle();
+const conFncb = (perfilDemo?.sector_sasb ?? []).some((x) => /\(FN-CB\)/.test(x));
+const txt = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.richText.map((r) => r.text).join("") : String(v.text ?? v.result ?? "")) : String(v));
+const libro = async (buf) => { const w = new ExcelJS.Workbook(); await w.xlsx.load(buf); return w; };
+
 console.log("\n5. Formato electrónico y Excel de taxonomía de Empresa Demo");
 const r = await fetch(`${cfg.app}/admin/cobertura/export-formato?reporte=${REPORTE_DEMO}`, { headers: { cookie: cookie() }, redirect: "manual" });
-const cuerpo = r.status === 200 ? `${(await r.arrayBuffer()).byteLength} bytes` : (await r.text()).slice(0, 160).replace(/\s+/g, " ");
-ok(r.status === cfg.formatoDemo, `${r.status} (se espera ${cfg.formatoDemo}) · ${cuerpo}`);
+if (r.status === 200) {
+  const w = await libro(Buffer.from(await r.arrayBuffer()));
+  const m = w.getWorksheet("Métricas SASB");
+  let n = 0;
+  m?.eachRow((x) => { if (/^FN-CB-/.test(txt(x.getCell(1).value))) n++; });
+  const enc = m ? [1, 2, 3].map((c) => txt(m.getRow(2).getCell(c).value)).join(" / ") : "";
+  ok(r.status === cfg.formatoDemo, `${r.status} (se espera ${cfg.formatoDemo})`);
+  ok(!!m && enc === "Código / Métrica / Respuesta" && n === (conFncb ? 17 : 0), `hoja «Métricas SASB»: ${m ? `«${enc}», ${n} métricas FN-CB` : "no está"} (se esperan ${conFncb ? 17 : 0})`);
+} else {
+  const cuerpo = (await r.text()).slice(0, 160).replace(/\s+/g, " ");
+  ok(r.status === cfg.formatoDemo, `${r.status} (se espera ${cfg.formatoDemo}) · ${cuerpo}`);
+}
+
 const x = await fetch(`${cfg.app}/admin/cobertura/export-taxonomia?reporte=${REPORTE_DEMO}`, { headers: { cookie: cookie() }, redirect: "manual" });
 const xCuerpo = x.status === 200 ? `${(await x.arrayBuffer()).byteLength} bytes` : (await x.text()).slice(0, 160).replace(/\s+/g, " ");
 ok(x.status === 200, `Excel de taxonomía de Empresa Demo: ${x.status} · ${xCuerpo}`);
 
-console.log("\n6. Migración de v46 desde la app");
+console.log("\n6. v45 · catálogo desde la app");
+const { data: cat, error: eC } = await db.from("datapoints_taxonomia").select("codigo, marco, estandar, activo");
+if (eC) salir(`leer el catálogo: ${eC.message}`);
+const activos = cat.filter((c) => c.activo);
+const de = (f) => activos.filter(f).length;
+const gri = de((c) => c.marco === "GRI"), gri2 = de((c) => c.marco === "GRI" && /^GRI 2-\d+$/.test(c.codigo)), gri3 = de((c) => c.marco === "GRI" && /^GRI 3-\d+$/.test(c.codigo));
+const fncb = de((c) => c.marco === "SASB" && /^FN-CB-/.test(c.codigo)), niif = de((c) => c.marco === "NIIF");
+ok(gri === 37 && gri2 === 30 && gri3 === 3, `GRI activos: ${gri} (GRI 2: ${gri2}, GRI 3: ${gri3}); se esperan 37 (30 y 3)`);
+ok(fncb === 17, `SASB FN-CB activos: ${fncb}; se esperan 17`);
+ok(niif === 117, `NIIF activos: ${niif}; se esperan 117 (sin cambio)`);
+const compuesta = cat.find((c) => c.codigo === "GRI 2-7 / 401-1");
+ok(!!compuesta && compuesta.activo === false, `«GRI 2-7 / 401-1»: ${compuesta ? `activo = ${compuesta.activo}` : "no está"} (se espera retirada)`);
+
+console.log("\n7. v45 · libro GRI/SASB de Empresa Demo");
+const g = await fetch(`${cfg.app}/admin/cobertura/export-gri-sasb?reporte=${REPORTE_DEMO}`, { headers: { cookie: cookie() }, redirect: "manual" });
+if (g.status !== 200) ok(false, `export-gri-sasb: ${g.status} · ${(await g.text()).slice(0, 160).replace(/\s+/g, " ")}`);
+else {
+  const w = await libro(Buffer.from(await g.arrayBuffer()));
+  const filas = (h) => { let n = 0; w.getWorksheet(h)?.eachRow((x, i) => { if (i > 1 && txt(x.getCell(1).value)) n++; }); return w.getWorksheet(h) ? n : null; };
+  ok(filas("GRI") === 37, `hoja «GRI»: ${filas("GRI") ?? "no está"} contenidos (se esperan 37)`);
+  ok(conFncb ? filas("SASB FN-CB") === 17 : filas("SASB FN-CB") === null, `hoja «SASB FN-CB»: ${filas("SASB FN-CB") ?? "no está"} (se espera ${conFncb ? 17 : "ninguna: el Perfil no tiene FN-CB"})`);
+}
+
+console.log("\n8. v44 · columnas del Perfil desde la app");
+const CAMPOS = Object.keys(DECLARACIONES_PERFIL);
+const { data: perfiles, error: ePf } = await db.from("perfil_emisor").select(`tenant_id, ${CAMPOS.join(", ")}`);
+ok(!ePf, `perfil_emisor.${CAMPOS.join(" y ")} se leen${ePf ? ` (error: ${ePf.message})` : ` · ${perfiles.length} perfiles; con el criterio ${perfiles.filter((p) => p.criterio_cuantificacion).length}, con la congruencia ${perfiles.filter((p) => p.congruencia_estados_financieros).length}`}`);
+const pantalla = await fetch(`${cfg.app}/admin/perfil?tenant=${TENANT_DEMO}&seccion=efectos`, { headers: { cookie: cookie() }, redirect: "manual" });
+const html = pantalla.status === 200 ? await pantalla.text() : "";
+ok(pantalla.status === 200 && html.includes("Efectos financieros") && CAMPOS.every((c) => html.includes(c)), `Perfil, sección «Efectos financieros»: ${pantalla.status}${pantalla.status === 200 ? `, con la sección y los datos de sus dos campos` : ""}`);
+
+console.log("\n9. v44 · completitud del bloque 10 por emisora");
+const { data: reportes, error: eR } = await db.from("reportes").select("id, tenant_id");
+if (eR) salir(`leer reportes: ${eR.message}`);
+const conLosDos = new Set();
+let incoherentes = 0, evaluados = 0, sinBloque = 0;
+for (const rep of reportes) {
+  const res = await evaluarCompletitud(db, rep.id);
+  if (!res.ok) { ok(false, `reporte ${rep.id.slice(0, 8)}: la completitud no responde (${res.causa})`); continue; }
+  const b10 = res.bloques.find((b) => b.numero === 10);
+  if (!b10) { sinBloque++; continue; }
+  evaluados++;
+  const p = perfiles?.find((x) => x.tenant_id === rep.tenant_id);
+  let losDos = true;
+  for (const d of Object.entries(DECLARACIONES_PERFIL)) {
+    const [campo, def] = d;
+    const f = b10.faltantes.filter((x) => x.etiqueta === def.codigo);
+    const vacio = !p?.[campo];
+    const bien = vacio ? f.length === 1 && f[0].causa === "perfil_vacio" : f.length === 0;
+    if (!bien) { incoherentes++; console.log(`    ✗ reporte ${rep.id.slice(0, 8)} · ${def.codigo}: campo ${vacio ? "vacío" : "lleno"}, faltantes ${f.map((x) => x.causa).join(", ") || "ninguno"}`); }
+    if (!(vacio && f.length === 1)) losDos = false;
+  }
+  if (losDos) conLosDos.add(rep.tenant_id);
+}
+ok(incoherentes === 0, `${evaluados} reportes con bloque 10${sinBloque ? ` (${sinBloque} sin él)` : ""}: un faltante «Falta en el Perfil» por campo vacío y ninguno por campo lleno`);
+ok(conLosDos.size === cfg.sinDeclaraciones, `${conLosDos.size} emisoras con los dos faltantes; se esperan ${cfg.sinDeclaraciones}`);
+
+console.log("\n10. v46 · declaración de cumplimiento desde la app");
 const { data: reps, error: eRep } = await db.from("reportes").select("id, tenant_id, declaracion_cumplimiento, declaracion_cumplimiento_texto, tenant:tenants!reportes_tenant_id_fkey(es_demo)");
 ok(!eRep, `reportes.declaracion_cumplimiento y _texto se leen${eRep ? ` (error: ${eRep.message})` : ` · ${reps.length} reportes`}`);
 if (!eRep) {
@@ -150,9 +238,9 @@ if (!eRep) {
   ok(malDemo.length === 0, `reportes de tenants es_demo: ${demo.length}, todos «sin_reserva» con la oración (${demo.filter((x) => x.declaracion_cumplimiento_texto).length} con texto, ${demo.filter((x) => !x.declaracion_cumplimiento_texto).length} sin denominación en el Perfil)`);
 }
 
-console.log("\n7. Pantalla de reportes");
+console.log("\n11. v46 · pantalla de reportes");
 const pr = await fetch(`${cfg.app}/admin/reportes`, { headers: { cookie: cookie() }, redirect: "manual" });
 ok(pr.status === 200, `/admin/reportes: ${pr.status}`);
 
-console.log(fallas.length ? `\n✗ ${fallas.length} comprobación(es) en rojo.` : "\n✓ v46 comprobado.");
+console.log(fallas.length ? `\n✗ ${fallas.length} comprobación(es) en rojo.` : "\n✓ Despliegue combinado v44+v45+v46 comprobado.");
 process.exit(fallas.length ? 1 : 0);

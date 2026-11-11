@@ -14,6 +14,7 @@
 // exportada (la sección de métricas S1 46–50 ya expandida), como las cita la
 // revisión; las del Excel se buscan por su código de la columna A.
 // =============================================================================
+import fs from "node:fs";
 import ExcelJS from "exceljs";
 import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
@@ -23,10 +24,13 @@ import { BOOLEANOS_FORMATO } from "../lib/formato/booleanos.ts";
 import { remisionAIncisos, seParecen, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
 import { INCISOS_CREDITOS } from "../lib/suplemento/catalogo-incisos.ts";
 
-const [formato, taxonomia] = process.argv.slice(2);
+// Tercer argumento opcional: el libro GRI/SASB (casos de la v6.2). Con INFORME_E2E=<archivo.json>, escribe el resultado de
+// cada caso: la lista de deudas conocidas se genera desde ahí (scripts/formato/deudas-desde-e2e.mjs).
+const [formato, taxonomia, libroGri] = process.argv.slice(2);
 if (!formato || !taxonomia) { console.error("Uso: e2e-celdas-categoricas.mjs <formato.xlsx> <taxonomia.xlsx>"); process.exit(2); }
 const fallas = [];
-const ok = (c, m) => { console.log(`  ${c ? "✓" : "✗"} ${m}`); if (!c) fallas.push(m); };
+const casos = [];
+const ok = (c, m) => { console.log(`  ${c ? "✓" : "✗"} ${m}`); casos.push({ ok: !!c, caso: m }); if (!c) fallas.push(m); };
 const texto = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.richText.map((t) => t.text).join("") : v.text ?? (v.result != null ? String(v.result) : "")) : String(v)).trim();
 
 const wf = new ExcelJS.Workbook();
@@ -126,15 +130,16 @@ console.log("\nFormato electrónico · NIIF S2 29(a)(iii) por inciso (Fase 5)");
 {
   const [enfoque, datos, razon, cambios] = [K(596), K(597), K(599), K(601)];
   ok(/Protocolo GEI/.test(enfoque) && !/488,000/.test(enfoque) && /488,000/.test(datos) && !/Protocolo GEI/.test(datos), "K596 el enfoque (protocolo, consolidación, factores) y K597 los datos de entrada y supuestos, sin repetirse");
-  ok(!razon, "K599 (razón de la elección): vacía, ningún hecho la da (§5: en el Formato el pendiente es la celda vacía)");
-  ok(!cambios || !/Protocolo GEI, con enfoque de control/.test(cambios), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo");
+  // Desde el demo v6 (Esteban, 10/11/2026) un hecho da la razón: K599 la lleva, y solo ella; K601 son solo los cambios.
+  ok(!!razon && /porque/.test(razon), "K599 (razón de la elección): con la razón que da el libro (control operacional, factores oficiales)");
+  ok(!cambios || (!/Protocolo GEI, con enfoque de control/.test(cambios) && !/porque|eligi[oó]/.test(cambios)), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo ni la razón de la elección");
 }
 
 console.log("\nFormato electrónico · cierre (Fase 6, revisión externa v5.2)");
 {
   const ors = (t) => t.split(/(?<=\.)\s+/).filter((o) => o.length > 20);
   // (1) K100: la razón de 19(a)/(b) de la declaración de criterio; la transparencia como complemento.
-  ok(/identificables por separado/.test(K(100)) && /incertidumbre/.test(K(100)) && /próximos periodos/.test(K(100)) && !/^[^.]*próximos periodos/.test(K(100)), "(1) K100: la razón de NIIF S2 19(a)/(b) primero; la limitación de los próximos periodos, como oración complementaria");
+  ok(/identificables por separado/.test(K(100)) && /incertidumbre/.test(K(100)) && /próximos (periodos|ejercicios)/.test(K(100)) && !/^[^.]*próximos (periodos|ejercicios)/.test(K(100)), "(1) K100: la razón de NIIF S2 19(a)/(b) primero; la limitación de los próximos ejercicios, como oración complementaria");
   // (2) K91: sin la oración de K92 ni la razón de no cuantificar.
   ok(!ors(K(91)).some((o) => ors(K(92)).some((q) => q === o || seParecen(o, q))) && !/no (proporciona información cuantitativa|cuantific)|identificables por separado/.test(K(91)), `(2) K91 sin la oración de K92 ni la razón de no cuantificar${K(91) ? "" : " (vacía: ninguna síntesis pasó el validador)"}`);
   // (3) K712 vacía: repetía K710.
@@ -145,8 +150,8 @@ console.log("\nFormato electrónico · cierre (Fase 6, revisión externa v5.2)")
   ok(!K(692) && K(701) === "No existe un precio por tonelada en 2025." && K(709) === "Cero por ciento.", "(5) K836 vacía; K845 «No existe un precio por tonelada en 2025.»; K853 «Cero por ciento.»");
   // (6) K786, K809, K832 con el valor de su fila de opciones.
   ok([[642, 643], [665, 666], [688, 689]].every(([p, o]) => !!K(o) && K(p) === K(o)), "(6) K786, K809 y K832 con el mismo valor que su fila de opciones (como K161/K162)");
-  // (7) K847 con el patrón de K839: el texto de su código.
-  ok(!!K(703) && !!K(695), "(7) K847 (sección «Remuneración») con texto, como K839 (sección «Precios internos del carbono»)");
+  // (7) sustituido por la regla de ramas de la v6.2: K839 y K847 (filas de sección) vacías; la razón va en la rama.
+  ok(!K(703) && !K(695), "(7) K839 y K847 (filas de sección) vacías: la razón va en su rama (regla de ramas, v6.2)");
 }
 
 console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");
@@ -186,7 +191,8 @@ console.log("\nFormato electrónico · NIIF S2 16(d) por efecto y por plazo (Fas
 {
   const oraciones = (t) => t.split(/(?<=\.)\s+|\n/).map((o) => o.replace(/^(Corto|Mediano|Largo) plazo:\s*/, "").trim()).filter(Boolean);
   // Regla de plazos (antes de la Fase 4): la fila de la pregunta lleva lo no fechado; la tabla, lo fechado por plazo.
-  ok(!!K(96) && /no proporciona información cuantitativa/.test(K(96)), "K96: lo no fechado (escenario de altas emisiones) y la razón de no cuantificar (NIIF S2 21)");
+  // La razón de no cuantificar va solo en K100 (Esteban, 10/11/2026, demo v6).
+  ok(!!K(96) && /escenario/.test(K(96)) && !/no proporciona información cuantitativa/.test(K(96)), "K96: lo no fechado (escenario de altas emisiones), sin la razón de no cuantificar (va en K100)");
   ok(!K(98), "K98 vacía: 16(d) no tiene hechos de flujos sin fecha; los flujos previstos van por plazo en K99");
   ok(/^Mediano plazo: .*9 millones/.test(K(99)) && !/9 millones/.test(K(96)), "el ahorro de 9 millones anuales desde 2027, en el mediano plazo de K99 (2027 cae en «más de 1 y hasta 5 años»)");
   for (const f of [95, 97, 99, 111]) {
@@ -333,5 +339,59 @@ console.log("\nExcel de taxonomía · hojas de datos");
   ok(voc === 0, `sin vocabulario de plataforma en el Excel (${voc})`);
 }
 
+console.log("\nCorrecciones v6.1 (decisión de Esteban del 10/11/2026)");
+{
+  // Las celdas van en la numeración de v5.1, como el resto de la prueba: K679/K681 son K823/K825 de v5.2, K695/K697 son
+  // K839/K841 y K703/K705 son K847/K849.
+  ok(/31\.0/.test(K(679)) && !/no se (han )?cuantific/i.test(K(679)), "(1) K823: efectos actuales de las oportunidades sobre la situación financiera, con los 31.0 millones capitalizados");
+  ok(/0\.4/.test(K(681)) && !/no se (han )?cuantific/i.test(K(681)), "(1) K825: efectos actuales sobre el rendimiento, con los 0.4 millones registrados como gasto");
+  ok(/se revela conforme a NIIF S2 22 \(a\)a\(b\)/.test(K(103)), "(2) K103 (NIIF S1 41) bajo E5: remite a NIIF S2 22 (a)–(b), sin depender del padre");
+  // (3) de la v6.1 sustituido por la regla de ramas de la v6.2 (abajo).
+  const r36d = C("NIIF S2 36 (d)");
+  ok(/ninguno de sus objetivos de emisiones de GEI/.test(r36d) && /el único es el de reducción de (las )?emisiones de Alcances 1 y 2/.test(r36d) && !/medición de emisiones financiadas|cartera sostenible/.test(r36d), "(4) Excel 271 (36(d)): solo el objetivo de emisiones de GEI, sin el de medición ni el de cartera");
+  ok(/Ver sección «[^»]+»/.test(C("NIIF S2 36 (a)")) && [...porCodigo.values()].every(([t]) => !/Ver sección \d/.test(t ?? "")), "(5) Excel 268 y todo el Excel: remisión por nombre de sección, nunca «sección N»");
+  // (6) de la v6.1 miraba la primera fila de 6(b)(ii), no la 79, y pasaba en falso: lo sustituye [v6.2-2].
+}
+
+console.log("\nCorrecciones v6.2 (decisión de Esteban del 10/11/2026)");
+{
+  // Filas del Excel por código y requisito (las de continuación comparten código).
+  const fila = (codigo, req) => { let t = null; tax.eachRow((r) => { if (t === null && texto(r.getCell(1).value).replace(/\s+/g, " ") === codigo && req.test(texto(r.getCell(2).value))) t = texto(r.getCell(3).value); }); return t ?? ""; };
+  // Regla de ramas: K695/K697 y K703/K705 (v5.1) son K839/K841 y K847/K849 (v5.2).
+  ok(!K(695) && /precio interno del carbono/.test(K(697)) && /precio sombra/.test(K(697)), "[v6.2-1] K839 vacía y K841 con la razón (sin precio interno; el precio sombra en evaluación)");
+  ok(!K(703) && /remuneraci[oó]n variable/.test(K(705)) && /0%|2027/.test(K(705)), "[v6.2-1] K847 vacía y K849 con la razón (sin remuneración vinculada al clima)");
+  ok(fila("NIIF S2 29 (f) (i) y (ii)", /^Precios internos/) === "No" && /precio interno del carbono/.test(fila("NIIF S2 29 (f) (i) y (ii)", /^No ¿Por qué\?/)), "[v6.2-1] Excel 182 «No» y 183 con la razón");
+  ok(fila("NIIF S2 29 (g) (i) y (ii)", /^Remuneración/) === "No" && /remuneraci[oó]n variable/.test(fila("NIIF S2 29 (g) (i) y (ii)", /^No ¿Por qué\?/)), "[v6.2-1] Excel 187 «No» y 188 con la razón");
+  const f79 = fila("NIIF S2 6(b)(ii)", /^Si ¿Cómo se integran/);
+  ok(!!f79 && !/^Sí[,.]/.test(f79), `[v6.2-2] Excel 79 (fila de continuación de 6(b)(ii)) sin «Sí,» inicial («${f79.slice(0, 40)}»)`);
+  ok(/composici[oó]n de la cartera por producto/.test(C("NIIF S2 32")) && !/por sector econ[oó]mico/.test(C("NIIF S2 32")), "[v6.2-3] Excel 192: composición de la cartera por producto, como K866");
+  if (libroGri) {
+    const wg = new ExcelJS.Workbook();
+    await wg.xlsx.readFile(libroGri);
+    const g = new Map();
+    for (const h of wg.worksheets) h.eachRow((r, i) => { if (i > 1 && texto(r.getCell(1).value)) g.set(texto(r.getCell(1).value), texto(r.getCell(3).value)); });
+    const G = (c) => g.get(c) ?? "";
+    ok(!!G("GRI 2-2") && !/no se revela[^.]*\bb\b/i.test(G("GRI 2-2")), "[v6.2-4] GRI 2-2 sin «no se revela b»");
+    ok(/b\.?\s?ii/i.test(G("GRI 2-5")) && !/protocolo GEI|factores de emisi|m[eé]todo/i.test(G("GRI 2-5")), "[v6.2-4] GRI 2-5 declara lo que falta de b.ii, sin la oración del método");
+    ok(/b\.?\s?iii/i.test(G("GRI 2-6")), "[v6.2-4] GRI 2-6 declara b.iii no revelado");
+    ok(/no desglosa la exposición bruta por industria ni por clase de activo/i.test(G("FN-CB-410b.2")), "[v6.2-4] FN-CB-410b.2 «no desglosa la exposición bruta por industria ni por clase de activo»");
+    ok(/m[eé]todo de atribuci[oó]n/i.test(G("FN-CB-410b.4")), "[v6.2-4] FN-CB-410b.4 declara que no describe el método de atribución");
+    ok(/La Compañía describe únicamente la prueba de estrés climática de cartera; no revela la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital\./.test(G("FN-CB-550a.2")) && !vocabularioEnCeldaExportada(G("FN-CB-550a.2")).length && /capitalizaci|ICAP/i.test(G("FN-CB-550a.2")), "[v6.2-4] FN-CB-550a.2 declara en voz de la emisora que solo describe la prueba de estrés climática, con su efecto sobre el capital");
+    ok(G("FN-CB-410b.1") === "No revelado · alivio C4", "[v6.2-4] FN-CB-410b.1 «No revelado · alivio C4»");
+    ok(G("GRI 2-4") === "Sin actualizaciones de información de periodos anteriores: primer periodo bajo NIIF S1 y S2.", "[v6.2-4] GRI 2-4 por regla (primer periodo, como K718)");
+    // Correcciones del libro de la v6.1, sobre el libro exportado.
+    ok(G("GRI 2-20") === `Pendiente: información no disponible en el reporte ${G("GRI 2-3").match(/ejercicio (\d{4})/)?.[1] ?? ""}`.trim() || /^Pendiente: información no disponible en el reporte \d{4}$/.test(G("GRI 2-20")), "[v6.1-GRI] 2-20 pendiente, sin repetir 2-19");
+    ok(/^Índice de rotación voluntaria: 11\.8 %/.test(G("GRI 401-1")) && /desglose por grupo de edad, sexo y región/.test(G("GRI 401-1")), "[v6.1-GRI] 401-1 nombra lo que mide y lo que no desglosa");
+    ok(/frecuencia anual/.test(G("GRI 2-3")) && /punto de contacto/.test(G("GRI 2-3")), "[v6.1-GRI] 2-3 por regla, con el punto de contacto como no revelado");
+    ok(/42\s?%/.test(G("FN-CB-410b.3")) && /4-5|4–5/.test(G("FN-CB-410b.4")) && [G("FN-CB-410b.3"), G("FN-CB-410b.4")].every((t) => /C4/.test(t)), "[v6.1-GRI] 410b.3 y 410b.4 desde PCAF, con el alivio C4");
+    ok(/^No aplica: la Compañía no es un banco de importancia sistémica global/.test(G("FN-CB-550a.1")), "[v6.1-GRI] 550a.1 «No aplica» por el dato del Perfil");
+    ok(/54\s?%/.test(G("GRI 2-7")) && /3 de 11|27\s?%/.test(G("GRI 2-9")), "[v6.1-GRI] 2-7 y 2-9 con la composición por género");
+    ok(!/exenci[oó]n/i.test(G("FN-CB-410b.2")), "[v6.1-GRI] 410b.2 sin «exención» (NIIF S2 30)");
+    ok(/^13,900 participantes|: 13,900 participantes/.test(G("FN-CB-240a.4")), "[v6.1-GRI] 240a.4 con 13,900 participantes");
+    ok([...g.values()].every((t) => !/^Pendiente:/.test(t) || /^Pendiente: información no disponible en el reporte \d{4}$/.test(t)), "[v6.1-GRI] todo pendiente del libro en voz de la emisora");
+  }
+}
+
+if (process.env.INFORME_E2E) fs.writeFileSync(process.env.INFORME_E2E, JSON.stringify({ formato, taxonomia, libroGri: libroGri ?? null, fecha: new Date().toISOString(), casos }, null, 1));
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);

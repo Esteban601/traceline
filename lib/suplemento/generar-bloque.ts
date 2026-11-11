@@ -42,7 +42,7 @@ import { cargarAdjuntosDelBloque, documentosParaPrompt, type AdjuntosDelBloque }
 import { cargarLiteral } from "@/lib/suplemento/texto-del-emisor";
 import { libroVigente } from "@/lib/suplemento/hechos/libro";
 import { insumoDelBloque, validarCobertura, type Cobertura, type HechoDelBloque } from "@/lib/suplemento/hechos/bloque";
-import { cambiosNegados, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
+import { cambiosNegados, caracterDeObjetivoIncoherente, cifrasHuerfanas, incisosInexactos, rangosIncoherentes, referenciasReescritas, type Matriz } from "@/lib/suplemento/hechos/validadores";
 import { separarAnclas, type Ancla } from "@/lib/suplemento/hechos/anclas";
 import { aceptaConObservacionesDeColocacion, clausulas, FIN_ORACION, mapaDeDuenos, remisionesSinAnclaTipadas } from "@/lib/suplemento/hechos/remisiones";
 import { noAplicaHeredado } from "@/lib/suplemento/catalogo-incisos";
@@ -664,6 +664,8 @@ export async function generarBloque(
     // Validadores deterministas del modo libro (Paso 5.4): rangos contra la
     // matriz del Perfil y hechos de otros bloques reescritos en vez de remitidos.
     const rangos = insumo ? rangosIncoherentes(parseada.texto, matriz) : [];
+    // Carácter de los objetivos (33(g)) en la prosa de los bloques de objetivos (decisión de Esteban del 10/11/2026).
+    const caracter = [38, 39, 40].includes(bloque.numero) ? caracterDeObjetivoIncoherente(parseada.texto, ens.objetivos) : [];
     const reescritas = insumo
       ? referenciasReescritas(
           parseada.texto,
@@ -714,6 +716,7 @@ export async function generarBloque(
       ...incisos.map((i) => `«${i}» no es el código de ningún requisito de este bloque: nombra el inciso con el código exacto de «Requisitos de tu bloque».`),
       ...soloNarrativas.map((o) => `«${o}…» se sostiene solo con un hecho narrativo (Carta de la Dirección): acompáñalo de un hecho de otro rango que diga lo mismo o quítalo.`),
       ...rangos.map((r) => `Rango incoherente con la matriz de riesgos del Perfil: ${r}.`),
+      ...caracter,
       ...reescritas.map((r) => `El texto reescribe un hecho que desarrolla el bloque ${r.bloque} («${r.frase}…»): remite a él en una línea, sin repetir su contenido.`),
     ];
 

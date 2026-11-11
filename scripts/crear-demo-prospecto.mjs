@@ -59,10 +59,15 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 // `mueve` reasigna solicitudes concretas por título. Existe para que ninguna área
 // del catálogo quede vacía: un área sin una sola solicitud, en un mockup, se lee
 // como un defecto de la plataforma y no como una decisión.
+// `denominacion_formal`: la razón social completa del prospecto (p. ej. «…, S.A.B. de C.V.»), tal como la confirme
+// Esteban. Vacía hasta entonces: no se deduce del nombre comercial (CLAUDE.md §5, cero dato inventado). La lee
+// scripts/relleno-declaracion-demo.mjs para el Perfil del tenant y la oración de la declaración de cumplimiento; este
+// script no la usa.
 const PROSPECTOS = [
   {
     slug: "gav",
     nombre: "Grupo Acosta Verde",
+    denominacion_formal: "",
     prefijo: "GAV",
     logo: "gav.png",
     areas: [
@@ -88,6 +93,7 @@ const PROSPECTOS = [
   {
     slug: "traton-fs",
     nombre: "TRATON Financial Services México",
+    denominacion_formal: "",
     prefijo: "TFS",
     logo: "traton-fs.png",
     areas: [
@@ -115,6 +121,7 @@ const PROSPECTOS = [
   {
     slug: "fibra-inn",
     nombre: "Fibra Inn",
+    denominacion_formal: "",
     prefijo: "FINN",
     logo: "fibra-inn.png",
     areas: [
@@ -149,6 +156,7 @@ const PROSPECTOS = [
   {
     slug: "afirme",
     nombre: "Afirme",
+    denominacion_formal: "",
     prefijo: "AFR",
     logo: "afirme.png",
     areas: [
@@ -177,6 +185,7 @@ const PROSPECTOS = [
   {
     slug: "inmobilia",
     nombre: "Inmobilia",
+    denominacion_formal: "",
     prefijo: "INM",
     logo: "inmobilia.png",
     areas: [
@@ -202,6 +211,7 @@ const PROSPECTOS = [
   {
     slug: "bafar",
     nombre: "Grupo Bafar",
+    denominacion_formal: "",
     prefijo: "BFR",
     logo: "bafar.png",
     areas: [
@@ -242,6 +252,7 @@ const PROSPECTOS = [
   {
     slug: "gcc",
     nombre: "GCC",
+    denominacion_formal: "",
     prefijo: "GCC",
     logo: "gcc.png",
     areas: [
@@ -283,6 +294,7 @@ const PROSPECTOS = [
   {
     slug: "cadu",
     nombre: "CADU Inmobiliaria",
+    denominacion_formal: "",
     prefijo: "CADU",
     logo: "cadu.png",
     areas: [
@@ -319,6 +331,7 @@ const PROSPECTOS = [
   {
     slug: "planigrupo",
     nombre: "Planigrupo",
+    denominacion_formal: "",
     prefijo: "PLG",
     logo: "planigrupo.png",
     areas: [
@@ -354,6 +367,7 @@ const PROSPECTOS = [
   {
     slug: "frisa",
     nombre: "Grupo Frisa",
+    denominacion_formal: "",
     prefijo: "FRS",
     logo: "frisa.png",
     areas: [
@@ -388,6 +402,7 @@ const PROSPECTOS = [
   {
     slug: "fondo-de-fondos",
     nombre: "Fondo de Fondos",
+    denominacion_formal: "",
     prefijo: "FDF",
     logo: "fondo-de-fondos.png",
     areas: [
@@ -417,6 +432,7 @@ const PROSPECTOS = [
   {
     slug: "odonnell",
     nombre: "O'Donnell",
+    denominacion_formal: "",
     prefijo: "ODN",
     // Retirado: O'Donnell pasó a cliente real (encargo odonnell-alta-real). El mockup se renombró a odonnell-demo /
     // ODND y quedó inactivo; el slug odonnell es del tenant real. Este script ya no lo toca (ni con --solo).
@@ -451,6 +467,7 @@ const PROSPECTOS = [
   {
     slug: "clepsa",
     nombre: "Libramiento Elevado de Puebla (CLEPSA)",
+    denominacion_formal: "",
     prefijo: "LEP",
     logo: "clepsa.png",
     // Seis áreas, no cinco: una concesionaria de peaje separa quien cobra y
@@ -494,6 +511,7 @@ const PROSPECTOS = [
   {
     slug: "banco-base",
     nombre: "Banco Base",
+    denominacion_formal: "",
     prefijo: "BASE",
     logo: "banco-base.png",
     areas: [
@@ -533,6 +551,7 @@ const PROSPECTOS = [
   {
     slug: "montepio",
     nombre: "Montepío Luz Saviñón",
+    denominacion_formal: "",
     prefijo: "MLS",
     logo: "montepio.png",
     areas: [
@@ -575,6 +594,7 @@ const PROSPECTOS = [
   {
     slug: "megacable",
     nombre: "Megacable",
+    denominacion_formal: "",
     prefijo: "MEGA",
     logo: "megacable.png",
     areas: [
@@ -620,6 +640,7 @@ const PROSPECTOS = [
   {
     slug: "rotoplas",
     nombre: "Rotoplas",
+    denominacion_formal: "",
     prefijo: "ROTO",
     logo: "rotoplas.png",
     areas: [
@@ -668,6 +689,7 @@ const PROSPECTOS = [
     // (CKD AINDACK 18A). Encargo docs/encargos/2026-10-01-mockup-ainda.md.
     slug: "ainda",
     nombre: "AINDA Energía & Infraestructura",
+    denominacion_formal: "",
     // AIND y no AINDA: el formato de folio es ^[A-Z]{3,4}$ y no se amplía por
     // un mockup (encargo §7).
     prefijo: "AIND",
@@ -716,6 +738,7 @@ const PROSPECTOS = [
   {
     slug: "pinfra",
     nombre: "PINFRA",
+    denominacion_formal: "",
     prefijo: "PINF",
     logo: "pinfra.png",
     // Concesionaria de autopistas de peaje, con planta de asfalto y terminal
@@ -758,6 +781,7 @@ const PROSPECTOS = [
   {
     slug: "portafolio-durango",
     nombre: "Portafolio Durango (AINDA Fondo II)",
+    denominacion_formal: "",
     prefijo: "PDUR",
     logo: "portafolio-durango.png",
     // Seis proyectos de generación fotovoltaica en Durango, 146.5 MWp / 112.5 MWac:

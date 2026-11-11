@@ -22,7 +22,7 @@ import { enForma, formaDeReferencia, formasAjenas, mensajeFormaAjena, type Voz }
 import { PENDIENTE_DECLARACION, declaracionVigente } from "@/lib/suplemento/declaracion";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
-import { descripcionGriSasb, erroresGriSasb, esGriSasb, seccionDe } from "@/lib/suplemento/gri-sasb";
+import { FUENTE_GRI_SASB, RESPUESTA_GRI_24_PRIMER_ANIO, descripcionGriSasb, erroresGriSasb, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, seccionDe } from "@/lib/suplemento/gri-sasb";
 
 // =============================================================================
 // RESPUESTAS POR DATAPOINT (encargo 2026-10-13-excel-respuestas-narrativas,
@@ -149,8 +149,8 @@ export const DATAPOINTS_FORMATO_TEXTO: Set<string> = new Set(
  * del código los del bloque 10 que remiten al bloque del tipo y las declaraciones negativas generales del bloque 10.
  */
 const B65C_EFECTOS = [
-  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa`,
-  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa`,
+  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa: las partidas capitalizadas o reconocidas en el balance que dan los hechos, con su importe. Si los hechos dicen que no hubo ajustes, escríbelo como «no requirieron ajustes en los importes de los estados financieros», nunca como «no se cuantificaron»`,
+  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa: las partidas registradas como gasto o ingreso que dan los hechos, con su importe (aunque sea pequeño). Si los hechos dicen que no hubo ajustes, escríbelo como «no requirieron ajustes en los importes de los estados financieros», nunca como «no se cuantificaron»`,
   (de: string) => `cómo ${de} han afectado a los flujos de efectivo durante el periodo sobre el que se informa`,
   (de: string) => `los efectos financieros previstos de ${de} sobre la situación financiera, el rendimiento y los flujos de efectivo a corto, mediano y largo plazo, incluidos los planes de disposición de activos (NIIF S2 16(c)) si los hechos los mencionan`,
   (de: string) => `para cuáles de ${de} existe un riesgo significativo de un ajuste material en los importes en libros de los activos y pasivos durante el siguiente periodo`,
@@ -293,24 +293,27 @@ const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).m
  * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
  * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp }[] = [
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp; cifras?: RegExp[] }[] = [
   // NIIF S2 29(a)(iii) por inciso (Fase 5): K596 el enfoque, K597 los datos de entrada y supuestos, K599 la razón (solo
   // con un hecho que la dé; si no, vacía y el marcador de §5 en el Excel). K601 (cambios) sale del cuestionario de GEI.
   { fila: 317, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "el enfoque de medición de las emisiones de GEI: la norma o el protocolo, el enfoque de consolidación y los factores de emisión. Sin los datos de entrada ni los supuestos, que van en la fila 318" },
   // K597 recibe también las declaraciones negativas: una exclusión del inventario (fugas de refrigerantes, HFC) es un
   // supuesto de la medición (Esteban, 29/10; antes la regla de las celdas por efecto la dejaba fuera).
-  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan). Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
+  // `cifras` (Esteban, 10/11/2026, demo v6): las cantidades de los datos de entrada salen de las capturas (los 488,000
+  // litros de combustibles y los kWh), tomadas por clave del libro del bloque aunque la cobertura no las cite, no de una
+  // remisión a otra sección; el validador exige cada cifra capturada de sus hechos.
+  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, cifras: [/^consumo_de_combustibles_fosiles_\d{4}\.valor_\d{4}$/, /^consumo_de_energia_electrica_\d{4}.*\.valor_\d{4}$/], enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan), con las cantidades capturadas del ejercicio (litros de combustibles, kWh) escritas con todas sus cifras, como en los hechos («488,000 litros», nunca «488 mil»). Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
   { fila: 320, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, soloHechos: /(?<!\p{L})(porque|raz[oó]n|debido a|eligi[oó]|se eligi[oó]|a fin de|con el fin de)(?!\p{L})/iu, enfoque: "la razón por la que la Compañía eligió su enfoque de medición, sus datos de entrada y sus supuestos, tal como la dan los hechos" },
   // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
   // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
   { fila: 36, codigo: "NIIF S2 6 (a)(v)", porEfecto: true, sinHechos: /remuneraci[oó]n/i, enfoque: "cómo el órgano de gobierno supervisa el establecimiento de los objetivos relacionados con el clima y el seguimiento de su avance. Sin la remuneración, que va en las filas 38 y 39" },
   { fila: 43, codigo: "NIIF S2 6(b)", porEfecto: true, distintaDe: ["NIIF S2 6(b)(i)", "NIIF S2 6(b)(ii)"], enfoque: "el papel de la gerencia en la gestión de los riesgos y oportunidades relacionados con el clima: qué funciones de dirección los gestionan y de qué se encarga cada una. Sin cómo se supervisa a esos cargos (fila 47, NIIF S2 6(b)(i)) ni los controles y procedimientos (fila 52, NIIF S2 6(b)(ii))" },
-  // 16(d) por efecto (Fase 2, ajuste 3 de Esteban): K96 rendimiento previsto, con la razón de no cuantificar (NIIF S2 21);
-  // K98 flujos previstos, sin ella. Las tablas por horizonte (97 y 99) van aparte: TABLAS_POR_HORIZONTE.
+  // 16(d) por efecto (Fase 2, ajuste 3 de Esteban): K96 rendimiento previsto y K98 flujos previstos. La razón de no
+  // cuantificar (NIIF S2 21) va solo en K100 (Esteban, 10/11/2026, demo v6; antes también en K96). Las tablas por horizonte (97 y 99) van aparte: TABLAS_POR_HORIZONTE.
   // Con plazos declarados en 10(d), la fila de la pregunta lleva solo lo que no está fechado en un plazo (`sinFechados`);
   // lo fechado va en su tabla por plazo (95, 97, 99, 111), sin repetirse (regla de Esteban antes de la Fase 4).
   { fila: 94, codigo: "NIIF S2 16(c)(i)(ii)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "cómo se espera que cambie la situación financiera y con qué fuentes de financiación, con lo que no está fechado en un plazo; lo de cada plazo va en la tabla de la fila 95" },
-  { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) que no están fechados en un plazo, y la razón por la que la Compañía no da información cuantitativa adicional si los hechos la dan; lo de cada plazo va en la tabla de la fila 97" },
+  { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) que no están fechados en un plazo. Sin la razón de no dar información cuantitativa, que va en la fila 100; lo de cada plazo va en la tabla de la fila 97" },
   { fila: 98, codigo: "NIIF S2 16(d)", porEfecto: true, sinFechados: true, enfoque: "los efectos previstos sobre los flujos de efectivo que no están fechados en un plazo, sin inferir flujos que los hechos no dan. Sin el efecto sobre el margen ni la razón de no cuantificar, que van en la fila 96; lo de cada plazo va en la tabla de la fila 99" },
   { fila: 110, codigo: "NIIF S2 22(a)(iii)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "la capacidad de la Compañía para ajustar o adaptar su estrategia y modelo de negocio, con lo que no está fechado en un plazo; lo de cada plazo va en la tabla de la fila 111" },
   // Encargo 2026-10-24-deuda-s2-formato, decisiones (b) y (c): síntesis que no repiten la fila que da el detalle.
@@ -356,6 +359,14 @@ export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; pa
  * alta, la cobertura del bloque manda y esto no se usa. No se usa con
  * documentos de clientes (registro del encargo).
  */
+/**
+ * Cifras capturadas que un código recibe además de su cobertura (v6.2, Excel 192): NIIF S2 32 necesita la composición de
+ * la cartera capturada (por producto) para no copiar la desagregación de una frase narrativa que la contradice.
+ */
+export const CIFRAS_DEL_CODIGO: Record<string, RegExp[]> = {
+  "NIIF S2 32": [/^cartera_de_credito_total_\d{4}\.valor_\d{4}$/],
+};
+
 export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
   // La razón de que no haya cifras: emisora.compromiso_transparencia_limitaciones (decisión de Esteban, Fase 3).
   "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, HECHO_RAZON["NIIF S2 21(a)"].clave, claveExacta(DECLARACIONES_PERFIL.criterio_cuantificacion.clave)],
@@ -429,7 +440,13 @@ export function erroresDeForma(texto: string, codigo: string): string[] {
   if (b65 >= 0) {
     const tipo = B65C_TIPO_RE[Math.floor(b65 / 5)];
     if (!tipo.re.test(texto)) errores.push(`no nombra el tipo de esta celda (${tipo.nombre}); di «${tipo.nombre}», no «riesgos climáticos» en general`);
+    // Efectos ACTUALES (situación y rendimiento del periodo; v6.1, K823/K825): el criterio de no cuantificar solo aplica a
+    // efectos previstos; un efecto del periodo no se dice «no cuantificado».
+    if (b65 % 5 < 2 && oracionesDe(texto).some((o) => /no (se )?(han? )?cuantific|no (fueron|han sido) cuantificad/i.test(o) && !/previst|esperad|se espera|futur/i.test(o))) errores.push("dice que los efectos del periodo no se cuantificaron: el criterio de no cuantificar es solo de los efectos previstos; nombra las partidas del periodo que dan los hechos");
   }
+  // NIIF S2 30 no es una exención (v6.1, FN-CB-410b.2): es el uso de información razonable y sustentable sin costo o
+  // esfuerzo desproporcionado.
+  if (/exenci[oó]n (por|de|del)( el)? costo o esfuerzo/i.test(texto)) errores.push("llama «exención» al costo o esfuerzo desproporcionado: NIIF S2 30 no es una exención; no lo menciones si los hechos no lo piden");
   return errores;
 }
 
@@ -447,6 +464,25 @@ export function conSeparadoresDeMiles(texto: string, hechos: { valor: number | n
     t = t.replace(new RegExp(`(?<![\\d.,])${crudo.replace(".", "\\.")}(?![\\d,]|\\.\\d)`, "g"), MILES.format(Number(v)));
   }
   return t;
+}
+
+/**
+ * Desagregaciones sin respaldo (v6.2, Excel 192): «composición de la cartera por sector económico» cuando las fuentes la
+ * dan por producto. La desagregación que nombra la respuesta tiene que estar en las fuentes como composición por lo mismo.
+ */
+export function desagregacionSinRespaldo(texto: string, fuentes: string[], cifras: string[] = []): string[] {
+  const todo = fuentes.join("\n");
+  // Las desagregaciones que dan las cifras capturadas («composición por producto: empresarial 52%…») mandan sobre la
+  // narrativa (también sobre la sección aprobada, que puede repetir una frase contradictoria del demo).
+  const deCifras = [...cifras.join("\n").matchAll(/composici[oó]n (?:de (?:la )?cartera )?por ([\p{L}]+(?: [\p{L}]+)?)/giu)].map((m) => m[1].toLowerCase());
+  const out: string[] = [];
+  for (const m of texto.matchAll(/composici[oó]n de (?:la )?cartera por ([\p{L} ]+?)(?=,|\.|;|\s+y\s|\s+e\s|$)/giu)) {
+    const por = m[1].trim();
+    const re = new RegExp(`composici[oó]n (?:de (?:la )?cartera )?por ${por.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "iu");
+    if (!re.test(todo)) out.push(`describe la composición de la cartera «por ${por}», que las fuentes no dan así: usa la desagregación de los hechos`);
+    else if (deCifras.length && !deCifras.some((d) => por.toLowerCase().startsWith(d))) out.push(`describe la composición de la cartera «por ${por}», pero la cifra capturada la da por ${deCifras[0]}: usa esa`);
+  }
+  return out;
 }
 
 export function validarRespuesta(
@@ -471,7 +507,10 @@ export function validarRespuesta(
   if (ajenas.length) errores.push(mensajeFormaAjena(ajenas, forma));
   const prohibidas = vocabularioProhibidoEn(t);
   if (prohibidas.length) errores.push(`usa vocabulario de proceso interno: ${prohibidas.join(", ")}`);
-  const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? String(h.valor) : ""])].join("\n"));
+  errores.push(...desagregacionSinRespaldo(t, [ctx.textoBloque, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto])], ctx.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)));
+  // El valor del hecho también con separador de miles («488,000»): numerosDe lee esa forma como 488000 y como 488, y la
+  // respuesta la escribe así (conSeparadoresDeMiles) aunque el hecho diga «488000» (demo v6, K741).
+  const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? `${h.valor} ${MILES.format(Number(h.valor))}` : ""])].join("\n"));
   const fuera = numerosDe(t).filter((x) => !permitidos.some((p) => Math.abs(p - x) <= Math.abs(x) * 1e-9 + 1e-9));
   if (fuera.length) errores.push(`cifras que no están en la sección ni en los hechos: ${fuera.join(", ")}`);
   const locales = new Set(ctx.hechos.map((h) => h.local));
@@ -514,11 +553,13 @@ export function respuestaDeCaptura(valor: number, unidad: string | null, periodo
  */
 export const remision = (numero: number, numeracion?: Map<number, number>) => {
   const b = BLOQUES.find((x) => x.numero === numero);
-  return b ? `Ver sección ${numeracion?.get(numero) ?? numero} · ${b.titulo}` : null;
+  // Por nombre de sección, nunca por número (v6.1, Excel 268: «sección 38» no existe en el Word con numeración propia).
+  void numeracion;
+  return b ? `Ver sección «${b.titulo}»` : null;
 };
 
 /** El texto sin la remisión que añade el código (para reutilizarlo con la numeración vigente). */
-export const sinRemision = (t: string) => t.replace(/\s*Ver sección \d+ · [^.]*\.?\s*$/u, "").trim();
+export const sinRemision = (t: string) => t.replace(/\s*Ver sección (?:\d+ · [^.]*|«[^»]*»)\.?\s*$/u, "").trim();
 
 /**
  * Una respuesta como va en un Excel exportado (CLAUDE.md §5, 1.10): la base
@@ -529,6 +570,11 @@ export function pendienteEnTextoPlano(texto: string): string {
   // Un código de lista del formato («[815200] Finanzas - …») es el valor literal de la opción y conserva su «[»
   // (decisión de Esteban); el validador de entrega lo acepta solo si coincide con una opción del formato.
   return texto.replace(/\[Pendiente:\s*([^\]]*)\]/g, "Pendiente: $1").replace(/^\[+(?!\d{6}\])\s*/, "").trim();
+}
+
+/** «Sí, la gerencia utiliza…» → «La gerencia utiliza…» (Excel de taxonomía, v6.1). Un «Sí» solo (booleano) no se toca. */
+export function sinSiInicial(t: string): string {
+  return t.replace(/^Sí,\s+(\p{L})/u, (_m, l: string) => l.toUpperCase());
 }
 
 /** Para el Formato electrónico: un pendiente deja la celda vacía. */
@@ -591,7 +637,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // bloque cambiado, solo se regeneran las respuestas de ese bloque.
     db.from("respuestas_datapoint").select("documento_id, destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("reporte_id", doc.reporte_id).eq("origen", "modelo"),
     db.from("datapoints_taxonomia").select("id, codigo, descripcion, marco, estandar, edicion").eq("activo", true),
-    db.from("perfil_emisor").select("glosario, sector_sasb, forma_de_referencia, denominacion_formal, nombre_corto").eq("tenant_id", doc.tenant_id).maybeSingle(),
+    // Todo el Perfil: `banco_sistemico_global` (FN-CB-550a.1, v6.1) puede no existir aún en un ambiente sin su migración.
+    db.from("perfil_emisor").select("*").eq("tenant_id", doc.tenant_id).maybeSingle(),
     db.from("mapeo_solicitud_datapoint").select("datapoint_id, solicitud:solicitudes!inner(id, reporte_id, titulo)").eq("solicitud.reporte_id", doc.reporte_id),
   ]);
 
@@ -717,13 +764,50 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   };
   /** GRI/SASB: captura → sección aprobada (FUENTE_GRI_SASB) → evidencia directa → pendiente (lib/suplemento/gri-sasb.ts). */
   const planGriSasb = (codigo: string): Plan | PlanEvidencia => {
-    const captura = deCaptura(codigo);
-    if (captura) return captura;
-    const seccion = seccionDe(codigo, porBloque, hechos.values());
-    if (seccion) return { codigo, via: "bloque", bloque: seccion.bloque, hechos: seccion.hechos };
+    // Por regla (v6.1): GRI 2-3 del reporte y su régimen; FN-CB-550a.1 del dato del Perfil.
+    if (codigo === "GRI 2-3") {
+      return { codigo, via: "regla", estado: "respuesta", texto: respuestaGri23({ ejercicio: ens.reporte.ejercicio, e4: !!alivios.E4 }), notas: ["Pendiente parcial: punto de contacto para preguntas sobre el informe (la plataforma no lo captura)."] };
+    }
+    // GRI 2-4 en el primer periodo (v6.2): sin información de periodos anteriores que actualizar, como K718.
+    if (codigo === "GRI 2-4" && doc.regimen === "primer_anio") return { codigo, via: "regla", estado: "respuesta", texto: RESPUESTA_GRI_24_PRIMER_ANIO };
+    // FN-CB-410b.1 con C4 vigente (v6.2): emisiones financiadas absolutas no reveladas por el alivio, como en NIIF.
+    if (codigo === "FN-CB-410b.1" && alivios.C4) return { codigo, via: "regla", estado: "no_aplica", texto: textoAlivio("C4", "cifra") };
+    if (codigo === "FN-CB-550a.1") {
+      const gsib = respuestaGsib((perfil as Record<string, unknown> | null)?.banco_sistemico_global as boolean | null | undefined);
+      return gsib
+        ? { codigo, via: "regla", estado: "no_aplica", texto: gsib }
+        : { codigo, via: "regla", estado: "pendiente", texto: marcador("si la Compañía es un banco de importancia sistémica global (G-SIB) y, en su caso, su puntuación", "Perfil del emisor, sección Identidad (banco de importancia sistémica global)") };
+    }
+    const fuente = FUENTE_GRI_SASB[codigo];
     const sols = solicitudesDe(codigo);
-    const extractos = sols.filter((s) => extractoDe.has(s.id)).map((s) => ({ solicitud: s.id, titulo: s.titulo, texto: extractoDe.get(s.id)! }));
+    // Extractos confirmados de sus solicitudes; con `temaEnEvidencia` (2-20), solo los que tratan el tema del contenido.
+    const extractos = sols
+      .filter((s) => extractoDe.has(s.id) && (!fuente?.temaEnEvidencia || fuente.tema.test(extractoDe.get(s.id)!)))
+      .map((s) => ({ solicitud: s.id, titulo: s.titulo, texto: extractoDe.get(s.id)! }));
+    if (fuente?.evidenciaPrimero && extractos.length) return { codigo, via: "evidencia", extractos };
+    // `extractosEnSeccion` (2-9): los extractos confirmados de sus solicitudes entran como hechos de la sección, con id
+    // «sol:<solicitud>» (no son del libro; la columna `hechos` de la respuesta es JSON).
+    const conExtractos = (sec: { bloque: number; hechos: string[] }) => {
+      if (!fuente?.extractosEnSeccion) return sec.hechos;
+      const adicionales = extractos.map((x) => {
+        const id = `sol:${x.solicitud}`;
+        if (!hechos.has(id)) hechos.set(id, { id, clave: `extracto.${x.solicitud}`, libro_id: porBloque.get(sec.bloque)?.libro_id ?? "", tipo: "otro", enunciado: `Extracto confirmado de «${x.titulo}»: ${x.texto}`, extracto: x.texto, valor: null, unidad: null, estado: "vigente", bloque_dueno: null, bloques_referencia: [] });
+        return id;
+      });
+      return [...sec.hechos, ...adicionales];
+    };
+    const seccionPrimero = fuente?.seccionPrimero ? seccionDe(codigo, porBloque, hechos.values()) : null;
+    if (seccionPrimero) return { codigo, via: "bloque", bloque: seccionPrimero.bloque, hechos: conExtractos(seccionPrimero) };
+    const captura = deCaptura(codigo);
+    // La captura nombra qué mide (título de su solicitud); en 401-1, también lo que no desglosa (v6.1).
+    if (captura) return { ...captura, texto: respuestaGriDeCaptura(codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
+    const seccion = seccionDe(codigo, porBloque, hechos.values());
+    if (seccion) return { codigo, via: "bloque", bloque: seccion.bloque, hechos: conExtractos(seccion) };
     if (extractos.length) return { codigo, via: "evidencia", extractos };
+    // Con `temaEnEvidencia`, los extractos que no tratan el tema no responden: pendiente con la causa (2-20 no repite 2-19).
+    if (fuente?.temaEnEvidencia && sols.some((s) => extractoDe.has(s.id))) {
+      return { codigo, via: "regla", estado: "pendiente", texto: marcador(`hechos del proceso de determinación que pide ${codigo}`, `solicitud ${sols[0].titulo}`), notas: ["Sus extractos tratan la política (la responde otro contenido), no el proceso que pide este."] };
+    }
     return {
       codigo,
       via: "regla",
@@ -780,7 +864,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const declaracion = DECLARACION_DE_CODIGO[codigo];
     const deLaDeclaracion = declaracion && cob ? hechosPorClave([claveExacta(declaracion.clave)], porBloque.get(cob.bloque)?.libro_id) : [];
     if (cob && (cob.estado === "cubierto" || cob.estado === "parcial") && cob.hechos.length) {
-      return { codigo, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...deLaDeclaracion, ...cob.hechos])] };
+      const cifras = CIFRAS_DEL_CODIGO[codigo] ? hechosPorClave(CIFRAS_DEL_CODIGO[codigo], porBloque.get(cob.bloque)?.libro_id) : [];
+      return { codigo, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...deLaDeclaracion, ...cob.hechos, ...cifras])] };
     }
     if (cob && deLaDeclaracion.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: deLaDeclaracion };
     // Alta posterior a la aprobación: los hechos vigentes del libro del bloque dueño, por clave.
@@ -883,7 +968,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       : c.noRepite
       ? `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en una o dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que da el detalle en otra fila. Sin cifras que no estén en los hechos.`
       : `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
-    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...propios, ...prestados])] });
+    const deCaptura = c.cifras ? hechosPorClave(c.cifras, porBloque.get(cob.bloque)?.libro_id) : [];
+    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...propios, ...prestados, ...deCaptura])] });
   }
   // 29(e) por tipo: los hechos de despliegue de capital del libro del bloque del tipo, uno por enunciado; sin ninguno,
   // no hay pedido y la celda queda vacía.
@@ -984,6 +1070,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   const apiKey = opciones.apiKey ?? process.env.ANTHROPIC_API_KEY;
   // Las descripciones con enfoque nombran a «la Compañía»: en la forma de la emisora, ANTES de la firma del pedido
   // (con el default no cambian y las respuestas reutilizadas conservan su firma).
+  // NIIF S2 36 (v6.1, Excel 271): solo los objetivos de emisiones de GEI (tipo capturado), sin nombrar los demás.
+  const objetivosGei = ens.objetivos.filter((o) => o.ambito === "climatico" && /gases de efecto invernadero|emisiones de GEI/i.test(o.tipo ?? "")).map((o) => o.nombre.replace(/\[DEMO\]\s*/i, "").trim());
+  if (objetivosGei.length) {
+    for (const [k, x] of descripcion) {
+      if (!/^NIIF S2 36 \((a|b|c|d)\)/.test(k)) continue;
+      descripcion.set(k, `${x} Los objetivos de emisiones de gases de efecto invernadero de la Compañía son: ${objetivosGei.map((n) => `«${n}»`).join(", ")}. Responde solo sobre ${objetivosGei.length === 1 ? "ese objetivo" : "esos objetivos"} y no menciones los demás objetivos (de cartera o de medición).${objetivosGei.length === 1 ? ` Si la respuesta es negativa, usa exactamente esta forma: «La Compañía no … en ninguno de sus objetivos de emisiones de GEI; el único es el de ${objetivosGei[0].charAt(0).toLowerCase()}${objetivosGei[0].slice(1)}.»` : ""}`);
+    }
+  }
   for (const [k, x] of descripcion) descripcion.set(k, enForma(x, voz.forma));
   const trabajos = [...porBloqueModelo.entries()].map(([numero, ps]) => async () => {
     if (opciones.latido && !(await opciones.latido())) throw new Error("La reserva de las respuestas pasó a otra corrida.");
@@ -1102,7 +1196,7 @@ async function responderBloque(
     // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe. Los requisitos que se
     // responden por clave de hechos (HECHOS_POR_CLAVE) no se reutilizan: sus hechos cambian sin que cambie el bloque.
     // Tampoco una que ya no pasa las reglas de forma (erroresDeForma): se regenera sola, sin tocar las demás.
-    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length) reutilizadas.set(clave(p), prev);
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length && !desagregacionSinRespaldo(prev.texto, [v.texto, ...p.hechos.flatMap((h) => [h.enunciado, h.extracto])], p.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)).length) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;
@@ -1134,6 +1228,21 @@ async function responderBloque(
       if (deLaRazon.length && !deLaRazon.some((h) => s.hechos.includes(h.local))) errores.push(`no da la razón que pide el requisito: debe apoyarse en el hecho ${deLaRazon[0].local} y citarlo`);
       // Conceptos con enfoque del mismo datapoint (97/99): ninguna oración compartida con el anterior.
       const yo = CONCEPTOS_FORMATO_CON_ENFOQUE.find((c) => `fila:${c.fila}` === p.codigo);
+      // B65(c), efectos actuales (v6.1, K823/K825): si los hechos traen lo capitalizado (situación) o lo registrado como
+      // gasto (rendimiento) con su importe, la respuesta nombra esa partida con su importe.
+      const iB65 = CONCEPTOS_B65C.findIndex((c) => `fila:${c.fila}` === p.codigo);
+      if (iB65 >= 0 && iB65 % 5 < 2) {
+        const re = iB65 % 5 === 0 ? /capitaliz/i : /(como|en) gasto|gastos? de|se registr/i;
+        const importes = [...new Set(p.hechos.flatMap((h) => h.enunciado.split(/;|,\s*y\s|\.\s/).filter((c) => re.test(c) && /millones/i.test(c)).flatMap((c) => numerosDe(c).filter((x) => x > 0 && !esAnio(x)))))];
+        const enTexto = numerosDe(g.texto);
+        if (importes.length && !importes.some((x) => enTexto.some((y) => Math.abs(x - y) < 1e-9))) errores.push(`no nombra ${iB65 % 5 === 0 ? "la partida capitalizada" : "la partida registrada como gasto"} que dan los hechos (${importes.join(", ")} millones): es un efecto del periodo, con su importe`);
+      }
+      // Cifras capturadas obligatorias (`conCifras`): cada hecho de captura (clave «….valor_<año>») con valor va en el texto.
+      if (yo?.cifras) {
+        const enTexto = numerosDe(g.texto);
+        const faltan = p.hechos.filter((h) => h.valor != null && /\.valor_\d{4}$/.test(ctx.hechos.get(h.id)?.clave ?? "") && !enTexto.some((x) => Math.abs(x - Number(h.valor)) <= Math.abs(Number(h.valor)) * 1e-9 + 1e-9));
+        if (faltan.length) errores.push(`no da la cantidad capturada de ${faltan.map((h) => `${h.local} (${h.valor}${h.unidad ? ` ${h.unidad}` : ""})`).join(", ")}: los datos de entrada llevan sus cantidades, no una remisión a otra sección`);
+      }
       const norm = (o: string) => o.toLowerCase().replace(/\s+/g, " ").trim();
       const repetidasDe = (previa: string | null) => (previa ? oracionesDe(g.texto).filter((o) => oracionesDe(previa).some((q) => norm(q) === norm(o))) : []);
       // También contra la síntesis del mismo código (84 para 16(a)): ninguna celda del párrafo repite una oración de otra.
