@@ -446,8 +446,11 @@ ocurra primero; la fecha la fija Esteban con O'Donnell.
 
 **Datos del Perfil y de la declaración** (Formato BMV 2025 publicado, ODOCK / CIB2659):
 - fiduciario: «Banco Multiva, S.A., Institución de Banca Múltiple, Grupo Financiero Multiva» (p. 1);
-- denominación formal: «Fideicomiso CIB/2659», como el informe nombra al fideicomiso en su texto de gobierno
-  («Fideicomiso CIB/2659 (ODOCK18)»). La p. 1 no trae una denominación del fideicomiso;
+- denominación formal: «Fideicomiso CIB/2659», como el Formato nombra al fideicomiso en su texto de gobierno
+  («Fideicomiso CIB/2659 (ODOCK18)»). Ni la p. 1 del Formato ni la página de identificación del IAS 2025 («Acerca de
+  este Informe», p. 67: «O’Donnell Capital Management, S. de R.L. de C.V., a través del fideicomiso CKD ODOCK18») traen
+  una denominación formal del fideicomiso (revisado el 10/11/2026, decisión de Esteban). **Dato a confirmar con
+  O'Donnell antes del Formato 2026**, junto con la discrepancia IF-EN / IF-RS;
 - declaración de cumplimiento 2025: «con reserva» (S1.72.1 «No»), con el texto de la p. 41 tal cual, comillas y puntos
   suspensivos incluidos. El paso `reportes` la escribe en el reporte 2025 (columnas de v46).
 
