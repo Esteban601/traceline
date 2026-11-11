@@ -44,6 +44,11 @@ export const GLOSARIO_PLATAFORMA: { termino: string; re: RegExp }[] = [
   { termino: "ampliación del catálogo", re: P("ampliaci[oó]n del cat[aá]logo") },
   { termino: "por decidir", re: P("por decidir") },
   { termino: "sin mapeo", re: P("sin mapeo") },
+  // Voz de proceso (CLAUDE.md 1.15, correcciones v6.2): el texto habla de sí mismo como respuesta o celda. «La
+  // respuesta» solo como sujeto de un verbo de proceso: «la respuesta de la Compañía a los riesgos» es voz legítima.
+  { termino: "la respuesta", re: /(?<!\p{L})(?:la|esta|la presente) respuesta (?:solo |únicamente )?(?:cubre|describe|incluye|no incluye|se refiere|se limita|abarca|trata|responde|contiene|presenta)(?!\p{L})/iu },
+  { termino: "esta celda", re: P("estas? celdas?") },
+  { termino: "este campo", re: P("est(?:e|os) campos?") },
 ];
 
 /** Los términos, para los prompts y las rúbricas (se listan, no se copian). */
@@ -65,7 +70,8 @@ const RE_PENDIENTE = /\[Pendiente:[^\]]*\]/g;
  */
 // «Validado por …» es validación de un tercero (NIIF S2 34; «no está validado por SBTi»); si el tercero fuera la
 // plataforma, «IRStrat» o «plataforma» siguen en el texto y el glosario los detecta.
-const EXCEPCIONES = [/(?<!\p{L})validad[oa]s? por(?!\p{L})/giu, /(?<!\p{L})bloques? de texto(?!\p{L})/giu];
+// «Este campo es opcional…» es la nota de la plantilla BMV (columna I del Formato, CLAUDE.md 1.15).
+const EXCEPCIONES = [/(?<!\p{L})validad[oa]s? por(?!\p{L})/giu, /(?<!\p{L})bloques? de texto(?!\p{L})/giu, /(?<!\p{L})este campo es opcional(?!\p{L})/giu];
 
 /**
  * Términos del glosario presentes FUERA del marcador de pendiente. Devuelve los
