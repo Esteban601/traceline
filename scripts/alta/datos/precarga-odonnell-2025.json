@@ -1,0 +1,720 @@
+{
+ "_nota": "Datos de la precarga 2025 de O'Donnell (vía C), extraídos del texto del Formato BMV 2025 publicado (ODOCK -.pdf) y del IAS 2025 (IAS-OD-VF-ESP-2025.pdf) con pdftotext y revisados el 10/11/2026: cifras y textos literales, páginas del PDF (en el IAS coinciden con las impresas; su índice GRI va desfasado). Una corrección se hace aquí, con su página. Decisiones de Esteban del 10/11/2026: los 6 objetivos del Formato, las metas EDGE publicadas, 36(e) como lo publica el Formato y el capital de los riesgos (publicado en $0) vacío, con nota.",
+ "fecha": "2026-11-10",
+ "marca": "[PRECARGA 2025 IRStrat]",
+ "fuentes": {
+  "formato": {
+   "archivo": "ODOCK -.pdf",
+   "sha256": "1e9aeedaf2db18fbc9d67f7cef27b35286c9a6498b741121e05f35d744ec5298"
+  },
+  "ias": {
+   "archivo": "IAS-OD-VF-ESP-2025.pdf",
+   "sha256": "2436814d5201bf32a665ec046dad96a45632eb7841b3cf6a143306f8bff5f9e5"
+  }
+ },
+ "solicitudes": {
+  "10": "Plantilla y rotación de personal 2025",
+  "20": "Horas de capacitación 2025",
+  "30": "Diversidad e inclusión en plantilla y órganos de gobierno",
+  "40": "Índice de rotación voluntaria 2025 (%)",
+  "50": "Política de derechos humanos y debida diligencia",
+  "60": "Consumo de energía eléctrica 2025 por instalación (kWh)",
+  "70": "Inventario GEI Alcance 1 con memoria de cálculo",
+  "80": "Inventario GEI Alcance 2 (ubicación y mercado)",
+  "90": "Consumo de agua 2025 por fuente (m3)",
+  "100": "Generación y disposición de residuos 2025 (ton)",
+  "110": "Riesgos físicos climáticos en instalaciones",
+  "120": "Consumo de combustibles fósiles 2025",
+  "130": "Inversiones y gastos ambientales 2025 (CAPEX/OPEX)",
+  "140": "Ingresos asociados a productos/servicios sostenibles 2025",
+  "150": "Precio interno del carbono aplicado en decisiones de inversión",
+  "160": "Efectos financieros de riesgos climáticos en estados financieros",
+  "170": "Composición y responsabilidades del Consejo en sostenibilidad",
+  "180": "Competencias del Consejo en temas ESG y clima",
+  "190": "Plan de transición climática y objetivos de reducción",
+  "200": "Análisis de escenarios climáticos y resiliencia",
+  "210": "Consumo eléctrico corporativo 2025 (consolidado Finanzas)",
+  "220": "Emisiones GEI Alcance 3 — total (todas las categorías)",
+  "230": "Emisiones GEI Alcance 3 — Categoría 1-Bienes y servicios adquiridos",
+  "240": "Emisiones GEI Alcance 3 — Categoría 2-Bienes de capital",
+  "250": "Emisiones GEI Alcance 3 — Categoría 3-Actividades relacionadas con el combustible y la energía no incluidas en las emisiones de gases de efecto invernadero de Alcance 1 o Alcance 2",
+  "260": "Emisiones GEI Alcance 3 — Categoría 4-Transporte y distribución",
+  "270": "Emisiones GEI Alcance 3 — Categoría 5-Residuos generados en las operaciones",
+  "280": "Emisiones GEI Alcance 3 — Categoría 6-Viajes de negocios",
+  "290": "Emisiones GEI Alcance 3 — Categoría 7: Desplazamientos de los empleados",
+  "300": "Emisiones GEI Alcance 3 — Categoría 8-Activos en arrendamiento financiero",
+  "310": "Emisiones GEI Alcance 3 — Categoría 9-Transporte y distribución",
+  "320": "Emisiones GEI Alcance 3 — Categoría 10-Transformación de los productos vendidos",
+  "330": "Emisiones GEI Alcance 3 — Categoría 11-Uso de los productos vendidos",
+  "340": "Emisiones GEI Alcance 3 — Categoría 12-Tratamiento de los productos vendidos al final de su vida útil",
+  "350": "Emisiones GEI Alcance 3 — Categoría 13-Activos arrendados en fases posteriores",
+  "360": "Emisiones GEI Alcance 3 — Categoría 14-Franquicias",
+  "370": "Emisiones GEI Alcance 3 — Categoría 15-Inversiones"
+ },
+ "perfil": {
+  "criterio_cuantificacion": {
+   "texto": "La Emisora no proporciona información cuantitativa sobre los efectos financieros individuales actuales o previstos de determinados riesgos y oportunidades relacionados con la sostenibilidad y el clima debido a que, al cierre del ejercicio 2025, dichos efectos no pueden identificarse ni aislarse razonablemente de otros factores que influyen en el desempeño del negocio y en el mercado inmobiliario. Asimismo, la estimación cuantitativa de los efectos financieros futuros está sujeta a un alto grado de incertidumbre, derivado de factores tales como la evolución del marco regulatorio, la disponibilidad y calidad de la información sobre emisiones y riesgos climáticos, el comportamiento de los mercados, el desarrollo tecnológico, las condiciones macroeconómicas y la magnitud, frecuencia y ubicación de los eventos físicos asociados al cambio climático. En consecuencia, la administración considera que la cuantificación de estos efectos podría no proporcionar información suficientemente confiable o útil para los usuarios de los estados financieros en el periodo de reporte. Por ello, la Emisora presenta información cualitativa sobre la naturaleza de los riesgos y oportunidades, su posible incidencia sobre la estrategia, el modelo de negocio y la situación financiera, así como las acciones implementadas para su gestión. La Emisora continuará fortaleciendo sus metodologías de medición, la disponibilidad de información y sus capacidades de análisis, incluyendo el desarrollo de escenarios climáticos y la ampliación del inventario de emisiones de gases de efecto invernadero, con el objetivo de evaluar la viabilidad de incorporar estimaciones cuantitativas en futuros periodos de reporte, cuando exista una base razonable y suficientemente confiable para ello. Resiliencia Evaluación cualitativa y, en su caso, cuantitativa de la resiliencia de su estrategia y modelo de negocio en relación con sus riesgos relacionados con la sostenibilidad y el",
+   "fuente": "formato",
+   "paginas": [
+    31
+   ]
+  },
+  "congruencia_estados_financieros": {
+   "pendiente": "El Formato no trae una declaración de congruencia de datos y supuestos con los estados financieros (NIIF S2 B65(e)), ni en las pp. 27–31 ni en otra parte; el IAS 2025 tampoco."
+  }
+ },
+ "registros": [
+  {
+   "n": 1,
+   "nombre": "Estrés hídrico en parques industriales",
+   "tipo": "riesgo_fisico",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo físico",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "La operación de los inmuebles del portafolio puede verse afectada por el incremento del estrés hídrico en las regiones donde se ubican los activos. La disminución en la disponibilidad de agua o el aumento en los costos asociados a su extracción, suministro y tratamiento podría incrementar los gastos operativos (OPEX), requerir inversiones adicionales (CAPEX) para implementar medidas de eficiencia o reutilización del recurso y afectar el atractivo de los inmuebles para inquilinos actuales y potenciales, con un posible impacto en los niveles de ocupación y en los ingresos por arrendamiento. Análisis de resiliencia climática: Como parte del proceso de identificación y evaluación de riesgos climáticos, la Administración analizó la resiliencia del portafolio bajo escenarios de transición hacia una economía baja en carbono y de incremento en la frecuencia e intensidad de eventos físicos asociados al cambio climático. El análisis consideró posibles efectos sobre ingresos por arrendamiento, costos operativos, inversiones de capital, costos de seguros y valor razonable de los activos. Con base en dicha evaluación, al cierre de 2025 no se identificaron impactos materiales que comprometieran la capacidad del portafolio para generar flujos de efectivo o continuar operando bajo su modelo de negocio.",
+   "paginas": [
+    6,
+    7
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 6–7: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 2,
+   "nombre": "Eventos extremos (huracanes, tormentas, inundaciones)",
+   "tipo": "riesgo_fisico",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo físico",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo"
+   ],
+   "descripcion": "La Emisora reconoce que la mayor frecuencia e intensidad de fenómenos meteorológicos extremos, como lluvias intensas, tormentas, inundaciones y huracanes, puede afectar la operación, disponibilidad y estado físico de los inmuebles que integran su portafolio. Estos eventos pueden ocasionar daños a la infraestructura, interrupciones operativas, incrementos en los costos de mantenimiento y reparación, afectaciones a los inquilinos y retrasos en la ocupación o comercialización de los activos. La Emisora incorpora este riesgo dentro de su proceso de gestión integral de riesgos y promueve medidas para fortalecer la resiliencia de sus inmuebles.",
+   "paginas": [
+    7,
+    8
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 7–8: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 3,
+   "nombre": "Temperaturas extremas / olas de calor",
+   "tipo": "riesgo_fisico",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo físico",
+   "horizontes": [
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "El incremento en la frecuencia, intensidad y duración de las olas de calor y de las temperaturas extremas puede afectar el desempeño operativo y la eficiencia de los inmuebles que integran el portafolio de la Emisora. Estas condiciones pueden incrementar el consumo de energía para climatización, acelerar el desgaste de equipos e infraestructura, afectar el confort y productividad de los ocupantes e incrementar los costos de operación y mantenimiento. Asimismo, podrían reducir el atractivo de los inmuebles que no incorporen medidas de eficiencia energética o de adaptación al cambio climático. La Emisora promueve la incorporación de criterios de eficiencia energética y sostenibilidad en el desarrollo y administración de sus activos para fortalecer su resiliencia frente a este riesgo.",
+   "paginas": [
+    8,
+    9
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 8–9: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 4,
+   "nombre": "Eficiencia energética de edificios",
+   "tipo": "oportunidad",
+   "categoria_formato": "Oportunidad",
+   "tipo_formato": "Riesgo de transición",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "La Emisora monitorea los riesgos físicos derivados del cambio climático y considera la eficiencia energética, el desempeño de los sistemas de climatización y la incorporación de certificaciones ambientales en sus inmuebles como elementos que contribuyen a fortalecer la resiliencia del portafolio frente al incremento de temperaturas y a reducir los riesgos operativos y financieros asociados a eventos de calor extremo.",
+   "paginas": [
+    9
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 9–9: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 5,
+   "nombre": "Precio del carbono / exigencias ASG de inquilinos",
+   "tipo": "riesgo_transicion",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo de transición",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "La transición hacia una economía baja en carbono y el incremento de los requerimientos ASG por parte de inquilinos, inversionistas y entidades financieras podrían incrementar los costos de operación y de inversión de la Emisora. La implementación de medidas de descarbonización, certificaciones ambientales y mejoras en eficiencia energética podría requerir inversiones adicionales (CAPEX), mientras que el incumplimiento de las expectativas del mercado podría afectar la capacidad para atraer o retener inquilinos, incrementar la vacancia y reducir la competitividad del portafolio.",
+   "paginas": [
+    9,
+    10
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 0.0,
+    "notas": "Formato BMV 2025, pp. 9–10: 5 activos o actividades vulnerables o alineados, 0 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 6,
+   "nombre": "Regulación hídrica local (tarifas, permisos)",
+   "tipo": "riesgo_transicion",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo de transición",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "Los cambios en la regulación aplicable al uso, extracción, descarga y aprovechamiento del agua, así como el incremento en tarifas, restricciones de suministro o modificaciones en los permisos emitidos por las autoridades competentes, podrían incrementar los costos operativos y de inversión de la Emisora. Asimismo, el incumplimiento de los requisitos regulatorios podría generar sanciones, retrasos en el desarrollo de proyectos o la necesidad de realizar inversiones adicionales en infraestructura hidráulica y sistemas de tratamiento o reutilización de agua.",
+   "paginas": [
+    10,
+    11
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 10–11: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 7,
+   "nombre": "Concentración geográfica de activos",
+   "tipo": "riesgo_fisico",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo físico",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "La Emisora mantiene un portafolio de inmuebles industriales concentrado en determinadas regiones del país, lo que puede incrementar la exposición simultánea a riesgos físicos y de transición relacionados con el cambio climático, incluyendo estrés hídrico, eventos meteorológicos extremos, cambios regulatorios ambientales y variaciones en los costos de energía y agua. La concentración geográfica también puede amplificar los efectos de condiciones económicas o regulatorias específicas de una región sobre el desempeño operativo y financiero del portafolio. Como parte de su estrategia de gestión de riesgos, la Emisora evalúa la diversificación geográfica de sus inversiones y considera criterios de sostenibilidad y resiliencia climática en el análisis de nuevas adquisiciones y desarrollos.",
+   "paginas": [
+    11,
+    12
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 11–12: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 8,
+   "nombre": "Reputación ante inversionistas / tenants ESG",
+   "tipo": "oportunidad",
+   "categoria_formato": "Oportunidad",
+   "tipo_formato": "Riesgo de transición",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "El fortalecimiento del desempeño ambiental, social y de gobernanza (ASG) representa una oportunidad para incrementar el atractivo del portafolio ante inversionistas, instituciones financieras e inquilinos que incorporan criterios de sostenibilidad en sus decisiones. La adopción de certificaciones ambientales, la mejora en la eficiencia energética y la transparencia en la divulgación de información sobre sostenibilidad contribuyen a fortalecer la reputación de la Emisora, mejorar la competitividad de sus activos y facilitar el acceso a nuevas oportunidades de inversión y financiamiento.",
+   "paginas": [
+    12,
+    13
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 12–13: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  },
+  {
+   "n": 9,
+   "nombre": "Salud y seguridad de ocupantes y contratistas",
+   "tipo": "riesgo_fisico",
+   "categoria_formato": "Riesgo",
+   "tipo_formato": "Riesgo físico",
+   "horizontes": [
+    "Corto plazo",
+    "Mediano plazo",
+    "Largo plazo"
+   ],
+   "descripcion": "La Emisora reconoce que la protección de la salud y la seguridad de los ocupantes de sus inmuebles y de los contratistas que participan en actividades de operación, mantenimiento y desarrollo constituye un elemento fundamental para la gestión sostenible del portafolio. Eventos climáticos extremos, temperaturas elevadas y otras condiciones ambientales pueden incrementar los riesgos para las personas y afectar la continuidad de las operaciones. La Emisora promueve el cumplimiento de la normativa aplicable en materia de seguridad y salud, así como la implementación de medidas preventivas orientadas a reducir riesgos, fortalecer la continuidad operativa y proteger el bienestar de las personas que interactúan con sus activos.",
+   "paginas": [
+    13,
+    14
+   ],
+   "valores": {
+    "cantidad_activos": 5,
+    "porcentaje": 100.0,
+    "notas": "Formato BMV 2025, pp. 13–14: 5 activos o actividades vulnerables o alineados, 100 %. Gasto, financiación e inversión de capital publicados en $0, sin desglose: se dejan vacíos (capex por partida pendiente, decisión de Esteban del 10/11/2026)."
+   }
+  }
+ ],
+ "objetivos": [
+  {
+   "nombre": "Certificación EDGE del portafolio",
+   "ambito": "climatico",
+   "tipo": "Fijado por la entidad",
+   "metrica": "Porcentaje del portafolio con certificación EDGE",
+   "proposito_objetivo": "Incrementar progresivamente la superficie arrendable del portafolio que cuenta con certificación EDGE, promoviendo la incorporación de criterios de eficiencia energética, eficiencia en el uso del agua y construcción sostenible en los inmuebles de la Emisora. El objetivo busca fortalecer el desempeño ambiental del portafolio, mejorar su resiliencia frente a los riesgos relacionados con el cambio climático y responder a las expectativas de inversionistas, instituciones financieras e inquilinos en materia de sostenibilidad.",
+   "parte_entidad": "Portafolio inmobiliario de la Emisora.",
+   "periodo_aplicacion": "2023-2028",
+   "periodo_base": "2023",
+   "hito_intermedio": "Continuar incrementando la superficie arrendable certificada EDGE mediante la obtención de nuevas certificaciones para los inmuebles elegibles del portafolio, dando seguimiento anual al porcentaje de activos certificados y al cumplimiento de la estrategia de sostenibilidad de la Emisora.",
+   "tipo_objetivo": "Absoluto",
+   "alineacion_acuerdo_internacional": "El objetivo está alineado con los compromisos internacionales para mitigar el cambio climático, particularmente con el Acuerdo de París, al promover la eficiencia energética, el uso eficiente del agua y la incorporación de criterios de construcción sostenible en el portafolio inmobiliario. Asimismo, considera la evolución del marco regulatorio y las expectativas del mercado respecto de la descarbonización y la resiliencia de los activos inmobiliarios.",
+   "paginas": [
+    15,
+    16
+   ],
+   "detalle": {
+    "validacion_tercero": "Falso",
+    "procesos_revision": "La Emisora revisa periódicamente el avance del objetivo como parte de su estrategia de sostenibilidad. La revisión considera el porcentaje y la superficie arrendable del portafolio con certificación EDGE vigente, la evolución del portafolio inmobiliario, los cambios regulatorios, las condiciones del mercado y la viabilidad técnica, operativa y financiera de los inmuebles. En caso de ser necesario, el objetivo podrá actualizarse para reflejar cambios relevantes en la estrategia corporativa o en el entorno de negocio.",
+    "metricas_supervision": "Porcentaje del portafolio con certificación EDGE; Superficie arrendable certificada EDGE; La Emisora realiza revisiones periódicas del avance del objetivo con base en los resultados obtenidos y en la evolución de la estrategia de sostenibilidad. Durante el",
+    "revisiones": "La Emisora realiza revisiones periódicas del avance del objetivo con base en los resultados obtenidos y en la evolución de la estrategia de sostenibilidad. Durante el periodo sobre el que se informa no se realizaron modificaciones a la metodología de medición ni al alcance del objetivo. Cualquier revisión futura será documentada y divulgada cuando represente un cambio significativo en la estrategia o en los criterios de medición.",
+    "resultados": "Al cierre del periodo sobre el que se informa, la Emisora continuó avanzando en la incorporación de certificaciones EDGE en su portafolio inmobiliario. El seguimiento del objetivo se realiza mediante la medición de la superficie arrendable certificada y del porcentaje del portafolio que cuenta con certificación EDGE vigente. La obtención de estas certificaciones fortalece el desempeño ambiental del portafolio, contribuye a mejorar la eficiencia en el uso de energía y agua y refuerza la resiliencia de los activos frente a los riesgos relacionados con el cambio climático. La Emisora continuará promoviendo la certificación de inmuebles elegibles conforme a su estrategia de sostenibilidad. Valor del año actual: 60 % del portafolio con certificación EDGE; superficie arrendable certificada EDGE: 156,597."
+   },
+   "meta": "Porcentaje del portafolio con certificación EDGE: 70 % a corto plazo, 85 % a mediano plazo y 100 % a largo plazo. Superficie arrendable certificada EDGE: 260,995 a corto, mediano y largo plazo.",
+   "origen_objetivo": "Fijado por la Emisora"
+  },
+  {
+   "nombre": "Reducción de consumo de agua",
+   "ambito": "climatico",
+   "tipo": "Fijado por la entidad",
+   "metrica": null,
+   "proposito_objetivo": "Reducir progresivamente el consumo total de agua del portafolio mediante mejoras en la eficiencia hídrica y la optimización de la operación de los inmuebles.",
+   "parte_entidad": "Portafolio inmobiliario de la Emisora.",
+   "periodo_aplicacion": "2023-2028",
+   "periodo_base": "2023",
+   "hito_intermedio": "Incrementar la cobertura del monitoreo del consumo de agua e implementar acciones de eficiencia hídrica en los inmuebles del portafolio, promoviendo la reducción gradual del consumo conforme a la estrategia de sostenibilidad de la Emisora.",
+   "tipo_objetivo": "Absoluto",
+   "alineacion_acuerdo_internacional": "El objetivo está alineado con los compromisos internacionales para promover el uso sostenible de los recursos naturales y fortalecer la resiliencia frente a los efectos del cambio climático, particularmente en regiones expuestas a estrés hídrico.",
+   "paginas": [
+    16,
+    17
+   ],
+   "detalle": {
+    "validacion_tercero": "Falso",
+    "procesos_revision": "La Emisora revisa periódicamente el avance del objetivo mediante el seguimiento del consumo de agua, la cobertura de los datos disponibles y la implementación de medidas de eficiencia hídrica. El objetivo podrá actualizarse conforme evolucionen la estrategia de sostenibilidad, el portafolio y las condiciones regulatorias y operativas.",
+    "metricas_supervision": "Cobertura de datos de consumo de agua; Consumo total de agua del portafolio; La Emisora realiza revisiones periódicas del objetivo y de los resultados obtenidos. Durante el periodo sobre el que se informa no se realizaron modificaciones a la",
+    "revisiones": "La Emisora realiza revisiones periódicas del objetivo y de los resultados obtenidos. Durante el periodo sobre el que se informa no se realizaron modificaciones a la metodología de medición ni al alcance del objetivo.",
+    "resultados": "La Emisora mantiene el seguimiento del consumo de agua del portafolio y promueve la implementación de acciones orientadas a mejorar la eficiencia hídrica de sus inmuebles. Los resultados obtenidos servirán como base para identificar oportunidades de mejora y fortalecer la gestión sostenible del recurso hídrico."
+   },
+   "origen_objetivo": "Fijado por la Emisora"
+  },
+  {
+   "nombre": "Inventario GEI de inquilinos",
+   "ambito": "climatico",
+   "tipo": "Fijado por la entidad",
+   "metrica": "Emisiones de gases de efecto invernadero de Alcance 2",
+   "proposito_objetivo": "Incrementar progresivamente la cobertura del inventario de emisiones de GEI de los inquilinos del portafolio.",
+   "parte_entidad": "Inmuebles del portafolio en los que la Emisora cuenta con disponibilidad de información sobre el consumo energético de los inquilinos o puede obtenerla mediante mecanismos de colaboración.",
+   "periodo_aplicacion": "2023-2028",
+   "periodo_base": "2023",
+   "hito_intermedio": "Fortalecer los mecanismos de recopilación de información con los inquilinos e incrementar progresivamente la cobertura del inventario de emisiones de GEI asociadas a sus consumos energéticos.",
+   "tipo_objetivo": "De intensidad",
+   "alineacion_acuerdo_internacional": "El objetivo está alineado con el Acuerdo de París y con los compromisos nacionales e internacionales para mejorar la medición, gestión y divulgación de las emisiones de gases de efecto invernadero. Asimismo, responde a la creciente expectativa de inversionistas, instituciones financieras e inquilinos de contar con información climática más completa y transparente, incluyendo las emisiones asociadas a la ocupación y operación de los inmuebles del portafolio.",
+   "paginas": [
+    17,
+    18
+   ],
+   "detalle": {
+    "validacion_tercero": "Falso",
+    "procesos_revision": "La Emisora revisa periódicamente el avance del objetivo mediante el seguimiento de la cobertura y calidad de la información recopilada de los inquilinos, así como de la evolución de sus procesos internos para la elaboración del inventario de emisiones de GEI. La revisión considera cambios regulatorios, mejores prácticas de divulgación y la disponibilidad de información que permita ampliar gradualmente el alcance del inventario.",
+    "metricas_supervision": null,
+    "revisiones": "La Emisora revisa periódicamente el avance del objetivo considerando la disponibilidad y calidad de la información proporcionada por los inquilinos, la evolución de sus procesos internos de recopilación de datos y las mejores prácticas internacionales para la cuantificación y divulgación de emisiones de gases de efecto invernadero. Durante el periodo sobre el que se informa no se realizaron modificaciones materiales al objetivo ni a la metodología utilizada para su seguimiento. Cualquier cambio futuro será documentado y divulgado conforme a las Normas NIIF S1 y NIIF S2.",
+    "resultados": "Durante el periodo sobre el que se informa, la Emisora continuó fortaleciendo sus procesos para recopilar información que permita desarrollar un inventario de emisiones de gases de efecto invernadero asociado a los inquilinos del portafolio. El objetivo se encuentra en una etapa de consolidación de información y de fortalecimiento de los mecanismos de recopilación de datos, con el propósito de ampliar gradualmente la cobertura y mejorar la calidad de la información utilizada para la gestión de riesgos y oportunidades relacionados con el cambio climático.",
+    "gases_cubiertos": "Dióxido de carbono (CO2); Metano (CH4); Hidrofluorocarburos (HFC); Perfluorocarburos (PFC); Hexafluoruro de azufre (SF6)"
+   },
+   "origen_objetivo": "Fijado por la Emisora"
+  },
+  {
+   "nombre": "Seguridad laboral",
+   "ambito": "sostenibilidad",
+   "paginas": [
+    18
+   ],
+   "nota": "El Formato lo lista sin ningún campo (ni si es climático)."
+  },
+  {
+   "nombre": "Satisfacción de inquilinos",
+   "ambito": "sostenibilidad",
+   "paginas": [
+    18
+   ],
+   "nota": "El Formato lo lista como no relacionado con el clima, sin más campos."
+  },
+  {
+   "nombre": "Medición Alcance 1 y 3",
+   "ambito": "sostenibilidad",
+   "paginas": [
+    18
+   ],
+   "nota": "El Formato lo lista como no relacionado con el clima, sin más campos."
+  }
+ ],
+ "capturas": [
+  {
+   "orden": 10,
+   "valor": 43,
+   "unidad": "personas",
+   "fuente": "ias",
+   "paginas": [
+    50,
+    51
+   ],
+   "cita": "Plantilla laboral al cierre de 2025: «contamos con una plantilla laboral conformada por 43 colaboradores» (p. 50) y tablas de la p. 51 (total 2025: 43; 2024: 48; 2023: 54). Sin cifras de rotación."
+  },
+  {
+   "orden": 20,
+   "valor": 2,
+   "unidad": "horas",
+   "fuente": "ias",
+   "paginas": [
+    55
+   ],
+   "cita": "«Horas totales de capacitación» 2025: 2 (p. 55, Indicadores de Capacitación y desarrollo). La misma tabla publica 2 como «Promedio de horas de capacitación por colaborador» con 43 colaboradores: la fuente se contradice; se captura la cifra de la fila «Horas totales»."
+  },
+  {
+   "orden": 60,
+   "valor": 838.45,
+   "unidad": "MWh",
+   "fuente": "formato",
+   "paginas": [
+    2
+   ],
+   "cita": "«energía del portafolio ascendió a 838.45 MWh» (p. 2; también pp. 27 y 46). Total del portafolio, sin desglose por instalación. En MWh, como la declara la fuente."
+  },
+  {
+   "orden": 80,
+   "valor": 372.27,
+   "unidad": "tCO2e",
+   "fuente": "formato",
+   "paginas": [
+    2
+   ],
+   "cita": "«Las emisiones de Alcance 2 ascendieron a 372.27 toneladas de CO₂ equivalente» (p. 2), basadas en ubicación con el factor del Sistema Eléctrico Nacional. Basadas en mercado: no publicadas."
+  },
+  {
+   "orden": 90,
+   "valor": 283038,
+   "unidad": "m³",
+   "fuente": "formato",
+   "paginas": [
+    27
+   ],
+   "cita": "«consumo de agua (283,038 m³)» (p. 27), en el texto de efectos financieros. Sin desglose por fuente."
+  },
+  {
+   "orden": 100,
+   "valor": 1086.8,
+   "unidad": "t",
+   "fuente": "formato",
+   "paginas": [
+    27
+   ],
+   "cita": "«gestión de residuos (1,086.8 toneladas)» (p. 27), en el texto de efectos financieros. Sin desglose por tipo ni disposición."
+  }
+ ],
+ "textos": [
+  {
+   "orden": 30,
+   "fuente": "formato",
+   "paginas": [
+    19
+   ],
+   "extracto": "Asimismo, la organización cuenta con políticas de Diversidad, Equidad e Inclusión, Integridad y Anticorrupción, Privacidad, Gestión y Comunicación Responsable, así como una Declaración sobre la Relevancia del Desarrollo Sostenible y un Manifiesto de Tolerancia Cero a la Corrupción, que fortalecen la gestión de los riesgos y oportunidades relacionados con la sostenibilidad y el clima."
+  },
+  {
+   "orden": 50,
+   "fuente": "ias",
+   "paginas": [
+    55
+   ],
+   "extracto": "En O’Donnell, reconocemos la importancia de respetar los derechos humanos en nuestras operaciones y relaciones de negocio. Nuestro enfoque se basa en promover condiciones laborales dignas, seguras y respetuosas, así como en mantener relaciones comerciales alineadas con principios de integridad y responsabilidad. Como parte de nuestros lineamientos de inversión y operación, procuramos que los proyectos, contratistas y proveedores vinculados a nuestras actividades cumplan con estándares laborales aplicables y con prácticas que contribuyan a proteger la integridad de las personas involucradas en el desarrollo y operación de nuestros inmuebles. Nuestro compromiso incluye la prohibición del trabajo infantil y forzoso, la promoción de condiciones de trabajo seguras, el respeto a la libertad individual, la no discriminación y el cumplimiento de las disposiciones laborales aplicables. Asimismo, buscamos que nuestras relaciones con contratistas y socios de negocio se conduzcan bajo principios éticos, evitando cualquier práctica que pudiera vulnerar los derechos de trabajadores, comunidades o terceros relacionados con nuestras operaciones. Durante 2025, no se identificaron impactos negativos en materia de derechos humanos asociados directamente con nuestras operaciones. No obstante, continuaremos fortaleciendo nuestros procesos de debida diligencia, supervisión y comunicación para prevenir riesgos sociales y laborales en nuestra cadena de valor."
+  },
+  {
+   "orden": 110,
+   "fuente": "formato",
+   "paginas": [
+    6,
+    7,
+    8,
+    9,
+    11,
+    12,
+    13,
+    14
+   ],
+   "extracto": "1. Estrés hídrico en parques industriales: La operación de los inmuebles del portafolio puede verse afectada por el incremento del estrés hídrico en las regiones donde se ubican los activos. La disminución en la disponibilidad de agua o el aumento en los costos asociados a su extracción, suministro y tratamiento podría incrementar los gastos operativos (OPEX), requerir inversiones adicionales (CAPEX) para implementar medidas de eficiencia o reutilización del recurso y afectar el atractivo de los inmuebles para inquilinos actuales y potenciales, con un posible impacto en los niveles de ocupación y en los ingresos por arrendamiento. Análisis de resiliencia climática: Como parte del proceso de identificación y evaluación de riesgos climáticos, la Administración analizó la resiliencia del portafolio bajo escenarios de transición hacia una economía baja en carbono y de incremento en la frecuencia e intensidad de eventos físicos asociados al cambio climático. El análisis consideró posibles efectos sobre ingresos por arrendamiento, costos operativos, inversiones de capital, costos de seguros y valor razonable de los activos. Con base en dicha evaluación, al cierre de 2025 no se identificaron impactos materiales que comprometieran la capacidad del portafolio para generar flujos de efectivo o continuar operando bajo su modelo de negocio. 2. Eventos extremos (huracanes, tormentas, inundaciones): La Emisora reconoce que la mayor frecuencia e intensidad de fenómenos meteorológicos extremos, como lluvias intensas, tormentas, inundaciones y huracanes, puede afectar la operación, disponibilidad y estado físico de los inmuebles que integran su portafolio. Estos eventos pueden ocasionar daños a la infraestructura, interrupciones operativas, incrementos en los costos de mantenimiento y reparación, afectaciones a los inquilinos y retrasos en la ocupación o comercialización de los activos. La Emisora incorpora este riesgo dentro de su proceso de gestión integral de riesgos y promueve medidas para fortalecer la resiliencia de sus inmuebles. 3. Temperaturas extremas / olas de calor: El incremento en la frecuencia, intensidad y duración de las olas de calor y de las temperaturas extremas puede afectar el desempeño operativo y la eficiencia de los inmuebles que integran el portafolio de la Emisora. Estas condiciones pueden incrementar el consumo de energía para climatización, acelerar el desgaste de equipos e infraestructura, afectar el confort y productividad de los ocupantes e incrementar los costos de operación y mantenimiento. Asimismo, podrían reducir el atractivo de los inmuebles que no incorporen medidas de eficiencia energética o de adaptación al cambio climático. La Emisora promueve la incorporación de criterios de eficiencia energética y sostenibilidad en el desarrollo y administración de sus activos para fortalecer su resiliencia frente a este riesgo. 7. Concentración geográfica de activos: La Emisora mantiene un portafolio de inmuebles industriales concentrado en determinadas regiones del país, lo que puede incrementar la exposición simultánea a riesgos físicos y de transición relacionados con el cambio climático, incluyendo estrés hídrico, eventos meteorológicos extremos, cambios regulatorios ambientales y variaciones en los costos de energía y agua. La concentración geográfica también puede amplificar los efectos de condiciones económicas o regulatorias específicas de una región sobre el desempeño operativo y financiero del portafolio. Como parte de su estrategia de gestión de riesgos, la Emisora evalúa la diversificación geográfica de sus inversiones y considera criterios de sostenibilidad y resiliencia climática en el análisis de nuevas adquisiciones y desarrollos. 9. Salud y seguridad de ocupantes y contratistas: La Emisora reconoce que la protección de la salud y la seguridad de los ocupantes de sus inmuebles y de los contratistas que participan en actividades de operación, mantenimiento y desarrollo constituye un elemento fundamental para la gestión sostenible del portafolio. Eventos climáticos extremos, temperaturas elevadas y otras condiciones ambientales pueden incrementar los riesgos para las personas y afectar la continuidad de las operaciones. La Emisora promueve el cumplimiento de la normativa aplicable en materia de seguridad y salud, así como la implementación de medidas preventivas orientadas a reducir riesgos, fortalecer la continuidad operativa y proteger el bienestar de las personas que interactúan con sus activos."
+  },
+  {
+   "orden": 130,
+   "fuente": "formato",
+   "paginas": [
+    27
+   ],
+   "extracto": "La Emisora incurrió en gastos operativos asociados con el consumo de energía (838.45 MWh), consumo de agua (283,038 m³), gestión de residuos (1,086.8 toneladas) y operación de plantas de tratamiento de agua, los cuales forman parte de la estrategia para fortalecer la resiliencia de los activos y mejorar su desempeño ambiental. Asimismo, se realizaron inversiones orientadas a la obtención de certificaciones EDGE y a la implementación de medidas de eficiencia energética e hídrica. Estas inversiones representan desembolsos de capital destinados a preservar el valor de los activos, reducir riesgos de transición asociados con cambios regulatorios y responder a la creciente demanda de inmuebles con atributos de sostenibilidad."
+  },
+  {
+   "orden": 160,
+   "fuente": "formato",
+   "paginas": [
+    27,
+    28
+   ],
+   "extracto": "Durante el ejercicio 2025, los riesgos y oportunidades relacionados con la sostenibilidad y el clima tuvieron efectos sobre la situación financiera de la Emisora principalmente a través de la operación y administración del portafolio inmobiliario, la asignación de recursos para mejorar la eficiencia de los activos y la incorporación de criterios ambientales, sociales y de gobernanza (ASG) en las decisiones de inversión. La creciente demanda de inmuebles industriales con mejores características de sostenibilidad, impulsada por el proceso de nearshoring y por las expectativas de inversionistas y arrendatarios, contribuyó al fortalecimiento del desempeño del portafolio. Durante el ejercicio, los ingresos ascendieron a MXN $16.74 millones, mientras que el activo total alcanzó MXN $5,398.65 millones al cierre de 2025. La Emisora incurrió en gastos operativos asociados con el consumo de energía (838.45 MWh), consumo de agua (283,038 m³), gestión de residuos (1,086.8 toneladas) y operación de plantas de tratamiento de agua, los cuales forman parte de la estrategia para fortalecer la resiliencia de los activos y mejorar su desempeño ambiental. Asimismo, se realizaron inversiones orientadas a la obtención de certificaciones EDGE y a la implementación de medidas de eficiencia energética e hídrica. Estas inversiones representan desembolsos de capital destinados a preservar el valor de los activos, reducir riesgos de transición asociados con cambios regulatorios y responder a la creciente demanda de inmuebles con atributos de sostenibilidad. De acuerdo con la información disponible, los activos certificados presentan ahorros estimados de entre 21 % y 59 % en consumo de energía y de entre 30 % y 52 % en consumo de agua, dependiendo de las características de cada inmueble. La administración considera que, durante el periodo reportado, los riesgos y oportunidades relacionados con la sostenibilidad y el clima no generaron deterioros materiales en los activos ni modificaciones significativas en la estructura financiera del fideicomiso; sin embargo, continúan siendo factores relevantes para la planeación estratégica, la asignación de capital y la gestión integral de riesgos, debido a su potencial impacto sobre los costos operativos, el cumplimiento regulatorio, la competitividad del portafolio y la creación de valor de largo plazo. Durante el ejercicio 2025, los riesgos y oportunidades relacionados con la sostenibilidad y el clima incidieron en el rendimiento financiero de la Emisora principalmente mediante la evolución de los ingresos operativos, los costos de operación y las inversiones destinadas a mejorar el desempeño ambiental y la resiliencia del portafolio inmobiliario. La creciente demanda de inmuebles industriales con atributos de sostenibilidad, impulsada por las tendencias de nearshoring y por mayores requerimientos ambientales de inversionistas y arrendatarios, contribuyó al incremento de los ingresos del portafolio. Durante el ejercicio 2025, la Emisora registró ingresos por MXN $16.74 millones, lo que representó un incremento aproximado del 74.8 % respecto del ejercicio anterior. En materia de costos y gastos de operación, la Emisora incurrió en erogaciones relacionadas con el consumo de energía, el consumo de agua, la gestión de residuos, la operación y mantenimiento de plantas de tratamiento de agua y las actividades de mantenimiento preventivo orientadas a preservar la eficiencia operativa y la resiliencia de los activos frente a riesgos físicos y de transición asociados al cambio climático. Asimismo, continuó realizando inversiones destinadas a la obtención y mantenimiento de certificaciones EDGE, las cuales contribuyen a mejorar la eficiencia energética e hídrica de los inmuebles, reducir costos operativos en el largo plazo, fortalecer la competitividad del portafolio y atender las expectativas de inversionistas y arrendatarios con criterios ambientales, sociales y de gobernanza (ASG). Durante el periodo reportado, la administración no identificó impactos materiales negativos en el rendimiento financiero atribuibles exclusivamente a riesgos relacionados con la sostenibilidad y el clima. No obstante, reconoce que estos factores pueden influir en el comportamiento futuro de los ingresos, costos de operación, requerimientos de inversión y condiciones de mercado, por lo que continúan integrándose en los procesos de planeación estratégica, gestión de riesgos y asignación de capital. Al cierre del ejercicio 2025, la Emisora no identifica riesgos u oportunidades relacionados con la sostenibilidad y el clima que representen un riesgo significativo de requerir un ajuste material en los importes en libros de los activos o pasivos durante el siguiente periodo anual de reporte. La administración realiza un seguimiento continuo de los riesgos físicos y de transición asociados al cambio climático como parte de sus procesos de gestión de riesgos, incluyendo la evaluación de factores como estrés hídrico, inundaciones, eventos meteorológicos extremos, cambios regulatorios en materia ambiental, eficiencia energética y requerimientos de sostenibilidad por parte de inversionistas y arrendatarios. Si bien estos factores pueden influir en los costos operativos, las decisiones de inversión y la asignación de capital en el mediano y largo plazo, al cierre del ejercicio 2025 no existen elementos que indiquen la necesidad de reconocer deterioros, provisiones, cambios en la medición de activos o pasivos u otros ajustes materiales en los estados financieros derivados exclusivamente de riesgos relacionados con la sostenibilidad o el clima. No obstante, la Emisora continuará monitoreando la evolución del entorno regulatorio, las condiciones del mercado y los riesgos físicos asociados al cambio climático para evaluar oportunamente cualquier efecto que pudiera requerir reconocimiento o revelación en ejercicios futuros, de conformidad con las Normas Internacionales de Información Financiera y las Normas NIIF S1 y S2."
+  },
+  {
+   "orden": 170,
+   "fuente": "formato",
+   "paginas": [
+    19
+   ],
+   "extracto": "La supervisión de los riesgos y oportunidades relacionados con la sostenibilidad y el clima recae en el Comité Técnico, la Asamblea de Tenedores y el Comité de Inversiones. El Comité Técnico es el principal órgano responsable de supervisar la integración de los factores ambientales, sociales y de gobernanza (ASG) y de los riesgos climáticos en la estrategia de inversión, aprobar inversiones, supervisar el cumplimiento de la Política de Inversión Responsable, revisar el análisis de riesgos físicos y de transición del cambio climático y dar seguimiento a los indicadores de sostenibilidad. La Asamblea de Tenedores supervisa y aprueba las decisiones que afectan significativamente al patrimonio del fideicomiso y las operaciones estratégicas relacionadas con la sostenibilidad. El Comité de Inversiones realiza la evaluación técnica de los riesgos y oportunidades de sostenibilidad y del clima durante el proceso de inversión, incorporando criterios ASG y análisis de riesgos físicos y de transición en las recomendaciones presentadas al Comité Técnico. La administración ejecutiva, a través del Director de Relación con Inversionistas, coordina la implementación de la estrategia ASG, la elaboración del Informe de Sostenibilidad, el seguimiento de los indicadores ambientales, sociales y de gobernanza y la presentación de información a los órganos de gobierno. Asimismo, participan el Director Financiero, el Director Comercial y el equipo de Gestión de Activos en la gestión de los riesgos y oportunidades relacionados con el clima y la sostenibilidad. Procesos, controles y procedimientos de gobernanza que la Emisora utiliza para supervisar y gestionar los riesgos y oportunidades relacionados con la sostenibilidad y el clima Las responsabilidades relacionadas con los riesgos y oportunidades de sostenibilidad y del clima se encuentran incorporadas en la estructura de gobernanza del Fideicomiso CIB/2659 (ODOCK18) y de O'Donnell Capital Management mediante los documentos constitutivos del fideicomiso, la Política de Inversión Responsable y las políticas corporativas en materia ambiental, social y de gobernanza (ASG). El mandato del Comité Técnico establece la responsabilidad de supervisar la integración de criterios ASG y de riesgos climáticos en la estrategia de inversión, aprobar operaciones relevantes, verificar el cumplimiento de la Política de Inversión Responsable y dar seguimiento a los riesgos físicos y de transición que puedan afectar al portafolio. El Comité de Inversiones incorpora la evaluación de riesgos y oportunidades relacionados con la sostenibilidad y el clima durante el proceso de análisis y debida diligencia de cada inversión, considerando aspectos como eficiencia energética, gestión del agua, certificaciones ambientales, riesgos físicos del cambio climático y cumplimiento regulatorio. La Asamblea de Tenedores supervisa las decisiones estratégicas que puedan tener un impacto significativo sobre el patrimonio del fideicomiso y conoce la información relevante relacionada con la sostenibilidad cuando ésta forma parte de las decisiones de inversión o de gobierno corporativo. La Política de Inversión Responsable incorpora criterios ASG como parte obligatoria del proceso de inversión e incluye criterios de elegibilidad y exclusiones sectoriales. Asimismo, la organización cuenta con políticas de Diversidad, Equidad e Inclusión, Integridad y Anticorrupción, Privacidad, Gestión y Comunicación Responsable, así como una Declaración sobre la Relevancia del Desarrollo Sostenible y un Manifiesto de Tolerancia Cero a la Corrupción, que fortalecen la gestión de los riesgos y oportunidades relacionados con la sostenibilidad y el clima. La administración ejecutiva, a través del Director de Relación con Inversionistas y de las áreas Financiera, Comercial y de Gestión de Activos, es responsable de implementar estas políticas, dar seguimiento a los indicadores ASG, coordinar la elaboración del Informe de Divulgación de Sostenibilidad y Clima y reportar periódicamente los resultados al Comité Técnico y a la Asamblea de Tenedores."
+  },
+  {
+   "orden": 180,
+   "fuente": "formato",
+   "paginas": [
+    19,
+    20
+   ],
+   "extracto": "El Comité Técnico y el Comité de Inversiones verifican que la organización cuente con las habilidades y competencias necesarias para supervisar los riesgos y oportunidades relacionados con la sostenibilidad y el clima mediante un proceso continuo de evaluación de perfiles, capacitación y fortalecimiento de capacidades. La organización incorpora en sus órganos de gobierno y de apoyo técnico a personas con experiencia en inversión responsable, gestión de riesgos y criterios ambientales, sociales y de gobernanza (ASG). Entre los integrantes del Comité de Inversiones se cuenta con un especialista con más de doce años de experiencia en el sector de administración de fondos para el retiro, incluyendo funciones de gestión de inversiones y criterios ASG. O'Donnell Capital Management implementa un programa permanente de capacitación para directivos y colaboradores sobre sostenibilidad, cambio climático, ética y políticas corporativas. Todos los colaboradores de nuevo ingreso participan en un proceso de inducción que incluye el Código de Ética, la Política de Inversión Responsable y los principios de sostenibilidad aplicables a la organización. Adicionalmente, la empresa utiliza el Programa 360, mediante el cual se evalúan periódicamente las competencias del personal, se identifican áreas de oportunidad y se diseñan planes individuales de capacitación alineados con la estrategia de sostenibilidad y los objetivos del negocio. Como complemento, la organización mantiene participación activa en asociaciones especializadas del sector, entre ellas AMPIP, AMEXCAP, ULI y AmCham, y es signataria de los Principios para la Inversión Responsable de las Naciones Unidas (UN PRI), lo que facilita el acceso a mejores prácticas, actualización regulatoria y desarrollo continuo de capacidades en materia de sostenibilidad y riesgos climáticos. Asimismo, cuenta con el apoyo técnico de Vert, Desarrollo Sustentable, como asesor especializado para fortalecer sus procesos de divulgación y gestión de riesgos climáticos."
+  },
+  {
+   "orden": 190,
+   "fuente": "formato",
+   "paginas": [
+    25
+   ],
+   "extracto": "Al cierre del ejercicio 2025, la Emisora no cuenta con un plan de transición formal hacia una economía de bajas emisiones de carbono con objetivos de reducción absoluta de emisiones o metas alineadas con trayectorias de 1.5°C o de emisiones netas cero (Net Zero). No obstante, ha incorporado diversas iniciativas que constituyen la base para el desarrollo de un plan de transición en ejercicios futuros. Entre dichas iniciativas destacan la integración de criterios ambientales, sociales y de gobernanza (ASG) en el proceso de inversión, el avance del programa de certificación EDGE para los activos del portafolio, la implementación de medidas de eficiencia energética e hídrica, la operación de plantas de tratamiento de agua, la medición de las emisiones de gases de efecto invernadero de Alcance 2 y el compromiso de incorporar gradualmente la medición de las emisiones de Alcance 1 y Alcance 3, así como el desarrollo de análisis cuantitativos de escenarios climáticos. La evolución del futuro plan de transición dependerá, entre otros factores, de la disponibilidad y calidad de la información sobre emisiones de la cadena de valor, la evolución del marco regulatorio nacional e internacional en materia climática, el desarrollo de tecnologías que favorezcan la descarbonización del sector inmobiliario, la disponibilidad de alternativas de financiamiento sostenible y las expectativas de inversionistas, arrendatarios y demás grupos de interés. La Emisora continuará evaluando la incorporación de objetivos de reducción de emisiones, mecanismos de seguimiento y metas de largo plazo conforme fortalezca sus capacidades de medición, análisis y gestión de riesgos climáticos, procurando que dichas acciones sean consistentes con la evolución de su estrategia de negocio y con las mejores prácticas internacionales en materia de sostenibilidad."
+  },
+  {
+   "orden": 200,
+   "fuente": "formato",
+   "paginas": [
+    33
+   ],
+   "extracto": "Durante el ejercicio 2025, la Emisora no realizó un análisis cuantitativo de escenarios climáticos conforme a trayectorias específicas de temperatura o escenarios de transición. En su lugar, llevó a cabo una evaluación cualitativa de los principales riesgos y oportunidades relacionados con el clima como parte de su proceso integral de gestión de riesgos y de la preparación del Informe de Divulgación de Sostenibilidad y Clima. La evaluación se desarrolló durante el proceso de elaboración del informe correspondiente al ejercicio comprendido del 1 de enero al 31 de diciembre de 2025 y consideró información proveniente de estudios de debida diligencia ambiental, evaluaciones de riesgos físicos y de transición, análisis de exposición geográfica de los activos, indicadores operativos, información sectorial y criterios establecidos en la Política de Inversión Responsable. El análisis incluyó la identificación de riesgos físicos, tales como estrés hídrico, inundaciones, eventos meteorológicos extremos y temperaturas elevadas, así como riesgos de transición asociados a cambios regulatorios, eficiencia energética, evolución tecnológica y expectativas de inversionistas y arrendatarios. Conforme al alivio de transición previsto en la NIIF S2 para los primeros ejercicios de aplicación, la Emisora no desarrolló escenarios climáticos cuantitativos durante el periodo reportado. No obstante, tiene previsto fortalecer este proceso mediante la incorporación gradual de análisis de escenarios alineados con trayectorias de transición y riesgos físicos en futuros ciclos de reporte, conforme aumente la disponibilidad de información y la madurez de sus procesos internos de gestión climática. Durante el ejercicio 2025, la Emisora no utilizó escenarios climáticos cuantitativos para evaluar la resiliencia de su estrategia y modelo de negocio. En consecuencia, no se aplicaron trayectorias específicas de temperatura, escenarios de transición o escenarios físicos desarrollados por organismos internacionales como parte del proceso de evaluación correspondiente al periodo reportado. En su lugar, la Emisora realizó una evaluación cualitativa de los principales riesgos y oportunidades relacionados con el clima, considerando información disponible sobre la exposición geográfica de los activos, estudios de debida diligencia ambiental, evaluaciones de riesgos físicos y de transición, información sectorial y criterios establecidos en la Política de Inversión Responsable. Como referencia para la identificación y clasificación de riesgos climáticos, la Emisora utilizó las definiciones y lineamientos contenidos en las Normas NIIF S1 y NIIF S2, las recomendaciones del Task Force on Climate-related Financial Disclosures (TCFD), las Normas SASB aplicables al sector inmobiliario y fuentes especializadas para la evaluación del estrés hídrico y otros riesgos físicos. La Emisora tiene previsto incorporar progresivamente análisis cuantitativos de escenarios climáticos en futuros periodos de reporte, incluyendo escenarios alineados con el Acuerdo de París y otros escenarios de transición y riesgos físicos, conforme fortalezca sus capacidades internas y la disponibilidad de información."
+  }
+ ],
+ "cuestionarios": [
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 1,
+   "respuesta": "Durante el ejercicio 2025, la Emisora no realizó un análisis cuantitativo de escenarios climáticos conforme a trayectorias específicas de temperatura o escenarios de transición. En su lugar, llevó a cabo una evaluación cualitativa de los principales riesgos y oportunidades relacionados con el clima como parte de su proceso integral de gestión de riesgos y de la preparación del Informe de Divulgación de Sostenibilidad y Clima. La evaluación se desarrolló durante el proceso de elaboración del informe correspondiente al ejercicio comprendido del 1 de enero al 31 de diciembre de 2025 y consideró información proveniente de estudios de debida diligencia ambiental, evaluaciones de riesgos físicos y de transición, análisis de exposición geográfica de los activos, indicadores operativos, información sectorial y criterios establecidos en la Política de Inversión Responsable. El análisis incluyó la identificación de riesgos físicos, tales como estrés hídrico, inundaciones, eventos meteorológicos extremos y temperaturas elevadas, así como riesgos de transición asociados a cambios regulatorios, eficiencia energética, evolución tecnológica y expectativas de inversionistas y arrendatarios. Conforme al alivio de transición previsto en la NIIF S2 para los primeros ejercicios de aplicación, la Emisora no desarrolló escenarios climáticos cuantitativos durante el periodo reportado. No obstante, tiene previsto fortalecer este proceso mediante la incorporación gradual de análisis de escenarios alineados con trayectorias de transición y riesgos físicos en futuros ciclos de reporte, conforme aumente la disponibilidad de información y la madurez de sus procesos internos de gestión climática.",
+   "paginas": [
+    33
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 2,
+   "respuesta": "Durante el ejercicio 2025, la Emisora no utilizó escenarios climáticos cuantitativos para evaluar la resiliencia de su estrategia y modelo de negocio. En consecuencia, no se aplicaron trayectorias específicas de temperatura, escenarios de transición o escenarios físicos desarrollados por organismos internacionales como parte del proceso de evaluación correspondiente al periodo reportado. En su lugar, la Emisora realizó una evaluación cualitativa de los principales riesgos y oportunidades relacionados con el clima, considerando información disponible sobre la exposición geográfica de los activos, estudios de debida diligencia ambiental, evaluaciones de riesgos físicos y de transición, información sectorial y criterios establecidos en la Política de Inversión Responsable. Como referencia para la identificación y clasificación de riesgos climáticos, la Emisora utilizó las definiciones y lineamientos contenidos en las Normas NIIF S1 y NIIF S2, las recomendaciones del Task Force on Climate-related Financial Disclosures (TCFD), las Normas SASB aplicables al sector inmobiliario y fuentes especializadas para la evaluación del estrés hídrico y otros riesgos físicos. La Emisora tiene previsto incorporar progresivamente análisis cuantitativos de escenarios climáticos en futuros periodos de reporte, incluyendo escenarios alineados con el Acuerdo de París y otros escenarios de transición y riesgos físicos, conforme fortalezca sus capacidades internas y la disponibilidad de información.",
+   "paginas": [
+    33
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 3,
+   "respuesta": "Falso",
+   "paginas": [
+    34
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 4,
+   "respuesta": "Riesgos físicos relacionados con el clima",
+   "paginas": [
+    34
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 5,
+   "respuesta": "Verdadero",
+   "paginas": [
+    34
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 6,
+   "respuesta": "Durante el ejercicio 2025, la Emisora no realizó un análisis cuantitativo de escenarios climáticos, por lo que no seleccionó escenarios específicos de temperatura o de transición para evaluar la resiliencia de su estrategia y modelo de negocio. En sustitución, la Emisora efectuó una evaluación cualitativa de los principales riesgos y oportunidades relacionados con el clima, considerando aquellos factores que se estiman más relevantes para el sector inmobiliario industrial y para las regiones donde opera el portafolio. La evaluación incluyó riesgos físicos, como el estrés hídrico, las inundaciones, los eventos meteorológicos extremos y las altas temperaturas, así como riesgos de transición derivados de cambios regulatorios, avances tecnológicos, requerimientos de eficiencia energética y la creciente demanda de activos con mejores características de sostenibilidad. La administración consideró que este enfoque era el más apropiado para el primer ejercicio de aplicación de las NIIF S1 y S2, tomando en cuenta la disponibilidad de información, el nivel de madurez de los procesos internos de gestión climática y el alivio de transición previsto en la NIIF S2 para los primeros periodos de reporte. La Emisora tiene previsto incorporar progresivamente análisis cuantitativos de escenarios climáticos en futuros ejercicios, utilizando escenarios que resulten relevantes para la naturaleza de sus operaciones, la ubicación geográfica de sus activos y los riesgos materiales identificados, con el propósito de fortalecer la evaluación de la resiliencia de su estrategia y apoyar la toma de decisiones de largo plazo.",
+   "paginas": [
+    34
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 7,
+   "respuesta": "Corto plazo; Mediano plazo; Largo plazo",
+   "paginas": [
+    34
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(i)",
+   "orden": 8,
+   "respuesta": "La evaluación de los riesgos y oportunidades relacionados con la sostenibilidad y el clima comprendió las operaciones del Fideicomiso CIB/2659 (ODOCK18) y los activos inmobiliarios que integran el portafolio reportado durante el ejercicio comprendido del 1 de enero al 31 de diciembre de 2025. El análisis incluyó las principales actividades del modelo de negocio de la Emisora, abarcando la adquisición, desarrollo, construcción, arrendamiento, operación, administración y mantenimiento de inmuebles industriales, así como los procesos de inversión y gestión de activos asociados al portafolio. La evaluación consideró los activos ubicados en Ciudad de México, Estado de México y Querétaro, incluyendo, entre otros, los desarrollos OD888, OD Vallejo, OD Tlalpan, OD La Laguna y OD Kloeckner, por ser los inmuebles que forman parte del alcance del presente informe y concentran los principales riesgos y oportunidades relacionados con la sostenibilidad y el clima. El análisis comprendió los riesgos físicos y de transición que podrían afectar la operación, el desempeño financiero y la generación de valor del portafolio, considerando aspectos relacionados con el consumo de energía, consumo de agua, emisiones de gases de efecto invernadero, gestión de residuos, eficiencia energética, resiliencia hídrica y cumplimiento de la regulación ambiental. Los activos que se encontraban en proceso de adquisición o construcción y que no formaban parte de la operación del portafolio durante el periodo reportado no fueron incluidos en el alcance de la evaluación. Supuestos clave que la Emisora realizó en el análisis",
+   "paginas": [
+    34
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(ii)",
+   "orden": 1,
+   "respuesta": "La Emisora consideró el entorno regulatorio y las condiciones climáticas históricas de las jurisdicciones donde opera su portafolio inmobiliario industrial, principalmente en Ciudad de México, Estado de México y Querétaro, como parte de la identificación y evaluación de los riesgos y oportunidades relacionados con el cambio climático. Para la evaluación se tomaron en cuenta las políticas y regulaciones ambientales aplicables en materia de eficiencia energética, gestión del agua, protección ambiental, cambio climático, desarrollo urbano y cumplimiento normativo vigentes en México, así como las obligaciones ambientales que resultan aplicables a los proyectos inmobiliarios industriales. Asimismo, la Emisora consideró información histórica sobre eventos climáticos y condiciones ambientales relevantes para sus operaciones, incluyendo la ocurrencia de estrés hídrico, precipitaciones intensas, inundaciones urbanas, olas de calor y otros fenómenos meteorológicos con potencial de afectar la operación y el desempeño de los activos del portafolio. Como parte del análisis cualitativo de riesgos físicos, la Emisora utilizó información especializada sobre disponibilidad de recursos hídricos y exposición regional, incluyendo el índice de estrés hídrico WRI Aqueduct, estudios de impacto ambiental, evaluaciones de debida diligencia ambiental y análisis de exposición geográfica desarrollados durante los procesos de inversión y administración de activos. La evaluación también consideró la evolución de las expectativas de inversionistas, arrendatarios y demás grupos de interés en materia de sostenibilidad, así como las mejores prácticas internacionales contenidas en las Normas NIIF S1 y NIIF S2, las Normas SASB, las recomendaciones del TCFD y los Principios para la Inversión Responsable de las Naciones Unidas (UN PRI). La Emisora continuará monitoreando la evolución de las políticas públicas, la regulación climática y las condiciones ambientales de las jurisdicciones donde opera, con el propósito de fortalecer la gestión de riesgos y la resiliencia de su portafolio.",
+   "paginas": [
+    34,
+    35
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(ii)",
+   "orden": 2,
+   "respuesta": "En la evaluación de los riesgos y oportunidades relacionados con la sostenibilidad y el clima, la Emisora consideró las principales tendencias macroeconómicas que pueden influir en el desempeño del sector inmobiliario industrial y en la capacidad de adaptación del portafolio. Entre las tendencias consideradas destacan el crecimiento de la demanda de espacios industriales derivado del nearshoring, la evolución de la inversión privada, las condiciones del mercado inmobiliario, el comportamiento de las tasas de interés, la inflación, los costos de construcción, la disponibilidad y costo de la energía y del agua, así como la evolución del marco regulatorio en materia ambiental y de sostenibilidad. Asimismo, la Emisora consideró la creciente incorporación de criterios ambientales, sociales y de gobernanza (ASG) por parte de inversionistas institucionales, instituciones financieras y arrendatarios, lo que puede influir en el acceso a financiamiento, la demanda de activos con certificaciones de sostenibilidad y la competitividad del portafolio. Estas tendencias fueron consideradas de manera cualitativa como parte del proceso de identificación y evaluación de riesgos y oportunidades relacionados con la sostenibilidad y el clima. La Emisora continuará monitoreando su evolución para fortalecer la planeación estratégica, la gestión integral de riesgos y la toma de decisiones de inversión.",
+   "paginas": [
+    35
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(ii)",
+   "orden": 3,
+   "respuesta": "En la evaluación de los riesgos y oportunidades relacionados con la sostenibilidad y el clima, la Emisora consideró variables nacionales y regionales relevantes para las zonas donde opera su portafolio inmobiliario industrial, principalmente en Ciudad de México, Estado de México y Querétaro. Las variables analizadas incluyeron la disponibilidad y calidad de los recursos hídricos, los niveles de estrés hídrico por región, la exposición a inundaciones, precipitaciones intensas, olas de calor y otros fenómenos meteorológicos, así como las diferencias en el marco regulatorio ambiental y urbano aplicable en cada entidad federativa. Asimismo, se consideraron variables económicas y sectoriales con incidencia en el desempeño del portafolio, incluyendo la evolución del mercado inmobiliario industrial, la demanda derivada del nearshoring, el comportamiento de los costos de energía y agua, la disponibilidad de infraestructura, la evolución de la inversión privada y las expectativas de crecimiento económico regional. Como parte de la evaluación cualitativa, la Emisora utilizó información especializada sobre disponibilidad de agua y exposición a riesgos físicos, incluyendo el índice de estrés hídrico WRI Aqueduct, estudios de impacto ambiental, análisis de debida diligencia y evaluaciones de exposición geográfica realizadas durante los procesos de inversión y administración de activos. Estas variables permitieron identificar las regiones con mayor exposición a riesgos físicos y de transición y apoyar la toma de decisiones relacionadas con la gestión de riesgos, la asignación de recursos y la planeación estratégica del portafolio.",
+   "paginas": [
+    35
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(ii)",
+   "orden": 4,
+   "respuesta": "La Emisora evaluó el uso de energía como uno de los principales factores relacionados con los riesgos y oportunidades climáticos de su portafolio inmobiliario. Durante el ejercicio 2025, el consumo energético de los activos correspondió principalmente a electricidad adquirida del Sistema Eléctrico Nacional, utilizada para la operación y mantenimiento de los inmuebles industriales. Como parte de su estrategia de sostenibilidad, la Emisora impulsa medidas orientadas a mejorar la eficiencia energética de sus activos mediante la obtención de certificaciones EDGE, la implementación de sistemas de automatización y control, el mantenimiento preventivo de las instalaciones y la evaluación de tecnologías que permitan reducir el consumo energético. Al cierre del periodo reportado, la Emisora no contaba con contratos de suministro de energía renovable, acuerdos de compra de energía (PPA) ni instrumentos equivalentes para el abastecimiento de electricidad. No obstante, continúa evaluando alternativas que favorezcan una mayor eficiencia energética y una eventual incorporación de fuentes de energía con menores emisiones de carbono, conforme a la viabilidad técnica, económica y regulatoria de cada activo. La combinación de fuentes de energía y su evolución continuará siendo objeto de seguimiento como parte de la gestión de riesgos climáticos y de las iniciativas para reducir la intensidad energética y las emisiones indirectas de gases de efecto invernadero del portafolio.",
+   "paginas": [
+    35,
+    36
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(ii)",
+   "orden": 5,
+   "respuesta": "La Emisora consideró la evolución tecnológica como un factor relevante para la gestión de los riesgos y oportunidades relacionados con la sostenibilidad y el clima. En particular, evaluó la disponibilidad y adopción de tecnologías orientadas a mejorar la eficiencia energética e hídrica de los activos, reducir las emisiones de gases de efecto invernadero y fortalecer la resiliencia del portafolio inmobiliario. Como parte de su estrategia, la Emisora ha incorporado criterios de diseño sostenible mediante certificaciones EDGE, la implementación de sistemas de automatización y control para optimizar el consumo de energía, la operación de plantas de tratamiento de agua y el mantenimiento preventivo de las instalaciones. Asimismo, continúa evaluando la viabilidad técnica y económica de tecnologías que contribuyan a mejorar el desempeño ambiental de los inmuebles, incluyendo soluciones de generación de energía renovable, sistemas de monitoreo y gestión inteligente del consumo de recursos. La administración reconoce que el desarrollo tecnológico puede acelerar la transición hacia edificios industriales con menores emisiones y mayor eficiencia, por lo que continuará monitoreando la evolución de estas tecnologías para incorporarlas de manera gradual en sus procesos de inversión, desarrollo y operación, conforme a su factibilidad técnica, económica y regulatoria.",
+   "paginas": [
+    36
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 22(b)(ii)",
+   "orden": 6,
+   "respuesta": "Además de los factores considerados en la evaluación de los riesgos y oportunidades relacionados con la sostenibilidad y el clima, la Emisora tomó en cuenta los siguientes supuestos para la evaluación cualitativa de la resiliencia de su estrategia y modelo de negocio: Continuidad de la demanda de inmuebles industriales impulsada por el proceso de nearshoring y por el crecimiento de las cadenas de suministro en México. Mantenimiento de condiciones que favorezcan el acceso a financiamiento e inversión para proyectos con criterios ambientales, sociales y de gobernanza (ASG). Disponibilidad de recursos financieros para continuar ejecutando inversiones orientadas a la eficiencia energética, eficiencia hídrica, certificaciones de sostenibilidad y fortalecimiento de la resiliencia del portafolio. Continuidad de las políticas internas de inversión responsable, gestión de riesgos y gobierno corporativo, así como del monitoreo de indicadores ambientales y climáticos. Disponibilidad gradual de información para ampliar la medición de emisiones de gases de efecto invernadero, particularmente de Alcance 1 y Alcance 3, y para desarrollar análisis cuantitativos de escenarios climáticos en futuros ciclos de reporte. Permanencia de condiciones operativas que permitan la administración y mantenimiento de los activos conforme a los estándares establecidos por la Emisora. La administración reconoce que estos supuestos están sujetos a incertidumbre y podrán modificarse conforme evolucionen las condiciones económicas, regulatorias, tecnológicas, ambientales y de mercado. Por ello, la Emisora revisará periódicamente dichos supuestos como parte de su proceso de gestión integral de riesgos y de mejora continua de sus procesos de divulgación en materia de sostenibilidad y clima. Periodo sobre el que se informa en el que se ha llevado a cabo el análisis del escenario",
+   "paginas": [
+    36
+   ],
+   "fuente": "formato"
+  },
+  {
+   "hoja": "S2 36(e)",
+   "orden": 1,
+   "respuesta": "¿Se tiene el uso previsto de los créditos de carbono? No",
+   "paginas": [
+    16,
+    17,
+    18
+   ],
+   "fuente": "formato"
+  }
+ ],
+ "pendientes": [
+  {
+   "ordenes": [
+    70
+   ],
+   "motivo": "Alcance 1 no medido (Formato p. 2). Pendiente a propósito: no se captura cero."
+  },
+  {
+   "ordenes": [
+    220,
+    230,
+    240,
+    250,
+    260,
+    270,
+    280,
+    290,
+    300,
+    310,
+    320,
+    330,
+    340,
+    350,
+    360,
+    370
+   ],
+   "motivo": "Alcance 3 y sus 15 categorías no medidos (Formato p. 2). Pendientes a propósito."
+  },
+  {
+   "ordenes": [
+    40
+   ],
+   "motivo": "Rotación: ni el Formato ni el IAS publican cifras (el índice GRI del IAS remite 401-1 a la p. 50, que solo trae la plantilla)."
+  },
+  {
+   "ordenes": [
+    120
+   ],
+   "motivo": "Combustibles fósiles: no aparecen en el Formato ni en el IAS."
+  },
+  {
+   "ordenes": [
+    140
+   ],
+   "motivo": "Ingresos sostenibles en %: el IAS (p. 19) y el Formato (pp. 27–28) solo publican ingresos totales de 16.74 MDP; no se convierte a %."
+  },
+  {
+   "ordenes": [
+    150
+   ],
+   "motivo": "Precio interno del carbono: el Formato lo trata solo como riesgo (pp. 6, 9 y 20); el IAS no lo menciona."
+  },
+  {
+   "ordenes": [
+    210
+   ],
+   "motivo": "Consumo eléctrico corporativo: ni el Formato ni el IAS (p. 44, consumo por inmueble) lo separan; no se repiten los 838.45 MWh de la 60."
+  }
+ ],
+ "otros_pendientes": [
+  "Capex/opex por partida (130 y 160): la p. 27 los describe sin importes.",
+  "Verificación externa del inventario: «Cartas de verificación: (Vacio)» (Formato p. 53).",
+  "Congruencia con los estados financieros (Perfil, B65(e)): sin fuente.",
+  "Cambios en el enfoque de medición de GEI (cuestionario 29(a)(iii)): sin fuente.",
+  "Metas numéricas de los objetivos de agua y de GEI de inquilinos: no se publican.",
+  "Cuestionario 36(e) preguntas 2–5: sin créditos de carbono previstos, no aplican."
+ ]
+}
