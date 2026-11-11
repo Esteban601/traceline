@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.51** · 31 de octubre de 2026.
+Especificación para revisión interna. **Versión 0.52** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.51** (encargo 2026-10-31-catalogo-gri-sasb, cierre): §10, registro de v45 (pendiente), con las
+tres migraciones del catálogo, después de v44.
 
 **Cambios respecto a 0.50** (encargo 2026-10-31-catalogo-gri-sasb, Fase 1): §10, deuda conocida
 «relleno-norma-pilar-gri-sasb».
@@ -1850,6 +1853,23 @@ solicitudes:** la foto de Cobertura después del release tiene que ser igual a l
 
 **Lo que verán las 22 emisoras:** dos faltantes «Falta en el Perfil» en el bloque 10 (21(a) y B65(e)) hasta que
 contesten la sección. Nada se bloquea; ningún documento cambia (0 aprobados en staging).
+
+**Resultado:** pendiente.
+
+### staging · release v45 · pendiente
+
+**Catálogo GRI 2/3 y SASB FN-CB, libro GRI/SASB y respuestas GRI/SASB.** Encargo
+`docs/encargos/2026-10-31-catalogo-gri-sasb.md` (tabla código → sección aprobada el 10 de noviembre de 2026). Runbook:
+`docs/encargos/2026-11-10-runbook-v45.md`. Va después de v44, que se despliega desde `859743a`.
+
+**Migraciones** (las ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`):
+`20261031120000_catalogo_marco_sasb`, `20261031130000_catalogo_gri2_gri3_fncb` y
+`20261031140000_catalogo_extension_gri_literal`. Aditivas; barrera 108 y 101 migraciones después. v44 funciona con
+ellas aplicadas, así que van antes del push.
+
+**Sin plantilla.** **Cobertura:** 51 códigos nuevos sin solicitud en las 22 emisoras, la fila compuesta
+`GRI 2-7 / 401-1` retirada y NIIF sin cambio (`esperado-cobertura-v45.json`). Después de la foto «después», el script de
+ligado de las nueve solicitudes de demostración de Empresa Demo.
 
 **Resultado:** pendiente.
 
