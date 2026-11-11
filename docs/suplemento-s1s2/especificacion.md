@@ -1,6 +1,10 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.55** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.56** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.55** (despliegue combinado v44+v45+v46, decisión de Esteban del 10/11/2026): §10, registro del
+release v44 de staging cerrado (un solo release para v44, v45 y v46), con los cuatro rojos de la comprobación explicados;
+§6.1, regla «regenerar solo esa fila» (nunca una corrida completa sobre un documento ya leído).
 
 **Cambios respecto a 0.54** (cierre del demo v6, decisión de Esteban): §10, «Deudas conocidas»: el encargo
 `sintesis-de-padres-por-regla`, `correccion-puntual-de-bloque-aprobado` en cola y K43 como deuda de datos del demo.
@@ -1085,6 +1089,12 @@ humana por documento (encargo, deudas).
   oraciones y 900 caracteres). Se generan al aprobar un documento, desde las versiones aprobadas de los bloques y los
   hechos de su cobertura; el código decide no aplica, pendiente y captura, y el modelo solo resume el bloque dueño.
   Un documento aprobado nuevo reemplaza las del anterior.
+- **Regenerar solo una fila** (decisión de Esteban del 10/11/2026, v0.56): sobre un documento aprobado cuyo libro ya se
+  leyó, «regenerar solo esa fila» se hace con `scripts/formato/regenerar-una-respuesta.mjs` y las claves pedidas, que
+  guarda solo esas filas. Nunca con una corrida completa (`POST /api/suplemento/<doc>/respuestas` o
+  `regenerar-respuestas-dev.mjs`): esa corrida regenera y guarda también las respuestas que nunca se reutilizan
+  (NIIF S2 21(a) y B65(e)) y cambia celdas ya leídas. Origen: corrección de FN-CB-550a.2 del demo v6.2, cuya corrida
+  completa cambió K100; se restauró el texto entregado.
 - **Publicación:** la columna «Respuesta» (E) de la hoja «Taxonomía NIIF S1 S2» lleva las respuestas del último
   documento aprobado; sin ellas, «En preparación». El auditor descarga este libro y nunca ve un borrador. Con el
   generador apagado, la columna no se agrega. Los incisos hijos van agrupados bajo su padre.
@@ -1840,7 +1850,7 @@ Ningún documento se regenera con el release (0 aprobados en staging desde v42).
 hoja «NIIF S2 33» lleva el marcador de 33(b) donde el objetivo no tiene propósito capturado, y el de 33(g) donde el tipo
 no está en la lista de la plantilla.
 
-### staging · release v44 · pendiente (va en el despliegue combinado v44+v45+v46)
+### staging · v44 · desplegado en el release combinado del 10 de noviembre de 2026 (ver v46)
 
 **Declaraciones del bloque 10 en el Perfil del emisor.** Encargo `docs/encargos/2026-10-29-perfil-declaraciones-alta.md`,
 cerrado el 29 de octubre de 2026 como «código en main; demo pendiente de v6». En `main` desde el PR #49 (`61eb454`).
@@ -1863,9 +1873,9 @@ solicitudes:** la foto de Cobertura después del release tiene que ser igual a l
 **Lo que verán las 22 emisoras:** dos faltantes «Falta en el Perfil» en el bloque 10 (21(a) y B65(e)) hasta que
 contesten la sección. Nada se bloquea; ningún documento cambia (0 aprobados en staging).
 
-**Resultado:** pendiente.
+**Resultado:** en el release combinado; ver «staging · release v44 (combinado v44+v45+v46)».
 
-### staging · release v45 · pendiente (va en el despliegue combinado v44+v45+v46)
+### staging · v45 · desplegado en el release combinado del 10 de noviembre de 2026 (ver v46)
 
 **Catálogo GRI 2/3 y SASB FN-CB, libro GRI/SASB y respuestas GRI/SASB.** Encargo
 `docs/encargos/2026-10-31-catalogo-gri-sasb.md` (tabla código → sección aprobada el 10 de noviembre de 2026). Runbook:
@@ -1880,9 +1890,13 @@ ellas aplicadas, así que van antes del push.
 `GRI 2-7 / 401-1` retirada y NIIF sin cambio (`esperado-cobertura-v45.json`). Después de la foto «después», el script de
 ligado de las nueve solicitudes de demostración de Empresa Demo.
 
-**Resultado:** pendiente.
+**Resultado:** en el release combinado; ver «staging · release v44 (combinado v44+v45+v46)».
 
-### staging · release v46 · pendiente (despliegue combinado v44+v45+v46)
+### staging · release v44 (combinado v44+v45+v46) · 10 de noviembre de 2026 (11/11 03:44 UTC) · `b13998e`
+
+El release de Heroku es **v44** y lleva el contenido de los encargos v44, v45 y v46 (los números de encargo no son los
+de release). Lo que entra lo describen los registros de v44 y v45 de arriba y, en esta sección, el de v46; el resultado
+está al final de esta sección.
 
 **Un solo despliegue** (decisión de Esteban del 10/11/2026): staging pasa de v43 a `main` (`b13998e`) con las cinco
 migraciones pendientes en un `db push`:
@@ -1909,7 +1923,48 @@ del push.
 **Lo que verán los tenants reales:** sus documentos nuevos llevan el marcador de la declaración en el bloque 2 hasta
 que se capture en Reportes. Ningún documento cambia (0 aprobados en staging). Los `es_demo` no cambian de texto.
 
-**Resultado:** pendiente.
+**Resultado (runbook `docs/encargos/2026-11-10-runbook-v46.md`, v2; paso 5 dado por verde con salvedades por Esteban
+el 10/11/2026).**
+1. **Privilegios de `service_role`:** staging igual a dev: 37 tablas con los 7 privilegios.
+2. **Foto «antes»** (03:40 UTC): 22 emisoras × 121 códigos, 930 solicitudes y 1,442 enlaces. **Foto de reportes**
+   (`~/Downloads/v46/`), por `es_demo`, declaración y texto:
+   - antes: `f|1`, `t|21` (22 reportes, sin las columnas);
+   - después: `f|∅|f|1` (el reporte del tenant real, sin declaración) y `t|sin_reserva|f|21` (los 21 `es_demo` en
+     «sin_reserva» y **sin texto**: staging no tiene ninguna fila en `perfil_emisor`, así que ninguno tiene denominación
+     formal; consulta de solo lectura del 10/11). El relleno queda para `scripts/relleno-declaracion-demo.mjs`, con las
+     denominaciones que dé Esteban.
+3. **Migraciones** (Esteban, `migrar-remoto.sh staging` en tres pasadas, «todo lo esperado»): las cinco en un
+   `db push`; 102 de 102 y barrera 108.
+4. **Release:** `git push heroku main` por Claude Code con autorización de Esteban por chat → **v44**, `Deploy
+   b13998ee`, 03:44:30 UTC; `web.1` arriba a las 03:44:41 UTC. Sin plantilla.
+5. **Comprobaciones** (solo lectura, con autorización de Esteban). El `comprobar-v46.mjs` de `main` era el de antes del
+   combinado (esperado de Cobertura vacío): su corrida marcó las 52 diferencias del catálogo como no previstas. Error de
+   preparación de Claude Code: la versión combinada (`b01fc4a`) solo estaba en `dev/ajustes-sep26`. Se corrió esa
+   versión contra staging con la misma foto «antes» (`~/Downloads/v46/comprobar-staging-combinado.txt`). En verde:
+   - `/login` 200; 22 emisoras en la base y en la foto «antes»;
+   - Cobertura: 22 × 172, solicitudes 930 sin cambio; 50 de las 52 diferencias, las previstas (los 51 códigos nuevos y la
+     compuesta retirada); totales NIIF iguales en las 22;
+   - plantilla `217912465e5c…`; Formato de Empresa Demo 409 y Excel de taxonomía 200;
+   - catálogo: GRI 37 (30 y 3), FN-CB 17, NIIF 117, la compuesta retirada; libro GRI/SASB de Empresa Demo 200 con 37 GRI y
+     sin hoja FN-CB;
+   - las columnas del Perfil y de la declaración se leen; reporte real sin declaración; `/admin/reportes` 200.
+
+   **Cuatro rojos, ninguno del despliegue:**
+   - **GRI 2-7 y GRI 401-1 con 9 solicitudes en Grupo Carso.** La migración `20261031140000` copia los enlaces de la
+     compuesta a los dos códigos nuevos, como está escrita; Grupo Carso tenía 9 solicitudes en la compuesta (enlaces
+     1,442 → 1,460, 9 × 2). El esperado previó las 9 en la compuesta, no el arrastre. Defecto del esperado.
+   - **Perfil, sección «Efectos financieros».** Responde 200 con la sección; los dos campos solo se pintan al abrir
+     «Capturar a mano», y la comprobación los buscaba en el HTML. En dev pasaba porque su Perfil tiene datos. Defecto de
+     la comprobación.
+   - **Bloque 10 del reporte de Grupo Carso sin faltantes** y **21 emisoras con los dos faltantes, no 22.** Con v46, el
+     bloque 10 de un tenant real sin régimen capturado queda en `sin_regimen`, sin faltantes. Es v46 funcionando; el
+     esperado de 22 era de antes de v46.
+
+   Los dos esperados se corrigen en `comprobar-v47.mjs`.
+6. **Logs desde el release:** 38 líneas; 0 respuestas 5xx, 0 errores, 0 códigos H; máxima 1,351 ms. El dyno anterior
+   salió con 143 (SIGTERM del release).
+7. **Pendiente de Esteban:** paso 6 (ligado de las nueve solicitudes de demostración de Empresa Demo, L1–L4) y paso 7
+   (cierre de la terminal).
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
