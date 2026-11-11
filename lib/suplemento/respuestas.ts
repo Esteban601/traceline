@@ -149,8 +149,8 @@ export const DATAPOINTS_FORMATO_TEXTO: Set<string> = new Set(
  * del código los del bloque 10 que remiten al bloque del tipo y las declaraciones negativas generales del bloque 10.
  */
 const B65C_EFECTOS = [
-  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa`,
-  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa`,
+  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa: las partidas capitalizadas o reconocidas en el balance que dan los hechos, con su importe`,
+  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa: las partidas registradas como gasto o ingreso que dan los hechos, con su importe (aunque sea pequeño)`,
   (de: string) => `cómo ${de} han afectado a los flujos de efectivo durante el periodo sobre el que se informa`,
   (de: string) => `los efectos financieros previstos de ${de} sobre la situación financiera, el rendimiento y los flujos de efectivo a corto, mediano y largo plazo, incluidos los planes de disposición de activos (NIIF S2 16(c)) si los hechos los mencionan`,
   (de: string) => `para cuáles de ${de} existe un riesgo significativo de un ajuste material en los importes en libros de los activos y pasivos durante el siguiente periodo`,
@@ -434,7 +434,7 @@ export function erroresDeForma(texto: string, codigo: string): string[] {
     if (!tipo.re.test(texto)) errores.push(`no nombra el tipo de esta celda (${tipo.nombre}); di «${tipo.nombre}», no «riesgos climáticos» en general`);
     // Efectos ACTUALES (situación y rendimiento del periodo; v6.1, K823/K825): el criterio de no cuantificar solo aplica a
     // efectos previstos; un efecto del periodo no se dice «no cuantificado».
-    if (b65 % 5 < 2 && /no se (han )?cuantific|no (fueron|han sido) cuantificad/i.test(texto)) errores.push("dice que los efectos del periodo no se cuantificaron: el criterio de no cuantificar es solo de los efectos previstos; nombra las partidas del periodo que dan los hechos");
+    if (b65 % 5 < 2 && /no (se )?(han? )?cuantific|no (fueron|han sido) cuantificad/i.test(texto)) errores.push("dice que los efectos del periodo no se cuantificaron: el criterio de no cuantificar es solo de los efectos previstos; nombra las partidas del periodo que dan los hechos");
   }
   // NIIF S2 30 no es una exención (v6.1, FN-CB-410b.2): es el uso de información razonable y sustentable sin costo o
   // esfuerzo desproporcionado.
@@ -746,16 +746,25 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
         ? { codigo, via: "regla", estado: "no_aplica", texto: gsib }
         : { codigo, via: "regla", estado: "pendiente", texto: marcador("si la Compañía es un banco de importancia sistémica global (G-SIB) y, en su caso, su puntuación", "Perfil del emisor, sección Identidad (banco de importancia sistémica global)") };
     }
-    const seccionPrimero = FUENTE_GRI_SASB[codigo]?.seccionPrimero ? seccionDe(codigo, porBloque, hechos.values()) : null;
+    const fuente = FUENTE_GRI_SASB[codigo];
+    const sols = solicitudesDe(codigo);
+    // Extractos confirmados de sus solicitudes; con `temaEnEvidencia` (2-20), solo los que tratan el tema del contenido.
+    const extractos = sols
+      .filter((s) => extractoDe.has(s.id) && (!fuente?.temaEnEvidencia || fuente.tema.test(extractoDe.get(s.id)!)))
+      .map((s) => ({ solicitud: s.id, titulo: s.titulo, texto: extractoDe.get(s.id)! }));
+    if (fuente?.evidenciaPrimero && extractos.length) return { codigo, via: "evidencia", extractos };
+    const seccionPrimero = fuente?.seccionPrimero ? seccionDe(codigo, porBloque, hechos.values()) : null;
     if (seccionPrimero) return { codigo, via: "bloque", bloque: seccionPrimero.bloque, hechos: seccionPrimero.hechos };
     const captura = deCaptura(codigo);
     // La captura nombra qué mide (título de su solicitud); en 401-1, también lo que no desglosa (v6.1).
     if (captura) return { ...captura, texto: respuestaGriDeCaptura(codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
     const seccion = seccionDe(codigo, porBloque, hechos.values());
     if (seccion) return { codigo, via: "bloque", bloque: seccion.bloque, hechos: seccion.hechos };
-    const sols = solicitudesDe(codigo);
-    const extractos = sols.filter((s) => extractoDe.has(s.id)).map((s) => ({ solicitud: s.id, titulo: s.titulo, texto: extractoDe.get(s.id)! }));
     if (extractos.length) return { codigo, via: "evidencia", extractos };
+    // Con `temaEnEvidencia`, los extractos que no tratan el tema no responden: pendiente con la causa (2-20 no repite 2-19).
+    if (fuente?.temaEnEvidencia && sols.some((s) => extractoDe.has(s.id))) {
+      return { codigo, via: "regla", estado: "pendiente", texto: marcador(`hechos del proceso de determinación que pide ${codigo}`, `solicitud ${sols[0].titulo}`), notas: ["Sus extractos tratan la política (la responde otro contenido), no el proceso que pide este."] };
+    }
     return {
       codigo,
       via: "regla",
@@ -1022,7 +1031,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   if (objetivosGei.length) {
     for (const [k, x] of descripcion) {
       if (!/^NIIF S2 36 \((a|b|c|d)\)/.test(k)) continue;
-      descripcion.set(k, `${x} Los objetivos de emisiones de gases de efecto invernadero de la Compañía son: ${objetivosGei.map((n) => `«${n}»`).join(", ")}. Responde solo sobre ${objetivosGei.length === 1 ? "ese objetivo" : "esos objetivos"} y no menciones los demás objetivos (de cartera o de medición).${objetivosGei.length === 1 ? ` Si dices que ninguno cumple lo que se pregunta, dilo así: «ninguno de sus objetivos de emisiones de GEI; el único es el de ${objetivosGei[0].charAt(0).toLowerCase()}${objetivosGei[0].slice(1)}».` : ""}`);
+      descripcion.set(k, `${x} Los objetivos de emisiones de gases de efecto invernadero de la Compañía son: ${objetivosGei.map((n) => `«${n}»`).join(", ")}. Responde solo sobre ${objetivosGei.length === 1 ? "ese objetivo" : "esos objetivos"} y no menciones los demás objetivos (de cartera o de medición).${objetivosGei.length === 1 ? ` Si la respuesta es negativa, usa exactamente esta forma: «La Compañía no … en ninguno de sus objetivos de emisiones de GEI; el único es el de ${objetivosGei[0].charAt(0).toLowerCase()}${objetivosGei[0].slice(1)}.»` : ""}`);
     }
   }
   for (const [k, x] of descripcion) descripcion.set(k, enForma(x, voz.forma));

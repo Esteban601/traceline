@@ -19,7 +19,7 @@
  * sección que se resume) y la expresión que reconoce, en el enunciado de un hecho de esos bloques, el tema del
  * contenido. Sin entrada: el contenido no tiene sección (va por captura o evidencia directa).
  */
-export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; extra?: RegExp[]; seccionPrimero?: boolean }> = {
+export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; extra?: RegExp[]; seccionPrimero?: boolean; evidenciaPrimero?: boolean; temaEnEvidencia?: boolean }> = {
   // GRI 2 · 1. La organización y sus prácticas de presentación de informes
   "GRI 2-1": { bloques: [2, 4], tema: /denominaci|raz[oó]n social|S\.A\.B|sociedad an[oó]nima|forma jur[ií]dica|\bsede\b|domicilio|opera en|\bpa[ií]s(es)?\b/i },
   "GRI 2-2": { bloques: [4], tema: /subsidiari|entidades?|per[ií]metro|consolid/i },
@@ -28,11 +28,12 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
   "GRI 2-5": { bloques: [2, 30], tema: /verificaci[oó]n externa|aseguramiento|auditor[ií]a externa|tercero independiente/i },
   // 2. Actividades y trabajadores
   "GRI 2-6": { bloques: [12, 13], tema: /sector|producto|servicio|cadena de valor|proveedor|clientes?|mercado/i },
-  // 2-7 (v6.1): la sección antes que la captura, con la composición por género del Perfil (54 % de mujeres), que la
-  // captura de la plantilla no trae.
-  "GRI 2-7": { bloques: [12, 4], tema: /plantilla|emplea|personas|colaborador|mujeres/i, extra: [/^emisora\.mujeres_/], seccionPrimero: true },
+  // 2-7 (v6.1): primero los extractos confirmados de sus solicitudes (la plantilla y la composición por género, 54 % de
+  // mujeres), que la captura sola no trae; el hecho de género del libro quedó descartado. Sin extractos, la sección.
+  "GRI 2-7": { bloques: [12, 4], tema: /plantilla|emplea|personas|colaborador|mujeres/i, evidenciaPrimero: true },
   // 3. Gobernanza
-  "GRI 2-9": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer|independ/i, extra: [/^emisora\.mujeres_/] },
+  // 2-9 (v6.1): también primero los extractos (la composición del Consejo y las 3 consejeras de 11).
+  "GRI 2-9": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer|independ/i, evidenciaPrimero: true },
   "GRI 2-10": { bloques: [15, 18], tema: /designaci|selecci[oó]n|nombramient|asamblea de accionistas|elecci[oó]n de consejer/i },
   "GRI 2-11": { bloques: [15, 18], tema: /presidente del consejo|presidencia del consejo|presidente/i },
   "GRI 2-12": { bloques: [15, 16], tema: /supervis|revis|aprueb|consejo/i },
@@ -45,7 +46,7 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
   "GRI 2-19": { bloques: [16, 37], tema: /remuneraci|compensaci|incentivo|bono/i },
   // 2-20 (v6.1): solo el PROCESO de determinación de la remuneración; sin hechos de ese proceso, pendiente (antes
   // repetía la respuesta de 2-19, que sale de los mismos hechos de la política).
-  "GRI 2-20": { bloques: [16, 37], tema: /determinaci[oó]n de (la )?remuneraci|proceso[^.]{0,50}(remuneraci|compensaci)|consultor(es|a)?[^.]{0,30}remuneraci|votaci[oó]n[^.]{0,40}remuneraci|aprobaci[oó]n de (la )?remuneraci/i },
+  "GRI 2-20": { bloques: [16, 37], tema: /determinaci[oó]n de (la )?remuneraci|proceso[^.]{0,50}(remuneraci|compensaci)|consultor(es|a)?[^.]{0,30}remuneraci|votaci[oó]n[^.]{0,40}remuneraci|aprobaci[oó]n de (la )?remuneraci/i, temaEnEvidencia: true },
   // 4. Estrategia, políticas y prácticas
   "GRI 2-22": { bloques: [1], tema: /sostenib|estrategia|compromiso|desarrollo|clima/i },
   "GRI 2-23": { bloques: [27, 17], tema: /pol[ií]tica de|c[oó]digo de [eé]tica|compromiso de|derechos humanos|principio precautorio|debida diligencia|conducta empresarial/i },

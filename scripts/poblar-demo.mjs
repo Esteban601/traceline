@@ -552,6 +552,9 @@ const LIGAS_GRI_SASB = [
   { titulo: "Remuneración vinculada a métricas climáticas 2025", codigos: ["GRI 2-19", "GRI 2-20"] },
   { titulo: "Diversidad e inclusión en plantilla y órganos de gobierno", codigos: ["GRI 2-9"] },
   { titulo: "Plantilla y rotación de personal 2025", codigos: ["GRI 2-7"] },
+  // v6.1 (Esteban, 10/11/2026): la composición por género (54 % de mujeres en la plantilla, 3 de 11 en el Consejo) entra
+  // en 2-7 y 2-9; el libro descartó el hecho, pero la solicitud sigue validada con su extracto y su captura.
+  { titulo: "Mujeres en plantilla y en el Consejo 2025", codigos: ["GRI 2-7", "GRI 2-9"] },
   { titulo: "Índice de rotación voluntaria 2025 (%)", codigos: ["GRI 401-1"] },
   { titulo: "Esfuerzos indirectos de reducción y adaptación a través de la cartera", codigos: ["FN-CB-410a.2"] },
 ];
