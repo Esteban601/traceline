@@ -61,6 +61,7 @@ export type AccionEvento =
   | "usuario_desactivado"
   | "usuario_reactivado"
   | "usuario_trasladado"
+  | "precarga_irstrat"
   | "plantilla_creada"
   | "reporte_creado_desde_plantilla"
   | "reporte_congelado"
