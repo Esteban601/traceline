@@ -434,7 +434,7 @@ export function erroresDeForma(texto: string, codigo: string): string[] {
     if (!tipo.re.test(texto)) errores.push(`no nombra el tipo de esta celda (${tipo.nombre}); di «${tipo.nombre}», no «riesgos climáticos» en general`);
     // Efectos ACTUALES (situación y rendimiento del periodo; v6.1, K823/K825): el criterio de no cuantificar solo aplica a
     // efectos previstos; un efecto del periodo no se dice «no cuantificado».
-    if (b65 % 5 < 2 && /no (se )?(han? )?cuantific|no (fueron|han sido) cuantificad/i.test(texto)) errores.push("dice que los efectos del periodo no se cuantificaron: el criterio de no cuantificar es solo de los efectos previstos; nombra las partidas del periodo que dan los hechos");
+    if (b65 % 5 < 2 && oracionesDe(texto).some((o) => /no (se )?(han? )?cuantific|no (fueron|han sido) cuantificad/i.test(o) && !/previst|esperad|se espera|futur/i.test(o))) errores.push("dice que los efectos del periodo no se cuantificaron: el criterio de no cuantificar es solo de los efectos previstos; nombra las partidas del periodo que dan los hechos");
   }
   // NIIF S2 30 no es una exención (v6.1, FN-CB-410b.2): es el uso de información razonable y sustentable sin costo o
   // esfuerzo desproporcionado.
@@ -753,24 +753,24 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       .filter((s) => extractoDe.has(s.id) && (!fuente?.temaEnEvidencia || fuente.tema.test(extractoDe.get(s.id)!)))
       .map((s) => ({ solicitud: s.id, titulo: s.titulo, texto: extractoDe.get(s.id)! }));
     if (fuente?.evidenciaPrimero && extractos.length) return { codigo, via: "evidencia", extractos };
+    // `extractosEnSeccion` (2-9): los extractos confirmados de sus solicitudes entran como hechos de la sección, con id
+    // «sol:<solicitud>» (no son del libro; la columna `hechos` de la respuesta es JSON).
+    const conExtractos = (sec: { bloque: number; hechos: string[] }) => {
+      if (!fuente?.extractosEnSeccion) return sec.hechos;
+      const adicionales = extractos.map((x) => {
+        const id = `sol:${x.solicitud}`;
+        if (!hechos.has(id)) hechos.set(id, { id, clave: `extracto.${x.solicitud}`, libro_id: porBloque.get(sec.bloque)?.libro_id ?? "", tipo: "otro", enunciado: `Extracto confirmado de «${x.titulo}»: ${x.texto}`, extracto: x.texto, valor: null, unidad: null, estado: "vigente", bloque_dueno: null, bloques_referencia: [] });
+        return id;
+      });
+      return [...sec.hechos, ...adicionales];
+    };
     const seccionPrimero = fuente?.seccionPrimero ? seccionDe(codigo, porBloque, hechos.values()) : null;
-    if (seccionPrimero) return { codigo, via: "bloque", bloque: seccionPrimero.bloque, hechos: seccionPrimero.hechos };
+    if (seccionPrimero) return { codigo, via: "bloque", bloque: seccionPrimero.bloque, hechos: conExtractos(seccionPrimero) };
     const captura = deCaptura(codigo);
     // La captura nombra qué mide (título de su solicitud); en 401-1, también lo que no desglosa (v6.1).
     if (captura) return { ...captura, texto: respuestaGriDeCaptura(codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
     const seccion = seccionDe(codigo, porBloque, hechos.values());
-    if (seccion) {
-      // `extractosEnSeccion` (2-9): los extractos confirmados de sus solicitudes entran como hechos de la sección, con id
-      // «sol:<solicitud>» (no son del libro; la columna `hechos` de la respuesta es JSON).
-      const adicionales = fuente?.extractosEnSeccion
-        ? extractos.map((x) => {
-            const id = `sol:${x.solicitud}`;
-            if (!hechos.has(id)) hechos.set(id, { id, clave: `extracto.${x.solicitud}`, libro_id: porBloque.get(seccion.bloque)?.libro_id ?? "", tipo: "otro", enunciado: `Extracto confirmado de «${x.titulo}»: ${x.texto}`, extracto: x.texto, valor: null, unidad: null, estado: "vigente", bloque_dueno: null, bloques_referencia: [] });
-            return id;
-          })
-        : [];
-      return { codigo, via: "bloque", bloque: seccion.bloque, hechos: [...seccion.hechos, ...adicionales] };
-    }
+    if (seccion) return { codigo, via: "bloque", bloque: seccion.bloque, hechos: conExtractos(seccion) };
     if (extractos.length) return { codigo, via: "evidencia", extractos };
     // Con `temaEnEvidencia`, los extractos que no tratan el tema no responden: pendiente con la causa (2-20 no repite 2-19).
     if (fuente?.temaEnEvidencia && sols.some((s) => extractoDe.has(s.id))) {

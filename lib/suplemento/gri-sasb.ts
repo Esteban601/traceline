@@ -34,7 +34,7 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
   // 3. Gobernanza
   // 2-9 (v6.1): la sección 15 (Consejo y comités) más los extractos confirmados de sus solicitudes como hechos (las 3
   // consejeras de 11, que el libro descartó).
-  "GRI 2-9": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer|independ/i, extractosEnSeccion: true },
+  "GRI 2-9": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer|independ/i, seccionPrimero: true, extractosEnSeccion: true },
   "GRI 2-10": { bloques: [15, 18], tema: /designaci|selecci[oó]n|nombramient|asamblea de accionistas|elecci[oó]n de consejer/i },
   "GRI 2-11": { bloques: [15, 18], tema: /presidente del consejo|presidencia del consejo|presidente/i },
   "GRI 2-12": { bloques: [15, 16], tema: /supervis|revis|aprueb|consejo/i },
