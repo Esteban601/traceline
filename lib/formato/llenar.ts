@@ -245,7 +245,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   for (const [fila, v] of out) {
     const tipo = conceptos.find((x) => x.fila === fila)?.tipo ?? "";
     // También «Sí,» (v6.2, K52 → Excel 79): la celda de texto empieza por lo que afirma.
-    if (v.texto && /^text/.test(tipo) && /^Sí[.,]\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí[.,]\s+(\p{L})/u, (_m, l: string) => l.toUpperCase()) });
+    if (v.texto && !/^booleano/.test(tipo) && /^Sí[.,]\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí[.,]\s+(\p{L})/u, (_m, l: string) => l.toUpperCase()) });
   }
   // E5 una vez por encabezado: se queda en la primera celda (por fila) a la que el llenado se la antepuso.
   const vistos = new Set<number>();

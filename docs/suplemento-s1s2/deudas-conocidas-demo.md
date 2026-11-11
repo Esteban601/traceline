@@ -73,6 +73,8 @@ Abiertas por definición: no tienen caso, así que no se marcan corregidas.
     - el 19 anuncia una línea de tiempo que el Word no incluye;
     - la cronología entre el 16, el 26 y el 27.
   - **La lectura errónea de NIIF S2 30 en el bloque 6:** «no se acoge a la exención…».
+  - **El bloque 4 dice las dos desagregaciones de la cartera:** «composición de la cartera por sector económico» y
+    «composición por producto». La correcta es por producto (la cifra capturada). El Excel 192 ya sigue a la cifra.
 - **Campo G-SIB sin pantalla en el Perfil** (`perfil_emisor.banco_sistemico_global`): hoy solo lo escribe un guion.
 - **29A–29C, B62/B63 sin datapoints propios** (K855–K864, K901–K902, K921–K922): ampliación del catálogo.
 - **B65(e): un solo texto en K788, K811 y K834.** Es un solo código en el catálogo.

@@ -150,8 +150,8 @@ console.log("\nFormato electrónico · cierre (Fase 6, revisión externa v5.2)")
   ok(!K(692) && K(701) === "No existe un precio por tonelada en 2025." && K(709) === "Cero por ciento.", "(5) K836 vacía; K845 «No existe un precio por tonelada en 2025.»; K853 «Cero por ciento.»");
   // (6) K786, K809, K832 con el valor de su fila de opciones.
   ok([[642, 643], [665, 666], [688, 689]].every(([p, o]) => !!K(o) && K(p) === K(o)), "(6) K786, K809 y K832 con el mismo valor que su fila de opciones (como K161/K162)");
-  // (7) K847 con el patrón de K839: el texto de su código.
-  ok(!!K(703) && !!K(695), "(7) K847 (sección «Remuneración») con texto, como K839 (sección «Precios internos del carbono»)");
+  // (7) sustituido por la regla de ramas de la v6.2: K839 y K847 (filas de sección) vacías; la razón va en la rama.
+  ok(!K(703) && !K(695), "(7) K839 y K847 (filas de sección) vacías: la razón va en su rama (regla de ramas, v6.2)");
 }
 
 console.log("\nFormato electrónico · NIIF S2 29(e) despliegue de capital por tipo");

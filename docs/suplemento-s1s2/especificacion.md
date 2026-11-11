@@ -1971,7 +1971,8 @@ Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
   encargo permitiría corregir una remisión o una oración de un bloque aprobado sin regenerar el documento, con versión
   nueva del bloque, bitácora y las respuestas de ese bloque al día. Primer uso: las cuatro remisiones falsas del Word v6
   (bloques 15, 30, 35 y 36; `~/Downloads/formato-v6/deudas-conocidas.md`, §3) y la lectura errónea de NIIF S2 30 en
-  el bloque 6 («no se acoge a la exención por costo o esfuerzo desproporcionado»: NIIF S2 30 no es una exención; v6.1).
+  el bloque 6 («no se acoge a la exención por costo o esfuerzo desproporcionado»: NIIF S2 30 no es una exención; v6.1) y, en
+  el bloque 4, «composición de la cartera por sector económico», que contradice la cifra capturada (por producto; v6.2).
 - **K43 del demo: deuda de datos** (10 de noviembre de 2026). En `poblar-demo.mjs`, el papel de la gerencia (NIIF S2
   6(b)) y la integración con otras funciones (6(b)(ii)) salen de la misma oración («la Dirección de Crédito y Banca
   aplica los criterios climáticos en la originación»). K43 repite a 6(b)(ii) y el validador la rechaza. **Salida:**
