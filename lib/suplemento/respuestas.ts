@@ -22,7 +22,7 @@ import { enForma, formaDeReferencia, formasAjenas, mensajeFormaAjena, type Voz }
 import { PENDIENTE_DECLARACION, declaracionVigente } from "@/lib/suplemento/declaracion";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
-import { FUENTE_GRI_SASB, descripcionGriSasb, erroresGriSasb, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, seccionDe } from "@/lib/suplemento/gri-sasb";
+import { FUENTE_GRI_SASB, RESPUESTA_GRI_24_PRIMER_ANIO, descripcionGriSasb, erroresGriSasb, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, seccionDe } from "@/lib/suplemento/gri-sasb";
 
 // =============================================================================
 // RESPUESTAS POR DATAPOINT (encargo 2026-10-13-excel-respuestas-narrativas,
@@ -458,6 +458,21 @@ export function conSeparadoresDeMiles(texto: string, hechos: { valor: number | n
   return t;
 }
 
+/**
+ * Desagregaciones sin respaldo (v6.2, Excel 192): «composición de la cartera por sector económico» cuando las fuentes la
+ * dan por producto. La desagregación que nombra la respuesta tiene que estar en las fuentes como composición por lo mismo.
+ */
+export function desagregacionSinRespaldo(texto: string, fuentes: string[]): string[] {
+  const todo = fuentes.join("\n");
+  const out: string[] = [];
+  for (const m of texto.matchAll(/composici[oó]n de (?:la )?cartera por ([\p{L} ]+?)(?=,|\.|;|\s+y\s|\s+e\s|$)/giu)) {
+    const por = m[1].trim();
+    const re = new RegExp(`composici[oó]n (?:de (?:la )?cartera )?por ${por.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "iu");
+    if (!re.test(todo)) out.push(`describe la composición de la cartera «por ${por}», que las fuentes no dan así: usa la desagregación de los hechos`);
+  }
+  return out;
+}
+
 export function validarRespuesta(
   texto: string,
   destino: Destino,
@@ -480,6 +495,7 @@ export function validarRespuesta(
   if (ajenas.length) errores.push(mensajeFormaAjena(ajenas, forma));
   const prohibidas = vocabularioProhibidoEn(t);
   if (prohibidas.length) errores.push(`usa vocabulario de proceso interno: ${prohibidas.join(", ")}`);
+  errores.push(...desagregacionSinRespaldo(t, [ctx.textoBloque, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto])]));
   // El valor del hecho también con separador de miles («488,000»): numerosDe lee esa forma como 488000 y como 488, y la
   // respuesta la escribe así (conSeparadoresDeMiles) aunque el hecho diga «488000» (demo v6, K741).
   const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? `${h.valor} ${MILES.format(Number(h.valor))}` : ""])].join("\n"));
@@ -740,6 +756,10 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     if (codigo === "GRI 2-3") {
       return { codigo, via: "regla", estado: "respuesta", texto: respuestaGri23({ ejercicio: ens.reporte.ejercicio, e4: !!alivios.E4 }), notas: ["Pendiente parcial: punto de contacto para preguntas sobre el informe (la plataforma no lo captura)."] };
     }
+    // GRI 2-4 en el primer periodo (v6.2): sin información de periodos anteriores que actualizar, como K718.
+    if (codigo === "GRI 2-4" && doc.regimen === "primer_anio") return { codigo, via: "regla", estado: "respuesta", texto: RESPUESTA_GRI_24_PRIMER_ANIO };
+    // FN-CB-410b.1 con C4 vigente (v6.2): emisiones financiadas absolutas no reveladas por el alivio, como en NIIF.
+    if (codigo === "FN-CB-410b.1" && alivios.C4) return { codigo, via: "regla", estado: "no_aplica", texto: textoAlivio("C4", "cifra") };
     if (codigo === "FN-CB-550a.1") {
       const gsib = respuestaGsib((perfil as Record<string, unknown> | null)?.banco_sistemico_global as boolean | null | undefined);
       return gsib
@@ -1163,7 +1183,7 @@ async function responderBloque(
     // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe. Los requisitos que se
     // responden por clave de hechos (HECHOS_POR_CLAVE) no se reutilizan: sus hechos cambian sin que cambie el bloque.
     // Tampoco una que ya no pasa las reglas de forma (erroresDeForma): se regenera sola, sin tocar las demás.
-    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length) reutilizadas.set(clave(p), prev);
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length && !desagregacionSinRespaldo(prev.texto, [v.texto, ...p.hechos.flatMap((h) => [h.enunciado, h.extracto])]).length) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;

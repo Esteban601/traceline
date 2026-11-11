@@ -77,9 +77,15 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
  *   · todo contenido GRI (regla general de v6.1; antes solo 2-24 y 3-3): si la fuente cubre solo parte del contenido,
  *     la respuesta nombra los incisos que no cubre.
  */
-const COBERTURA_PARCIAL = "Si la fuente no cubre todos los incisos de este contenido, añade una oración que nombre los incisos que no se revelan (por ejemplo, «No se revelan los incisos b y c.»); no los afirmes ni los completes.";
+const COBERTURA_PARCIAL = "Si la fuente no cubre todos los incisos de este contenido, añade una oración que nombre los incisos que no se revelan (por ejemplo, «No se revelan los incisos b y c.»); no los afirmes ni los completes. Si cubre un inciso solo en parte, di qué parte de ese inciso falta (por ejemplo, «Del inciso b.ii no se revelan los estándares de verificación.»). No declares no revelado un inciso que la fuente sí cubre.";
 export const REGLAS_GRI_SASB: Record<string, string> = {
-  "GRI 2-5": "Nombra el alcance de lo que se verificó externamente (por ejemplo, el inventario de emisiones de GEI) y quién lo verificó, si la fuente lo dice. No presentes el informe ni la información de sostenibilidad en su conjunto como verificados.",
+  "GRI 2-5": "Nombra el alcance de lo que se verificó externamente (por ejemplo, el inventario de emisiones de GEI) y quién lo verificó, si la fuente lo dice. No presentes el informe ni la información de sostenibilidad en su conjunto como verificados. No describas el método de medición (protocolo, factores, datos de entrada): no es parte de este contenido. Declara qué parte del inciso b.ii no se revela (los estándares de verificación y las limitaciones del proceso, si la fuente no los da).",
+  // v6.2 (lectura dirigida del libro GRI/SASB):
+  "GRI 2-2": "El inciso b queda cubierto por la entidad que informa: las sociedades del informe son las subsidiarias consolidadas de los estados financieros. No lo declares no revelado.",
+  "GRI 2-6": "Si la fuente no describe las entidades aguas abajo y sus actividades, declara no revelado el inciso b.iii.",
+  "FN-CB-410b.2": "Si la fuente no da la exposición bruta desagregada, dilo exactamente así: «La información disponible no desglosa la exposición bruta por industria ni por clase de activo.»",
+  "FN-CB-410b.4": "Si la fuente no describe cómo se atribuyen las emisiones a cada financiamiento, declara que no se describe el método de atribución.",
+  "FN-CB-550a.2": "Si la fuente solo trata la prueba de estrés climática, declara que la respuesta cubre solo esa prueba, no la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital.",
   "GRI 2-24": COBERTURA_PARCIAL,
   "GRI 3-3": COBERTURA_PARCIAL,
 };
@@ -89,8 +95,20 @@ export const REGLAS_GRI_SASB: Record<string, string> = {
  * verificado y, si afirma una verificación, nombra su alcance (inventario, emisiones, GEI, alcance).
  */
 export function erroresGriSasb(texto: string, codigo: string): string[] {
-  if (codigo !== "GRI 2-5") return [];
   const errores: string[] = [];
+  // v6.2: lo que cada contenido tiene que declarar, o no decir.
+  const oraciones = texto.split(/(?<=\.)\s+/);
+  const declara = (re: RegExp) => oraciones.some((o) => /\bno\b/i.test(o) && re.test(o));
+  if (codigo === "GRI 2-2" && declara(/\bincisos?\b[^.]*\bb\b/i)) errores.push("declara no revelado el inciso b, que cubre la entidad que informa (las subsidiarias consolidadas)");
+  if (codigo === "GRI 2-6" && !declara(/\bb\.?\s?iii\b/i)) errores.push("no declara no revelado el inciso b.iii (entidades aguas abajo), que la fuente no cubre");
+  if (codigo === "FN-CB-410b.2" && !/no desglosa la exposición bruta por industria ni por clase de activo/i.test(texto)) errores.push("no dice «La información disponible no desglosa la exposición bruta por industria ni por clase de activo.»");
+  if (codigo === "FN-CB-410b.4" && !declara(/m[eé]todo de atribuci[oó]n/i)) errores.push("no declara que no se describe el método de atribución de las emisiones financiadas");
+  if (codigo === "FN-CB-550a.2" && !oraciones.some((o) => /\b(solo|únicamente)\b/i.test(o) && /estr[eé]s/i.test(o) && /clim/i.test(o))) errores.push("no declara que cubre solo la prueba de estrés climática");
+  if (codigo !== "GRI 2-5") return errores;
+  if (/protocolo GEI|factores de emisi[oó]n|datos de entrada|m[eé]todo (de medici[oó]n|de c[aá]lculo)?/i.test(texto)) errores.push("describe el método de medición, que no es parte de GRI 2-5");
+  // b.ii solo aplica si hubo verificación: con una verificación afirmada, la respuesta dice qué parte de b.ii falta.
+  const verificada = /verificad|verificaci[oó]n|asegurad|aseguramiento/i.test(texto) && !/\bno\b[^.]{0,40}(verific|asegur)/i.test(texto);
+  if (verificada && !declara(/\bb\.?\s?ii\b/i)) errores.push("no declara qué parte del inciso b.ii no se revela");
   if (/(el|este|el presente) (informe|reporte|documento)\b[^.]{0,80}\b(verificad|asegurad)|verificaci[oó]n (externa |independiente )?(del|de este|de todo el) (informe|reporte)|informaci[oó]n de sostenibilidad\b[^.]{0,60}\b(fue|ha sido|est[aá]) (verificad|asegurad)/i.test(texto)) {
     errores.push("presenta el informe como verificado; GRI 2-5 nombra solo el alcance de lo verificado (p. ej., el inventario de GEI)");
   }
@@ -152,6 +170,9 @@ export function respuestaGri23(c: { ejercicio: number; e4: boolean }): string {
     : "La información se publica como parte del informe anual, junto con los estados financieros del mismo periodo.";
   return `El informe cubre el ejercicio ${c.ejercicio}, del 1 de enero al 31 de diciembre de ${c.ejercicio}, con frecuencia anual, el mismo periodo de los estados financieros. ${publicacion} No se revela un punto de contacto para preguntas sobre el informe.`;
 }
+
+/** GRI 2-4 por regla en el primer periodo (v6.2, como K718): no hay información de periodos anteriores que actualizar. */
+export const RESPUESTA_GRI_24_PRIMER_ANIO = "Sin actualizaciones de información de periodos anteriores: primer periodo bajo NIIF S1 y S2.";
 
 /**
  * FN-CB-550a.1 (puntuación G-SIB) por dato del Perfil (v6.1): «No aplica» si la emisora declara que no es un banco de
