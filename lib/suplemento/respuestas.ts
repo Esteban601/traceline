@@ -359,6 +359,14 @@ export const CONCEPTOS_FORMATO_SIN_DATAPOINT: { fila: number; bloque: number; pa
  * alta, la cobertura del bloque manda y esto no se usa. No se usa con
  * documentos de clientes (registro del encargo).
  */
+/**
+ * Cifras capturadas que un código recibe además de su cobertura (v6.2, Excel 192): NIIF S2 32 necesita la composición de
+ * la cartera capturada (por producto) para no copiar la desagregación de una frase narrativa que la contradice.
+ */
+export const CIFRAS_DEL_CODIGO: Record<string, RegExp[]> = {
+  "NIIF S2 32": [/^cartera_de_credito_total_\d{4}\.valor_\d{4}$/],
+};
+
 export const HECHOS_POR_CLAVE: Record<string, RegExp[]> = {
   // La razón de que no haya cifras: emisora.compromiso_transparencia_limitaciones (decisión de Esteban, Fase 3).
   "NIIF S2 21(a)": [/^riesgos_transicion\.efectos_registrados_2025$/, /^efectos_financieros\./, HECHO_RAZON["NIIF S2 21(a)"].clave, claveExacta(DECLARACIONES_PERFIL.criterio_cuantificacion.clave)],
@@ -464,8 +472,8 @@ export function conSeparadoresDeMiles(texto: string, hechos: { valor: number | n
  */
 export function desagregacionSinRespaldo(texto: string, fuentes: string[], cifras: string[] = []): string[] {
   const todo = fuentes.join("\n");
-  // Las desagregaciones que dan la sección aprobada y las cifras capturadas («composición por producto: empresarial
-  // 52%…») mandan sobre la narrativa: si una frase de un hecho dice otra cosa, la respuesta usa la de la sección.
+  // Las desagregaciones que dan las cifras capturadas («composición por producto: empresarial 52%…») mandan sobre la
+  // narrativa (también sobre la sección aprobada, que puede repetir una frase contradictoria del demo).
   const deCifras = [...cifras.join("\n").matchAll(/composici[oó]n (?:de (?:la )?cartera )?por ([\p{L}]+(?: [\p{L}]+)?)/giu)].map((m) => m[1].toLowerCase());
   const out: string[] = [];
   for (const m of texto.matchAll(/composici[oó]n de (?:la )?cartera por ([\p{L} ]+?)(?=,|\.|;|\s+y\s|\s+e\s|$)/giu)) {
@@ -499,7 +507,7 @@ export function validarRespuesta(
   if (ajenas.length) errores.push(mensajeFormaAjena(ajenas, forma));
   const prohibidas = vocabularioProhibidoEn(t);
   if (prohibidas.length) errores.push(`usa vocabulario de proceso interno: ${prohibidas.join(", ")}`);
-  errores.push(...desagregacionSinRespaldo(t, [ctx.textoBloque, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto])], [ctx.textoBloque, ...ctx.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)]));
+  errores.push(...desagregacionSinRespaldo(t, [ctx.textoBloque, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto])], ctx.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)));
   // El valor del hecho también con separador de miles («488,000»): numerosDe lee esa forma como 488000 y como 488, y la
   // respuesta la escribe así (conSeparadoresDeMiles) aunque el hecho diga «488000» (demo v6, K741).
   const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? `${h.valor} ${MILES.format(Number(h.valor))}` : ""])].join("\n"));
@@ -856,7 +864,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     const declaracion = DECLARACION_DE_CODIGO[codigo];
     const deLaDeclaracion = declaracion && cob ? hechosPorClave([claveExacta(declaracion.clave)], porBloque.get(cob.bloque)?.libro_id) : [];
     if (cob && (cob.estado === "cubierto" || cob.estado === "parcial") && cob.hechos.length) {
-      return { codigo, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...deLaDeclaracion, ...cob.hechos])] };
+      const cifras = CIFRAS_DEL_CODIGO[codigo] ? hechosPorClave(CIFRAS_DEL_CODIGO[codigo], porBloque.get(cob.bloque)?.libro_id) : [];
+      return { codigo, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...deLaDeclaracion, ...cob.hechos, ...cifras])] };
     }
     if (cob && deLaDeclaracion.length) return { codigo, via: "bloque", bloque: cob.bloque, hechos: deLaDeclaracion };
     // Alta posterior a la aprobación: los hechos vigentes del libro del bloque dueño, por clave.
@@ -1187,7 +1196,7 @@ async function responderBloque(
     // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe. Los requisitos que se
     // responden por clave de hechos (HECHOS_POR_CLAVE) no se reutilizan: sus hechos cambian sin que cambie el bloque.
     // Tampoco una que ya no pasa las reglas de forma (erroresDeForma): se regenera sola, sin tocar las demás.
-    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length && !desagregacionSinRespaldo(prev.texto, [v.texto, ...p.hechos.flatMap((h) => [h.enunciado, h.extracto])], [v.texto, ...p.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)]).length) reutilizadas.set(clave(p), prev);
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length && !desagregacionSinRespaldo(prev.texto, [v.texto, ...p.hechos.flatMap((h) => [h.enunciado, h.extracto])], p.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)).length) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;
