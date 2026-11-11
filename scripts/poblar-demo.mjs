@@ -1690,6 +1690,13 @@ async function main() {
     return;
   }
 
+  // `--solo perfil`: solo el paso 1 (el Perfil del emisor, con el dato G-SIB de FN-CB-550a.1; v6.1), sin tocar el resto.
+  if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "perfil") {
+    log("1. Perfil del emisor");
+    await perfilEmisor();
+    return;
+  }
+
   // `--solo regimen`: solo el paso 2 (año de adopción, alivios y declaración de cumplimiento; encargo
   // s1-72-reserva-y-emisora), sin tocar el resto del demo.
   if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "regimen") {
