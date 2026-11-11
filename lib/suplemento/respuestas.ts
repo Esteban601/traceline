@@ -474,7 +474,9 @@ export function validarRespuesta(
   if (ajenas.length) errores.push(mensajeFormaAjena(ajenas, forma));
   const prohibidas = vocabularioProhibidoEn(t);
   if (prohibidas.length) errores.push(`usa vocabulario de proceso interno: ${prohibidas.join(", ")}`);
-  const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? String(h.valor) : ""])].join("\n"));
+  // El valor del hecho también con separador de miles («488,000»): numerosDe lee esa forma como 488000 y como 488, y la
+  // respuesta la escribe así (conSeparadoresDeMiles) aunque el hecho diga «488000» (demo v6, K741).
+  const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? `${h.valor} ${MILES.format(Number(h.valor))}` : ""])].join("\n"));
   const fuera = numerosDe(t).filter((x) => !permitidos.some((p) => Math.abs(p - x) <= Math.abs(x) * 1e-9 + 1e-9));
   if (fuera.length) errores.push(`cifras que no están en la sección ni en los hechos: ${fuera.join(", ")}`);
   const locales = new Set(ctx.hechos.map((h) => h.local));

@@ -253,6 +253,13 @@ console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
   ok(erroresDeForma("El presente informe fue verificado por un tercero.", "GRI 2-5").length > 0, "erroresDeForma aplica la regla de 2-5 (respuestas nuevas y reutilizadas)");
 }
 
+console.log("\n9b. Cifra del hecho sin separador y respuesta con separador (demo v6, K741)");
+{
+  const H = [{ id: "u", local: "h1", tipo: "cifra", enunciado: "Consumo de combustibles fósiles 2025: 488000 litros (ejercicio 2025).", extracto: "488000", valor: 488000, unidad: "litros" }];
+  ok(!validarRespuesta("Los datos de entrada son 488,000 litros de gasolina y diésel en 2025.", "formato", { codigo: "fila:318", textoBloque: "", hechos: H, citados: ["h1"] }).some((e) => /cifras/.test(e)), "«488,000» con un hecho que dice «488000» → sin rechazo por cifras");
+  ok(validarRespuesta("Los datos de entrada son 489,000 litros en 2025.", "formato", { codigo: "fila:318", textoBloque: "", hechos: H, citados: ["h1"] }).some((e) => /cifras/.test(e)), "«489,000» → rechazo por cifras");
+}
+
 console.log("\n10. Carácter de los objetivos en la prosa (33(g), 10/11/2026)");
 {
   const { caracterDeObjetivoIncoherente: car } = await import("../lib/suplemento/hechos/validadores.ts");
