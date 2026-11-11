@@ -21,7 +21,8 @@ const inf = JSON.parse(fs.readFileSync(informe, "utf8"));
 const casos = inf.casos ?? [];
 
 let corregidas = 0, abiertas = 0;
-const texto = fs.readFileSync(plantilla, "utf8").replace(/\{\{e2e:([^}]+)\}\}/g, (_m, prefijo) => {
+// Los comentarios HTML de la plantilla (instrucciones) no van en la salida ni cuentan como deudas.
+const texto = fs.readFileSync(plantilla, "utf8").replace(/<!--[\s\S]*?-->\n?/g, "").replace(/\{\{e2e:([^}]+)\}\}/g, (_m, prefijo) => {
   const p = prefijo.trim();
   const suyos = casos.filter((c) => c.caso.startsWith(p));
   if (!suyos.length) { abiertas++; return `✗ abierta · sin caso «${p}» en el informe`; }
