@@ -121,8 +121,65 @@ cambia. Va en la nota del runbook del release.
 4. **Validador de voz:** ¿la forma del Perfil es obligatoria en toda oración que nombre a la emisora (mi propuesta), o
    se admite también la denominación corta («O'Donnell»), como ya admite el prompt?
 
+## 6. Decisiones de Esteban (10/11/2026)
+
+1. Fases y estimación aprobadas. La migración va en el release posterior a v44 y v45.
+2. **Sin texto de declaración:** marcador de pendiente en los tenants reales. En los tenants `es_demo`, la migración
+   prellena «sin reserva» con la oración actual, para que el demo y los mockups no cambien.
+3. **Sin reserva con pendientes:** fila 286 «No», con aviso en el informe. La descarga no se bloquea.
+4. **Validador de voz:** admite la forma del Perfil y la denominación corta de la emisora; rechaza las formas genéricas
+   distintas de la del Perfil.
+
+### 6.1 Fase 1 (código y e2e en local)
+
+- **Migración** `20261110120000_reporte_declaracion_cumplimiento.sql`, aditiva:
+  - `reportes.declaracion_cumplimiento`, con CHECK `sin_reserva` | `con_reserva`;
+  - `reportes.declaracion_cumplimiento_texto`;
+  - relleno de los reportes `es_demo` sin declaración: «sin_reserva» y la oración de la plantilla anterior. Solo si el
+    Perfil tiene denominación formal; sin ella quedan «sin_reserva» sin texto (marcador);
+  - barrera.
+
+  Aplicada **solo en local**. En local, Empresa Demo no tiene Perfil, así que quedó «sin_reserva» sin texto.
+- **Declaración** (`lib/suplemento/declaracion.ts`):
+  - **captura en el régimen del reporte:** modo y texto van juntos; el texto no admite marcador; queda en la bitácora
+    (modo y caracteres);
+  - **bloque 2:** quién presenta (plantilla, sin «de conformidad con») y la declaración tal cual, o el marcador. Si la
+    declaración abre con la denominación formal (la oración del demo), la plantilla no repite quién presenta, y el
+    bloque 2 del demo sale idéntico;
+  - **NIIF S1 72 y fila 285:** el texto de la emisora, si el bloque 2 aprobado lo lleva tal cual (`declaracionVigente`);
+    si se cambió después de aprobar, pendiente;
+  - **fila 286:** sin declaración, pendiente; con reserva, «No»; sin reserva, «Sí» o «No. Falta completar…» con el
+    aviso en `avisosDeCoherencia` (hoja «Avisos» de la revisión) y en el log de `export-formato`.
+- **Fideicomisos:** `INSTRUMENTOS_FORMATO` y `esInstrumentoFiduciario` en `lib/perfil-emisor.ts`.
+  - Las dos reglas de `llenar.ts` y el datalist del Perfil salen de la constante.
+  - El guion del alta ya no avisa del CKD; su copia de la lista se compara en el e2e.
+- **Forma de referencia** (`lib/suplemento/forma.ts`):
+  - `formaDeReferencia` (default «la Compañía») y `enForma`, que se aplica a:
+    - las respuestas: textos de regla, descripciones antes de la firma del pedido, y el sistema;
+    - el Formato: «No aplica por actividad», E5 y 36(e);
+    - el Excel de taxonomía: E5, E4 y 36(e);
+    - los dos hechos de regla;
+    - la instrucción de extensión del bloque 21;
+    - las reglas y el ejemplo de estilo del prompt.
+  - El prompt y las plantillas usan el mismo default; antes, «la Emisora» y «la Entidad».
+  - Versión de prompt: `calidad-v4-2026-11-10` / `hechos-v12-2026-11-10`.
+  - Validador de voz `formasAjenas`, en los bloques (con reintento, motivo `voz_incorrecta`) y en `validarRespuesta`.
+    No va en `erroresDeForma`, para no regenerar las respuestas reutilizadas.
+- **`poblar-demo`:** declaración «sin reserva» con la oración actual.
+
+### 6.2 Notas de la aprobación (10/11/2026)
+
+- **El validador de voz no invalida respuestas reutilizadas.** Va en `validarRespuesta` (respuestas nuevas, con
+  reintento) y en los bloques, no en `erroresDeForma`, que es lo que decide si una respuesta guardada se reutiliza. Una
+  respuesta guardada con otra forma genérica se conserva hasta que su bloque cambie o se regenere.
+- **El texto del revisor en `catalogo-incisos.ts`** («¿Prevé la Compañía usar créditos de carbono…?», motivo de un
+  pendiente) conserva «la Compañía»: es una nota para el revisor y no se publica.
+
 ## 7. Registro
 
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 10/11/2026 | **Paso 0** (lectura) | Declaración: hoy el bloque 2 siempre afirma conformidad y la 286 ya puede contradecirla; propuesta con columnas en el reporte, texto de la emisora, marcador si falta y aviso. Fideicomisos: solo una de las cinco opciones fiduciarias contiene «fideicomiso». Forma de referencia: el campo existe; «la Compañía» escrito a mano en respuestas, alivios, hechos de regla, Formato y ejemplos del prompt. ~3–3.5 jornadas, costo 0 | **Parada:** §5 |
+| 10/11/2026 | **Fase 1** (§6.1): migración aplicada solo en local; declaración, fideicomisos, forma de referencia y validador de voz. `tsc` limpio; eslint sin errores nuevos. Verde: `e2e-declaracion-y-forma` (52), `e2e-declaracion-local` (13), `e2e-respuestas-validadores`, `e2e-formato-electronico`, `e2e-historial-bloques`, `e2e-excel-alivios`, `e2e-excel-respuestas`, `e2e-aprobar-bloqueantes`, `e2e-rol-auditor`, `e2e-perfil-declaraciones`, `e2e-metricas-instancias` y `e2e-generador-bandera`. `verify:export` no se corrió: el código lee las columnas nuevas, que dev aún no tiene | **Parada:** SQL antes de dev |
+| 10/11/2026 | **Aprobación de la migración.** `supabase db push` contra dev se detiene: dev tiene las tres migraciones de `catalogo-gri-sasb` (20261031120000/130000/140000), que esta rama no trae. Decisión de Esteban: integrar primero `catalogo-gri-sasb` a `dev/ajustes-sep26` y rebasar esta rama encima. Notas de §6.2 anotadas; borrador del runbook de v46 en `~/Downloads/v46/comandos.md` | **Parada:** espera la integración de GRI/SASB |
+| 10/11/2026 | **Integración y dev.** `catalogo-gri-sasb` integrada (PR #54 y #55); `dev/ajustes-sep26` mezclada en esta rama (merge, no rebase: la rama ya estaba en origin y un rebase pediría `--force`). Un conflicto en `respuestas.ts` (columnas de `datapoints_taxonomia` y `perfil_emisor`), resuelto uniendo las dos; `responderEvidencia` (GRI/SASB) recibe la voz. **Migración** en dev con `db push`: 102 de 102 alineadas en dev y en local, barrera 108. El relleno dejó el reporte del demo de dev «sin_reserva» con la oración (300 caracteres). `poblar-demo --solo regimen` (opción nueva) sin cambios. **Tipos** regenerados desde dev: idénticos byte a byte a los escritos a mano. **Pruebas:** `verify:export` 81 y `e2e-celdas-categoricas` 128 contra dev. El Formato y el Excel del demo con el código de la rama son **iguales celda por celda** a los de `traceline-dev` v33 (4548 y 1251 celdas, 0 distintas). Batería local verde después del merge: `e2e-declaracion-local`, `e2e-historial-bloques`, `e2e-aprobar-bloqueantes`, `e2e-respuestas-gri-sasb`, `e2e-catalogo-gri-sasb`, `e2e-formato-electronico`, `e2e-excel-alivios`, `e2e-excel-respuestas`, `e2e-rol-auditor` y `e2e-perfil-declaraciones` | Hecho |
