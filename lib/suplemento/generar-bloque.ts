@@ -52,6 +52,8 @@ import { cifrasSinRespaldo, corpusPermitido } from "@/lib/suplemento/cifras";
 import { numerosDe } from "@/lib/evidencias/fuente";
 import { extensionDe as extensionDeBloque, viaDe, type Via } from "@/lib/suplemento/vias";
 import { PLANTILLAS } from "@/lib/suplemento/plantillas";
+import { enForma, formaDeReferencia, formasAjenas, mensajeFormaAjena } from "@/lib/suplemento/forma";
+import { leerDeclaracion, type Declaracion } from "@/lib/suplemento/declaracion";
 import { ETIQUETA_CAMPO, SECCION_DE_CAMPO } from "@/lib/suplemento/completitud";
 
 // =============================================================================
@@ -200,7 +202,7 @@ export async function generarBloque(
 
   const { data: rep } = await supabase
     .from("reportes")
-    .select("id, tenant_id, anio_adopcion, alivios")
+    .select("id, tenant_id, anio_adopcion, alivios, declaracion_cumplimiento, declaracion_cumplimiento_texto")
     .eq("id", doc.reporte_id)
     .maybeSingle();
 
@@ -288,8 +290,11 @@ export async function generarBloque(
   const prefs = {
     denominacionFormal: (perfil?.denominacion_formal as string | null) ?? null,
     nombreCorto: (perfil?.nombre_corto as string | null) ?? null,
-    formaDeReferencia: (perfil?.forma_de_referencia as string | null) ?? null,
+    // Sin forma en el Perfil, «la Compañía» (decisión 7 de odonnell-alta-real): la misma en el prompt, las plantillas
+    // y el validador de voz. Antes, «la Emisora» en el prompt y «la Entidad» en las plantillas.
+    formaDeReferencia: formaDeReferencia(perfil?.forma_de_referencia as string | null),
   };
+  const voz = { forma: prefs.formaDeReferencia, denominacionFormal: prefs.denominacionFormal, nombreCorto: prefs.nombreCorto };
 
   // Un bloque que el régimen excluye no se genera: se marca y ya. Gastar una
   // llamada en redactar algo que no va al documento es tirar el dinero.
@@ -346,6 +351,7 @@ export async function generarBloque(
       anioAdopcion: rep.anio_adopcion,
       alivios,
       nombreReporte: ens.reporte.nombre,
+      declaracion: leerDeclaracion(rep),
       sinPersistir: !!opciones.sinPersistir,
       evaluado,
     });
@@ -471,7 +477,8 @@ export async function generarBloque(
     // pide en una nota corregir lo que el código ya corrigió (bloque 39, 5b).
     tabla: insumo && tabla ? aplicarGlosario(tabla, glosario).texto : tabla,
     fronteras: fronteraDe(bloque.numero),
-    extension: opciones.extension ?? extensionDeBloque(bloque.numero),
+    // La instrucción de extensión del 21 nombra a «la Compañía»: en la forma de la emisora.
+    extension: enForma(opciones.extension ?? extensionDeBloque(bloque.numero), voz.forma),
     documentos: insumo ? null : documentosParaPrompt(adjuntos),
     requisitos: insumo ? requisitos : null,
     heredados: [...heredados].map(([codigo, h]) => ({ codigo, ...h })),
@@ -504,9 +511,11 @@ export async function generarBloque(
     const inventadas = p.fuentes_usadas.filter((f) => !idsValidos.has(f));
     const sinRespaldo = cifrasSinRespaldo(p.texto, corpus, aniosPermitidos);
     const prohibidas = vocabularioProhibidoEn(p.texto);
+    const ajenas = formasAjenas(p.texto, voz);
     if (inventadas.length) return { ok: false, motivo: "fuentes_invalidas", detalle: `Citó fuentes que no se le entregaron: ${inventadas.join(", ")}.` };
     if (sinRespaldo.length) return { ok: false, motivo: "cifras_sin_respaldo", detalle: `Cifras sin respaldo en los datos confirmados: ${sinRespaldo.join(", ")}.` };
     if (prohibidas.length) return { ok: false, motivo: "voz_incorrecta", detalle: `El texto usa vocabulario de proceso interno: ${prohibidas.join(", ")}.` };
+    if (ajenas.length) return { ok: false, motivo: "voz_incorrecta", detalle: `El texto ${mensajeFormaAjena(ajenas, voz.forma)}.` };
     return {
       ok: true, texto: p.texto, fuentesUsadas: p.fuentes_usadas, pendientes: [], notasRevision: [], tabla,
       modelo, uso: { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 }, costo: 0, duracionMs: 0,
@@ -634,6 +643,8 @@ export async function generarBloque(
     // estar inventado; el segundo, que no es publicable.
     const inventadas = [...parseada.fuentes_usadas.filter((f) => !idsValidos.has(f)), ...anclasDesconocidas.filter((id) => !parseada.fuentes_usadas.includes(id))];
     const prohibidas = vocabularioProhibidoEn(parseada.texto);
+    // Voz (decisión 4 del encargo s1-72-reserva-y-emisora): la forma de referencia del Perfil, no otra genérica.
+    const ajenas = formasAjenas(parseada.texto, voz);
     const marcadores = marcadoresMalFormados(parseada.texto);
     const sinRespaldo = cifrasSinRespaldo(parseada.texto, corpus, aniosPermitidos);
     // Cobertura por subrequisito, validada por código (modo libro).
@@ -706,7 +717,7 @@ export async function generarBloque(
       ...reescritas.map((r) => `El texto reescribe un hecho que desarrolla el bloque ${r.bloque} («${r.frase}…»): remite a él en una línea, sin repetir su contenido.`),
     ];
 
-    if (inventadas.length === 0 && prohibidas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0 && cobertura.length === 0 && deterministas.length === 0) {
+    if (inventadas.length === 0 && prohibidas.length === 0 && ajenas.length === 0 && marcadores.length === 0 && sinRespaldo.length === 0 && cobertura.length === 0 && deterministas.length === 0) {
       salida = parseada;
       anclasFinales = insumo ? anclas : null;
       break;
@@ -722,7 +733,7 @@ export async function generarBloque(
     const sinAncla = remisionesMal.filter((e) => e.tipo === "sin_ancla");
     const degrada = aceptaConObservacionesDeColocacion(intento, {
       colocacion: sinAncla.length + reescritas.length, deterministas: deterministas.length, inventadas: inventadas.length,
-      prohibidas: prohibidas.length, marcadores: marcadores.length, sinRespaldo: sinRespaldo.length, cobertura: cobertura.length,
+      prohibidas: prohibidas.length + ajenas.length, marcadores: marcadores.length, sinRespaldo: sinRespaldo.length, cobertura: cobertura.length,
     });
     if (degrada) {
       salida = parseada;
@@ -763,6 +774,11 @@ export async function generarBloque(
           `Lo que falte va en el marcador [Pendiente: … — …], que es el único sitio donde puedes nombrar una solicitud o un campo.`
       );
     }
+    if (ajenas.length) {
+      reproches.push(
+        `El texto ${mensajeFormaAjena(ajenas, voz.forma)}. Después de la denominación formal, nombra a la emisora solo con esa forma, copiada carácter por carácter, o con su nombre corto.`
+      );
+    }
     if (marcadores.length) {
       reproches.push(
         `Estos marcadores no llevan el formato pedido \`[Pendiente: <qué falta> — <de qué solicitud o campo>]\`: ${marcadores.join(" | ")}.\n` +
@@ -789,6 +805,8 @@ export async function generarBloque(
         ? `Cifras sin respaldo en los datos confirmados: ${sinRespaldo.join(", ")}.`
       : prohibidas.length
         ? `El texto usa vocabulario de proceso interno: ${prohibidas.join(", ")}.`
+      : ajenas.length
+        ? `El texto ${mensajeFormaAjena(ajenas, voz.forma)}.`
         : marcadores.length
           ? `Marcadores mal formados: ${marcadores.join(" ")}.`
           : cobertura.length
@@ -1275,6 +1293,7 @@ async function resolverPlantilla(
     anioAdopcion: number | null;
     alivios: Alivios;
     nombreReporte: string;
+    declaracion: Declaracion;
     sinPersistir: boolean;
     evaluado: BloqueEvaluado;
   }
@@ -1285,12 +1304,13 @@ async function resolverPlantilla(
   }
   const r = armar({
     denominacionFormal: c.prefs.denominacionFormal ?? "",
-    formaDeReferencia: c.prefs.formaDeReferencia ?? "la Entidad",
+    formaDeReferencia: formaDeReferencia(c.prefs.formaDeReferencia),
     ejercicio: c.ejercicio,
     regimen: c.regimen,
     anioAdopcion: c.anioAdopcion,
     alivios: c.alivios,
     nombreReporte: c.nombreReporte,
+    declaracion: c.declaracion,
   });
 
   const uso: Uso = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };

@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.52** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.53** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.52** (encargo 2026-11-10-s1-72-reserva-y-emisora): §10, registro de v46 (pendiente), con la
+migración de la declaración de cumplimiento, después de v45 (que pasa a desplegarse desde `a098c7f`).
 
 **Cambios respecto a 0.51** (encargo 2026-10-31-catalogo-gri-sasb, cierre): §10, registro de v45 (pendiente), con las
 tres migraciones del catálogo, después de v44.
@@ -1870,6 +1873,24 @@ ellas aplicadas, así que van antes del push.
 **Sin plantilla.** **Cobertura:** 51 códigos nuevos sin solicitud en las 22 emisoras, la fila compuesta
 `GRI 2-7 / 401-1` retirada y NIIF sin cambio (`esperado-cobertura-v45.json`). Después de la foto «después», el script de
 ligado de las nueve solicitudes de demostración de Empresa Demo.
+
+**Resultado:** pendiente.
+
+### staging · release v46 · pendiente
+
+**Declaración de cumplimiento con o sin reserva, fideicomisos en el Formato y forma de referencia.** Encargo
+`docs/encargos/2026-11-10-s1-72-reserva-y-emisora.md`. Runbook: `docs/encargos/2026-11-10-runbook-v46.md`. Va después
+de v45, que se despliega desde `a098c7f`.
+
+**Migración** (la ejecuta Esteban con `scripts/despliegue/migrar-remoto.sh staging --aplicar`):
+`20261110120000_reporte_declaracion_cumplimiento`. Aditiva: dos columnas nullable en `reportes` y el relleno de los
+reportes de tenants `es_demo`. Barrera 108 y 102 migraciones después. v45 funciona con ella aplicada, así que va antes
+del push.
+
+**Sin plantilla ni cambio de catálogo:** la foto de Cobertura después tiene que ser igual a la de antes.
+
+**Lo que verán los tenants reales:** sus documentos nuevos llevan el marcador de la declaración en el bloque 2 hasta
+que se capture en Reportes. Ningún documento cambia (0 aprobados en staging). Los `es_demo` no cambian de texto.
 
 **Resultado:** pendiente.
 

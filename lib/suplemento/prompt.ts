@@ -3,6 +3,7 @@ import { fronteraDe } from "@/lib/suplemento/fronteras";
 import { mapaDeDuenos } from "@/lib/suplemento/hechos/remisiones";
 import { REGIMEN_LABEL, type Regimen } from "@/lib/perfil-emisor";
 import { TERMINOS_PLATAFORMA } from "@/lib/suplemento/vocabulario";
+import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
 
 // =============================================================================
 // EL PROMPT DE UN BLOQUE, EN DOS CAPAS.
@@ -36,12 +37,16 @@ import { TERMINOS_PLATAFORMA } from "@/lib/suplemento/vocabulario";
 // y documento sugerido dentro de «qué falta» del marcador (Paso 2).
 // calidad-v3: la lista de vocabulario prohibido sale del glosario de CLAUDE.md §5
 // (encargo formato-afirmaciones-y-voz); cambia la capa estable.
-export const PROMPT_VERSION = "calidad-v3-2026-10-26";
+// calidad-v4: las reglas y el ejemplo de estilo usan la forma de referencia del
+// Perfil, «la Compañía» por defecto (encargo s1-72-reserva-y-emisora); con el
+// default, la capa estable no cambia de texto.
+export const PROMPT_VERSION = "calidad-v4-2026-11-10";
 // Modo libro de hechos (Paso 5.3): el bloque redacta solo desde sus hechos.
 // v2: caché compartido (requisitos en la volátil), glosario, notas en tres
 // cubetas y defectos de insumo reportados a nivel documento (Paso 5.4).
 // v11: vocabulario prohibido desde el glosario de CLAUDE.md §5.
-export const PROMPT_VERSION_HECHOS = "hechos-v11-2026-10-26";
+// v12: forma de referencia del Perfil en las reglas y el ejemplo (como calidad-v4).
+export const PROMPT_VERSION_HECHOS = "hechos-v12-2026-11-10";
 
 export type PreferenciasEmisor = {
   denominacionFormal: string | null;
@@ -333,13 +338,14 @@ export function capaEstable(
 ): { texto: string }[] {
   // La denominación se copia CARÁCTER POR CARÁCTER, incluido el artículo en
   // minúscula si lo trae: "la Compañía" no es lo mismo que "La Compañía", y el
-  // emisor eligió una de las dos.
+  // emisor eligió una de las dos. Sin forma en el Perfil, «la Compañía».
+  const forma = formaDeReferencia(prefs.formaDeReferencia);
   const emisor = [
     "# La emisora",
     "",
     `Denominación formal, exacta: «${prefs.denominacionFormal ?? "[Pendiente: denominación formal — Perfil del emisor]"}»`,
     `Nombre corto, exacto: «${prefs.nombreCorto ?? "—"}»`,
-    `Forma de referencia, exacta: «${prefs.formaDeReferencia ?? "la Emisora"}»`,
+    `Forma de referencia, exacta: «${forma}»`,
     "",
     "Copia esas cadenas carácter por carácter, incluido si el artículo va en minúscula. No las corrijas, no las capitalices, no las abrevies por tu cuenta.",
     "",
@@ -376,12 +382,12 @@ export function capaEstable(
           ...glosario.map((e) => `- ${e.canonico}${e.variantes.length ? ` — no: ${e.variantes.join("; ")}` : ""}`),
         ].join("\n")
       : emisor;
-    return [{ texto: REGLAS_HECHOS }, { texto: EJEMPLO_ESTILO }, { texto: indiceDeBloques(incluidos, duenos) }, { texto: conGlosario }];
+    return [{ texto: enForma(REGLAS_HECHOS, forma) }, { texto: enForma(EJEMPLO_ESTILO, forma) }, { texto: indiceDeBloques(incluidos, duenos) }, { texto: conGlosario }];
   }
 
   return [
-    { texto: REGLAS },
-    { texto: EJEMPLO_ESTILO },
+    { texto: enForma(REGLAS, forma) },
+    { texto: enForma(EJEMPLO_ESTILO, forma) },
     { texto: indiceDeBloques(incluidos) },
     { texto: emisor },
     { texto: req },

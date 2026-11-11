@@ -44,7 +44,8 @@ const STAFF = "admin@irstrat.example";
 const SCRIPT = "alta-cliente-real.mjs";
 // Campos del Perfil que el guion escribe, si existen en el destino (los de fideicomiso llegan con v42).
 const CAMPOS_PERFIL = ["denominacion_formal", "nombre_corto", "forma_de_referencia", "tipo_instrumento", "clave_cotizacion", "fiduciario", "numero_fideicomiso", "fideicomitente", "administrador_patrimonio", "sector_sasb"];
-// Opciones de «Tipo de Instrumento» del Formato electrónico (fila 7 de la plantilla).
+// Opciones de «Tipo de Instrumento» del Formato electrónico (fila 7 de la plantilla). Copia de INSTRUMENTOS_FORMATO
+// (lib/perfil-emisor.ts), porque el guion corre sin TypeScript; e2e-declaracion-y-forma comprueba que son iguales.
 const INSTRUMENTOS = ["Acciones", "Deuda Largo Plazo", "Deuda Corto plazo", "Sociedad Anónima Promotora de Inversión Bursátil", "Fideicomisos sobre bienes distintos de acciones", "Certificados Bursátiles Fiduciarios de Desarrollo (CKD)", "Certificados Bursátiles Fiduciarios Inmobiliarios (CERPI)", "Certificados Bursátiles Fiduciarios de Proyectos de Inversión (FIBRA)", "Certificados Bursátiles Fiduciarios de Inversión en Energia e Infraestructura  (FIBRAE)"];
 
 const argv = process.argv.slice(2);
@@ -290,11 +291,6 @@ async function pasoVerificar() {
   const cols = await columnasPerfil();
   const p = leer(await db.from("perfil_emisor").select(cols.join(", ")).eq("tenant_id", t.id).maybeSingle(), "perfil");
   for (const c of cols.filter((c) => D.perfil[c] !== undefined)) ok(igual(p?.[c], D.perfil[c]), `${c}`);
-  // El Formato decide el bloque «Para: Fideicomisos» con /fideicomiso/ (lib/formato/llenar.ts): «Certificados Bursátiles
-  // Fiduciarios de Desarrollo (CKD)» no lo contiene. Hasta corregir esa regla (encargo odonnell-alta-real, §0.12), aviso.
-  if (/fiduciari/i.test(p?.tipo_instrumento ?? "") && !/fideicomiso/i.test(p?.tipo_instrumento ?? "")) {
-    console.log("  ⚠ el Formato todavía no reconoce un CKD como fideicomiso (busca «fideicomiso»): K13–K21 saldrían «No aplica» hasta la corrección de llenar.ts");
-  }
   console.log("\n4. Usuarios (alta por invitación desde el panel)");
   const us = leer(await db.from("perfiles_usuario").select("email, rol, area, activo").eq("tenant_id", t.id), "usuarios");
   const esperados = D.usuarios.map((u) => u.email.toLowerCase());

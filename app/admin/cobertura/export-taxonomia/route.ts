@@ -18,6 +18,7 @@ import {
 } from "@/lib/reporte/ensamblar";
 import { type Alivios } from "@/lib/perfil-emisor";
 import { enunciarAlivios, insertarColumna, soloPreguntasYRespuestas } from "@/lib/excel/depurar";
+import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
 import { CONTINUACIONES, PENDIENTE_CONTINUACION } from "@/lib/excel/continuaciones";
 import { llenarFormato } from "@/lib/formato/llenar";
 import { esObjetivoDeEmisiones, nombreConMeta } from "@/lib/formato/objetivos";
@@ -815,9 +816,14 @@ export async function GET(request: Request) {
   // respuestas, solo del último documento aprobado (las filas de la tabla).
   const { data: repTenant } = await supabase
     .from("reportes")
-    .select("tenant:tenants!reportes_tenant_id_fkey(generador_activo)")
+    .select("tenant_id, tenant:tenants!reportes_tenant_id_fkey(generador_activo)")
     .eq("id", reporteId)
     .maybeSingle();
+  // Forma de referencia de la emisora para los textos fijos (alivios, «No aplica» heredado): «la Compañía» si falta.
+  const { data: peForma } = repTenant?.tenant_id
+    ? await supabase.from("perfil_emisor").select("forma_de_referencia").eq("tenant_id", repTenant.tenant_id).maybeSingle()
+    : { data: null };
+  const forma = formaDeReferencia(peForma?.forma_de_referencia);
   const generadorActivo = (repTenant?.tenant as unknown as { generador_activo: boolean } | null)?.generador_activo === true;
   let respuestasEscritas: { escritas: number; enPreparacion: number; hijos: number } | null = null;
   // 36(e) en un solo estado (encargo formato-afirmaciones-y-voz): si el documento aprobado dice que no aplica, la hoja
@@ -854,7 +860,7 @@ export async function GET(request: Request) {
       } else console.warn(`[export-taxonomia] reporte=${reporteId} sin llenado del Formato para las continuaciones: ${ins.error}`);
     }
     respuestasEscritas = escribirRespuestas(hojaIndice, respuestas, delFormato, sectores);
-    if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = textoNoAplicaHeredado("NIIF S2 36 (e)");
+    if (filasResp?.some((r) => r.clave.startsWith("NIIF S2 36 (e)") && r.estado === "no_aplica")) noAplica36e = enForma(textoNoAplicaHeredado("NIIF S2 36 (e)"), forma);
   }
 
   const registrosEscritos = escribirRegistros(
@@ -905,7 +911,7 @@ export async function GET(request: Request) {
 
   // Solo preguntas y respuestas (regla de Esteban del 26/10): sin «Leyenda», títulos, pies, notas ni columnas
   // auxiliares. Antes, los alivios que no tienen celda propia se enuncian dentro de las respuestas.
-  if (hojaIndice) enunciarAlivios(hojaIndice, reporte.aliviosVigentes);
+  if (hojaIndice) enunciarAlivios(hojaIndice, reporte.aliviosVigentes, forma);
   soloPreguntasYRespuestas(wb, HOJA_TAXONOMIA);
   const tenantRep = reporte.tenant as unknown as { nombre: string; slug: string | null; es_demo: boolean } | null;
   // La marca [DEMO] ya no va en un pie (no es pregunta ni respuesta): va en las propiedades del archivo, y solo para
