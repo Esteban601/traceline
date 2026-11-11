@@ -1,8 +1,8 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
 import { filaExportada } from "@/lib/formato/objetivos";
 import { HOJA_GEI } from "@/lib/cuestionarios";
-import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
-import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
+import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, seParecen, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { ORACION_E5, declaracionDeAlivios, noRevelado, remisionE5 } from "@/lib/suplemento/alivios";
 import { esInstrumentoFiduciario, type Alivios } from "@/lib/perfil-emisor";
 import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
 import type { ModoDeclaracion } from "@/lib/suplemento/declaracion";
@@ -164,6 +164,8 @@ export const RAMAS_BOOLEANO: Record<number, { booleano: number; rama: "No" | "S�
  * sin ella, la regla (opción 1 de Esteban). Antes copiaba la respuesta de 36(e)(i).
  */
 const RAZON_36E_REGLA = textoNoAplicaHeredado("NIIF S2 36 (e)").replace(/^No aplica\.\s*/, "");
+/** Rama «No» → la celda de texto del mismo código que la precede (29(f) y 29(g), v6.1): la rama no la repite. */
+const VECINA_DE_RAMA: Record<number, number> = { 418: 416, 426: 424 };
 /** El «No» de un booleano que se deduce de sus incisos: no hay uso previsto de créditos si (ii)–(iv) no aplican. */
 const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
@@ -213,8 +215,16 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       continue;
     }
     const desde = c?.datapoint ?? null;
-    const t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
-    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "pendiente" });
+    let t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
+    // Rama «No» con una celda de texto antes (v6.1, K841/K849): una línea, sin repetir ninguna oración de la vecina; si
+    // todo lo repite, vacía.
+    const vecina = VECINA_DE_RAMA[fila] != null ? out.get(VECINA_DE_RAMA[fila])?.texto ?? "" : "";
+    if (t && vecina) {
+      const suyas = vecina.split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
+      const propias = t.split(/(?<=\.)\s+/).map((o) => o.trim()).filter((o) => o && !suyas.some((q) => q === o || seParecen(o, q)));
+      t = propias[0] ?? null;
+    }
+    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "regla", nota: `la rama repetiría la fila ${VECINA_DE_RAMA[fila]}` });
   }
   // Cierre (Fase 6, revisión externa v5.2): celdas que repetían a su vecina o quedaban vacías sin regla.
   const fija = (fila: number, v: ValorFormato) => { if (out.has(fila)) out.set(fila, v); };
@@ -305,6 +315,13 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const tipo = c.tipo === "(sin tipo)" ? "" : c.tipo ?? "";
     const ponE5 = (t: string) => c.alivioE5 && !!d.alivios.E5 && !t.includes("párrafo E5");
     const conE5 = (t: string) => (ponE5(t) ? `${oracionE5} ${t}` : t);
+
+    // S1 → S2 bajo E5 con un par que es código padre («(a)a(b)», v6.1, K103): la remisión a su par, como la fila del
+    // Excel, sin depender de que el padre tenga respuesta propia.
+    if (c.capa === "1 · correspondencia S1→S2" && c.alivioE5 && d.alivios.E5 && c.datapoint && /\)\s*a\s*\(/.test(c.datapoint)) {
+      const t = remisionE5(c.datapoint);
+      return { texto: conE5(t), origen: "alivio", nota: `NIIF S1 bajo E5: remite a ${c.datapoint}`, e5: ponE5(t) };
+    }
 
     // Fila 62 (NIIF S2 13(b), dónde se concentran; la 63 pide zonas, instalaciones y tipos de activos): el texto del
     // modelo y, después, la concentración por código desde los registros de clima (encargo 2026-10-24; antes iba en la 64).
