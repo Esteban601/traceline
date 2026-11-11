@@ -244,8 +244,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   // validador de respuestas ya lo rechaza; esto cubre las respuestas guardadas antes.
   for (const [fila, v] of out) {
     const tipo = conceptos.find((x) => x.fila === fila)?.tipo ?? "";
-    // También «Sí,» (v6.2, K52 → Excel 79): la celda de texto empieza por lo que afirma.
-    if (v.texto && !/^booleano/.test(tipo) && /^Sí[.,]\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí[.,]\s+(\p{L})/u, (_m, l: string) => l.toUpperCase()) });
+    if (v.texto && /^text/.test(tipo) && /^Sí\.\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí\.\s+/, "") });
   }
   // E5 una vez por encabezado: se queda en la primera celda (por fila) a la que el llenado se la antepuso.
   const vistos = new Set<number>();
@@ -265,6 +264,16 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (!abierta || !seccion?.texto) continue;
     out.set(fila, { texto: seccion.texto, origen: seccion.origen, nota: `razón del «No» de la fila ${RAMAS_BOOLEANO[fila].booleano}${rama?.texto ? "" : " (la rama no tenía texto propio)"}` });
     out.set(seccionFila, { texto: null, origen: "regla", nota: `la razón va en la rama (fila ${fila})` });
+  }
+  // Sin «Sí,» ni «Sí.» al inicio (v6.2, K52 → Excel 79), después de dejar la oración del E5 una vez por encabezado (antes
+  // la oración la ocultaba): celdas de texto y ramas «Sí» (K52 tiene tipo booleano en la plantilla), nunca un valor de
+  // lista («Sí, parcialmente»). Con la oración del E5 delante, se limpia lo que sigue a ella.
+  for (const [fila, v] of out) {
+    const tipo = conceptos.find((x) => x.fila === fila)?.tipo ?? "";
+    if (!v.texto || !(/^text/.test(tipo) || RAMAS_BOOLEANO[fila]?.rama === "Sí")) continue;
+    const pre = v.texto.startsWith(`${oracionE5} `) ? `${oracionE5} ` : "";
+    const resto = v.texto.slice(pre.length);
+    if (/^Sí[.,]\s+\S/.test(resto)) out.set(fila, { ...v, texto: pre + resto.replace(/^Sí[.,]\s+(\p{L})/u, (_m, l: string) => l.toUpperCase()) });
   }
   // Los alivios del reporte, en K12 (la fila sin etiqueta tras el año de reporte): la hoja «Leyenda» ya no se entrega
   // (decisión de Esteban, Fase 5).
