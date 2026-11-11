@@ -1976,6 +1976,10 @@ Anotadas el 4 de octubre de 2026. No bloquean nada hoy.
   6(b)) y la integración con otras funciones (6(b)(ii)) salen de la misma oración («la Dirección de Crédito y Banca
   aplica los criterios climáticos en la originación»). K43 repite a 6(b)(ii) y el validador la rechaza. **Salida:**
   separar esa oración en `poblar-demo` antes del próximo libro de hechos del demo; no se cambia el validador.
+- **Campo G-SIB sin pantalla** (10 de noviembre de 2026, v6.1). `perfil_emisor.banco_sistemico_global` (migración
+  `20261111120000`) responde FN-CB-550a.1, pero la pantalla del Perfil no lo pide. Hoy solo lo escribe un guion
+  (`poblar-demo --solo perfil` en el demo). **Salida:** un selector en la sección Identidad del Perfil, visible para
+  emisoras con FN-CB.
 - **`tenants.generaciones_mes_max` no se aplica.** La columna existe (§5,
   default 10), pero ningún camino del generador la consulta. Se dejó así en la
   decisión 3 del Paso 0 del encargo de captura sugerida. El tope nuevo de
