@@ -1,6 +1,7 @@
 import type ExcelJS from "exceljs";
 import type { Alivios } from "@/lib/perfil-emisor";
 import { ORACION_E4, ORACION_E5, textoAlivio } from "@/lib/suplemento/alivios";
+import { FORMA_POR_DEFECTO, enForma } from "@/lib/suplemento/forma";
 
 // =============================================================================
 // EXCEL DE TAXONOMÍA: SOLO PREGUNTAS Y RESPUESTAS (regla de Esteban, 26 de
@@ -152,9 +153,13 @@ const norm = (t: string) => t.toLowerCase().replace(/\s+/g, " ").trim();
  *   · E5: la oración en la respuesta de cada encabezado de pilar de NIIF S1, como en el Formato electrónico, y fuera
  *     de las respuestas de sus requisitos;
  *   · E4: la oración al final de la respuesta de la declaración de cumplimiento (NIIF S1 72).
- * C3 y C4 ya van en la cifra que los invoca («No revelado · alivio C3»).
+ * C3 y C4 ya van en la cifra que los invoca («No revelado · alivio C3»). Las oraciones, en la forma de referencia de la
+ * emisora (`forma`, «la Compañía» por defecto).
  */
-export function enunciarAlivios(ws: ExcelJS.Worksheet, alivios: Alivios): void {
+export function enunciarAlivios(ws: ExcelJS.Worksheet, alivios: Alivios, forma: string = FORMA_POR_DEFECTO): void {
+  const oracionE5 = enForma(ORACION_E5, forma);
+  const oracionE4 = enForma(ORACION_E4, forma);
+  const requisitoE5 = enForma(textoAlivio("E5", "requisito"), forma);
   let finS1 = ws.rowCount;
   for (let f = 2; f <= ws.rowCount; f++) {
     if (textoCelda(ws.getCell(`B${f}`)).startsWith("NIIF S2")) {
@@ -168,16 +173,16 @@ export function enunciarAlivios(ws: ExcelJS.Worksheet, alivios: Alivios): void {
     const respuesta = textoCelda(e);
     if (alivios.E5) {
       if (!codigo && PILARES_S1.has(norm(textoCelda(ws.getCell(`D${f}`))))) {
-        e.value = ORACION_E5;
+        e.value = oracionE5;
         e.alignment = { vertical: "top", wrapText: true };
-      } else if (respuesta.startsWith(ORACION_E5)) {
+      } else if (respuesta.startsWith(oracionE5)) {
         // Sin par de NIIF S2, la forma «requisito» del E5 es la oración misma, como en el Formato (K81).
-        e.value = respuesta.slice(ORACION_E5.length).trim() || textoAlivio("E5", "requisito");
+        e.value = respuesta.slice(oracionE5.length).trim() || requisitoE5;
       }
     }
     if (alivios.E4 && codigo === "NIIF S1 72") {
       const actual = textoCelda(e);
-      if (actual && actual !== "En preparación" && !actual.includes("párrafo E4")) e.value = `${actual} ${ORACION_E4}`;
+      if (actual && actual !== "En preparación" && !actual.includes("párrafo E4")) e.value = `${actual} ${oracionE4}`;
     }
   }
 }

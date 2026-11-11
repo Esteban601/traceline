@@ -10,6 +10,7 @@ import { leerAlivios, regimenDe } from "@/lib/perfil-emisor";
 import { puntuar, unidades } from "@/lib/suplemento/adjuntos-bloque";
 import { NEGACION, type HechoNuevo, type UnidadTexto } from "./tipos";
 import { DECLARACIONES_PERFIL } from "./razones";
+import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
 
 // =============================================================================
 // FUENTES DEL LIBRO DE HECHOS (encargo suplemento-calidad, Paso 5).
@@ -239,6 +240,8 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
   // --- 4. Perfil del emisor (perfil) -------------------------------------------
   const { data: perfil } = await db.from("perfil_emisor").select("*").eq("tenant_id", tenantId).maybeSingle();
   const p = (perfil ?? {}) as Record<string, unknown>;
+  // Los hechos de regla nombran a la emisora con su forma de referencia («la Compañía» por defecto).
+  const forma = formaDeReferencia(perfil?.forma_de_referencia);
   const directoPerfil = (campo: string, h: Omit<HechoNuevo, keyof typeof base | "rango_fuente" | "fuente_tipo" | "fuente_id" | "bloque_dueno" | "bloques_referencia" | "verificacion">) => {
     const d = DUENO_PERFIL[campo];
     directos.push({
@@ -391,7 +394,7 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
       ...base, rango_fuente: "perfil", fuente_tipo: "perfil", fuente_id: "reporte:regimen", verificacion: "registro: régimen del ejercicio",
       bloque_dueno: 25, bloques_referencia: [], valor: null, unidad: null, periodo: String(ejercicio),
       clave: "regimen.sin_planes_previos", tipo: "declaracion_negativa",
-      enunciado: `Por ser ${ejercicio} el primer periodo en que la Compañía informa conforme a la NIIF S2, no existen planes revelados en periodos anteriores sobre cuyo progreso informar.`,
+      enunciado: enForma(`Por ser ${ejercicio} el primer periodo en que la Compañía informa conforme a la NIIF S2, no existen planes revelados en periodos anteriores sobre cuyo progreso informar.`, forma),
       fuente_detalle: "Reporte, régimen del ejercicio (primer año)", extracto: "primer año de aplicación",
     });
   }
@@ -402,7 +405,7 @@ export async function recolectar(db: Db, reporteId: string, tenantId: string): P
       ...base, rango_fuente: "perfil", fuente_tipo: "perfil", fuente_id: "reporte:alivios", verificacion: "registro: alivios del reporte",
       bloque_dueno: 30, bloques_referencia: [], valor: null, unidad: null, periodo: String(ejercicio),
       clave: "alivios.c5_no_adoptado", tipo: "declaracion_negativa",
-      enunciado: "La Compañía no hace uso de la medida transitoria del párrafo C5 de la NIIF S2: mide sus emisiones de gases de efecto invernadero conforme al Protocolo GEI.",
+      enunciado: enForma("La Compañía no hace uso de la medida transitoria del párrafo C5 de la NIIF S2: mide sus emisiones de gases de efecto invernadero conforme al Protocolo GEI.", forma),
       fuente_detalle: "Reporte, alivios adoptados", extracto: "C5 no adoptado",
     });
   }
