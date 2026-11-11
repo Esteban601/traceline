@@ -417,6 +417,42 @@ presenta en 2027, así que hay margen.
    cambiar su slug en el script, que regeneraría contraseñas. `e2e-demo-prospectos.mjs` lo saca de su lista; CADU e
    Inmobilia siguen cubriendo el cruce de áreas homónimas.
 
+### 5.4 Usuarios: las cuentas del mockup (decisión de Esteban, 10/11/2026)
+
+**Decisión.** El tenant real usa las siete cuentas del mockup (`usuario1…5@odonnell.example`, una por área;
+`jefe@odonnell.example`; `admin@odonnell.example`), con las mismas contraseñas, mientras O'Donnell entrega los correos de
+las personas responsables. Sustituye, para O'Donnell, a las altas por invitación de la Fase 1. El guion las traslada en
+el paso nuevo `usuarios` (`usuarios_origen` = «mockup» en los datos): cambia `perfiles_usuario.tenant_id` y conserva
+rol, área, correo y contraseña; no toca auth.
+
+**Consecuencias, registradas el 10/11/2026** (también en `consecuencias_cuentas_mockup` de los datos y, con la fecha de la
+decisión, en el detalle de cada evento `usuario_trasladado` de la bitácora, en el real y en el mockup):
+1. **Ningún correo llega** a una cuenta `@odonnell.example`: recordatorios de solicitudes (7 y 1 días antes), avisos,
+   resumen diario, invitaciones ni recuperación de contraseña. Las áreas ven sus pendientes al entrar; un
+   restablecimiento de contraseña lo hace IRStrat.
+2. **Cuentas genéricas, no nominativas:** la bitácora y el rastro de aseguramiento atribuyen cada carga y cada visto
+   bueno a «Usuario N · área», no a una persona. Para el auditor externo eso no identifica al responsable.
+3. **Las contraseñas son las del mockup,** ya compartidas con O'Donnell en el Excel de accesos de mockups: ahora
+   protegen datos reales, sin MFA (en cola).
+4. **El mockup `odonnell-demo` queda sin cuentas:** no se puede volver a mostrar, y sus solicitudes, evidencias y
+   comentarios de demostración siguen atribuidos a cuentas que ahora son del tenant real (inactivo, no se ve).
+5. **El tenant real lleva cuentas de dominio reservado** (`@…example`). La verificación del alta lo admite solo con
+   `usuarios_origen` = «mockup»; con «invitacion» sigue exigiendo que no haya ninguna.
+
+**Transición a correos reales (prevista).** Cuando O'Donnell entregue nombre y correo de cada responsable, se da de alta
+la cuenta nominativa por invitación desde `/admin/usuarios` (la persona fija su contraseña) y se desactiva la genérica
+de esa área, sin reasignar su historia. Plazo: antes del primer documento 2026 o del alta del auditor externo, lo que
+ocurra primero; la fecha la fija Esteban con O'Donnell.
+
+**Datos del Perfil y de la declaración** (Formato BMV 2025 publicado, ODOCK / CIB2659):
+- fiduciario: «Banco Multiva, S.A., Institución de Banca Múltiple, Grupo Financiero Multiva» (p. 1);
+- denominación formal: «Fideicomiso CIB/2659», como el informe nombra al fideicomiso en su texto de gobierno
+  («Fideicomiso CIB/2659 (ODOCK18)»). La p. 1 no trae una denominación del fideicomiso;
+- declaración de cumplimiento 2025: «con reserva» (S1.72.1 «No»), con el texto de la p. 41 tal cual, comillas y puntos
+  suspensivos incluidos. El paso `reportes` la escribe en el reporte 2025 (columnas de v46).
+
+**Orden.** El alta va **después del paso 4 de v47**: `comprobar-v47.mjs` espera 22 emisoras y el alta deja 23.
+
 ## 6. Paradas
 
 1. **Paso 0:** este documento. Parada para las decisiones de §5.
@@ -432,4 +468,4 @@ presenta en 2027, así que hay margen.
 | 10/11/2026 | **Paso 0** (lectura). Alta real por el panel, con `es_demo = false`, vitrina a apagar a mano y banderas de generador y lectura apagadas hasta el contrato; slug y prefijo del mockup ocupados; mockup desactivado con `activo = false`. La conversión de CLEPSA quedó planeada en `rol-auditor`, sin registro de ejecución: O'Donnell sería la primera. Comparativos: hoy solo dentro del mismo reporte (vía Carso); dos reportes del mismo tenant conviven sin vínculo; A9 estimado en ~6.25–8.5 jornadas (solo el Excel: ~1.5–1.75). Carga 2025: vía B recomendada. Alta + carga: ~1.5–1.75 jornadas | **Parada:** decisiones de §5 |
 | 10/11/2026 | **Complemento del Paso 0** (lectura), con el mapa del informe 2025 de O'Donnell | Fideicomiso CKD (ODOCK), sin E5, S1 72 con reserva, base 2023 e industrias IF-RE e IF-RS. **Sin E5:** 33 de 35 códigos S1 sin sección; respuestas pendientes; Excel y Formato sin probar; registros sin tipo para riesgos no climáticos; encargo «régimen sin E5» de ~5.5–7 jornadas. **S1 72:** el bloque 2 siempre afirma conformidad; la fila 286 ya puede decir «No» y se contradice con la 285; la reserva necesita dato y ramas (~1–1.5). **Año base 2023:** sin campo de valor base ni de avance; offset 2–3 fuera del Excel; A9 necesita continuidad de objetivos (+0.75–1). **Catálogo:** IF-RE 18 métricas (versión 2023-06), IF-RS 11, IF-EN 16; generalizar el generador SASB (~1.25–1.5). **Hasta el primer documento 2026:** ~17–22 jornadas; la carga de 2025 es solo de datos y no espera al generador | **Parada:** decisiones de §5 |
 | 10/11/2026 | **Decisiones del complemento** (§5.1) y **Fase 1**: guion del alta, parada | **Guion** `scripts/alta/alta-cliente-real.mjs`, genérico (sirve para CLEPSA). Pasos `tenant` / `reportes` / `verificar`, cada uno con revisar y `--aplicar` (confirmación del ref). Sesión de staff del seed con RLS; bitácora con los eventos del panel; idempotente. Datos fuera del repo (`~/Downloads/odonnell-alta/datos.json`, 600, con «CONFIRMAR» donde falta un dato: el guion no corre mientras quede alguno). Usuarios por invitación desde el panel, entre `tenant` y `reportes`. **Comandos** en `~/Downloads/odonnell-alta/comandos.md` (T1–T3, P, R1–R2, V) y la lista de datos a tener a mano. **Prueba en el stack local** con un mockup `odonnell` de prueba: mockup a `odonnell-demo` / `ODND` inactivo, conservando su reporte; tenant real con banderas, 4 áreas y 10 campos del Perfil; reporte 2025 con 37 solicitudes en «pendiente», sin fecha ni evidencias, responsables por área, y 2026 vacío; segunda pasada de cada paso sin cambios; `verificar` todo en verde; sin usuarios, `reportes` se detiene. Local limpio después (0 tenants `odonnell*`, 0 usuarios de prueba, 0 filas de bitácora). **Error propio:** la primera versión buscaba el mockup por el slug original, que después del alta es del real, y la segunda pasada se detenía; corregido (por el slug nuevo, o por el original solo si es de demostración). **Hallazgos** en §5.3: el Formato no reconoce un CKD como fideicomiso; la forma de referencia existe pero las respuestas y los textos fijos dicen «la Compañía»; el mockup queda `retirado` en `crear-demo-prospecto` y fuera de `e2e-demo-prospectos` | **Parada:** revisión del guion |
-
+| 10/11/2026 | **Fase 1, versión 2: usuarios del mockup** (decisión de Esteban, §5.4). Paso nuevo `usuarios` en `scripts/alta/alta-cliente-real.mjs`: traslada al tenant real las siete cuentas del mockup (rol, área, correo y contraseña sin cambio), con un evento `usuario_trasladado` en la bitácora del real y del mockup, que lleva la fecha de la decisión, las cinco consecuencias y la transición prevista (etiqueta «Usuario trasladado de emisora» en la vista). `reportes` escribe la declaración «con reserva» del 2025 con el texto de la p. 41; `verificar` revisa las cuentas, la bitácora y la declaración. **`datos.json` completo, sin marcadores**, con el fiduciario y la declaración del Formato publicado. **Prueba en el stack local** (mockup de prueba con 5 áreas, 7 cuentas y un reporte): tenant, usuarios y reportes con revisar, aplicar y segunda pasada sin cambios; `verificar` todo en verde; las cuentas trasladadas entran con su contraseña y solo ven el tenant real (el usuario de Capital Humano, 5 solicitudes; la administración, 37). Local limpio después. **Errores propios:** el script de preparación de la prueba tapó `URL` y se cortó a la mitad (limpiado y repetido); la primera corrida del guion no ejecutó nada por cómo zsh separa una variable | **Parada:** revisión del guion, `comandos.md` y `datos.json` |
