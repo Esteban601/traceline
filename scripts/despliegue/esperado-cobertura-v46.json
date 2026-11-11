@@ -312,7 +312,14 @@
   "cambio": "nuevo",
   "emisoras": "todas",
   "solicitudes": 0,
-  "cobertura": "sin_solicitud"
+  "cobertura": "sin_solicitud",
+  "excepciones": {
+   "Grupo Carso": {
+    "solicitudes": 9,
+    "cobertura": "parcial"
+   }
+  },
+  "nota": "La migración 20261031140000 copia los enlaces de la compuesta a GRI 2-7 y GRI 401-1; Grupo Carso tenía 9 solicitudes en la compuesta (release v44 de staging, 10/11/2026)."
  },
  {
   "codigo": "GRI 2-8",
@@ -354,7 +361,14 @@
   "cambio": "nuevo",
   "emisoras": "todas",
   "solicitudes": 0,
-  "cobertura": "sin_solicitud"
+  "cobertura": "sin_solicitud",
+  "excepciones": {
+   "Grupo Carso": {
+    "solicitudes": 9,
+    "cobertura": "parcial"
+   }
+  },
+  "nota": "La migración 20261031140000 copia los enlaces de la compuesta a GRI 2-7 y GRI 401-1; Grupo Carso tenía 9 solicitudes en la compuesta (release v44 de staging, 10/11/2026)."
  },
  {
   "codigo": "GRI 2-7 / 401-1",
