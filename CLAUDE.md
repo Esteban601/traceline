@@ -1,6 +1,11 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.13 · 27 de octubre de 2026.
+Versión 1.14 · 31 de octubre de 2026.
+
+**Cambios respecto a 1.13** (31 de octubre de 2026, decisión de Esteban, encargo catalogo-gri-sasb):
+- §5: el glosario no aplica a la columna «Requisito» del libro GRI/SASB, que es texto literal de la norma (GRI 2-5
+  dice «solicitud de verificación externa»). Las licencias de la IFRS Foundation y de GRI permiten reproducirlo en
+  el producto; el texto no se reescribe.
 
 **Cambios respecto a 1.12** (27 de octubre de 2026, decisión de Esteban, encargo formato-afirmaciones-y-voz, Fase 5):
 - §5: el glosario suma las cadenas de trabajo interno: «Fase <letra o número>», sprint, encargo, pendiente de
@@ -138,7 +143,8 @@ después el código.
   a la que arma el código. «Fase» cuenta con una sola letra o número detrás («Fase C»); «fase IV» de los escenarios
   NGFS es voz legítima. Fuera de él, a propósito: «validación», «captura» y «recibidos», que son voz legítima de una
   emisora, y las expresiones de la norma y de la plantilla «validado por …», la validación de un tercero (NIIF S2 34),
-  y «bloque de texto» (tipo de dato de la plantilla).
+  y «bloque de texto» (tipo de dato de la plantilla). Tampoco aplica a la columna «Requisito» del libro GRI/SASB:
+  es texto literal de la norma y no se reescribe (v1.14); sí aplica a sus columnas de código y de respuesta.
 - Prompt en dos capas: estable (con caché) y volátil. Cambiar la capa estable o el esfuerzo invalida el caché;
   se anota la versión de prompt en cada bloque.
 - Costos: cada generación se registra con tokens y costo. Referencia vigente de una corrida completa del demo: **11.15
