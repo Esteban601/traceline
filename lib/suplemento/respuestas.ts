@@ -462,13 +462,17 @@ export function conSeparadoresDeMiles(texto: string, hechos: { valor: number | n
  * Desagregaciones sin respaldo (v6.2, Excel 192): «composición de la cartera por sector económico» cuando las fuentes la
  * dan por producto. La desagregación que nombra la respuesta tiene que estar en las fuentes como composición por lo mismo.
  */
-export function desagregacionSinRespaldo(texto: string, fuentes: string[]): string[] {
+export function desagregacionSinRespaldo(texto: string, fuentes: string[], cifras: string[] = []): string[] {
   const todo = fuentes.join("\n");
+  // Las desagregaciones que dan la sección aprobada y las cifras capturadas («composición por producto: empresarial
+  // 52%…») mandan sobre la narrativa: si una frase de un hecho dice otra cosa, la respuesta usa la de la sección.
+  const deCifras = [...cifras.join("\n").matchAll(/composici[oó]n (?:de (?:la )?cartera )?por ([\p{L}]+(?: [\p{L}]+)?)/giu)].map((m) => m[1].toLowerCase());
   const out: string[] = [];
   for (const m of texto.matchAll(/composici[oó]n de (?:la )?cartera por ([\p{L} ]+?)(?=,|\.|;|\s+y\s|\s+e\s|$)/giu)) {
     const por = m[1].trim();
     const re = new RegExp(`composici[oó]n (?:de (?:la )?cartera )?por ${por.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "iu");
     if (!re.test(todo)) out.push(`describe la composición de la cartera «por ${por}», que las fuentes no dan así: usa la desagregación de los hechos`);
+    else if (deCifras.length && !deCifras.some((d) => por.toLowerCase().startsWith(d))) out.push(`describe la composición de la cartera «por ${por}», pero la cifra capturada la da por ${deCifras[0]}: usa esa`);
   }
   return out;
 }
@@ -495,7 +499,7 @@ export function validarRespuesta(
   if (ajenas.length) errores.push(mensajeFormaAjena(ajenas, forma));
   const prohibidas = vocabularioProhibidoEn(t);
   if (prohibidas.length) errores.push(`usa vocabulario de proceso interno: ${prohibidas.join(", ")}`);
-  errores.push(...desagregacionSinRespaldo(t, [ctx.textoBloque, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto])]));
+  errores.push(...desagregacionSinRespaldo(t, [ctx.textoBloque, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto])], [ctx.textoBloque, ...ctx.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)]));
   // El valor del hecho también con separador de miles («488,000»): numerosDe lee esa forma como 488000 y como 488, y la
   // respuesta la escribe así (conSeparadoresDeMiles) aunque el hecho diga «488000» (demo v6, K741).
   const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? `${h.valor} ${MILES.format(Number(h.valor))}` : ""])].join("\n"));
@@ -1183,7 +1187,7 @@ async function responderBloque(
     // La vigencia (mismo texto aprobado del bloque) ya se comprobó al armar previaDe. Los requisitos que se
     // responden por clave de hechos (HECHOS_POR_CLAVE) no se reutilizan: sus hechos cambian sin que cambie el bloque.
     // Tampoco una que ya no pasa las reglas de forma (erroresDeForma): se regenera sola, sin tocar las demás.
-    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length && !desagregacionSinRespaldo(prev.texto, [v.texto, ...p.hechos.flatMap((h) => [h.enunciado, h.extracto])]).length) reutilizadas.set(clave(p), prev);
+    if (prev?.texto && prev.bloque === v.numero && prev.prompt_version === promptDe(p) && !HECHOS_POR_CLAVE[p.codigo] && !HECHOS_POR_ENUNCIADO[p.codigo] && !erroresDeForma(prev.texto, p.codigo).length && !desagregacionSinRespaldo(prev.texto, [v.texto, ...p.hechos.flatMap((h) => [h.enunciado, h.extracto])], [v.texto, ...p.hechos.filter((h) => h.valor != null).map((h) => h.enunciado)]).length) reutilizadas.set(clave(p), prev);
   }
   const llamados = pedidos.filter((p) => !reutilizadas.has(clave(p)));
   let pendientes = llamados;
