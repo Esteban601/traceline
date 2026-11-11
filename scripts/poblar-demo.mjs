@@ -1004,7 +1004,8 @@ const CUESTIONARIOS = {
     // 1 · cambios en el enfoque de medición, los datos de entrada y los supuestos, y sus razones
     // Decisión de Esteban del 10/11/2026 (pendientes del demo v6): mide con el Protocolo GEI desde 2022 (hito del Perfil);
     // 2025 es el año base de los objetivos, no el primer año de medición.
-    "Sin cambios en 2025: la Compañía mide conforme al Protocolo GEI con el mismo enfoque desde 2022; 2025 es el año base de sus objetivos. La Compañía eligió el enfoque de control operacional y los factores de emisión oficiales de la SEMARNAT, para combustibles, y de la CRE, para electricidad, porque controla las decisiones operativas de todas sus instalaciones y esos factores son los oficiales para el inventario nacional.",
+    // Solo los cambios en el enfoque (Esteban, 10/11/2026): la razón de la elección va solo en K743, desde el libro.
+    "Sin cambios en 2025: la Compañía mide conforme al Protocolo GEI con el mismo enfoque desde 2022; 2025 es el año base de sus objetivos.",
   ],
 };
 
