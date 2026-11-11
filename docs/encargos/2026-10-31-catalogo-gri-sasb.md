@@ -578,6 +578,23 @@ Notas de la tabla:
   2-23, 2-25 a 2-27, 2-29, 2-30, 3-2), la Extensión GRI sin captura que corresponda (303-5, 306-3, 404-1) y 12
   métricas FN-CB sin dato.
 
+### 1.8 Tabla código → sección aprobada (Esteban, 10/11/2026)
+
+Aprobada con dos reglas:
+1. **GRI 2-5:** la respuesta nombra el alcance de lo verificado (el inventario de GEI) y no presenta el informe como
+   verificado. Va en dos lugares:
+   - en la descripción del contenido (`REGLAS_GRI_SASB`);
+   - en un validador determinista (`erroresGriSasb`, dentro de `erroresDeForma`). Rechaza «el informe… verificado» y
+     una verificación afirmada sin alcance. Admite la declaración de que no hay verificación.
+2. **GRI 2-24 y 3-3:** si la sección cubre solo parte del contenido, la respuesta dice qué parte no cubre. Va en la
+   descripción. No hay validador determinista: la cobertura parcial no se puede medir sin el modelo.
+
+**GRI 3-2 y 2-29 quedan pendientes**, como en la tabla en seco (la sección 7 del demo no trae hechos de su tema).
+Conservan su sección en `FUENTE_GRI_SASB`: si una emisora tiene hechos del tema en la 7, se responden por ahí.
+
+Las descripciones de 2-5, 2-24 y 3-3 cambian su firma; no hay respuestas GRI/SASB generadas (la 2c espera el v6), así
+que ninguna se regenera.
+
 ## 5. Decisiones de Esteban (31/10/2026)
 
 1. **Licencias: vigentes** (§0.4). Texto literal de la norma, sin redacción propia ni marcador de licencia pendiente.
@@ -625,4 +642,4 @@ directo del español, sin paso por el inglés ni marcador de «texto en español
 | 31/10/2026 | **Fase 2 · Paso 0** (lectura), parada | Hoy `generarRespuestas` excluye GRI y SASB (`startsWith("NIIF")`): las 54 dicen «En preparación». La captura cuantitativa ya serviría; para texto falta una vía («evidencia directa») porque una solicitud ligada solo a GRI/SASB no entra al libro de hechos; GRI 2 puede tomar como fuente bloques NIIF aprobados (lectura, sin regenerar). Nueve de staging: 2-22, 2-23, 2-24, 2-26 y FN-CB-410a.2/230a.2 en el mínimo; 205, 405 y 418 en el medio. «Métricas SASB» hoy solo con su título; con FN-CB, Código/Métrica/Respuesta. ~4.25–5.25 jornadas, ~0.5 USD dentro de la corrida v6 | **Parada:** §1.5 |
 | 31/10/2026 | **Fase 2 aprobada** (§1.6) y **Fases 2a y 2b**, parada con la tabla código → sección | **2a:** `generarRespuestas` incluye GRI y SASB (SASB solo de la industria del Perfil) con `lib/suplemento/gri-sasb.ts`: captura → sección aprobada (`FUENTE_GRI_SASB`, §1.7) → evidencia directa (`responderEvidencia`: extractos confirmados de las solicitudes ligadas, mismos validadores y reintentos que las NIIF, lotes de 8) → pendiente con marcador; sin remisión «Ver sección» en GRI/SASB; solo destino «taxonomia». Hoja «Métricas SASB» del Formato (`lib/formato/metricas-sasb.ts`): Código / Métrica / Respuesta, pendiente vacío. **Pruebas:** `e2e-respuestas-gri-sasb` (nuevo) 26 en verde (sección 15 y 7, captura, evidencia sin modelo → pendiente, sin sector → 0 SASB, libro y Formato); validadores 90, métricas 19, Formato 29, alivios 20, respuestas 22, regeneración 9, declaraciones 20 y catálogo 34 contra el stack local; `tsc` y eslint limpios. **Script de ligado de staging** `~/Downloads/solicitudes-demo-rh/ligar-gri-sasb-demo-rh.mjs` (revisar y `--aplicar`, comandos L1–L4 en `comandos.md`): en local, 12 enlaces nuevos, los 6 de antes conservados, 9 filas de bitácora de demostración, segunda pasada en cero; local limpio después. **2b en dev** (`poblar-demo.mjs --solo gri-sasb`, contenido §7b): 9 de las 17 solicitudes con tema GRI 2/FN-CB ligadas; 8 no, con su razón (horas de capacitación es un total y 404-1 pide promedio; mujeres en plantilla es 405; cartera total, sostenible y expuesta no son métricas FN-CB tal cual; Alcance 3 y créditos de carbono no son GRI 2 ni FN-CB). Tres métricas FN-CB nuevas validadas con captura y extracto (240a.3, 240a.4, 510a.1), lectura omitida (0 lecturas pendientes del demo); segunda corrida sin cambios. **Tabla en seco** sobre el v5 de dev: 20 por sección, 5 por captura, 29 pendientes, costo 0. **Errores propios:** la primera corrida del e2e se cayó antes de su limpieza (el trigger de evidencias ya crea la fila de lectura); limpié a mano lo que dejó en el stack local (documento, libro, dos solicitudes, fila de perfil; tenant de vuelta a generador apagado y tope 10) y moví la preparación dentro del bloque con limpieza. Cuatro temas demasiado amplios en la primera tabla (§1.7), ajustados | **Parada:** tabla código → sección; nada generado con modelo |
 | 31/10/2026 | Comprobación después del cambio del Formato | `verify:export` 81 y `e2e-celdas-categoricas` 128 contra dev con el código de la rama. El Formato de dev difiere del anterior solo en las 37 celdas nuevas de «Métricas SASB» (encabezado y 17 métricas, respuestas vacías hasta la 2c); el resto, igual celda por celda. **Error propio:** primero hice commit del cambio de la exportación del Formato sin correr `verify:export` (CLAUDE.md §7); se corrió después, en verde | Hecho |
-
+| 10/11/2026 | **Tabla código → sección aprobada** (§1.8), con `dev/ajustes-sep26` mezclada en la rama | Reglas de GRI 2-5 (descripción y validador) y de 2-24/3-3 (descripción); 3-2 y 2-29 pendientes como en seco. **Pruebas:** validadores con la sección 9 nueva; `e2e-respuestas-gri-sasb`, `e2e-catalogo-gri-sasb` y `e2e-formato-electronico` contra local; `verify:export` 81 y `e2e-celdas-categoricas` 128 contra dev. Comparación con `traceline-dev` v32: el Excel de taxonomía tiene 0 celdas distintas de 1251; el Formato, solo las 37 de «Métricas SASB» (4548 celdas) | Hecho |
