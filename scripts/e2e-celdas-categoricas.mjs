@@ -376,7 +376,7 @@ console.log("\nCorrecciones v6.2 (decisión de Esteban del 10/11/2026)");
     ok(/b\.?\s?iii/i.test(G("GRI 2-6")), "[v6.2-4] GRI 2-6 declara b.iii no revelado");
     ok(/no desglosa la exposición bruta por industria ni por clase de activo/i.test(G("FN-CB-410b.2")), "[v6.2-4] FN-CB-410b.2 «no desglosa la exposición bruta por industria ni por clase de activo»");
     ok(/m[eé]todo de atribuci[oó]n/i.test(G("FN-CB-410b.4")), "[v6.2-4] FN-CB-410b.4 declara que no describe el método de atribución");
-    ok(/\b(solo|únicamente)\b[^.]*estr[eé]s[^.]*clim|estr[eé]s[^.]*clim[^.]*\b(solo|únicamente)\b/i.test(G("FN-CB-550a.2")), "[v6.2-4] FN-CB-550a.2 declara que solo cubre la prueba de estrés climática");
+    ok(/^La Compañía describe únicamente la prueba de estrés climática de cartera; no revela la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital\./.test(G("FN-CB-550a.2")) && !vocabularioEnCeldaExportada(G("FN-CB-550a.2")).length, "[v6.2-4] FN-CB-550a.2 declara en voz de la emisora que solo describe la prueba de estrés climática");
     ok(G("FN-CB-410b.1") === "No revelado · alivio C4", "[v6.2-4] FN-CB-410b.1 «No revelado · alivio C4»");
     ok(G("GRI 2-4") === "Sin actualizaciones de información de periodos anteriores: primer periodo bajo NIIF S1 y S2.", "[v6.2-4] GRI 2-4 por regla (primer periodo, como K718)");
     // Correcciones del libro de la v6.1, sobre el libro exportado.

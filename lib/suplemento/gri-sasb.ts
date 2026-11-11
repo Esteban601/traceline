@@ -85,7 +85,7 @@ export const REGLAS_GRI_SASB: Record<string, string> = {
   "GRI 2-6": "Si la fuente no describe las entidades aguas abajo y sus actividades, declara no revelado el inciso b.iii.",
   "FN-CB-410b.2": "Si la fuente no da la exposición bruta desagregada, dilo exactamente así: «La información disponible no desglosa la exposición bruta por industria ni por clase de activo.»",
   "FN-CB-410b.4": "Si la fuente no describe cómo se atribuyen las emisiones a cada financiamiento, declara que no se describe el método de atribución.",
-  "FN-CB-550a.2": "Si la fuente solo trata la prueba de estrés climática, declara que la respuesta cubre solo esa prueba, no la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital.",
+  "FN-CB-550a.2": "Si la fuente solo trata la prueba de estrés climática, dilo exactamente así: «La Compañía describe únicamente la prueba de estrés climática de cartera; no revela la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital.»",
   "GRI 2-24": COBERTURA_PARCIAL,
   "GRI 3-3": COBERTURA_PARCIAL,
 };
@@ -103,7 +103,7 @@ export function erroresGriSasb(texto: string, codigo: string): string[] {
   if (codigo === "GRI 2-6" && !declara(/\bb\.?\s?iii\b/i)) errores.push("no declara no revelado el inciso b.iii (entidades aguas abajo), que la fuente no cubre");
   if (codigo === "FN-CB-410b.2" && !/no desglosa la exposición bruta por industria ni por clase de activo/i.test(texto)) errores.push("no dice «La información disponible no desglosa la exposición bruta por industria ni por clase de activo.»");
   if (codigo === "FN-CB-410b.4" && !declara(/m[eé]todo de atribuci[oó]n/i)) errores.push("no declara que no se describe el método de atribución de las emisiones financiadas");
-  if (codigo === "FN-CB-550a.2" && !oraciones.some((o) => /\b(solo|únicamente)\b/i.test(o) && /estr[eé]s/i.test(o) && /clim/i.test(o))) errores.push("no declara que cubre solo la prueba de estrés climática");
+  if (codigo === "FN-CB-550a.2" && !/La Compañía describe únicamente la prueba de estrés climática de cartera; no revela la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital\./.test(texto)) errores.push("no dice «La Compañía describe únicamente la prueba de estrés climática de cartera; no revela la integración de las pruebas de estrés obligatorias y voluntarias en la planeación de capital.»");
   if (codigo !== "GRI 2-5") return errores;
   if (/protocolo GEI|factores de emisi[oó]n|datos de entrada|m[eé]todo (de medici[oó]n|de c[aá]lculo)?/i.test(texto)) errores.push("describe el método de medición, que no es parte de GRI 2-5");
   // b.ii solo aplica si hubo verificación: con una verificación afirmada, la respuesta dice qué parte de b.ii falta.
