@@ -571,10 +571,11 @@ const CUANTITATIVAS_FN_CB = [
     titulo: "Participantes en iniciativas de educación financiera 2025",
     codigos: ["FN-CB-240a.4"],
     area: "Sostenibilidad",
-    valor: 14200,
+    // 13,900 (v6.1): 14,200 coincidía con los 14,200 MDP de deuda de mercado del Perfil.
+    valor: 13900,
     unidad: "participantes",
     descripcion: "Número de participantes en iniciativas de educación financiera para clientes no bancarizados, subbancarizados o desatendidos (SASB FN-CB-240a.4), con una descripción de las iniciativas.",
-    texto: "En 2025 participaron 14,200 personas en los talleres de educación financiera de la Compañía para clientes no bancarizados, subbancarizados o desatendidos, impartidos en sucursales y en línea.",
+    texto: "En 2025 participaron 13,900 personas en los talleres de educación financiera de la Compañía para clientes no bancarizados, subbancarizados o desatendidos, impartidos en sucursales y en línea.",
   },
   {
     titulo: "Pérdidas monetarias por procedimientos legales 2025",
@@ -855,7 +856,9 @@ const NARRATIVAS = [
     codigos: ["NIIF S2 30"],
     area: "Riesgos",
     texto:
-      "La Compañía no se acoge a la exención por costo o esfuerzo desproporcionado para las métricas de los párrafos 29(b) a (d): la cantidad y el porcentaje de activos vulnerables se revelan a partir de la clasificación de cartera por sector y ubicación. Las emisiones financiadas se difieren por el alivio C4, no por esta exención.",
+      // NIIF S2 30 no es una exención (v6.1): es el uso de información razonable y sustentable sin costo o esfuerzo
+      // desproporcionado. Entra con el próximo libro de hechos.
+      "Para las métricas de los párrafos 29(b) a (d), la Compañía usa toda la información razonable y sustentable disponible a la fecha del informe sin costo o esfuerzo desproporcionado: la cantidad y el porcentaje de activos vulnerables se determinan a partir de la clasificación de la cartera por sector y ubicación. Las emisiones financiadas se difieren por el alivio C4.",
   },
   {
     titulo: "Métricas basadas en la industria: sector de bancos comerciales",
@@ -1153,6 +1156,10 @@ async function perfilEmisor() {
     ok("perfil insert", await db.from("perfil_emisor").insert(fila));
     log("  perfil del emisor · creado");
   }
+  // FN-CB-550a.1 (v6.1): el demo no es un banco de importancia sistémica global. Solo si la columna ya existe
+  // (migración 20261111120000); sin ella, se avisa y se sigue.
+  const gsib = await db.from("perfil_emisor").update({ banco_sistemico_global: false }).eq("tenant_id", TENANT);
+  log(gsib.error ? "  perfil del emisor · sin la columna banco_sistemico_global (falta la migración 20261111120000); se omite" : "  perfil del emisor · no es banco de importancia sistémica global");
 }
 
 // --- 2. Régimen del reporte --------------------------------------------------
