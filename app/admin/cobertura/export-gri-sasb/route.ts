@@ -66,6 +66,7 @@ export async function GET(request: Request) {
       respuestas,
       titulo: `Índice GRI/SASB · ${reporte.ejercicio}`,
       esDemo: tenant?.es_demo === true,
+      ejercicio: reporte.ejercicio,
     });
     const slug = tenant?.slug ?? "reporte";
     const filename = `gri-sasb-${slug}-${reporte.ejercicio}-${new Date().toISOString().slice(0, 10)}.xlsx`;
