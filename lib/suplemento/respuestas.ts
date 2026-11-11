@@ -20,7 +20,7 @@ import { ALCANCE_E5, E4_EN_DECLARACION, ORACION_E4, ORACION_E5, textoAlivio } fr
 import { ensamblarReporte } from "@/lib/reporte/ensamblar";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
-import { descripcionGriSasb, esGriSasb, seccionDe } from "@/lib/suplemento/gri-sasb";
+import { descripcionGriSasb, erroresGriSasb, esGriSasb, seccionDe } from "@/lib/suplemento/gri-sasb";
 
 // =============================================================================
 // RESPUESTAS POR DATAPOINT (encargo 2026-10-13-excel-respuestas-narrativas,
@@ -422,7 +422,8 @@ export type HechoDeRequisito = { id: string; local: string; tipo: string; enunci
  *   · una celda de B65(c) nombra su tipo de riesgo (K640 decía «riesgos climáticos» en la fila de transición).
  */
 export function erroresDeForma(texto: string, codigo: string): string[] {
-  const errores: string[] = [];
+  // Reglas de la tabla GRI/SASB aprobada (GRI 2-5: alcance de lo verificado). Solo códigos GRI; ninguna NIIF cambia.
+  const errores: string[] = [...erroresGriSasb(texto, codigo)];
   const esBooleano = BOOLEANOS_FORMATO.some((b) => `fila:${b.fila}` === codigo);
   if (!esBooleano && /^(Sí|No)\.\s/.test(texto.trim())) errores.push("abre con «Sí.» o «No.»: esta respuesta no es una pregunta de sí o no; empieza por lo que afirma");
   // Voz de la emisora: no habla del material con que se redacta (encargo formato-respuesta-por-inciso, Fase 2, K89).

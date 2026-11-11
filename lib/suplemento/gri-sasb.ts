@@ -62,6 +62,33 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp }
   "FN-CB-550a.2": { bloques: [26, 34], tema: /pruebas? de estr[eé]s|estr[eé]s financiero|suficiencia de capital|planeaci[oó]n de capital|solvencia/i },
 };
 
+/**
+ * Reglas de la tabla aprobada (Esteban, 10/11/2026) que se le dicen al modelo en la descripción del contenido:
+ *   · GRI 2-5: nombra el alcance de lo verificado (el inventario de GEI) y no presenta el informe como verificado;
+ *   · GRI 2-24 y 3-3: si la sección cubre solo parte del contenido, la respuesta dice qué parte no cubre.
+ */
+const COBERTURA_PARCIAL = "Si la fuente cubre solo una parte de este contenido, añade una oración que diga qué parte del contenido no se revela (por ejemplo, «No se revela …»); no la afirmes ni la completes.";
+export const REGLAS_GRI_SASB: Record<string, string> = {
+  "GRI 2-5": "Nombra el alcance de lo que se verificó externamente (por ejemplo, el inventario de emisiones de GEI) y quién lo verificó, si la fuente lo dice. No presentes el informe ni la información de sostenibilidad en su conjunto como verificados.",
+  "GRI 2-24": COBERTURA_PARCIAL,
+  "GRI 3-3": COBERTURA_PARCIAL,
+};
+
+/**
+ * Validador determinista de las reglas que se pueden comprobar sin modelo: GRI 2-5 no presenta el informe como
+ * verificado y, si afirma una verificación, nombra su alcance (inventario, emisiones, GEI, alcance).
+ */
+export function erroresGriSasb(texto: string, codigo: string): string[] {
+  if (codigo !== "GRI 2-5") return [];
+  const errores: string[] = [];
+  if (/(el|este|el presente) (informe|reporte|documento)\b[^.]{0,80}\b(verificad|asegurad)|verificaci[oó]n (externa |independiente )?(del|de este|de todo el) (informe|reporte)|informaci[oó]n de sostenibilidad\b[^.]{0,60}\b(fue|ha sido|est[aá]) (verificad|asegurad)/i.test(texto)) {
+    errores.push("presenta el informe como verificado; GRI 2-5 nombra solo el alcance de lo verificado (p. ej., el inventario de GEI)");
+  }
+  const afirma = /verificad|verificaci[oó]n|asegurad|aseguramiento/i.test(texto) && !/\bno\b[^.]{0,40}(verific|asegur)/i.test(texto);
+  if (afirma && !/inventario|emisiones|\bGEI\b|alcance/i.test(texto)) errores.push("afirma una verificación externa sin decir su alcance (qué se verificó)");
+  return errores;
+}
+
 /** Contenido GRI o SASB (no NIIF): lo que entra por esta vía. */
 export const esGriSasb = (codigo: string): boolean => /^GRI \d|^[A-Z]{2}-[A-Z]{2}-/.test(codigo);
 
@@ -69,7 +96,8 @@ export const esGriSasb = (codigo: string): boolean => /^GRI \d|^[A-Z]{2}-[A-Z]{2
 export function descripcionGriSasb(d: { codigo: string; estandar: string | null; edicion: string | null; descripcion: string }): string {
   const norma = `${d.estandar ?? ""}${d.edicion ? ` (${d.edicion})` : ""}`.trim();
   const idioma = d.estandar?.startsWith("SASB") ? " El requisito está en inglés (norma SASB sin traducción oficial); la respuesta va en español." : "";
-  return `Contenido ${d.codigo} de ${norma}, no de NIIF S1/S2: ${d.descripcion}${idioma} Responde con lo que la fuente dice de este contenido, como respuesta propia; si la fuente no cubre una parte del contenido, no la afirmes ni la inventes.`;
+  const regla = REGLAS_GRI_SASB[d.codigo] ? ` ${REGLAS_GRI_SASB[d.codigo]}` : "";
+  return `Contenido ${d.codigo} de ${norma}, no de NIIF S1/S2: ${d.descripcion}${idioma} Responde con lo que la fuente dice de este contenido, como respuesta propia; si la fuente no cubre una parte del contenido, no la afirmes ni la inventes.${regla}`;
 }
 
 export type HechoTema = { id: string; libro_id: string; estado: string; enunciado: string; bloque_dueno: number | null; bloques_referencia: number[] | null };
