@@ -253,5 +253,22 @@ console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
   ok(erroresDeForma("El presente informe fue verificado por un tercero.", "GRI 2-5").length > 0, "erroresDeForma aplica la regla de 2-5 (respuestas nuevas y reutilizadas)");
 }
 
+console.log("\n10. Carácter de los objetivos en la prosa (33(g), 10/11/2026)");
+{
+  const { caracterDeObjetivoIncoherente: car } = await import("../lib/suplemento/hechos/validadores.ts");
+  const objs = [
+    { nombre: "Reducción de emisiones de Alcances 1 y 2", tipo_objetivo: "Absoluto" },
+    { nombre: "Cartera sostenible", tipo_objetivo: "De intensidad" },
+    { nombre: "[DEMO] Medición de emisiones financiadas", tipo_objetivo: "De intensidad" },
+  ];
+  const v6 = "Los tres objetivos son de ámbito climático. El objetivo de cartera sostenible es un objetivo relativo, y la Compañía lo considera alineado con la Taxonomía Sostenible de México.";
+  ok(car(v6, objs).some((e) => /«Cartera sostenible» se describe como «relativo».*«De intensidad»/.test(e)), "la frase del v6 («cartera sostenible … relativo») → rechazo");
+  ok(car("El objetivo de cartera sostenible es de intensidad.", objs).length === 0, "«de intensidad» cuando es su valor → aceptado");
+  ok(car("El objetivo de cartera sostenible es absoluto.", objs).length === 1, "«absoluto» cuando es «De intensidad» → rechazo");
+  ok(car("El objetivo de reducción de emisiones de Alcances 1 y 2 es absoluto y el de cartera sostenible es de intensidad.", objs).length === 0, "dos objetivos en una oración, cada uno con su valor → aceptado");
+  ok(car("La medición de emisiones financiadas es absoluta.", objs).length === 1, "nombre con «[DEMO]» se reconoce sin el prefijo");
+  ok(car("| Cartera sostenible | … | Relativo |\nEn lo relativo a la cartera sostenible, la meta es 20%.", objs).length === 0, "tablas y «en lo relativo a» no cuentan");
+}
+
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);
