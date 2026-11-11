@@ -152,6 +152,38 @@ export function leerMatriz(raw: unknown): MatrizRiesgos | null {
 }
 
 // -----------------------------------------------------------------------------
+// Tipo de instrumento (perfil_emisor.tipo_instrumento): opciones de la fila 7 de
+// la plantilla del Formato electrónico, tal cual (FIBRAE con su doble espacio).
+// -----------------------------------------------------------------------------
+export const INSTRUMENTOS_FORMATO = [
+  "Acciones",
+  "Deuda Largo Plazo",
+  "Deuda Corto plazo",
+  "Sociedad Anónima Promotora de Inversión Bursátil",
+  "Fideicomisos sobre bienes distintos de acciones",
+  "Certificados Bursátiles Fiduciarios de Desarrollo (CKD)",
+  "Certificados Bursátiles Fiduciarios Inmobiliarios (CERPI)",
+  "Certificados Bursátiles Fiduciarios de Proyectos de Inversión (FIBRA)",
+  "Certificados Bursátiles Fiduciarios de Inversión en Energia e Infraestructura  (FIBRAE)",
+] as const;
+
+/** Las cinco opciones fiduciarias: con ellas aplica la sección «Para: Fideicomisos» del Formato (filas 13–21). */
+export const INSTRUMENTOS_FIDUCIARIOS: readonly string[] = INSTRUMENTOS_FORMATO.slice(4);
+
+const sinEspacios = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * ¿El instrumento es un fideicomiso? Una de las cinco opciones fiduciarias (sin distinguir espacios ni mayúsculas) o,
+ * para el Perfil capturado antes como texto libre, un valor que diga «fideicomiso». Antes bastaba /fideicomiso/, que
+ * dejaba fuera CKD, CERPI, FIBRA y FIBRAE (encargo s1-72-reserva-y-emisora, §0.2).
+ */
+export function esInstrumentoFiduciario(tipo: string | null | undefined): boolean {
+  const t = sinEspacios(tipo ?? "");
+  if (!t) return false;
+  return INSTRUMENTOS_FIDUCIARIOS.some((x) => sinEspacios(x) === t) || /fideicomiso/.test(t);
+}
+
+// -----------------------------------------------------------------------------
 // Alivios transitorios (reportes.alivios) y régimen del ejercicio (§3.1)
 // -----------------------------------------------------------------------------
 export type ClaveAlivio = "E4" | "E5" | "C3" | "C4" | "C5";

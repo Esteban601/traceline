@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { fmtFechaHora } from "@/lib/fechas";
 import {
+  INSTRUMENTOS_FORMATO,
   MATRIZ_SUGERIDA,
   PLAZOS,
   type EtapaCadena,
@@ -446,13 +447,13 @@ export function PerfilView({
                 <label className={LABEL} htmlFor={`${uid}-ti`}>
                   Tipo de instrumento
                 </label>
-                <input id={`${uid}-ti`} name="tipo_instrumento" list={`${uid}-ti-opciones`} defaultValue={p?.tipo_instrumento ?? ""} placeholder="Acciones, deuda o fideicomiso" className={cn(INPUT, "mt-2")} />
+                <input id={`${uid}-ti`} name="tipo_instrumento" list={`${uid}-ti-opciones`} defaultValue={p?.tipo_instrumento ?? ""} placeholder="Una opción del Formato electrónico" className={cn(INPUT, "mt-2")} />
                 <datalist id={`${uid}-ti-opciones`}>
-                  <option value="Acciones" />
-                  <option value="Deuda" />
-                  <option value="Fideicomiso" />
+                  {INSTRUMENTOS_FORMATO.map((x) => (
+                    <option key={x} value={x} />
+                  ))}
                 </datalist>
-                <p className="mt-1.5 text-xs text-muted">Como lo pide el Formato electrónico en su sección de identificación.</p>
+                <p className="mt-1.5 text-xs text-muted">Tal cual una de las opciones del Formato electrónico. Con un fideicomiso o un certificado fiduciario (CKD, CERPI, FIBRA, FIBRAE) se llena la sección «Para: Fideicomisos».</p>
               </div>
               <div>
                 <label className={LABEL} htmlFor={`${uid}-fi`}>
