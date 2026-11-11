@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.53** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.54** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.53** (decisión de Esteban del 10/11/2026): §10, v44, v45 y v46 van en **un solo despliegue**
+desde `main` (`b13998e`), con las cinco migraciones en un `db push`; runbook `2026-11-10-runbook-v46.md` (versión 2).
 
 **Cambios respecto a 0.52** (encargo 2026-11-10-s1-72-reserva-y-emisora): §10, registro de v46 (pendiente), con la
 migración de la declaración de cumplimiento, después de v45 (que pasa a desplegarse desde `a098c7f`).
@@ -1834,7 +1837,7 @@ Ningún documento se regenera con el release (0 aprobados en staging desde v42).
 hoja «NIIF S2 33» lleva el marcador de 33(b) donde el objetivo no tiene propósito capturado, y el de 33(g) donde el tipo
 no está en la lista de la plantilla.
 
-### staging · release v44 · pendiente
+### staging · release v44 · pendiente (va en el despliegue combinado v44+v45+v46)
 
 **Declaraciones del bloque 10 en el Perfil del emisor.** Encargo `docs/encargos/2026-10-29-perfil-declaraciones-alta.md`,
 cerrado el 29 de octubre de 2026 como «código en main; demo pendiente de v6». En `main` desde el PR #49 (`61eb454`).
@@ -1859,7 +1862,7 @@ contesten la sección. Nada se bloquea; ningún documento cambia (0 aprobados en
 
 **Resultado:** pendiente.
 
-### staging · release v45 · pendiente
+### staging · release v45 · pendiente (va en el despliegue combinado v44+v45+v46)
 
 **Catálogo GRI 2/3 y SASB FN-CB, libro GRI/SASB y respuestas GRI/SASB.** Encargo
 `docs/encargos/2026-10-31-catalogo-gri-sasb.md` (tabla código → sección aprobada el 10 de noviembre de 2026). Runbook:
@@ -1876,7 +1879,18 @@ ligado de las nueve solicitudes de demostración de Empresa Demo.
 
 **Resultado:** pendiente.
 
-### staging · release v46 · pendiente
+### staging · release v46 · pendiente (despliegue combinado v44+v45+v46)
+
+**Un solo despliegue** (decisión de Esteban del 10/11/2026): staging pasa de v43 a `main` (`b13998e`) con las cinco
+migraciones pendientes en un `db push`:
+- v44: `20261029140000`;
+- v45: `20261031120000`, `20261031130000` y `20261031140000`;
+- v46: `20261110120000`.
+
+Cuenta 102 de 102 y barrera 108. **Rollback** a v43, dejando las migraciones. Cobertura: el esperado de v45 (51
+códigos nuevos sin solicitud, la compuesta retirada, NIIF sin cambio). Comprobaciones: `comprobar-v46.mjs`, que reúne
+las de v44 y v45. Después, el ligado de las nueve solicitudes de demostración. Los registros de v44 y v45 de arriba
+describen su contenido; se cierran con este.
 
 **Declaración de cumplimiento con o sin reserva, fideicomisos en el Formato y forma de referencia.** Encargo
 `docs/encargos/2026-11-10-s1-72-reserva-y-emisora.md`. Runbook: `docs/encargos/2026-11-10-runbook-v46.md`. Va después
