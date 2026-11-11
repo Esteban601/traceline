@@ -28,6 +28,7 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   usuario_desactivado: { label: "Usuario desactivado", tono: "rojo" },
   usuario_reactivado: { label: "Usuario reactivado", tono: "verde" },
   usuario_trasladado: { label: "Usuario trasladado de emisora", tono: "ambar" },
+  precarga_irstrat: { label: "Precarga por IRStrat", tono: "azul" },
   plantilla_creada: { label: "Plantilla creada", tono: "verde" },
   reporte_creado_desde_plantilla: { label: "Reporte creado", tono: "verde" },
   reporte_congelado: { label: "Reporte congelado", tono: "gris" },
@@ -195,6 +196,10 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "usuario_desactivado":
     case "usuario_reactivado":
       return limpiar(s(detalle, "nombre")) ?? "";
+    case "precarga_irstrat": {
+      const que = s(detalle, "objeto"), titulo = limpiar(s(detalle, "titulo") ?? s(detalle, "nombre")), fuente = s(detalle, "fuente");
+      return [que, titulo, fuente].filter(Boolean).join(" · ");
+    }
     case "usuario_trasladado": {
       const de = s(detalle, "tenant_origen"), a = s(detalle, "tenant_destino");
       return [limpiar(s(detalle, "nombre")), de && a ? `${de} → ${a}` : null].filter(Boolean).join(" · ");

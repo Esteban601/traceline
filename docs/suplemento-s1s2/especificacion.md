@@ -1,6 +1,11 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.56** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.58** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.57** (encargo odonnell-alta-real, Fase 2): §10, alta de O'Donnell como cliente real en staging;
+staging queda con 23 tenants, 21 de demostración y 2 reales.
+
+**Cambios respecto a 0.56** (despliegue v47): §10, registro del release v45 de staging (v47), con el resultado del día.
 
 **Cambios respecto a 0.55** (despliegue combinado v44+v45+v46, decisión de Esteban del 10/11/2026): §10, registro del
 release v44 de staging cerrado (un solo release para v44, v45 y v46), con los cuatro rojos de la comprobación explicados;
@@ -1968,6 +1973,55 @@ el 10/11/2026).**
    agregar; aplicado con el ref de staging, enlaces de las nueve **6 → 18** (12 nuevos, los de antes conservados);
    segunda pasada, 0 por agregar. Los enlaces de staging quedan en 1,472 (foto «antes» de v47).
 8. **Paso 7:** terminal cerrada (`STAGING_DB_URL` vacía). Release cerrado el 10/11/2026.
+
+### staging · release v45 (v47) · 10 de noviembre de 2026 (11/11 04:30 UTC) · `e21f894`
+
+**Correcciones v6.1 y v6.2 del demo, columna G-SIB y guion del alta de O'Donnell (versión 2).** Runbook
+`docs/encargos/2026-11-11-runbook-v47.md` (versión 2); comandos en `~/Downloads/v47/comandos.md`. En `main` desde los PR
+#58 (`6353afc`) y #60 (`e21f894`). Qué entra: lo descrito en el runbook, más la etiqueta «Usuario trasladado de emisora»
+de la bitácora y `scripts/alta/alta-cliente-real.mjs` versión 2, que no corre con el despliegue.
+
+**Migración:** `20261111120000_perfil_banco_sistemico_global` (columna nullable en `perfil_emisor`), con la barrera del
+auditor. **Sin plantilla ni cambio de catálogo.**
+
+**Resultado.**
+1. **Privilegios de `service_role`:** staging igual a dev: 37 tablas con los 7 privilegios, las mismas del combinado.
+2. **Foto «antes»** (04:27 UTC, después del ligado del combinado): 22 emisoras × 172 códigos, 930 solicitudes y 1,472
+   enlaces.
+3. **Migración** (Esteban, `migrar-remoto.sh staging` en tres pasadas, «todo lo esperado»): 103 de 103 y barrera 108.
+4. **Release:** `git push heroku main` por Claude Code con autorización de Esteban por chat → **v45**, `Deploy
+   e21f894c`, 04:30:23 UTC; `web.1` arriba a las 04:30:36 UTC.
+5. **`comprobar-v47.mjs --destino staging`** desde `main`, todo en verde (solo lectura, con autorización de Esteban;
+   `~/Downloads/v47/comprobar-staging.txt`):
+   - `/login` 200; 22 emisoras;
+   - foto «después» igual a la «antes» (22 × 172, 930 solicitudes, 1,472 enlaces; `esperado-cobertura-v47.json` vacío);
+   - plantilla `217912465e5c…`; Formato de Empresa Demo 409 y Excel de taxonomía 200;
+   - catálogo GRI 37 (30 y 3), FN-CB 17, NIIF 117, la compuesta retirada; libro GRI/SASB 200 con 37 GRI;
+   - `perfil_emisor.banco_sistemico_global` se lee; sección «Efectos financieros» 200;
+   - bloque 10: 22 reportes, 1 en «sin_regimen» (Grupo Carso) sin faltantes; 21 emisoras con los dos faltantes;
+   - declaración: el reporte real sin declaración; los 21 `es_demo` en «sin_reserva», sin texto (staging sin Perfiles;
+     relleno pendiente de las denominaciones);
+   - `/admin/reportes` 200.
+6. **Logs desde el release:** 30 líneas; 0 respuestas 5xx, 0 errores, 0 códigos H; máxima 1,370 ms. El dyno anterior
+   salió con 143 (SIGTERM del release).
+7. **Pendiente de Esteban:** paso 5 (cierre de la terminal). Después, el alta de O'Donnell
+   (`~/Downloads/odonnell-alta/comandos.md`).
+
+### staging · alta de O'Donnell como cliente real · 10 de noviembre de 2026 (después del release v45)
+
+Encargo `docs/encargos/2026-11-10-odonnell-alta-real.md`, Fase 2. Sin despliegue: datos escritos por Esteban con
+`scripts/alta/alta-cliente-real.mjs` (versión 2, en `main` desde `e21f894`), pasos T, U, R y V en verde.
+- **Mockup** `odonnell` → `odonnell-demo` / `ODND`, inactivo, sin borrar (conserva su reporte).
+- **Tenant real** `odonnell` / `ODN`: `es_demo = false`, vitrina apagada, lectura y generador encendidos, carga por
+  IRStrat encendida; cinco áreas; Perfil de fideicomiso (CKD ODOCK, CIB2659, forma de referencia «la Emisora», IF-RE e
+  IF-EN). La denominación formal «Fideicomiso CIB/2659» queda por confirmar con O'Donnell antes del Formato 2026.
+- **Usuarios:** las siete cuentas del mockup, trasladadas con sus contraseñas (decisión del 10/11/2026; consecuencias y
+  transición a correos reales en el encargo §5.4 y en la bitácora de cada traslado).
+- **Reportes:** 2025 con 37 solicitudes de la plantilla «con rubros», sin escena, y la declaración «con reserva» con el
+  texto de la p. 41 del Formato publicado; 2026 vacío.
+
+**Staging queda con 23 tenants: 21 de demostración y 2 reales** (Grupo Carso y O'Donnell). Toda comprobación posterior
+que cuente emisoras espera 23; las que cuentan reportes reales, los de los dos.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
