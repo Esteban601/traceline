@@ -473,6 +473,41 @@ y la elección de escenarios. Las incertidumbres de medición se concentran en l
 
 ---
 
+## 7b. GRI y SASB (encargo catalogo-gri-sasb, Fase 2b, 31 oct 2026)
+
+**Ligas a GRI 2 y FN-CB de solicitudes que ya existen** (N:N: conservan sus códigos NIIF):
+
+| Solicitud | Códigos GRI/SASB |
+|---|---|
+| Composición y responsabilidades del Consejo en sostenibilidad | GRI 2-9, GRI 2-12, GRI 2-14 |
+| Competencias del Consejo en temas ESG y clima | GRI 2-17 |
+| Frecuencia de información al Consejo sobre riesgos climáticos | GRI 2-12, GRI 2-16 |
+| Supervisión de objetivos climáticos y su vínculo con la remuneración | GRI 2-12, GRI 2-19 |
+| Remuneración vinculada a métricas climáticas 2025 | GRI 2-19, GRI 2-20 |
+| Diversidad e inclusión en plantilla y órganos de gobierno | GRI 2-9 |
+| Plantilla y rotación de personal 2025 | GRI 2-7 |
+| Índice de rotación voluntaria 2025 (%) | GRI 401-1 |
+| Esfuerzos indirectos de reducción y adaptación a través de la cartera | FN-CB-410a.2 |
+
+No se ligan, a propósito:
+- **Horas de capacitación 2025:** la cifra es el total (68,640 horas) y GRI 404-1 pide el promedio por empleado, que
+  no se calcula.
+- **Mujeres en plantilla y en el Consejo 2025:** es un porcentaje; es GRI 405 (nivel medio), no 2-7.
+- **Cartera de crédito total 2025:** FN-CB-000.B pide préstamos por segmento (personal, pyme, corporativo).
+- **Cartera sostenible y cartera expuesta a transición:** ninguna métrica FN-CB las pide tal cual.
+- **Alcance 3, categorías 2 y 7, y créditos de carbono:** son GRI 305 (nivel medio) o no son GRI 2 ni FN-CB.
+
+**Métricas FN-CB nuevas, con su cifra del ejercicio 2025** (dato ilustrativo):
+
+| Solicitud | Código | Valor |
+|---|---|---|
+| Cuentas sin costo abiertas a clientes antes no bancarizados o subbancarizados 2025 | FN-CB-240a.3 | 21,500 cuentas |
+| Participantes en iniciativas de educación financiera 2025 | FN-CB-240a.4 | 14,200 participantes |
+| Pérdidas monetarias por procedimientos legales 2025 | FN-CB-510a.1 | 0 MDP |
+
+Las demás métricas FN-CB quedan sin dato en el demo: van por la sección aprobada que las trate (410a.2, 410b, 550a.2)
+o con su marcador de pendiente.
+
 ## 8. Notas para el script
 
 - Las solicitudes nuevas se asignan al área que corresponde por tema: gobernanza → Dirección General;
