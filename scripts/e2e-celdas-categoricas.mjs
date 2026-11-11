@@ -335,5 +335,23 @@ console.log("\nExcel de taxonomía · hojas de datos");
   ok(voc === 0, `sin vocabulario de plataforma en el Excel (${voc})`);
 }
 
+console.log("\nCorrecciones v6.1 (decisión de Esteban del 10/11/2026)");
+{
+  // Las celdas van en la numeración de v5.1, como el resto de la prueba: K679/K681 son K823/K825 de v5.2, K695/K697 son
+  // K839/K841 y K703/K705 son K847/K849.
+  const ors = (t) => (t ?? "").split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
+  ok(/31\.0/.test(K(679)) && !/no se (han )?cuantific/i.test(K(679)), "(1) K823: efectos actuales de las oportunidades sobre la situación financiera, con los 31.0 millones capitalizados");
+  ok(/0\.4/.test(K(681)) && !/no se (han )?cuantific/i.test(K(681)), "(1) K825: efectos actuales sobre el rendimiento, con los 0.4 millones registrados como gasto");
+  ok(/se revela conforme a NIIF S2 22 \(a\)a\(b\)/.test(K(103)), "(2) K103 (NIIF S1 41) bajo E5: remite a NIIF S2 22 (a)–(b), sin depender del padre");
+  for (const [rama, vecina, nombre] of [[697, 695, "K841"], [705, 703, "K849"]]) {
+    const r = K(rama);
+    ok(!r || (ors(r).length === 1 && !ors(K(vecina)).includes(ors(r)[0])), `(3) ${nombre}: una línea o vacía, sin repetir la primera oración de su vecina («${r.slice(0, 60)}»)`);
+  }
+  const r36d = C("NIIF S2 36 (d)");
+  ok(/ninguno de sus objetivos de emisiones de GEI/.test(r36d) && /el único es el de reducción de (las )?emisiones de Alcances 1 y 2/.test(r36d) && !/medición de emisiones financiadas|cartera sostenible/.test(r36d), "(4) Excel 271 (36(d)): solo el objetivo de emisiones de GEI, sin el de medición ni el de cartera");
+  ok(/Ver sección «[^»]+»/.test(C("NIIF S2 36 (a)")) && [...porCodigo.values()].every(([t]) => !/Ver sección \d/.test(t ?? "")), "(5) Excel 268 y todo el Excel: remisión por nombre de sección, nunca «sección N»");
+  ok(!!C("NIIF S2 6(b)(ii)") && !/^Sí,/.test(C("NIIF S2 6(b)(ii)")), "(6) Excel 79 (6(b)(ii)) sin «Sí,» inicial");
+}
+
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);

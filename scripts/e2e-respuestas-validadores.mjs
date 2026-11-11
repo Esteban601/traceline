@@ -137,7 +137,7 @@ const anclas = [
   { oracion: "Segunda oración anclada a u1.", hechos: [{ id: "h1", hecho: "u1" }] },
 ];
 ok(oracionesAncladas(anclas, ["u1", "u2"], 4) === "Primera oración anclada a u2. Segunda oración anclada a u1.", "respaldo: solo las oraciones ancladas a los hechos del requisito, en orden");
-ok(remision(15) === "Ver sección 15 · Roles y responsabilidades del órgano de gobierno", "remisión «Ver sección N · título» desde BLOQUES");
+ok(remision(15) === "Ver sección «Roles y responsabilidades del órgano de gobierno»", "remisión «Ver sección «título»» desde BLOQUES, sin número (v6.1)");
 for (const c of ["NIIF S2 36 (c)", "NIIF S2 36 (e)(ii)"]) {
   ok(vocabularioProhibidoEn(textoNoAplicaHeredado(c)).length === 0 && !/emisora|cuestionario/i.test(textoNoAplicaHeredado(c)), `«no aplica» heredado de ${c} en voz de la emisora`);
 }
@@ -152,7 +152,8 @@ ok(["La Compañía reconoce que completará la medición.", "Los eventos extremo
 ok(textoNoAplicaE5("NIIF S2 6 (a)").endsWith("en lo relativo al clima, se revela conforme a NIIF S2 6 (a).") && textoNoAplicaE5(null) === ORACION_E5 && !/suplemento|solicitud|evidencia|IRStrat/i.test(textoNoAplicaE5("NIIF S2 6 (a)")), "«No aplica · E5»: la oración E5 y el par de NIIF S2, sin vocabulario de plataforma");
 const num = numeracionConsecutiva([21, 19, 15, 33, 19]);
 ok(num.get(15) === 1 && num.get(19) === 2 && num.get(21) === 3 && num.get(33) === 4, "numeración consecutiva: 15, 19, 21, 33 → 1, 2, 3, 4");
-ok(remision(21, num) === "Ver sección 3 · Riesgos climáticos prioritarios", "la remisión usa la numeración del documento");
+ok(remision(21, num) === "Ver sección «Riesgos climáticos prioritarios»" && !/sección \d/.test(remision(21, num)), "la remisión nombra la sección, nunca su número (v6.1, Excel 268)");
+ok(sinRemision("La Compañía revela X. Ver sección «Riesgos climáticos prioritarios».") === "La Compañía revela X.", "sinRemision quita también la remisión por nombre");
 ok(sinRemision("La Compañía revela X. Ver sección 22 · Riesgos climáticos prioritarios.") === "La Compañía revela X.", "la remisión se quita para reutilizar el texto con la numeración vigente");
 
 console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (hechos/razones.ts)");
@@ -243,8 +244,8 @@ console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
   const { descripcionGriSasb, erroresGriSasb, REGLAS_GRI_SASB } = await import("../lib/suplemento/gri-sasb.ts");
   const d = (codigo) => descripcionGriSasb({ codigo, estandar: "GRI 2: Contenidos Generales", edicion: "2021", descripcion: "Texto literal." });
   ok(d("GRI 2-5").includes(REGLAS_GRI_SASB["GRI 2-5"]) && /inventario de emisiones de GEI/.test(d("GRI 2-5")), "GRI 2-5: la descripción pide el alcance de lo verificado");
-  ok(["GRI 2-24", "GRI 3-3"].every((c) => /qué parte del contenido no se revela/.test(d(c))), "GRI 2-24 y 3-3: la descripción pide decir qué parte no cubre");
-  ok(!/no se revela/.test(d("GRI 2-9")), "los demás contenidos, sin regla añadida");
+  ok(["GRI 2-24", "GRI 3-3", "GRI 2-9", "GRI 2-1"].every((c) => /nombre los incisos que no se revelan/.test(d(c))), "regla general GRI (v6.1): toda descripción GRI pide nombrar los incisos que no cubre");
+  ok(!/incisos que no se revelan/.test(descripcionGriSasb({ codigo: "FN-CB-410b.2", estandar: "SASB FN-CB", edicion: "2025-12", descripcion: "Text." })), "SASB sin la regla de incisos");
   ok(erroresGriSasb("El presente informe fue verificado por un tercero independiente.", "GRI 2-5").length > 0, "GRI 2-5 que presenta el informe como verificado → rechazo");
   ok(erroresGriSasb("La Compañía cuenta con verificación externa.", "GRI 2-5").some((e) => /alcance/.test(e)), "GRI 2-5 que afirma verificación sin alcance → rechazo");
   ok(!erroresGriSasb("El inventario de emisiones de GEI de Alcances 1 y 2 de 2025 fue verificado por un tercero independiente con aseguramiento limitado.", "GRI 2-5").length, "GRI 2-5 con el alcance (inventario de GEI) → aceptada");

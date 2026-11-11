@@ -100,7 +100,7 @@ try {
   const filas = (codigos) => psql(`select clave || '|' || origen || '|' || texto from respuestas_datapoint where documento_id=${lit(B)} and destino='taxonomia' and clave in (${lista(codigos)}) order by clave`).split("\n").filter(Boolean).map((l) => l.split("|"));
   const r15 = filas(B15);
   ok(r15.length === 3 && r15.every(([c, o, t]) => o === "modelo" && t.startsWith(`MODELO-A ${c}`)), "bloque 15 (mismo texto aprobado): las 3 respuestas se reutilizan de A, sin llamada");
-  ok(r15.every(([, , t]) => /Ver sección 1 · Roles y responsabilidades del órgano de gobierno\.$/.test(t) && !t.includes("Título viejo")), "con la remisión recalculada para la numeración de B");
+  ok(r15.every(([, , t]) => /Ver sección «Roles y responsabilidades del órgano de gobierno»\.$/.test(t) && !t.includes("Título viejo")), "con la remisión recalculada (por nombre de sección, v6.1)");
   const r16 = filas(B16);
   ok(r16.length === 3 && r16.every(([, o, t]) => o === "bloque" && !t.startsWith("MODELO-A")), "bloque 16 (cambiado): las 3 se regeneraron");
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(A)}`) === "0", "las respuestas de A se reemplazaron por las de B");

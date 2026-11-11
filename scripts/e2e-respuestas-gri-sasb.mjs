@@ -40,6 +40,31 @@ const psql = (sql, replica = false) =>
 const lit = (v) => (v === null ? "null" : `'${String(v).replace(/'/g, "''")}'`);
 const fallas = [];
 const ok = (c, m) => { if (!c) fallas.push(m); console.log(`  ${c ? "✓" : "✗"} ${m}`); };
+
+// --- 0. Reglas de las correcciones v6.1 (sin base ni modelo) ---------------------------------------------------------
+{
+  console.log("0. Reglas v6.1 del libro GRI/SASB (sin base)");
+  const g = await import("../lib/suplemento/gri-sasb.ts");
+  const { textoDelLibro } = await import("../lib/excel/gri-sasb.ts");
+  const { erroresDeForma } = await import("../lib/suplemento/respuestas.ts");
+  const d = (codigo) => g.descripcionGriSasb({ codigo, estandar: "GRI 2: Contenidos Generales", edicion: "2021", descripcion: "a. … b. … c. …" });
+  ok(["GRI 2-1", "GRI 2-9", "GRI 2-24", "GRI 3-3"].every((c) => /nombre los incisos que no se revelan/.test(d(c))), "(7) toda respuesta GRI desde una sección declara los incisos que no cubre");
+  const proceso = (t) => g.FUENTE_GRI_SASB["GRI 2-20"].tema.test(t);
+  ok(!proceso("Ninguna proporción de la remuneración variable de la Dirección está vinculada a métricas climáticas en 2025.") && !proceso("El Comité de Prácticas Societarias evalúa incorporar métricas climáticas en la remuneración a partir de 2027.") && proceso("El proceso para determinar la remuneración lo conduce el Comité, con un consultor independiente."), "(8) GRI 2-20 solo con hechos del proceso de determinación; los de la política (2-19) no cuentan");
+  const r401 = g.respuestaGriDeCaptura("GRI 401-1", "Índice de rotación voluntaria 2025 (%)", "11.8 % (ejercicio 2025).");
+  ok(/^Índice de rotación voluntaria: 11\.8 % \(ejercicio 2025\)\./.test(r401) && /No se revelan las nuevas contrataciones/.test(r401) && /desglose por grupo de edad, sexo y región/.test(r401), `(9) 401-1 nombra lo que mide y declara lo que no desglosa («${r401}»)`);
+  ok(/no indica si corresponde a nuevas contrataciones o a rotación/.test(g.respuestaGriDeCaptura("GRI 401-1", "Personal 2025", "120 personas (ejercicio 2025).")), "(9) 401-1 con una captura que no dice qué mide: lo declara");
+  const r23 = g.respuestaGri23({ ejercicio: 2025, e4: true });
+  ok(/ejercicio 2025, del 1 de enero al 31 de diciembre de 2025/.test(r23) && /frecuencia anual/.test(r23) && /párrafo E4/.test(r23) && /No se revela un punto de contacto/.test(r23), "(10) GRI 2-3 por regla: periodo, frecuencia, publicación E4 y punto de contacto como no revelado");
+  ok(g.FUENTE_GRI_SASB["FN-CB-410b.3"].bloques.includes(25) && g.FUENTE_GRI_SASB["FN-CB-410b.4"].bloques.includes(39) && g.FUENTE_GRI_SASB["FN-CB-410b.3"].extra.some((re) => re.test("alivios.c4_emisiones_financiadas")), "(10) 410b.3 y 410b.4 desde los hechos de PCAF (bloques 25 y 39) y el del alivio C4");
+  ok(/^No aplica: la Compañía no es un banco de importancia sistémica global/.test(g.respuestaGsib(false)) && g.respuestaGsib(null) === null && g.respuestaGsib(true) === null, "(10) FN-CB-550a.1 «No aplica» por el dato del Perfil; sin dato o G-SIB, pendiente");
+  const pend = textoDelLibro("[Pendiente: información que responda GRI 2-8 — sin solicitud en el reporte ni sección del suplemento]", 2025);
+  ok(pend === "Pendiente: información no disponible en el reporte 2025" && !/solicitud|suplemento/.test(pend), "(11) pendiente del libro en voz de la emisora, sin «solicitud» ni «suplemento»");
+  ok(g.FUENTE_GRI_SASB["GRI 2-7"].seccionPrimero && ["GRI 2-7", "GRI 2-9"].every((c) => g.FUENTE_GRI_SASB[c].extra.some((re) => re.test("emisora.mujeres_plantilla_consejo_2025"))), "(12) 2-7 y 2-9 toman la composición por género del Perfil; 2-7 por la sección antes que la captura");
+  ok(erroresDeForma("La Compañía no se acoge a la exención por costo o esfuerzo desproporcionado.", "FN-CB-410b.2").some((e) => /no es una exención/.test(e)), "(13) «exención por costo o esfuerzo» → rechazo (NIIF S2 30 no es una exención)");
+  const demo = fs.readFileSync(new URL("./poblar-demo.mjs", import.meta.url), "utf8");
+  ok(/titulo: "Participantes en iniciativas de educación financiera 2025",[\s\S]{0,200}valor: 13900,/.test(demo) && !/exención por costo o esfuerzo/.test(demo), "(14) 240a.4 del demo en 13,900 participantes; el demo ya no llama «exención» a NIIF S2 30");
+}
 const t = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.richText.map((x) => x.text).join("") : v.text ?? String(v.result ?? "")) : String(v));
 const id = (sql) => psql(sql).split("\n")[0];
 
@@ -136,7 +161,7 @@ psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)},
     const w = new ExcelJS.Workbook(); await w.xlsx.load(b);
     const fila = (hoja, cod) => { let r = null; w.getWorksheet(hoja)?.eachRow((x) => { if (t(x.getCell(1).value) === cod) r = t(x.getCell(3).value); }); return r; };
     ok(fila("GRI", "GRI 2-9") === g29.texto, "GRI 2-9 con su respuesta");
-    ok(/^Pendiente: respuesta de FN-CB-230a\.2/.test(fila("SASB FN-CB", "FN-CB-230a.2") ?? ""), "FN-CB-230a.2 con el pendiente en texto plano");
+    ok(/^Pendiente: información no disponible en el reporte \d{4}$/.test(fila("SASB FN-CB", "FN-CB-230a.2") ?? ""), "FN-CB-230a.2 con el pendiente en voz de la emisora (v6.1)");
   }
 
   console.log("\n3. Formato · hoja «Métricas SASB»");
