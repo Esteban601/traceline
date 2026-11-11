@@ -9,7 +9,12 @@
 //
 //   node --env-file=.env.staging.local scripts/alta/alta-cliente-real.mjs --destino staging \
 //        --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json --datos ~/Downloads/odonnell-alta/datos.json \
-//        --paso <tenant|reportes|verificar> [--aplicar]
+//        --paso <tenant|usuarios|reportes|verificar> [--aplicar]
+//
+// Usuarios: `usuarios_origen` en los datos. «mockup» (O'Donnell, decisión de Esteban del 10/11/2026): el tenant real
+// usa las cuentas del mockup, con las mismas contraseñas; el paso «usuarios» las traslada. «invitacion»: Esteban las da
+// de alta desde /admin/usuarios. Las consecuencias de usar cuentas del mockup y la transición a correos reales están en
+// el encargo (§5.4) y en `consecuencias_cuentas_mockup` de los datos; cada traslado las deja en la bitácora con su fecha.
 //
 // Pasos (cada uno revisa sin escribir; con --aplicar pide escribir el ref y escribe):
 //   tenant     1. el mockup: slug y prefijo nuevos (p. ej. odonnell-demo / ODND) y activo = false; sin borrar nada;
@@ -17,16 +22,20 @@
 //                 (vitrina apagada, lectura y generador según el contrato), áreas;
 //              3. el Perfil: identidad, fideicomiso, forma de referencia y sector SASB (solo campos que existen en el
 //                 destino; los demás los captura la emisora).
-//              Entre «tenant» y «reportes», Esteban da de alta a los usuarios desde /admin/usuarios (invitación de un
-//              solo uso; la persona fija su contraseña) y sube el logo desde /admin/clientes.
+//              Después, Esteban sube el logo desde /admin/clientes.
+//   usuarios   con `usuarios_origen` = «mockup»: traslada al tenant real las cuentas del mockup que listan los datos
+//              (perfiles_usuario.tenant_id; rol y área se conservan, y el área tiene que ser del cliente). No toca auth:
+//              correo y contraseña siguen igual. Con «invitacion», solo revisa: las altas se hacen en /admin/usuarios
+//              (invitación de un solo uso; la persona fija su contraseña).
 //   reportes   el reporte del año base desde la plantilla «con rubros», SIN escena (sin evidencias, capturas, fechas
 //              ni estados que no sean «pendiente»), con responsables por área; y el reporte siguiente vacío. Año de
-//              adopción y alivios de los datos.
+//              adopción y alivios de los datos; la declaración de cumplimiento (con o sin reserva y su texto tal cual
+//              lo publicó la emisora) si los datos la traen y el destino tiene sus columnas (v46).
 //   verificar  solo lectura: todo lo anterior, con ✓/✗, más los usuarios esperados por área.
 //
 // Sesión del staff del seed (admin@irstrat.example), como el panel: RLS activo. Bitácora con los mismos eventos que
 // las acciones del panel. Idempotente: lo que ya está como dicen los datos no se toca. No imprime contraseñas,
-// llaves, URL de base ni correos (solo cuántos).
+// llaves ni URL de base. Correos: solo cuántos, salvo las cuentas del mockup (@…example, de utilería), que se nombran.
 // =============================================================================
 import fs from "node:fs";
 import path from "node:path";
@@ -55,7 +64,7 @@ const paso = opcion("--paso");
 const aplicar = argv.includes("--aplicar");
 const salir = (m) => { console.error(`✗ ${m}`); process.exit(2); };
 const cfg = DESTINOS[destino];
-if (!cfg || !["tenant", "reportes", "verificar"].includes(paso)) salir("Uso: --destino <staging|local> --datos <archivo> --paso <tenant|reportes|verificar> [--credenciales <archivo>] [--aplicar]");
+if (!cfg || !["tenant", "usuarios", "reportes", "verificar"].includes(paso)) salir("Uso: --destino <staging|local> --datos <archivo> --paso <tenant|usuarios|reportes|verificar> [--credenciales <archivo>] [--aplicar]");
 if (paso === "verificar" && aplicar) salir("«verificar» es de solo lectura: sin --aplicar.");
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -74,6 +83,15 @@ if (D.tenant.slug !== D.mockup.slug && D.mockup.nuevo_slug == null) salir("Datos
 for (const a of Object.values(D.mapa_areas)) if (!D.areas.includes(a)) salir(`mapa_areas lleva «${a}», que no está en «areas».`);
 for (const a of Object.keys(D.responsables)) if (!D.areas.includes(a)) salir(`responsables lleva «${a}», que no está en «areas».`);
 for (const u of D.usuarios) if (u.area && !D.areas.includes(u.area)) salir(`Un usuario trae un área que no está en «areas» (${u.area}).`);
+if (!["mockup", "invitacion"].includes(D.usuarios_origen)) salir("usuarios_origen tiene que ser «mockup» o «invitacion».");
+const DESDE_MOCKUP = D.usuarios_origen === "mockup";
+if (DESDE_MOCKUP) {
+  // Las cuentas del mockup son de utilería (@<slug>.example) y las consecuencias de usarlas tienen fecha de decisión.
+  if (!D.usuarios.every((u) => /\.example$/i.test(u.email))) salir("Con usuarios_origen = «mockup», todas las cuentas son las del mockup (@…example).");
+  const c = D.consecuencias_cuentas_mockup;
+  if (!c?.fecha_decision || !Array.isArray(c.consecuencias) || !c.consecuencias.length || !c.transicion_correos_reales) salir("Con usuarios_origen = «mockup», los datos llevan consecuencias_cuentas_mockup (fecha_decision, consecuencias y transicion_correos_reales).");
+}
+for (const r of D.reportes) if (r.declaracion_cumplimiento != null && !["sin_reserva", "con_reserva"].includes(r.declaracion_cumplimiento)) salir(`Reporte ${r.ejercicio}: declaracion_cumplimiento es «sin_reserva» o «con_reserva».`);
 
 // --- Sesión ------------------------------------------------------------------------------------------------------
 let password;
@@ -204,7 +222,55 @@ async function pasoTenant() {
     await log(t.id, "perfil_emisor_actualizado", "perfil_emisor", t.id, { seccion: "identidad", campos: perfilDifs });
     console.log(`  ✓ Perfil: ${perfilDifs.join(", ")}`);
   }
-  console.log("\n✓ Paso «tenant» aplicado. Sigue: usuarios por invitación y logo desde el panel; después «--paso reportes».");
+  console.log(`\n✓ Paso «tenant» aplicado. Sigue: «--paso usuarios»${DESDE_MOCKUP ? "" : " (las altas, por invitación desde el panel)"} y el logo desde el panel; después «--paso reportes».`);
+}
+
+// =================================================================================================================
+// Paso «usuarios»
+// =================================================================================================================
+async function pasoUsuarios() {
+  const t = await porSlug(D.tenant.slug);
+  if (!t || t.es_demo) salir(`No existe el tenant real «${D.tenant.slug}»: corre antes «--paso tenant».`);
+  const enReal = leer(await db.from("perfiles_usuario").select("id, email, nombre, rol, area, activo").eq("tenant_id", t.id), "usuarios del real");
+  if (!DESDE_MOCKUP) {
+    const faltan = D.usuarios.filter((u) => !enReal.some((x) => x.email?.toLowerCase() === u.email.toLowerCase()));
+    console.log(`\nUsuarios por invitación: ${D.usuarios.length - faltan.length} de ${D.usuarios.length} dados de alta en el panel. Este paso no escribe con «invitacion».`);
+    return;
+  }
+  const mock = await porSlug(D.mockup.nuevo_slug);
+  if (!mock || !mock.es_demo) salir(`No existe el mockup renombrado «${D.mockup.nuevo_slug}» de demostración: corre antes «--paso tenant».`);
+  const enMock = leer(await db.from("perfiles_usuario").select("id, email, nombre, rol, area, activo").eq("tenant_id", mock.id), "usuarios del mockup");
+  const areasReal = leer(await db.from("areas_tenant").select("nombre").eq("tenant_id", t.id), "áreas").map((a) => a.nombre);
+  const C = D.consecuencias_cuentas_mockup;
+  console.log(`\nCuentas del mockup «${mock.slug}» al tenant real «${t.slug}» (decisión del ${C.fecha_decision}): ${D.usuarios.length} en los datos`);
+  const plan = [];
+  for (const u of D.usuarios) {
+    const correo = u.email.toLowerCase();
+    const ya = enReal.find((x) => x.email?.toLowerCase() === correo);
+    const de = enMock.find((x) => x.email?.toLowerCase() === correo);
+    const x = ya ?? de;
+    if (!x) { console.log(`  ✗ ${u.email}: no está ni en el mockup ni en el real`); salir(`Falta la cuenta ${u.email}: no se escribe nada.`); }
+    if (x.rol !== u.rol) salir(`${u.email}: rol «${x.rol}» en la base y «${u.rol}» en los datos.`);
+    if (x.area != null && !areasReal.includes(x.area)) salir(`${u.email}: su área «${x.area}» no es un área del tenant real.`);
+    if (u.area !== undefined && (u.area ?? null) !== (x.area ?? null)) salir(`${u.email}: área «${x.area}» en la base y «${u.area}» en los datos.`);
+    if (!x.activo) salir(`${u.email}: la cuenta está desactivada en el mockup; reactívala o quítala de los datos.`);
+    if (ya) console.log(`  ✓ ${u.email} · ${x.rol}${x.area ? ` · ${x.area}` : ""}: ya en el real`);
+    else { plan.push(de); console.log(`  → ${u.email} · ${x.rol}${x.area ? ` · ${x.area}` : ""}: se traslada`); }
+  }
+  const quedan = enMock.filter((x) => !D.usuarios.some((u) => u.email.toLowerCase() === x.email?.toLowerCase()));
+  if (quedan.length) console.log(`  · ${quedan.length} cuenta(s) del mockup que los datos no listan: se quedan en el mockup`);
+  if (!aplicar) { console.log(`\nRevisión terminada: ${plan.length} cuenta(s) por trasladar. Nada se escribió.`); return; }
+  if (!plan.length) { console.log("\nNada que hacer: las cuentas ya están en el tenant real."); return; }
+  await confirmar(`trasladar ${plan.length} cuenta(s) del mockup a «${t.slug}»`);
+  for (const x of plan) {
+    const r = await db.from("perfiles_usuario").update({ tenant_id: t.id }).eq("id", x.id).eq("tenant_id", mock.id).select("id");
+    if (r.error || r.data?.length !== 1) salir(`${x.email}: ${r.error?.message ?? `${r.data?.length ?? 0} filas`}. Lo anterior quedó trasladado; corre de nuevo sin --aplicar.`);
+    const detalle = { nombre: x.nombre, email: x.email, rol: x.rol, area: x.area, tenant_origen: mock.slug, tenant_destino: t.slug, fecha_decision: C.fecha_decision, motivo: C.motivo, consecuencias: C.consecuencias, transicion_correos_reales: C.transicion_correos_reales };
+    await log(t.id, "usuario_trasladado", "perfiles_usuario", x.id, detalle);
+    await log(mock.id, "usuario_trasladado", "perfiles_usuario", x.id, detalle);
+    console.log(`  ✓ ${x.email}`);
+  }
+  console.log(`\n✓ Paso «usuarios» aplicado: ${plan.length} cuenta(s) en «${t.slug}», con las mismas contraseñas. Sigue: «--paso reportes».`);
 }
 
 // =================================================================================================================
@@ -217,7 +283,7 @@ async function pasoReportes() {
   const resp = new Map();
   for (const [area, correo] of Object.entries(D.responsables)) {
     const u = usuarios.find((x) => x.email?.toLowerCase() === correo.toLowerCase() && x.activo);
-    if (!u) salir(`Falta dar de alta al responsable de «${area}» (correo de los datos) desde /admin/usuarios.`);
+    if (!u) salir(`Falta el responsable de «${area}» en el tenant real: ${DESDE_MOCKUP ? "corre antes «--paso usuarios»" : "dalo de alta desde /admin/usuarios"}.`);
     if (u.area !== area) salir(`El responsable de «${area}» está dado de alta en otra área («${u.area}»).`);
     resp.set(area, u.id);
   }
@@ -230,19 +296,23 @@ async function pasoReportes() {
   const conRubro = items.filter((i) => i.rubro_taxonomia).length;
   console.log(`Plantilla «${D.plantilla}»: ${items.length} renglones, ${conRubro} con rubro`);
 
+  // La declaración de cumplimiento vive en el reporte desde v46; sin esas columnas, no se escribe y se avisa.
+  const conDeclaracion = !(await db.from("reportes").select("declaracion_cumplimiento, declaracion_cumplimiento_texto").limit(1)).error;
+  if (!conDeclaracion && D.reportes.some((r) => r.declaracion_cumplimiento)) console.log("  ⚠ el destino no tiene las columnas de la declaración de cumplimiento (v46): no se escribe");
   const plan = [];
   for (const r of D.reportes) {
     const ya = leer(await db.from("reportes").select("id, nombre, ejercicio, anio_adopcion, alivios").eq("tenant_id", t.id).eq("ejercicio", r.ejercicio), "reportes");
     if (ya.length > 1) salir(`Hay ${ya.length} reportes ${r.ejercicio} de «${t.slug}»: revisa antes de seguir.`);
     plan.push({ r, ya: ya[0] ?? null });
-    console.log(`  · ${r.ejercicio} «${r.nombre}» · adopción ${r.anio_adopcion} · alivios ${JSON.stringify(r.alivios)} · ${r.desde_plantilla ? `${items.length} solicitudes de la plantilla, sin escena` : "vacío"}${plan.at(-1).ya ? " · YA EXISTE, se salta" : ""}`);
+    console.log(`  · ${r.ejercicio} «${r.nombre}» · adopción ${r.anio_adopcion} · alivios ${JSON.stringify(r.alivios)} · ${r.desde_plantilla ? `${items.length} solicitudes de la plantilla, sin escena` : "vacío"}${r.declaracion_cumplimiento ? ` · declaración «${r.declaracion_cumplimiento}»${r.declaracion_cumplimiento_texto ? " con su texto" : ""}` : ""}${plan.at(-1).ya ? " · YA EXISTE, se salta" : ""}`);
   }
   const nuevos = plan.filter((p) => !p.ya);
   if (!aplicar) { console.log(`\nRevisión terminada: ${nuevos.length} reporte(s) por crear. Nada se escribió.`); return; }
   if (!nuevos.length) { console.log("\nNada que hacer: los reportes ya existen."); return; }
   await confirmar(`crear ${nuevos.length} reporte(s) de «${t.slug}»`);
   for (const { r } of nuevos) {
-    const ins = await db.from("reportes").insert({ tenant_id: t.id, nombre: r.nombre, ejercicio: r.ejercicio, anio_adopcion: r.anio_adopcion, alivios: r.alivios, estado: "activo" }).select("id").single();
+    const declaracion = conDeclaracion && r.declaracion_cumplimiento ? { declaracion_cumplimiento: r.declaracion_cumplimiento, declaracion_cumplimiento_texto: r.declaracion_cumplimiento_texto ?? null } : {};
+    const ins = await db.from("reportes").insert({ tenant_id: t.id, nombre: r.nombre, ejercicio: r.ejercicio, anio_adopcion: r.anio_adopcion, alivios: r.alivios, estado: "activo", ...declaracion }).select("id").single();
     if (ins.error) salir(`reporte ${r.ejercicio}: ${ins.error.message}`);
     const rid = ins.data.id;
     let n = 0;
@@ -260,7 +330,7 @@ async function pasoReportes() {
         if (rec.error) salir(`recordatorios: ${rec.error.message}`);
         n++;
       }
-      await log(t.id, "reporte_creado_desde_plantilla", "reportes", rid, { nombre: r.nombre, ejercicio: r.ejercicio, plantilla: D.plantilla, plantilla_id: plantillas[0].id, solicitudes: n, fallidas: 0, anio_adopcion: r.anio_adopcion, alivios: r.alivios, sin_escena: true });
+      await log(t.id, "reporte_creado_desde_plantilla", "reportes", rid, { nombre: r.nombre, ejercicio: r.ejercicio, plantilla: D.plantilla, plantilla_id: plantillas[0].id, solicitudes: n, fallidas: 0, anio_adopcion: r.anio_adopcion, alivios: r.alivios, sin_escena: true, declaracion_cumplimiento: declaracion.declaracion_cumplimiento ?? null });
     } else {
       await log(t.id, "reporte_creado", "reportes", rid, { nombre: r.nombre, ejercicio: r.ejercicio, anio_adopcion: r.anio_adopcion, alivios: r.alivios, vacio: true });
     }
@@ -291,18 +361,31 @@ async function pasoVerificar() {
   const cols = await columnasPerfil();
   const p = leer(await db.from("perfil_emisor").select(cols.join(", ")).eq("tenant_id", t.id).maybeSingle(), "perfil");
   for (const c of cols.filter((c) => D.perfil[c] !== undefined)) ok(igual(p?.[c], D.perfil[c]), `${c}`);
-  console.log("\n4. Usuarios (alta por invitación desde el panel)");
+  console.log(`\n4. Usuarios (${DESDE_MOCKUP ? `cuentas del mockup, decisión del ${D.consecuencias_cuentas_mockup.fecha_decision}` : "alta por invitación desde el panel"})`);
   const us = leer(await db.from("perfiles_usuario").select("email, rol, area, activo").eq("tenant_id", t.id), "usuarios");
   const esperados = D.usuarios.map((u) => u.email.toLowerCase());
   const presentes = us.filter((u) => esperados.includes(u.email?.toLowerCase()));
-  ok(presentes.length === esperados.length, `usuarios dados de alta: ${presentes.length} de ${esperados.length}`);
-  ok(D.usuarios.every((u) => { const x = us.find((y) => y.email?.toLowerCase() === u.email.toLowerCase()); return x && x.rol === u.rol && (x.area ?? null) === (u.area ?? null); }), "cada uno con su rol y su área");
-  ok(!us.some((u) => /\.example$/i.test(u.email ?? "")), "ninguna cuenta de dominio reservado (@…example) en el tenant real");
+  ok(presentes.length === esperados.length, `usuarios en el tenant real: ${presentes.length} de ${esperados.length}`);
+  ok(D.usuarios.every((u) => { const x = us.find((y) => y.email?.toLowerCase() === u.email.toLowerCase()); return x && x.activo && x.rol === u.rol && (u.area === undefined ? x.area == null || D.areas.includes(x.area) : (x.area ?? null) === (u.area ?? null)); }), "cada uno activo, con su rol y un área del cliente");
+  if (DESDE_MOCKUP) {
+    ok(us.every((u) => esperados.includes(u.email?.toLowerCase())), `ninguna cuenta fuera de las del mockup (${us.length} en el real)`);
+    if (mock) {
+      const { count } = await db.from("perfiles_usuario").select("id", { count: "exact", head: true }).eq("tenant_id", mock.id).in("email", D.usuarios.map((u) => u.email));
+      ok((count ?? 0) === 0, `ninguna de esas cuentas sigue en el mockup (${count ?? 0})`);
+    }
+    const { data: ev } = await db.from("bitacora").select("id").eq("tenant_id", t.id).eq("accion", "usuario_trasladado");
+    ok((ev?.length ?? 0) >= esperados.length, `bitácora: ${ev?.length ?? 0} traslados registrados con fecha de decisión y consecuencias`);
+  } else ok(!us.some((u) => /\.example$/i.test(u.email ?? "")), "ninguna cuenta de dominio reservado (@…example) en el tenant real");
   console.log("\n5. Reportes");
   for (const r of D.reportes) {
     const rep = leer(await db.from("reportes").select("id, anio_adopcion, alivios").eq("tenant_id", t.id).eq("ejercicio", r.ejercicio).maybeSingle(), "reporte");
     ok(!!rep && rep.anio_adopcion === r.anio_adopcion && igual(rep.alivios ?? {}, r.alivios), `${r.ejercicio}: adopción ${r.anio_adopcion}, alivios ${JSON.stringify(r.alivios)}`);
     if (!rep) continue;
+    if (r.declaracion_cumplimiento) {
+      const d = await db.from("reportes").select("declaracion_cumplimiento, declaracion_cumplimiento_texto").eq("id", rep.id).maybeSingle();
+      if (d.error) console.log(`  ⚠ ${r.ejercicio}: el destino no tiene las columnas de la declaración (v46)`);
+      else ok(d.data?.declaracion_cumplimiento === r.declaracion_cumplimiento && (d.data?.declaracion_cumplimiento_texto ?? null) === (r.declaracion_cumplimiento_texto ?? null), `${r.ejercicio}: declaración «${r.declaracion_cumplimiento}»${r.declaracion_cumplimiento_texto ? ", con el texto de la emisora tal cual" : ""}`);
+    }
     const sols = leer(await db.from("solicitudes").select("id, estado, area_asignada, responsable_cliente_id, fecha_limite").eq("reporte_id", rep.id), "solicitudes");
     if (r.desde_plantilla) {
       const ids = sols.map((s) => s.id);
@@ -321,5 +404,6 @@ async function pasoVerificar() {
 }
 
 if (paso === "tenant") await pasoTenant();
+else if (paso === "usuarios") await pasoUsuarios();
 else if (paso === "reportes") await pasoReportes();
 else await pasoVerificar();

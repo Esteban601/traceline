@@ -1963,8 +1963,11 @@ el 10/11/2026).**
    Los dos esperados se corrigen en `comprobar-v47.mjs`.
 6. **Logs desde el release:** 38 líneas; 0 respuestas 5xx, 0 errores, 0 códigos H; máxima 1,351 ms. El dyno anterior
    salió con 143 (SIGTERM del release).
-7. **Pendiente de Esteban:** paso 6 (ligado de las nueve solicitudes de demostración de Empresa Demo, L1–L4) y paso 7
-   (cierre de la terminal).
+7. **Paso 6, ligado de las nueve solicitudes de demostración de Empresa Demo** (Esteban, L1–L4 de
+   `~/Downloads/solicitudes-demo-rh/comandos.md`, después del paso 5): revisión con los 6 códigos y 12 enlaces por
+   agregar; aplicado con el ref de staging, enlaces de las nueve **6 → 18** (12 nuevos, los de antes conservados);
+   segunda pasada, 0 por agregar. Los enlaces de staging quedan en 1,472 (foto «antes» de v47).
+8. **Paso 7:** terminal cerrada (`STAGING_DB_URL` vacía). Release cerrado el 10/11/2026.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
