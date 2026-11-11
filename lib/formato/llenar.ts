@@ -1,7 +1,7 @@
 import { datapointsExentos } from "@/lib/suplemento/bloques";
 import { filaExportada } from "@/lib/formato/objetivos";
 import { HOJA_GEI } from "@/lib/cuestionarios";
-import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, seParecen, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
+import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado, remisionE5 } from "@/lib/suplemento/alivios";
 import { esInstrumentoFiduciario, type Alivios } from "@/lib/perfil-emisor";
 import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
@@ -164,8 +164,11 @@ export const RAMAS_BOOLEANO: Record<number, { booleano: number; rama: "No" | "S�
  * sin ella, la regla (opción 1 de Esteban). Antes copiaba la respuesta de 36(e)(i).
  */
 const RAZON_36E_REGLA = textoNoAplicaHeredado("NIIF S2 36 (e)").replace(/^No aplica\.\s*/, "");
-/** Rama «No» → la celda de texto del mismo código que la precede (29(f) y 29(g), v6.1): la rama no la repite. */
-const VECINA_DE_RAMA: Record<number, number> = { 418: 416, 426: 424 };
+/**
+ * Rama «No» → fila de sección del mismo datapoint (29(f) y 29(g)). Regla de ramas (v5.2 §9, K38/K39; v6.2): la rama que
+ * el booleano abre lleva la razón y la fila de sección queda vacía, para no decir lo mismo dos veces.
+ */
+const SECCION_DE_RAMA: Record<number, number> = { 418: 416, 426: 424 };
 /** El «No» de un booleano que se deduce de sus incisos: no hay uso previsto de créditos si (ii)–(iv) no aplican. */
 const NO_POR_INCISOS: Record<number, string[]> = { 256: ["NIIF S2 36 (e)(ii)", "NIIF S2 36 (e)(iii)", "NIIF S2 36 (e)(iv)"] };
 /** 29(e) por tipo (filas 350, 373 y 396): solo su respuesta propia; sin ella, vacía (nunca el párrafo). */
@@ -241,7 +244,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   // validador de respuestas ya lo rechaza; esto cubre las respuestas guardadas antes.
   for (const [fila, v] of out) {
     const tipo = conceptos.find((x) => x.fila === fila)?.tipo ?? "";
-    if (v.texto && /^text/.test(tipo) && /^Sí\.\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí\.\s+/, "") });
+    // También «Sí,» (v6.2, K52 → Excel 79): la celda de texto empieza por lo que afirma.
+    if (v.texto && /^text/.test(tipo) && /^Sí[.,]\s+\S/.test(v.texto)) out.set(fila, { ...v, texto: v.texto.replace(/^Sí[.,]\s+(\p{L})/u, (_m, l: string) => l.toUpperCase()) });
   }
   // E5 una vez por encabezado: se queda en la primera celda (por fila) a la que el llenado se la antepuso.
   const vistos = new Set<number>();
@@ -251,15 +255,16 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (!vistos.has(enc)) vistos.add(enc);
     else out.set(fila, { ...v, texto: v.texto.slice(oracionE5.length).trim(), e5: false });
   }
-  // Rama «No» con una celda de texto antes (v6.1, K841/K849): una línea, sin repetir ninguna oración (ni casi igual) de
-  // la vecina; si todo lo repite, vacía. Al final, cuando la vecina ya tiene su texto definitivo.
-  for (const [fila, vecinaFila] of Object.entries(VECINA_DE_RAMA).map(([f, v]) => [Number(f), v] as const)) {
-    const v = out.get(fila);
-    const vecina = out.get(vecinaFila)?.texto ?? "";
-    if (!v?.texto || !vecina) continue;
-    const suyas = vecina.split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
-    const propias = v.texto.split(/(?<=\.)\s+/).map((o) => o.trim()).filter((o) => o && !suyas.some((q) => q === o || seParecen(o, q) || q.startsWith(o.replace(/\.$/, ""))));
-    out.set(fila, propias[0] ? { ...v, texto: propias[0] } : { texto: null, origen: "regla", nota: `la rama repetiría la fila ${vecinaFila}` });
+  // Regla de ramas (v6.2): con la rama abierta, la razón va en la rama con el texto de la fila de sección del datapoint
+  // (el más completo: K839 trae el precio sombra que la respuesta del booleano omite) y la fila de sección queda vacía.
+  // Al final, cuando las dos ya tienen su texto definitivo.
+  for (const [fila, seccionFila] of Object.entries(SECCION_DE_RAMA).map(([f, v]) => [Number(f), v] as const)) {
+    const rama = out.get(fila);
+    const seccion = out.get(seccionFila);
+    const abierta = out.get(RAMAS_BOOLEANO[fila].booleano)?.texto === RAMAS_BOOLEANO[fila].rama;
+    if (!abierta || !seccion?.texto) continue;
+    out.set(fila, { texto: seccion.texto, origen: seccion.origen, nota: `razón del «No» de la fila ${RAMAS_BOOLEANO[fila].booleano}${rama?.texto ? "" : " (la rama no tenía texto propio)"}` });
+    out.set(seccionFila, { texto: null, origen: "regla", nota: `la razón va en la rama (fila ${fila})` });
   }
   // Los alivios del reporte, en K12 (la fila sin etiqueta tras el año de reporte): la hoja «Leyenda» ya no se entrega
   // (decisión de Esteban, Fase 5).

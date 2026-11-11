@@ -163,7 +163,8 @@ function escribirRespuestas(
       // «K:N» lo resuelve quien llama, con el llenado del Formato, y llega en delFormato con esa misma clave.
       if (t) {
         const celda = ws.getCell(`E${nf}`);
-        celda.value = pendienteEnTextoPlano(t);
+        // También en las filas de continuación (v6.2, fila 79: la rama «Si ¿Cómo se integran…?» de 6(b)(ii)).
+        celda.value = sinSiInicial(pendienteEnTextoPlano(t));
         celda.alignment = { vertical: "top", wrapText: true };
         escritas++;
       }
