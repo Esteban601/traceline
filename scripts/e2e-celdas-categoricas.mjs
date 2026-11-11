@@ -14,6 +14,7 @@
 // exportada (la sección de métricas S1 46–50 ya expandida), como las cita la
 // revisión; las del Excel se buscan por su código de la columna A.
 // =============================================================================
+import fs from "node:fs";
 import ExcelJS from "exceljs";
 import { ORACION_E5, noRevelado, remisionE5 } from "../lib/suplemento/alivios.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
@@ -23,10 +24,13 @@ import { BOOLEANOS_FORMATO } from "../lib/formato/booleanos.ts";
 import { remisionAIncisos, seParecen, textoNoAplicaHeredado } from "../lib/suplemento/respuestas.ts";
 import { INCISOS_CREDITOS } from "../lib/suplemento/catalogo-incisos.ts";
 
-const [formato, taxonomia] = process.argv.slice(2);
+// Tercer argumento opcional: el libro GRI/SASB (casos de la v6.2). Con INFORME_E2E=<archivo.json>, escribe el resultado de
+// cada caso: la lista de deudas conocidas se genera desde ahí (scripts/formato/deudas-desde-e2e.mjs).
+const [formato, taxonomia, libroGri] = process.argv.slice(2);
 if (!formato || !taxonomia) { console.error("Uso: e2e-celdas-categoricas.mjs <formato.xlsx> <taxonomia.xlsx>"); process.exit(2); }
 const fallas = [];
-const ok = (c, m) => { console.log(`  ${c ? "✓" : "✗"} ${m}`); if (!c) fallas.push(m); };
+const casos = [];
+const ok = (c, m) => { console.log(`  ${c ? "✓" : "✗"} ${m}`); casos.push({ ok: !!c, caso: m }); if (!c) fallas.push(m); };
 const texto = (v) => (v == null ? "" : typeof v === "object" ? (v.richText ? v.richText.map((t) => t.text).join("") : v.text ?? (v.result != null ? String(v.result) : "")) : String(v)).trim();
 
 const wf = new ExcelJS.Workbook();
@@ -339,19 +343,55 @@ console.log("\nCorrecciones v6.1 (decisión de Esteban del 10/11/2026)");
 {
   // Las celdas van en la numeración de v5.1, como el resto de la prueba: K679/K681 son K823/K825 de v5.2, K695/K697 son
   // K839/K841 y K703/K705 son K847/K849.
-  const ors = (t) => (t ?? "").split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
   ok(/31\.0/.test(K(679)) && !/no se (han )?cuantific/i.test(K(679)), "(1) K823: efectos actuales de las oportunidades sobre la situación financiera, con los 31.0 millones capitalizados");
   ok(/0\.4/.test(K(681)) && !/no se (han )?cuantific/i.test(K(681)), "(1) K825: efectos actuales sobre el rendimiento, con los 0.4 millones registrados como gasto");
   ok(/se revela conforme a NIIF S2 22 \(a\)a\(b\)/.test(K(103)), "(2) K103 (NIIF S1 41) bajo E5: remite a NIIF S2 22 (a)–(b), sin depender del padre");
-  for (const [rama, vecina, nombre] of [[697, 695, "K841"], [705, 703, "K849"]]) {
-    const r = K(rama);
-    ok(!r || (ors(r).length === 1 && !ors(K(vecina)).includes(ors(r)[0])), `(3) ${nombre}: una línea o vacía, sin repetir la primera oración de su vecina («${r.slice(0, 60)}»)`);
-  }
+  // (3) de la v6.1 sustituido por la regla de ramas de la v6.2 (abajo).
   const r36d = C("NIIF S2 36 (d)");
   ok(/ninguno de sus objetivos de emisiones de GEI/.test(r36d) && /el único es el de reducción de (las )?emisiones de Alcances 1 y 2/.test(r36d) && !/medición de emisiones financiadas|cartera sostenible/.test(r36d), "(4) Excel 271 (36(d)): solo el objetivo de emisiones de GEI, sin el de medición ni el de cartera");
   ok(/Ver sección «[^»]+»/.test(C("NIIF S2 36 (a)")) && [...porCodigo.values()].every(([t]) => !/Ver sección \d/.test(t ?? "")), "(5) Excel 268 y todo el Excel: remisión por nombre de sección, nunca «sección N»");
-  ok(!!C("NIIF S2 6(b)(ii)") && !/^Sí,/.test(C("NIIF S2 6(b)(ii)")), "(6) Excel 79 (6(b)(ii)) sin «Sí,» inicial");
+  // (6) de la v6.1 miraba la primera fila de 6(b)(ii), no la 79, y pasaba en falso: lo sustituye [v6.2-2].
 }
 
+console.log("\nCorrecciones v6.2 (decisión de Esteban del 10/11/2026)");
+{
+  // Filas del Excel por código y requisito (las de continuación comparten código).
+  const fila = (codigo, req) => { let t = null; tax.eachRow((r) => { if (t === null && texto(r.getCell(1).value).replace(/\s+/g, " ") === codigo && req.test(texto(r.getCell(2).value))) t = texto(r.getCell(3).value); }); return t ?? ""; };
+  // Regla de ramas: K695/K697 y K703/K705 (v5.1) son K839/K841 y K847/K849 (v5.2).
+  ok(!K(695) && /precio interno del carbono/.test(K(697)) && /precio sombra/.test(K(697)), "[v6.2-1] K839 vacía y K841 con la razón (sin precio interno; el precio sombra en evaluación)");
+  ok(!K(703) && /remuneraci[oó]n variable/.test(K(705)) && /0%|2027/.test(K(705)), "[v6.2-1] K847 vacía y K849 con la razón (sin remuneración vinculada al clima)");
+  ok(fila("NIIF S2 29 (f) (i) y (ii)", /^Precios internos/) === "No" && /precio interno del carbono/.test(fila("NIIF S2 29 (f) (i) y (ii)", /^No ¿Por qué\?/)), "[v6.2-1] Excel 182 «No» y 183 con la razón");
+  ok(fila("NIIF S2 29 (g) (i) y (ii)", /^Remuneración/) === "No" && /remuneraci[oó]n variable/.test(fila("NIIF S2 29 (g) (i) y (ii)", /^No ¿Por qué\?/)), "[v6.2-1] Excel 187 «No» y 188 con la razón");
+  const f79 = fila("NIIF S2 6(b)(ii)", /^Si ¿Cómo se integran/);
+  ok(!!f79 && !/^Sí[,.]/.test(f79), `[v6.2-2] Excel 79 (fila de continuación de 6(b)(ii)) sin «Sí,» inicial («${f79.slice(0, 40)}»)`);
+  ok(/composici[oó]n de la cartera por producto/.test(C("NIIF S2 32")) && !/por sector econ[oó]mico/.test(C("NIIF S2 32")), "[v6.2-3] Excel 192: composición de la cartera por producto, como K866");
+  if (libroGri) {
+    const wg = new ExcelJS.Workbook();
+    await wg.xlsx.readFile(libroGri);
+    const g = new Map();
+    for (const h of wg.worksheets) h.eachRow((r, i) => { if (i > 1 && texto(r.getCell(1).value)) g.set(texto(r.getCell(1).value), texto(r.getCell(3).value)); });
+    const G = (c) => g.get(c) ?? "";
+    ok(!!G("GRI 2-2") && !/no se revela[^.]*\bb\b/i.test(G("GRI 2-2")), "[v6.2-4] GRI 2-2 sin «no se revela b»");
+    ok(/b\.?\s?ii/i.test(G("GRI 2-5")) && !/protocolo GEI|factores de emisi|m[eé]todo/i.test(G("GRI 2-5")), "[v6.2-4] GRI 2-5 declara lo que falta de b.ii, sin la oración del método");
+    ok(/b\.?\s?iii/i.test(G("GRI 2-6")), "[v6.2-4] GRI 2-6 declara b.iii no revelado");
+    ok(/no desglosa la exposición bruta por industria ni por clase de activo/i.test(G("FN-CB-410b.2")), "[v6.2-4] FN-CB-410b.2 «no desglosa la exposición bruta por industria ni por clase de activo»");
+    ok(/m[eé]todo de atribuci[oó]n/i.test(G("FN-CB-410b.4")), "[v6.2-4] FN-CB-410b.4 declara que no describe el método de atribución");
+    ok(/\b(solo|únicamente)\b[^.]*estr[eé]s[^.]*clim|estr[eé]s[^.]*clim[^.]*\b(solo|únicamente)\b/i.test(G("FN-CB-550a.2")), "[v6.2-4] FN-CB-550a.2 declara que solo cubre la prueba de estrés climática");
+    ok(G("FN-CB-410b.1") === "No revelado · alivio C4", "[v6.2-4] FN-CB-410b.1 «No revelado · alivio C4»");
+    ok(G("GRI 2-4") === "Sin actualizaciones de información de periodos anteriores: primer periodo bajo NIIF S1 y S2.", "[v6.2-4] GRI 2-4 por regla (primer periodo, como K718)");
+    // Correcciones del libro de la v6.1, sobre el libro exportado.
+    ok(G("GRI 2-20") === `Pendiente: información no disponible en el reporte ${G("GRI 2-3").match(/ejercicio (\d{4})/)?.[1] ?? ""}`.trim() || /^Pendiente: información no disponible en el reporte \d{4}$/.test(G("GRI 2-20")), "[v6.1-GRI] 2-20 pendiente, sin repetir 2-19");
+    ok(/^Índice de rotación voluntaria: 11\.8 %/.test(G("GRI 401-1")) && /desglose por grupo de edad, sexo y región/.test(G("GRI 401-1")), "[v6.1-GRI] 401-1 nombra lo que mide y lo que no desglosa");
+    ok(/frecuencia anual/.test(G("GRI 2-3")) && /punto de contacto/.test(G("GRI 2-3")), "[v6.1-GRI] 2-3 por regla, con el punto de contacto como no revelado");
+    ok(/42\s?%/.test(G("FN-CB-410b.3")) && /4-5|4–5/.test(G("FN-CB-410b.4")) && [G("FN-CB-410b.3"), G("FN-CB-410b.4")].every((t) => /C4/.test(t)), "[v6.1-GRI] 410b.3 y 410b.4 desde PCAF, con el alivio C4");
+    ok(/^No aplica: la Compañía no es un banco de importancia sistémica global/.test(G("FN-CB-550a.1")), "[v6.1-GRI] 550a.1 «No aplica» por el dato del Perfil");
+    ok(/54\s?%/.test(G("GRI 2-7")) && /3 de 11|27\s?%/.test(G("GRI 2-9")), "[v6.1-GRI] 2-7 y 2-9 con la composición por género");
+    ok(!/exenci[oó]n/i.test(G("FN-CB-410b.2")), "[v6.1-GRI] 410b.2 sin «exención» (NIIF S2 30)");
+    ok(/^13,900 participantes|: 13,900 participantes/.test(G("FN-CB-240a.4")), "[v6.1-GRI] 240a.4 con 13,900 participantes");
+    ok([...g.values()].every((t) => !/^Pendiente:/.test(t) || /^Pendiente: información no disponible en el reporte \d{4}$/.test(t)), "[v6.1-GRI] todo pendiente del libro en voz de la emisora");
+  }
+}
+
+if (process.env.INFORME_E2E) fs.writeFileSync(process.env.INFORME_E2E, JSON.stringify({ formato, taxonomia, libroGri: libroGri ?? null, fecha: new Date().toISOString(), casos }, null, 1));
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);

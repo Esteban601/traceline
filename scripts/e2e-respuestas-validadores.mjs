@@ -248,7 +248,7 @@ console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
   ok(!/incisos que no se revelan/.test(descripcionGriSasb({ codigo: "FN-CB-410b.2", estandar: "SASB FN-CB", edicion: "2025-12", descripcion: "Text." })), "SASB sin la regla de incisos");
   ok(erroresGriSasb("El presente informe fue verificado por un tercero independiente.", "GRI 2-5").length > 0, "GRI 2-5 que presenta el informe como verificado → rechazo");
   ok(erroresGriSasb("La Compañía cuenta con verificación externa.", "GRI 2-5").some((e) => /alcance/.test(e)), "GRI 2-5 que afirma verificación sin alcance → rechazo");
-  ok(!erroresGriSasb("El inventario de emisiones de GEI de Alcances 1 y 2 de 2025 fue verificado por un tercero independiente con aseguramiento limitado.", "GRI 2-5").length, "GRI 2-5 con el alcance (inventario de GEI) → aceptada");
+  ok(!erroresGriSasb("El inventario de emisiones de GEI de Alcances 1 y 2 de 2025 fue verificado por un tercero independiente con aseguramiento limitado. Del inciso b.ii no se revelan los estándares de verificación.", "GRI 2-5").length, "GRI 2-5 con el alcance (inventario de GEI) y lo que falta de b.ii (v6.2) → aceptada");
   ok(!erroresGriSasb("La Compañía no cuenta con verificación externa de su información.", "GRI 2-5").length, "GRI 2-5 que declara que no hay verificación → aceptada");
   ok(!erroresGriSasb("El presente informe fue verificado.", "GRI 2-9").length && !erroresDeForma("El presente informe fue verificado.", "NIIF S2 29 (a)(i)").some((e) => /verificado/.test(e)), "la regla solo toca GRI 2-5");
   ok(erroresDeForma("El presente informe fue verificado por un tercero.", "GRI 2-5").length > 0, "erroresDeForma aplica la regla de 2-5 (respuestas nuevas y reutilizadas)");
