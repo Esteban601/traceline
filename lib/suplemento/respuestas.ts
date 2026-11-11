@@ -149,8 +149,8 @@ export const DATAPOINTS_FORMATO_TEXTO: Set<string> = new Set(
  * del código los del bloque 10 que remiten al bloque del tipo y las declaraciones negativas generales del bloque 10.
  */
 const B65C_EFECTOS = [
-  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa: las partidas capitalizadas o reconocidas en el balance que dan los hechos, con su importe`,
-  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa: las partidas registradas como gasto o ingreso que dan los hechos, con su importe (aunque sea pequeño)`,
+  (de: string) => `cómo ${de} han afectado a la situación financiera (activos, pasivos y patrimonio) durante el periodo sobre el que se informa: las partidas capitalizadas o reconocidas en el balance que dan los hechos, con su importe. Si los hechos dicen que no hubo ajustes, escríbelo como «no requirieron ajustes en los importes de los estados financieros», nunca como «no se cuantificaron»`,
+  (de: string) => `cómo ${de} han afectado al rendimiento financiero (ingresos, gastos y resultados) durante el periodo sobre el que se informa: las partidas registradas como gasto o ingreso que dan los hechos, con su importe (aunque sea pequeño). Si los hechos dicen que no hubo ajustes, escríbelo como «no requirieron ajustes en los importes de los estados financieros», nunca como «no se cuantificaron»`,
   (de: string) => `cómo ${de} han afectado a los flujos de efectivo durante el periodo sobre el que se informa`,
   (de: string) => `los efectos financieros previstos de ${de} sobre la situación financiera, el rendimiento y los flujos de efectivo a corto, mediano y largo plazo, incluidos los planes de disposición de activos (NIIF S2 16(c)) si los hechos los mencionan`,
   (de: string) => `para cuáles de ${de} existe un riesgo significativo de un ajuste material en los importes en libros de los activos y pasivos durante el siguiente periodo`,
@@ -759,7 +759,18 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // La captura nombra qué mide (título de su solicitud); en 401-1, también lo que no desglosa (v6.1).
     if (captura) return { ...captura, texto: respuestaGriDeCaptura(codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
     const seccion = seccionDe(codigo, porBloque, hechos.values());
-    if (seccion) return { codigo, via: "bloque", bloque: seccion.bloque, hechos: seccion.hechos };
+    if (seccion) {
+      // `extractosEnSeccion` (2-9): los extractos confirmados de sus solicitudes entran como hechos de la sección, con id
+      // «sol:<solicitud>» (no son del libro; la columna `hechos` de la respuesta es JSON).
+      const adicionales = fuente?.extractosEnSeccion
+        ? extractos.map((x) => {
+            const id = `sol:${x.solicitud}`;
+            if (!hechos.has(id)) hechos.set(id, { id, clave: `extracto.${x.solicitud}`, libro_id: porBloque.get(seccion.bloque)?.libro_id ?? "", tipo: "otro", enunciado: `Extracto confirmado de «${x.titulo}»: ${x.texto}`, extracto: x.texto, valor: null, unidad: null, estado: "vigente", bloque_dueno: null, bloques_referencia: [] });
+            return id;
+          })
+        : [];
+      return { codigo, via: "bloque", bloque: seccion.bloque, hechos: [...seccion.hechos, ...adicionales] };
+    }
     if (extractos.length) return { codigo, via: "evidencia", extractos };
     // Con `temaEnEvidencia`, los extractos que no tratan el tema no responden: pendiente con la causa (2-20 no repite 2-19).
     if (fuente?.temaEnEvidencia && sols.some((s) => extractoDe.has(s.id))) {

@@ -19,7 +19,7 @@
  * sección que se resume) y la expresión que reconoce, en el enunciado de un hecho de esos bloques, el tema del
  * contenido. Sin entrada: el contenido no tiene sección (va por captura o evidencia directa).
  */
-export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; extra?: RegExp[]; seccionPrimero?: boolean; evidenciaPrimero?: boolean; temaEnEvidencia?: boolean }> = {
+export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; extra?: RegExp[]; seccionPrimero?: boolean; evidenciaPrimero?: boolean; temaEnEvidencia?: boolean; extractosEnSeccion?: boolean }> = {
   // GRI 2 · 1. La organización y sus prácticas de presentación de informes
   "GRI 2-1": { bloques: [2, 4], tema: /denominaci|raz[oó]n social|S\.A\.B|sociedad an[oó]nima|forma jur[ií]dica|\bsede\b|domicilio|opera en|\bpa[ií]s(es)?\b/i },
   "GRI 2-2": { bloques: [4], tema: /subsidiari|entidades?|per[ií]metro|consolid/i },
@@ -32,8 +32,9 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
   // mujeres), que la captura sola no trae; el hecho de género del libro quedó descartado. Sin extractos, la sección.
   "GRI 2-7": { bloques: [12, 4], tema: /plantilla|emplea|personas|colaborador|mujeres/i, evidenciaPrimero: true },
   // 3. Gobernanza
-  // 2-9 (v6.1): también primero los extractos (la composición del Consejo y las 3 consejeras de 11).
-  "GRI 2-9": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer|independ/i, evidenciaPrimero: true },
+  // 2-9 (v6.1): la sección 15 (Consejo y comités) más los extractos confirmados de sus solicitudes como hechos (las 3
+  // consejeras de 11, que el libro descartó).
+  "GRI 2-9": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer|independ/i, extractosEnSeccion: true },
   "GRI 2-10": { bloques: [15, 18], tema: /designaci|selecci[oó]n|nombramient|asamblea de accionistas|elecci[oó]n de consejer/i },
   "GRI 2-11": { bloques: [15, 18], tema: /presidente del consejo|presidencia del consejo|presidente/i },
   "GRI 2-12": { bloques: [15, 16], tema: /supervis|revis|aprueb|consejo/i },
