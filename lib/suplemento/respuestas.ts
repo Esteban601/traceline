@@ -293,15 +293,16 @@ const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).m
  * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
  * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp; conCifras?: boolean }[] = [
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp; cifras?: RegExp[] }[] = [
   // NIIF S2 29(a)(iii) por inciso (Fase 5): K596 el enfoque, K597 los datos de entrada y supuestos, K599 la razón (solo
   // con un hecho que la dé; si no, vacía y el marcador de §5 en el Excel). K601 (cambios) sale del cuestionario de GEI.
   { fila: 317, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "el enfoque de medición de las emisiones de GEI: la norma o el protocolo, el enfoque de consolidación y los factores de emisión. Sin los datos de entrada ni los supuestos, que van en la fila 318" },
   // K597 recibe también las declaraciones negativas: una exclusión del inventario (fugas de refrigerantes, HFC) es un
   // supuesto de la medición (Esteban, 29/10; antes la regla de las celdas por efecto la dejaba fuera).
-  // `conCifras` (Esteban, 10/11/2026, demo v6): las cantidades de los datos de entrada salen de las capturas (los 488,000
-  // litros de combustibles), no de una remisión a otra sección; el validador exige cada cifra capturada de sus hechos.
-  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, conCifras: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan), con las cantidades capturadas del ejercicio (litros de combustibles, kWh) tal como las dan los hechos. Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
+  // `cifras` (Esteban, 10/11/2026, demo v6): las cantidades de los datos de entrada salen de las capturas (los 488,000
+  // litros de combustibles y los kWh), tomadas por clave del libro del bloque aunque la cobertura no las cite, no de una
+  // remisión a otra sección; el validador exige cada cifra capturada de sus hechos.
+  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, cifras: [/^consumo_de_combustibles_fosiles_\d{4}\.valor_\d{4}$/, /^consumo_de_energia_electrica_\d{4}.*\.valor_\d{4}$/], enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan), con las cantidades capturadas del ejercicio (litros de combustibles, kWh) tal como las dan los hechos. Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
   { fila: 320, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, soloHechos: /(?<!\p{L})(porque|raz[oó]n|debido a|eligi[oó]|se eligi[oó]|a fin de|con el fin de)(?!\p{L})/iu, enfoque: "la razón por la que la Compañía eligió su enfoque de medición, sus datos de entrada y sus supuestos, tal como la dan los hechos" },
   // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
   // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
@@ -885,7 +886,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
       : c.noRepite
       ? `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en una o dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que da el detalle en otra fila. Sin cifras que no estén en los hechos.`
       : `Concepto del Formato electrónico (fila ${c.fila}) de ${c.codigo}: responde SOLO ${c.enfoque}, en dos oraciones. No compartas ninguna oración con ${otras.join(", ")}, que responde otro efecto del mismo párrafo: reparte los hechos según el efecto que describen. Sin cifras que no estén en los hechos.`);
-    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...propios, ...prestados])] });
+    const deCaptura = c.cifras ? hechosPorClave(c.cifras, porBloque.get(cob.bloque)?.libro_id) : [];
+    planes.push({ codigo: clave, via: "bloque", bloque: cob.bloque, hechos: [...new Set([...propios, ...prestados, ...deCaptura])] });
   }
   // 29(e) por tipo: los hechos de despliegue de capital del libro del bloque del tipo, uno por enunciado; sin ninguno,
   // no hay pedido y la celda queda vacía.
@@ -1137,7 +1139,7 @@ async function responderBloque(
       // Conceptos con enfoque del mismo datapoint (97/99): ninguna oración compartida con el anterior.
       const yo = CONCEPTOS_FORMATO_CON_ENFOQUE.find((c) => `fila:${c.fila}` === p.codigo);
       // Cifras capturadas obligatorias (`conCifras`): cada hecho de captura (clave «….valor_<año>») con valor va en el texto.
-      if (yo?.conCifras) {
+      if (yo?.cifras) {
         const enTexto = numerosDe(g.texto);
         const faltan = p.hechos.filter((h) => h.valor != null && /\.valor_\d{4}$/.test(ctx.hechos.get(h.id)?.clave ?? "") && !enTexto.some((x) => Math.abs(x - Number(h.valor)) <= Math.abs(Number(h.valor)) * 1e-9 + 1e-9));
         if (faltan.length) errores.push(`no da la cantidad capturada de ${faltan.map((h) => `${h.local} (${h.valor}${h.unidad ? ` ${h.unidad}` : ""})`).join(", ")}: los datos de entrada llevan sus cantidades, no una remisión a otra sección`);
