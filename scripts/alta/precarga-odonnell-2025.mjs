@@ -137,8 +137,11 @@ const evidenciaPrevia = async (sol, nombre) => {
   const r = leer(await db.from("evidencias").select("id, version").eq("solicitud_id", sol.id).eq("nombre_original", nombre).like("notas", `${MARCA}%`).limit(1), "evidencias");
   return r[0] ?? null;
 };
-const capturaPrevia = async (sol, justificacion) =>
-  leer(await db.from("capturas_valor").select("id").eq("solicitud_id", sol.id).eq("periodo", String(EJERCICIO)).eq("justificacion", justificacion).limit(1), "capturas").length > 0;
+const capturaPrevia = async (sol, periodo, justificacion) =>
+  leer(await db.from("capturas_valor").select("id").eq("solicitud_id", sol.id).eq("periodo", periodo).eq("justificacion", justificacion).limit(1), "capturas").length > 0;
+// Una cifra puede ser una serie (p. ej. la plantilla: desglose y años anteriores, cada uno con su año real). Dentro de
+// un periodo, el total va al final: la plataforma toma la última captura confirmada del periodo como valor vigente.
+const serieDe = (p) => p.serie ?? [{ periodo: String(EJERCICIO), valor: p.valor, cita: p.cita }];
 const extractoPrevio = async (sol, texto) =>
   leer(await db.from("sugerencias_captura").select("id").eq("solicitud_id", sol.id).eq("tipo", "texto").eq("estado", "confirmada").eq("extracto", texto).limit(1), "extractos").length > 0;
 
@@ -148,9 +151,13 @@ for (const [orden, sol] of [...porOrden.entries()].sort((a, b) => a[0] - b[0])) 
   const fila = { orden, titulo: sol.titulo, area: sol.area_asignada, p, sol };
   if (p.tipo !== "pendiente") {
     fila.archivo = archivoDe(p.fuente, p.paginas);
-    fila.cita = `${MARCA} ${ETIQUETA[p.fuente]} (${D.fuentes[p.fuente].archivo}), ${paginasTxt(p.paginas)}: ${p.cita ?? `extracto literal de ${paginasTxt(p.paginas)}.`}`;
+    const citar = (cita) => `${MARCA} ${ETIQUETA[p.fuente]} (${D.fuentes[p.fuente].archivo}), ${paginasTxt(p.paginas)}: ${cita}`;
     fila.evidencia = await evidenciaPrevia(sol, fila.archivo);
-    fila.hecho = p.tipo === "cifra" ? await capturaPrevia(sol, fila.cita) : await extractoPrevio(sol, p.extracto);
+    if (p.tipo === "cifra") {
+      fila.serie = [];
+      for (const x of serieDe(p)) fila.serie.push({ ...x, justificacion: citar(x.cita), hecho: await capturaPrevia(sol, x.periodo, citar(x.cita)) });
+      fila.hecho = fila.serie.every((x) => x.hecho);
+    } else fila.hecho = await extractoPrevio(sol, p.extracto);
   }
   filas.push(fila);
 }
@@ -163,8 +170,11 @@ console.log("|---|---|---|---|---|---|---|---|---|");
 for (const f of filas) {
   const { p } = f;
   if (p.tipo === "pendiente") { console.log(`| ${f.orden} | ${corto(f.titulo, 48)} | pendiente | — | — | — | — | — | ${corto(p.motivo, 70)} |`); continue; }
-  const valor = p.tipo === "cifra" ? p.valor.toLocaleString("en-US") : `texto (${p.extracto.length} car.): «${corto(p.extracto, 50)}»`;
-  console.log(`| ${f.orden} | ${corto(f.titulo, 48)} | ${p.tipo === "cifra" ? "captura" : "extracto"} | ${valor} | ${p.unidad ?? "—"} | ${paginasTxt(p.paginas)} | ${f.archivo} | ${ETIQUETA[p.fuente]} | ${f.hecho ? "ya está" : "por escribir"} |`);
+  if (p.tipo === "cifra") {
+    for (const x of f.serie) console.log(`| ${f.orden} | ${corto(f.titulo, 40)}${f.serie.length > 1 ? ` · ${x.periodo}${x.parte ? ` · ${x.parte}` : " · total"}` : ""} | captura | ${x.valor.toLocaleString("en-US")} | ${p.unidad} | ${paginasTxt(p.paginas)} | ${f.archivo} | ${ETIQUETA[p.fuente]} | ${x.hecho ? "ya está" : "por escribir"} |`);
+    continue;
+  }
+  console.log(`| ${f.orden} | ${corto(f.titulo, 48)} | extracto | texto (${p.extracto.length} car.): «${corto(p.extracto, 50)}» | — | ${paginasTxt(p.paginas)} | ${f.archivo} | ${ETIQUETA[p.fuente]} | ${f.hecho ? "ya está" : "por escribir"} |`);
 }
 
 const perfil = leer(await db.from("perfil_emisor").select("criterio_cuantificacion, congruencia_estados_financieros").eq("tenant_id", tenant.id).maybeSingle(), "perfil");
@@ -259,7 +269,8 @@ for (const f of filas.filter((x) => x.p.tipo !== "pendiente" && !x.hecho)) {
     const previas = leer(await db.from("evidencias").select("version").eq("solicitud_id", sol.id), "versiones");
     const version = Math.max(0, ...previas.map((x) => x.version)) + 1;
     const ins = await db.from("evidencias").insert({
-      solicitud_id: sol.id, version, archivo_path: ruta, nombre_original: f.archivo, periodo_cubierto: String(EJERCICIO),
+      solicitud_id: sol.id, version, archivo_path: ruta, nombre_original: f.archivo,
+      periodo_cubierto: f.serie ? [...new Set(f.serie.map((x) => x.periodo))].sort().join("-") : String(EJERCICIO),
       area_origen: sol.area_asignada, subido_por: yo.id,
       notas: `${MARCA} ${ETIQUETA[p.fuente]} (${D.fuentes[p.fuente].archivo}), ${paginasTxt(p.paginas)}, recortada del PDF publicado. Precarga 2025 por IRStrat (${D.fecha}).`,
     }).select("id, version").single();
@@ -270,8 +281,13 @@ for (const f of filas.filter((x) => x.p.tipo !== "pendiente" && !x.hecho)) {
     if (om.error) salir(`lectura de ${f.archivo}: ${om.error.message}`);
   }
   if (p.tipo === "cifra") {
-    const c = await db.from("capturas_valor").insert({ solicitud_id: sol.id, evidencia_id: ev.id, valor: p.valor, unidad: p.unidad, periodo: String(EJERCICIO), capturado_por: yo.id, confirmado: true, justificacion: f.cita });
-    if (c.error) salir(`captura ${f.orden}: ${c.error.message}`);
+    for (const x of f.serie.filter((y) => !y.hecho)) {
+      const c = await db.from("capturas_valor").insert({ solicitud_id: sol.id, evidencia_id: ev.id, valor: x.valor, unidad: p.unidad, periodo: x.periodo, capturado_por: yo.id, confirmado: true, justificacion: x.justificacion });
+      if (c.error) salir(`captura ${f.orden} ${x.periodo}${x.parte ? ` ${x.parte}` : ""}: ${c.error.message}`);
+      await log(tenant.id, "solicitudes", sol.id, { objeto: "captura", orden: f.orden, titulo: sol.titulo, periodo: x.periodo, parte: x.parte ?? null, valor: x.valor, unidad: p.unidad, archivo: f.archivo, fuente: ETIQUETA[p.fuente], paginas: p.paginas });
+    }
+    console.log(`  ✓ ${f.orden} ${corto(sol.titulo, 50)}: ${f.serie.filter((y) => !y.hecho).length} captura(s) (${f.archivo})`);
+    continue;
   } else {
     const cont = leer(await db.from("evidencias_contenido").select("id").eq("evidencia_id", ev.id).single(), "contenido");
     // Con la llave de servicio, como poblar-demo: `authenticated` no tiene INSERT en sugerencias_captura (la aplicación

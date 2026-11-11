@@ -366,24 +366,70 @@
  "capturas": [
   {
    "orden": 10,
-   "valor": 43,
    "unidad": "personas",
    "fuente": "ias",
    "paginas": [
-    50,
     51
    ],
-   "cita": "Plantilla laboral al cierre de 2025: «contamos con una plantilla laboral conformada por 43 colaboradores» (p. 50) y tablas de la p. 51 (total 2025: 43; 2024: 48; 2023: 54). Sin cifras de rotación."
-  },
-  {
-   "orden": 20,
-   "valor": 2,
-   "unidad": "horas",
-   "fuente": "ias",
-   "paginas": [
-    55
-   ],
-   "cita": "«Horas totales de capacitación» 2025: 2 (p. 55, Indicadores de Capacitación y desarrollo). La misma tabla publica 2 como «Promedio de horas de capacitación por colaborador» con 43 colaboradores: la fuente se contradice; se captura la cifra de la fila «Horas totales»."
+   "serie": [
+    {
+     "periodo": "2023",
+     "valor": 54,
+     "cita": "Plantilla laboral total 2023: 54 (p. 51, tablas por género, tipo de contrato, categoría y región)."
+    },
+    {
+     "periodo": "2024",
+     "valor": 48,
+     "cita": "Plantilla laboral total 2024: 48 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 10,
+     "parte": "Mujeres",
+     "cita": "Plantilla laboral por género 2025, Mujeres: 10 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 33,
+     "parte": "Hombres",
+     "cita": "Plantilla laboral por género 2025, Hombres: 33 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 43,
+     "parte": "Tiempo indeterminado",
+     "cita": "Plantilla laboral por tipo de contrato 2025, Tiempo indeterminado: 43 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 0,
+     "parte": "Tiempo determinado",
+     "cita": "Plantilla laboral por tipo de contrato 2025, Tiempo determinado: 0 (p. 51; cifra publicada)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 30,
+     "parte": "Ciudad de México",
+     "cita": "Plantilla laboral por región 2025, Ciudad de México: 30 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 4,
+     "parte": "Estado de México",
+     "cita": "Plantilla laboral por región 2025, Estado de México: 4 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 9,
+     "parte": "Querétaro",
+     "cita": "Plantilla laboral por región 2025, Querétaro: 9 (p. 51)."
+    },
+    {
+     "periodo": "2025",
+     "valor": 43,
+     "cita": "Plantilla laboral total 2025: 43 (p. 51; la p. 50 dice «una plantilla laboral conformada por 43 colaboradores»). Sin cifras de rotación."
+    }
+   ]
   },
   {
    "orden": 60,
@@ -677,6 +723,12 @@
     370
    ],
    "motivo": "Alcance 3 y sus 15 categorías no medidos (Formato p. 2). Pendientes a propósito."
+  },
+  {
+   "ordenes": [
+    20
+   ],
+   "motivo": "Horas de capacitación: la tabla del IAS (p. 55) es inconsistente (2 horas totales = 2 horas de promedio por colaborador, con 43 colaboradores). No se carga; va como observación a O'Donnell (decisión de Esteban del 10/11/2026)."
   },
   {
    "ordenes": [
