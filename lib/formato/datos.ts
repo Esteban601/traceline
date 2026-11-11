@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { declaracionDeCumplimiento } from "@/lib/suplemento/respuestas";
+import { declaracionVigente } from "@/lib/suplemento/declaracion";
 import type { Database } from "@/lib/database.types";
 import { ensamblarReporte, type Ensamblado } from "@/lib/reporte/ensamblar";
 import { regimenDe } from "@/lib/perfil-emisor";
@@ -44,7 +44,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
   }));
 
   const [{ data: pe }, ens] = await Promise.all([
-    db.from("perfil_emisor").select("denominacion_formal, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, fideicomitente, administrador_patrimonio, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
+    db.from("perfil_emisor").select("denominacion_formal, forma_de_referencia, clave_cotizacion, tipo_instrumento, fiduciario, numero_fideicomiso, fideicomitente, administrador_patrimonio, hechos_posteriores, actividades_financieras, sector_sasb, metricas_industria").eq("tenant_id", rep.tenant_id).maybeSingle(),
     ensamblarReporte(db, reporteId),
   ]);
   if (!ens.ok) return { ok: false, status: 500, error: "No se pudo leer el reporte." };
@@ -75,13 +75,12 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
     for (const c of ((v.respaldo as { cobertura?: { codigo: string; estado: string }[] } | null)?.cobertura ?? [])) if (c.estado === "parcial") parciales.push(c.codigo);
     pendientesDoc += ((v.pendientes as { campo: string }[] | null) ?? []).filter((p) => p.campo !== "nota_revision").length;
   }
-  let declaraCumplimiento = false;
+  // La declaración de cumplimiento es la de la emisora (encargo s1-72-reserva-y-emisora): su texto, si el bloque 2
+  // aprobado lo lleva tal cual, y su modo (con o sin reserva), que decide la fila 286.
   let declaracion: string | null = null;
   if (aprobadas["2"]) {
     const { data: b2 } = await db.from("documentos_bloques_versiones").select("texto").eq("id", aprobadas["2"].id).maybeSingle();
-    declaraCumplimiento = /de conformidad con las Normas NIIF S1 y (?:NIIF )?S2/i.test(b2?.texto ?? "");
-    // La declaración es la oración del bloque 2 que la hace, tal cual (bloque de plantilla, sin hechos).
-    declaracion = declaracionDeCumplimiento(b2?.texto ?? null);
+    declaracion = declaracionVigente(ens.reporte.declaracion, b2?.texto ?? null);
   }
   // Instancias de métricas NIIF S1 46–50: la misma fuente que la hoja «NIIF S1 46-50» del Excel de taxonomía.
   const metodoGei = respuestas.find((r) => r.clave === "NIIF S2 29 (a)(iii)" && r.destino === "formato" && r.estado === "respuesta")?.texto
@@ -125,6 +124,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
       alivios: ens.reporte.aliviosVigentes,
       perfil: {
         denominacion_formal: pe?.denominacion_formal ?? null,
+        forma_de_referencia: pe?.forma_de_referencia ?? null,
         clave_cotizacion: pe?.clave_cotizacion ?? null,
         tipo_instrumento: pe?.tipo_instrumento ?? null,
         fiduciario: pe?.fiduciario ?? null,
@@ -142,7 +142,7 @@ export async function insumosDelFormato(db: Db, reporteId: string): Promise<Insu
       registros,
       objetivos,
       cuestionarios,
-      declaraCumplimiento,
+      modoDeclaracion: ens.reporte.declaracion.modo,
       declaracion,
       cumplimiento: { parciales, pendientes: pendientesDoc },
     },

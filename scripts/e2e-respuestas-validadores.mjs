@@ -109,7 +109,7 @@ console.log("\n1d. Booleanos del Formato (D1): «Sí.»/«No.» contra el hecho 
 
 console.log("\n1e. Booleano vacío por contradicción: el informe lo lista con fila, valor y oración");
 {
-  const base = { ejercicio: 2025, primerAnio: true, alivios: {}, perfil: { denominacion_formal: null, clave_cotizacion: null, tipo_instrumento: null, fiduciario: null, numero_fideicomiso: null, hechos_posteriores: null, actividades_financieras: [], sector_sasb: [], metricas_industria: null }, hayLogo: false, gei: [], registros: [], objetivos: [], cuestionarios: {}, declaraCumplimiento: false, declaracion: null, cumplimiento: { parciales: [], pendientes: 0 } };
+  const base = { ejercicio: 2025, primerAnio: true, alivios: {}, perfil: { denominacion_formal: null, clave_cotizacion: null, tipo_instrumento: null, fiduciario: null, numero_fideicomiso: null, hechos_posteriores: null, actividades_financieras: [], sector_sasb: [], metricas_industria: null }, hayLogo: false, gei: [], registros: [], objetivos: [], cuestionarios: {}, modoDeclaracion: null, declaracion: null, cumplimiento: { parciales: [], pendientes: 0 } };
   const conceptos = [{ fila: 313, seccion: "x", tipo: "booleano", clasificacion: "concepto", capa: "1 · fuente", datapoint: "NIIF S2 29 (a)(ii)", bloque: 27, regla: null, alivioE5: false, respondidaEnReferencia: true }];
   const respuestas = [
     { destino: "taxonomia", clave: "NIIF S2 29 (a)(ii)", estado: "respuesta", texto: "La Compañía no mide sus emisiones conforme al Protocolo GEI." },

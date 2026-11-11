@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
 import { logEvento } from "@/lib/bitacora";
+import { leerModoDeclaracion } from "@/lib/suplemento/declaracion";
 
 export type CongelarState = {
   ok: boolean;
@@ -133,10 +134,18 @@ export async function guardarRegimen(
   const alivios: Record<string, boolean> = {};
   for (const c of CLAVES_ALIVIO) if (fd.get(`alivio_${c}`) === "on") alivios[c] = true;
 
+  // Declaración de cumplimiento (NIIF S1 72; encargo s1-72-reserva-y-emisora): el modo y el texto van juntos. El
+  // texto es de la emisora y se guarda tal cual (solo sin espacios en los extremos).
+  const modo = leerModoDeclaracion(String(fd.get("declaracion_cumplimiento") ?? ""));
+  const textoDecl = String(fd.get("declaracion_cumplimiento_texto") ?? "").trim() || null;
+  if (textoDecl && !modo) return { ok: false, error: "Indica si la declaración de cumplimiento es con o sin reserva." };
+  if (modo && !textoDecl) return { ok: false, error: "Falta el texto de la declaración de cumplimiento de la emisora." };
+  if (textoDecl && /\[Pendiente/i.test(textoDecl)) return { ok: false, error: "La declaración no puede llevar un marcador de pendiente: es el texto de la emisora." };
+
   const db = await createClient();
   const { error } = await db
     .from("reportes")
-    .update({ anio_adopcion: anio, alivios })
+    .update({ anio_adopcion: anio, alivios, declaracion_cumplimiento: modo, declaracion_cumplimiento_texto: textoDecl })
     .eq("id", reporteId);
   if (error) return { ok: false, error: "No se pudo guardar el régimen." };
 
@@ -152,7 +161,7 @@ export async function guardarRegimen(
     accion: "reporte_regimen_actualizado",
     entidad: "reportes",
     entidadId: reporteId,
-    detalle: { anio_adopcion: anio, alivios: Object.keys(alivios) },
+    detalle: { anio_adopcion: anio, alivios: Object.keys(alivios), declaracion_cumplimiento: modo, declaracion_caracteres: textoDecl?.length ?? 0 },
   });
 
   revalidatePath("/admin/reportes");

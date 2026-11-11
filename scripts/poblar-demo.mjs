@@ -1162,10 +1162,14 @@ async function regimen() {
         // hay nada que eximir. Declararlo igual habría hecho que el bloque 30
         // explicara un alivio que no usa.
         alivios: { C3: true, C4: true, E4: true, E5: true },
+        // Declaración de cumplimiento sin reserva, con la oración que la plantilla del bloque 2 escribía antes de que
+        // la declaración pasara a la emisora (encargo s1-72-reserva-y-emisora): el demo no cambia de texto.
+        declaracion_cumplimiento: "sin_reserva",
+        declaracion_cumplimiento_texto: `${PERFIL.denominacion_formal} (en adelante, ${PERFIL.forma_de_referencia}) presenta la información a revelar relacionada con la sostenibilidad y con el clima correspondiente al ejercicio ${EJERCICIO}, preparada de conformidad con las Normas NIIF S1 y NIIF S2 emitidas por el Consejo de Normas Internacionales de Sostenibilidad.`,
       })
       .eq("id", REPORTE)
   );
-  log("  régimen · anio_adopcion 2025 · alivios C3 C4 E4 E5 (C5 no aplica: mide con Protocolo GEI)");
+  log("  régimen · anio_adopcion 2025 · alivios C3 C4 E4 E5 (C5 no aplica: mide con Protocolo GEI) · declaración sin reserva");
 }
 
 // --- 3. Áreas ----------------------------------------------------------------
@@ -1667,6 +1671,14 @@ async function main() {
     await griSasb();
     log("\n=== resumen ===");
     log(SIN_CODIGO.length ? `✗ CÓDIGOS QUE EL CATÁLOGO NO TIENE: ${[...new Set(SIN_CODIGO)].join(", ")}` : "todos los códigos citados existen en el catálogo ✓");
+    return;
+  }
+
+  // `--solo regimen`: solo el paso 2 (año de adopción, alivios y declaración de cumplimiento; encargo
+  // s1-72-reserva-y-emisora), sin tocar el resto del demo.
+  if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "regimen") {
+    log("2. Régimen del reporte");
+    await regimen();
     return;
   }
 

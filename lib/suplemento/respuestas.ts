@@ -18,6 +18,8 @@ import { preguntasDe } from "@/lib/cuestionarios";
 import { leerAlivios, type Alivios } from "@/lib/perfil-emisor";
 import { ALCANCE_E5, E4_EN_DECLARACION, ORACION_E4, ORACION_E5, textoAlivio } from "@/lib/suplemento/alivios";
 import { ensamblarReporte } from "@/lib/reporte/ensamblar";
+import { enForma, formaDeReferencia, formasAjenas, mensajeFormaAjena, type Voz } from "@/lib/suplemento/forma";
+import { PENDIENTE_DECLARACION, declaracionVigente } from "@/lib/suplemento/declaracion";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
 import { descripcionGriSasb, erroresGriSasb, esGriSasb, seccionDe } from "@/lib/suplemento/gri-sasb";
@@ -68,11 +70,6 @@ export const LIMITES: Record<Destino, { oraciones: number; caracteres: number | 
 
 // Los textos de los alivios (E5, E4, C3, C4) viven en lib/suplemento/alivios.ts (única fuente, Fase 5).
 export { ORACION_E5, ALCANCE_E5, E4_EN_DECLARACION, ORACION_E4 } from "@/lib/suplemento/alivios";
-
-/** La declaración de cumplimiento del bloque 2 aprobado: su párrafo, tal cual (bloque de plantilla, sin hechos). */
-export function declaracionDeCumplimiento(textoBloque2: string | null): string | null {
-  return (textoBloque2 ?? "").split(/\n+/).map((p) => p.trim()).find((p) => /de conformidad con las Normas NIIF S1/i.test(p)) ?? null;
-}
 
 /**
  * «No aplica» heredado, en voz de la emisora. El motivo de noAplicaHeredado es
@@ -427,7 +424,7 @@ export function erroresDeForma(texto: string, codigo: string): string[] {
   const esBooleano = BOOLEANOS_FORMATO.some((b) => `fila:${b.fila}` === codigo);
   if (!esBooleano && /^(Sí|No)\.\s/.test(texto.trim())) errores.push("abre con «Sí.» o «No.»: esta respuesta no es una pregunta de sí o no; empieza por lo que afirma");
   // Voz de la emisora: no habla del material con que se redacta (encargo formato-respuesta-por-inciso, Fase 2, K89).
-  if (/(?<!\p{L})los hechos (no |describen|dan |disponibles|del requisito)/iu.test(texto)) errores.push("habla de «los hechos»: la respuesta es la voz de la emisora; di lo que la Compañía revela");
+  if (/(?<!\p{L})los hechos (no |describen|dan |disponibles|del requisito)/iu.test(texto)) errores.push("habla de «los hechos»: la respuesta es la voz de la emisora; di lo que la emisora revela");
   const b65 = CONCEPTOS_B65C.findIndex((c) => `fila:${c.fila}` === codigo);
   if (b65 >= 0) {
     const tipo = B65C_TIPO_RE[Math.floor(b65 / 5)];
@@ -455,7 +452,7 @@ export function conSeparadoresDeMiles(texto: string, hechos: { valor: number | n
 export function validarRespuesta(
   texto: string,
   destino: Destino,
-  ctx: { codigo: string; textoBloque: string; hechos: HechoDeRequisito[]; citados: string[] }
+  ctx: { codigo: string; textoBloque: string; hechos: HechoDeRequisito[]; citados: string[]; voz?: Voz }
 ): string[] {
   const errores: string[] = [];
   const t = texto.trim();
@@ -466,7 +463,12 @@ export function validarRespuesta(
   if (lim.caracteres && t.length > lim.caracteres) errores.push(`tiene ${t.length} caracteres; el máximo para ${destino} es ${lim.caracteres}`);
   if (/\[Pendiente/i.test(t)) errores.push("lleva un marcador [Pendiente: …]; el documento está aprobado y el requisito tiene hechos");
   const nos = primeraPersonaPlural(t);
-  if (nos.length) errores.push(`está en primera persona del plural (${nos.join(", ")}); va en tercera persona, como «la Compañía»`);
+  const forma = ctx.voz?.forma ?? formaDeReferencia(null);
+  if (nos.length) errores.push(`está en primera persona del plural (${nos.join(", ")}); va en tercera persona, como «${forma}»`);
+  // Voz (decisión 4 del encargo s1-72-reserva-y-emisora): la forma de referencia del Perfil, su denominación o su
+  // nombre corto; ninguna otra forma genérica («la Compañía» si el Perfil dice «la Emisora»).
+  const ajenas = formasAjenas(t, ctx.voz ?? { forma });
+  if (ajenas.length) errores.push(mensajeFormaAjena(ajenas, forma));
   const prohibidas = vocabularioProhibidoEn(t);
   if (prohibidas.length) errores.push(`usa vocabulario de proceso interno: ${prohibidas.join(", ")}`);
   const permitidos = numerosDe([ctx.textoBloque, ctx.codigo, ...ctx.hechos.flatMap((h) => [h.enunciado, h.extracto, h.valor != null ? String(h.valor) : ""])].join("\n"));
@@ -589,7 +591,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // bloque cambiado, solo se regeneran las respuestas de ese bloque.
     db.from("respuestas_datapoint").select("documento_id, destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("reporte_id", doc.reporte_id).eq("origen", "modelo"),
     db.from("datapoints_taxonomia").select("id, codigo, descripcion, marco, estandar, edicion").eq("activo", true),
-    db.from("perfil_emisor").select("glosario, sector_sasb").eq("tenant_id", doc.tenant_id).maybeSingle(),
+    db.from("perfil_emisor").select("glosario, sector_sasb, forma_de_referencia, denominacion_formal, nombre_corto").eq("tenant_id", doc.tenant_id).maybeSingle(),
     db.from("mapeo_solicitud_datapoint").select("datapoint_id, solicitud:solicitudes!inner(id, reporte_id, titulo)").eq("solicitud.reporte_id", doc.reporte_id),
   ]);
 
@@ -622,6 +624,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     for (const h of data ?? []) hechos.set(h.id, h as HechoLibro);
   }
   const glosario: EntradaGlosario[] = leerGlosario(perfil?.glosario);
+  // Forma de referencia del Perfil, «la Compañía» por defecto: los textos fijos y las instrucciones pasan por enForma.
+  const voz: Voz = { forma: formaDeReferencia(perfil?.forma_de_referencia), denominacionFormal: perfil?.denominacion_formal ?? null, nombreCorto: perfil?.nombre_corto ?? null };
   const alivios: Alivios = doc.regimen === "primer_anio" ? leerAlivios(doc.alivios) : {};
   const exentos = datapointsExentos(alivios);
   // Capturas y «no aplica» heredado: la misma resolución del Excel y del
@@ -731,11 +735,11 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   };
 
   const planDe = (codigo: string): Plan => {
-    // NIIF S1 72: la declaración de cumplimiento real (Fase 3; nunca «No aplica»): la del bloque 2 aprobado, con el
-    // alcance del E5 y el E4 si están vigentes. Sin declaración en el bloque 2, pendiente.
+    // NIIF S1 72: la declaración de cumplimiento de la emisora, tal cual (encargo s1-72-reserva-y-emisora; nunca «No
+    // aplica»), si el bloque 2 aprobado la lleva; con el alcance del E5 y el E4 si están vigentes. Sin ella, pendiente.
     if (codigo === "NIIF S1 72") {
-      const decl = declaracionDeCumplimiento(porBloque.get(2)?.texto ?? null);
-      if (!decl) return { codigo, via: "regla", estado: "pendiente", texto: "[Pendiente: declaración explícita y sin reservas de cumplimiento con NIIF S1 y NIIF S2 — sección Declaración de cumplimiento]" };
+      const decl = declaracionVigente(ens.reporte.declaracion, porBloque.get(2)?.texto ?? null);
+      if (!decl) return { codigo, via: "regla", estado: "pendiente", texto: PENDIENTE_DECLARACION };
       return { codigo, via: "regla", estado: "respuesta", texto: [decl, alivios.E5 ? ALCANCE_E5 : null, alivios.E4 ? (alivios.E5 ? E4_EN_DECLARACION : ORACION_E4) : null].filter(Boolean).join(" ") };
     }
     // Alcance 3 aplica y se difiere: «No revelado · alivio C4», como el Formato (revisión externa v5).
@@ -967,7 +971,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   for (const p of planes) {
     if (p.via === "bloque") continue;
     for (const d of destinosDe(p.codigo)) {
-      if (p.via === "regla") filas.push({ ...base(d, p.codigo), estado: p.estado, origen: "regla", texto: p.texto, notas: p.notas ?? [] });
+      // Los textos de regla (alivios, «No aplica» heredados) se escriben con «la Compañía»: en la forma de la emisora.
+      if (p.via === "regla") filas.push({ ...base(d, p.codigo), estado: p.estado, origen: "regla", texto: enForma(p.texto, voz.forma), notas: p.notas ?? [] });
       else filas.push({ ...base(d, p.codigo), estado: "respuesta", origen: "captura", texto: p.texto, valor: p.valor, tipo_campo: d === "formato" ? "text block" : "valor" });
     }
   }
@@ -977,17 +982,20 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   for (const p of planes) if (p.via === "bloque") porBloqueModelo.set(p.bloque, [...(porBloqueModelo.get(p.bloque) ?? []), p]);
   let uso: Uso = { ...USO_CERO };
   const apiKey = opciones.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  // Las descripciones con enfoque nombran a «la Compañía»: en la forma de la emisora, ANTES de la firma del pedido
+  // (con el default no cambian y las respuestas reutilizadas conservan su firma).
+  for (const [k, x] of descripcion) descripcion.set(k, enForma(x, voz.forma));
   const trabajos = [...porBloqueModelo.entries()].map(([numero, ps]) => async () => {
     if (opciones.latido && !(await opciones.latido())) throw new Error("La reserva de las respuestas pasó a otra corrida.");
     const v = porBloque.get(numero)!;
-    const r = await responderBloque(v, ps, { hechos, descripcion, glosario, destinosDe, apiKey, numeracion, previaDe });
+    const r = await responderBloque(v, ps, { hechos, descripcion, glosario, destinosDe, apiKey, numeracion, previaDe, voz });
     uso = sumar(uso, r.uso);
     filas.push(...r.filas);
   });
   await enParalelo(trabajos, 4);
   // GRI/SASB por evidencia directa: los extractos confirmados como fuente, con los mismos validadores.
   if (planesEvidencia.length) {
-    const r = await responderEvidencia(planesEvidencia, { descripcion, glosario, apiKey, previas: (previas ?? []) as Previa[] });
+    const r = await responderEvidencia(planesEvidencia, { descripcion, glosario, apiKey, previas: (previas ?? []) as Previa[], voz });
     uso = sumar(uso, r.uso);
     filas.push(...r.filas);
   }
@@ -1059,6 +1067,7 @@ async function responderBloque(
     apiKey?: string;
     numeracion?: Map<number, number>;
     previaDe?: Map<string, Previa>;
+    voz: Voz;
   }
 ): Promise<{ filas: FilaRespuesta[]; uso: Uso }> {
   // Ids locales por bloque: h1, h2… en el orden en que aparecen.
@@ -1119,7 +1128,7 @@ async function responderBloque(
       }
       const g = aplicarGlosario(conSeparadoresDeMiles(s.texto.trim(), p.hechos), ctx.glosario);
       const notasExtra: string[] = [];
-      const errores = [...validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: v.texto, hechos: p.hechos, citados: s.hechos }), ...erroresDeForma(g.texto, p.codigo)];
+      const errores = [...validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: v.texto, hechos: p.hechos, citados: s.hechos, voz: ctx.voz }), ...erroresDeForma(g.texto, p.codigo)];
       const razon = HECHO_RAZON[p.codigo];
       const deLaRazon = razon ? p.hechos.filter((h) => razon.clave.test(ctx.hechos.get(h.id)?.clave ?? "")) : [];
       if (deLaRazon.length && !deLaRazon.some((h) => s.hechos.includes(h.local))) errores.push(`no da la razón que pide el requisito: debe apoyarse en el hecho ${deLaRazon[0].local} y citarlo`);
@@ -1329,7 +1338,7 @@ async function responderBloque(
  */
 async function responderEvidencia(
   planes: PlanEvidencia[],
-  ctx: { descripcion: Map<string, string>; glosario: EntradaGlosario[]; apiKey?: string; previas: Previa[] }
+  ctx: { descripcion: Map<string, string>; glosario: EntradaGlosario[]; apiKey?: string; previas: Previa[]; voz: Voz }
 ): Promise<{ filas: FilaRespuesta[]; uso: Uso }> {
   const destino: Destino = "taxonomia";
   const pedidos: Pedido[] = planes.map((p) => {
@@ -1374,7 +1383,7 @@ async function responderEvidencia(
         const x = salida.find((y) => y.codigo === p.codigo && y.destino === p.destino);
         if (!x) { motivos.set(k, ["faltó la respuesta de este requisito"]); siguientes.push(p); continue; }
         const g = aplicarGlosario(x.texto.trim(), ctx.glosario);
-        const errores = [...validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: "", hechos: p.hechos, citados: x.hechos }), ...erroresDeForma(g.texto, p.codigo)];
+        const errores = [...validarRespuesta(g.texto, p.destino, { codigo: p.codigo, textoBloque: "", hechos: p.hechos, citados: x.hechos, voz: ctx.voz }), ...erroresDeForma(g.texto, p.codigo)];
         if (errores.length) { motivos.set(k, errores); siguientes.push(p); continue; }
         const notas = [`Fuente: extracto confirmado de ${p.hechos.map((h) => h.enunciado.replace(/^Documento de la emisora /, "")).join(", ")}.`, ...g.cambios.map((c) => `Glosario: «${c.variante}» → «${c.canonico}» (${c.veces}).`)];
         if (intento > 1) notas.push(`Aceptada en el reintento; el primer intento falló: ${(motivos.get(k) ?? []).join("; ")}`);
@@ -1405,7 +1414,7 @@ async function llamar(
   /** La fuente: la sección aprobada con su texto, o los documentos de la emisora (evidencia directa). */
   encabezado: string,
   pedidos: Pedido[],
-  ctx: { descripcion: Map<string, string>; glosario: EntradaGlosario[] },
+  ctx: { descripcion: Map<string, string>; glosario: EntradaGlosario[]; voz: Voz },
   motivos: Map<string, string[]>,
   apiKey: string
 ): Promise<{ respuestas: Salida[]; uso: Uso }> {
@@ -1428,7 +1437,7 @@ async function llamar(
       {
         model: MODELO_RESPUESTAS,
         max_tokens: 8000,
-        system: [{ type: "text", text: SISTEMA + glosario, cache_control: { type: "ephemeral" } }],
+        system: [{ type: "text", text: enForma(SISTEMA, ctx.voz.forma) + glosario, cache_control: { type: "ephemeral" } }],
         messages: [
           {
             role: "user",

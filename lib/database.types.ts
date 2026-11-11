@@ -2124,6 +2124,8 @@ export type Database = {
           alivios: Json
           anio_adopcion: number | null
           created_at: string
+          declaracion_cumplimiento: string | null
+          declaracion_cumplimiento_texto: string | null
           ejercicio: number
           estado: Database["public"]["Enums"]["estado_reporte"]
           fecha_congelamiento: string | null
@@ -2135,6 +2137,8 @@ export type Database = {
           alivios?: Json
           anio_adopcion?: number | null
           created_at?: string
+          declaracion_cumplimiento?: string | null
+          declaracion_cumplimiento_texto?: string | null
           ejercicio: number
           estado?: Database["public"]["Enums"]["estado_reporte"]
           fecha_congelamiento?: string | null
@@ -2146,6 +2150,8 @@ export type Database = {
           alivios?: Json
           anio_adopcion?: number | null
           created_at?: string
+          declaracion_cumplimiento?: string | null
+          declaracion_cumplimiento_texto?: string | null
           ejercicio?: number
           estado?: Database["public"]["Enums"]["estado_reporte"]
           fecha_congelamiento?: string | null
