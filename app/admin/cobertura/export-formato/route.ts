@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, esStaff, esAdminCliente } from "@/lib/data";
-import { bloquesIterados, booleanosVaciosPorContradiccion, llenarFormato } from "@/lib/formato/llenar";
+import { avisosDeCoherencia, bloquesIterados, booleanosVaciosPorContradiccion, llenarFormato } from "@/lib/formato/llenar";
 import { SECCION_OBJETIVOS, bloquesDeObjetivos, expandirObjetivos } from "@/lib/formato/objetivos";
 import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
@@ -55,6 +55,9 @@ export async function GET(request: Request) {
   for (const b of booleanosVaciosPorContradiccion(valores, datos.objetivos.length)) {
     console.warn(`[export-formato] reporte=${reporteId} booleano vacío ${b.celda} (fila ${b.fila}): valor propuesto «${b.valor}», contradicho por «${b.oracion}»`);
   }
+  // Avisos de coherencia (también en la hoja «Avisos» de la revisión): entre ellos, una declaración sin reserva con
+  // pendientes o requisitos «parcial» (decisión 3 del encargo s1-72-reserva-y-emisora). La descarga no se bloquea.
+  for (const a of avisosDeCoherencia(datos)) console.warn(`[export-formato] reporte=${reporteId} aviso: ${a}`);
 
   try {
     const { data: blob, error } = await createAdminClient().storage.from("documentos").download(RUTA_PLANTILLA_FORMATO);

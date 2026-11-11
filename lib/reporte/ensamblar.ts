@@ -3,6 +3,7 @@ import { conPerimetro } from "@/lib/reporte/cifra";
 import type { Database } from "@/lib/database.types";
 import { NOTA_VALIDACION_INTERNA, type OrigenSolicitud } from "@/lib/origen";
 import { leerAlivios, regimenDe, type Alivios } from "@/lib/perfil-emisor";
+import { leerDeclaracion, type Declaracion } from "@/lib/suplemento/declaracion";
 import { rubroExento } from "@/lib/suplemento/bloques";
 
 // =============================================================================
@@ -226,6 +227,8 @@ export type ReporteEnsamblado = {
   tenant: TenantReporte | null;
   /** Alivios VIGENTES: los del reporte si el ejercicio es el primer año de adopción; si no, ninguno. */
   aliviosVigentes: Alivios;
+  /** Declaración de cumplimiento de la emisora (NIIF S1 72): con o sin reserva y su texto. */
+  declaracion: Declaracion;
 };
 
 // -----------------------------------------------------------------------------
@@ -357,7 +360,7 @@ export async function ensamblarReporte(
   const { data: reporteRaw, error: repErr } = await supabase
     .from("reportes")
     .select(
-      "id, nombre, ejercicio, anio_adopcion, alivios, tenant:tenants!reportes_tenant_id_fkey(nombre, slug, es_demo)"
+      "id, nombre, ejercicio, anio_adopcion, alivios, declaracion_cumplimiento, declaracion_cumplimiento_texto, tenant:tenants!reportes_tenant_id_fkey(nombre, slug, es_demo)"
     )
     .eq("id", reporteId)
     .maybeSingle();
@@ -373,6 +376,7 @@ export async function ensamblarReporte(
     // Los alivios son transitorios: solo rigen el primer ejercicio de adopción
     // (la misma regla que la completitud y el generador).
     aliviosVigentes: regimenDe(reporteRaw.ejercicio, reporteRaw.anio_adopcion) === "primer_anio" ? leerAlivios(reporteRaw.alivios) : {},
+    declaracion: leerDeclaracion(reporteRaw),
   };
 
   const [

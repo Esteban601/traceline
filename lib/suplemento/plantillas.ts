@@ -1,4 +1,5 @@
 import { ALIVIOS, REGIMEN_LABEL, type Alivios, type Regimen } from "@/lib/perfil-emisor";
+import { PENDIENTE_DECLARACION, type Declaracion } from "@/lib/suplemento/declaracion";
 
 // =============================================================================
 // LOS CUATRO BLOQUES DE PLANTILLA: texto fijo con variables.
@@ -22,6 +23,8 @@ export type CtxPlantilla = {
   anioAdopcion: number | null;
   alivios: Alivios;
   nombreReporte: string;
+  /** La declaración de cumplimiento del reporte, en palabras de la emisora (NIIF S1 72). */
+  declaracion: Declaracion;
 };
 
 export type ResultadoPlantilla = {
@@ -43,13 +46,22 @@ function frasesDeAlivios(a: Alivios, forma: string): string {
   return `${sujeto} se acoge a las medidas transitorias previstas en ${lista}, cuyos efectos sobre la información presentada se describen en el apartado correspondiente de cada sección.`;
 }
 
-/** Bloque 2 · Presentación del informe. */
+/**
+ * Bloque 2 · Presentación del informe. La declaración de cumplimiento es la de la emisora, tal cual (encargo
+ * s1-72-reserva-y-emisora): la plantilla dice quién presenta y qué ejercicio, nunca «de conformidad con». Si la
+ * declaración ya abre con la denominación formal (la oración que el demo heredó de la plantilla anterior), ella dice
+ * quién presenta y la plantilla no lo repite. Sin declaración, el marcador de pendiente.
+ */
 function presentacion(c: CtxPlantilla): ResultadoPlantilla {
   const pendientes: string[] = [];
   const den = c.denominacionFormal || (pendientes.push(P("denominación formal", "Perfil del emisor, sección Identidad")), P("denominación formal", "Perfil del emisor, sección Identidad"));
+  const quien = `${den} (en adelante, ${c.formaDeReferencia}) presenta la información a revelar relacionada con la sostenibilidad y con el clima correspondiente al ejercicio ${c.ejercicio}.`;
+  const decl = c.declaracion.texto;
+  if (!decl) pendientes.push(PENDIENTE_DECLARACION);
+  const apertura = !decl ? [quien, "", PENDIENTE_DECLARACION] : c.denominacionFormal && decl.startsWith(c.denominacionFormal) ? [decl] : [quien, "", decl];
   return {
     texto: [
-      `${den} (en adelante, ${c.formaDeReferencia}) presenta la información a revelar relacionada con la sostenibilidad y con el clima correspondiente al ejercicio ${c.ejercicio}, preparada de conformidad con las Normas NIIF S1 y NIIF S2 emitidas por el Consejo de Normas Internacionales de Sostenibilidad.`,
+      ...apertura,
       "",
       // Con el alivio E4 la información se publica DESPUÉS de los estados
       // financieros: decir que los acompaña contradecía al bloque 3 (tercera
@@ -62,22 +74,32 @@ function presentacion(c: CtxPlantilla): ResultadoPlantilla {
   };
 }
 
-/** Bloque 3 · Bases de preparación: marco y medidas transitorias. */
+/**
+ * Bloque 3 · Bases de preparación: marco y medidas transitorias. Con una declaración con reserva, el bloque no afirma
+ * la conformidad que la emisora no declara: dice que aplica las normas («con base en», «aplica»).
+ */
 function basesPreparacion(c: CtxPlantilla): ResultadoPlantilla {
   const pendientes: string[] = [];
+  const reserva = c.declaracion.modo === "con_reserva";
   let regimenFrase: string;
   if (c.anioAdopcion == null) {
     const p = P("año de adopción de las Normas NIIF S1 y S2", "Reportes, régimen del ejercicio");
     pendientes.push(p);
     regimenFrase = `El presente ejercicio corresponde a ${p}.`;
   } else if (c.regimen === "primer_anio") {
-    regimenFrase = `El ejercicio ${c.ejercicio} es el primer periodo anual sobre el que ${c.formaDeReferencia} informa de conformidad con las Normas NIIF S1 y NIIF S2.`;
+    regimenFrase = reserva
+      ? `El ejercicio ${c.ejercicio} es el primer periodo anual en que ${c.formaDeReferencia} aplica las Normas NIIF S1 y NIIF S2.`
+      : `El ejercicio ${c.ejercicio} es el primer periodo anual sobre el que ${c.formaDeReferencia} informa de conformidad con las Normas NIIF S1 y NIIF S2.`;
   } else {
-    regimenFrase = `${c.formaDeReferencia.charAt(0).toUpperCase()}${c.formaDeReferencia.slice(1)} informa de conformidad con las Normas NIIF S1 y NIIF S2 desde el ejercicio ${c.anioAdopcion}; el presente periodo es un ejercicio subsecuente.`;
+    regimenFrase = reserva
+      ? `${c.formaDeReferencia.charAt(0).toUpperCase()}${c.formaDeReferencia.slice(1)} aplica las Normas NIIF S1 y NIIF S2 desde el ejercicio ${c.anioAdopcion}; el presente periodo es un ejercicio subsecuente.`
+      : `${c.formaDeReferencia.charAt(0).toUpperCase()}${c.formaDeReferencia.slice(1)} informa de conformidad con las Normas NIIF S1 y NIIF S2 desde el ejercicio ${c.anioAdopcion}; el presente periodo es un ejercicio subsecuente.`;
   }
   return {
     texto: [
-      `La información a revelar se prepara de conformidad con la NIIF S1 Requerimientos Generales para la Información Financiera a Revelar relacionada con la Sostenibilidad y con la NIIF S2 Información a Revelar relacionada con el Clima.`,
+      reserva
+        ? `La información a revelar se prepara con base en la NIIF S1 Requerimientos Generales para la Información Financiera a Revelar relacionada con la Sostenibilidad y en la NIIF S2 Información a Revelar relacionada con el Clima.`
+        : `La información a revelar se prepara de conformidad con la NIIF S1 Requerimientos Generales para la Información Financiera a Revelar relacionada con la Sostenibilidad y con la NIIF S2 Información a Revelar relacionada con el Clima.`,
       "",
       regimenFrase,
       "",

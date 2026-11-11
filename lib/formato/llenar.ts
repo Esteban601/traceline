@@ -3,7 +3,9 @@ import { filaExportada } from "@/lib/formato/objetivos";
 import { HOJA_GEI } from "@/lib/cuestionarios";
 import { CONCEPTOS_FORMATO_CON_ENFOQUE, HORIZONTES_TABLA, TABLAS_POR_HORIZONTE, pendienteEnTextoPlano, sinRemision, textoNoAplicaHeredado, type EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { ORACION_E5, declaracionDeAlivios, noRevelado } from "@/lib/suplemento/alivios";
-import type { Alivios } from "@/lib/perfil-emisor";
+import { esInstrumentoFiduciario, type Alivios } from "@/lib/perfil-emisor";
+import { enForma, formaDeReferencia } from "@/lib/suplemento/forma";
+import type { ModoDeclaracion } from "@/lib/suplemento/declaracion";
 import type { InstanciaMetrica } from "@/lib/formato/instancias";
 import { BOOLEANOS_FORMATO, clausulasDelTema, contradice, valorBooleano } from "@/lib/formato/booleanos";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
@@ -71,6 +73,8 @@ export type DatosFormato = {
   alivios: Alivios;
   perfil: {
     denominacion_formal: string | null;
+    /** Forma de referencia de la emisora («la Compañía» si falta): los textos fijos del llenado la usan. */
+    forma_de_referencia?: string | null;
     clave_cotizacion: string | null;
     tipo_instrumento: string | null;
     fiduciario: string | null;
@@ -93,9 +97,9 @@ export type DatosFormato = {
   objetivos: ObjetivoFormato[];
   /** Respuestas de los cuestionarios, en el orden del catálogo. */
   cuestionarios: Record<string, (string | null)[]>;
-  /** El bloque 2 aprobado declara la preparación de conformidad con NIIF S1 y S2. */
-  declaraCumplimiento: boolean;
-  /** El párrafo del bloque 2 aprobado que hace la declaración, tal cual. */
+  /** La emisora declara el cumplimiento con o sin reserva (reportes.declaracion_cumplimiento); null = sin capturar. */
+  modoDeclaracion: ModoDeclaracion | null;
+  /** La declaración de cumplimiento de la emisora, tal cual, si el bloque 2 aprobado la lleva. */
   declaracion: string | null;
   /** Cobertura del documento aprobado: requisitos «parcial» y pendientes (regla 1 de Esteban). */
   cumplimiento: { parciales: string[]; pendientes: number };
@@ -188,6 +192,10 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     return pendienteEnTextoPlano(r.destino === "taxonomia" ? sinRemision(r.texto) : r.texto);
   };
   const actividades = d.perfil.actividades_financieras;
+  // Textos fijos en la forma de la emisora (encargo s1-72-reserva-y-emisora); con el default, los mismos de antes.
+  const forma = formaDeReferencia(d.perfil.forma_de_referencia);
+  const oracionE5 = enForma(ORACION_E5, forma);
+  const razon36eRegla = enForma(RAZON_36E_REGLA, forma);
 
   for (const c of conceptos) out.set(c.fila, valorDe(c));
   // Lo que depende del valor de un booleano, ya calculado: la rama que el booleano cierra queda vacía; la rama «No»
@@ -201,7 +209,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const c = conceptos.find((x) => x.fila === booleano);
     if (fila === 257) {
       const r = resp("formato", "fila:257");
-      out.set(fila, { texto: r?.estado === "respuesta" && r.texto ? r.texto : RAZON_36E_REGLA, origen: r?.estado === "respuesta" ? "respuesta" : "regla", nota: "razón del «No» de créditos de carbono" });
+      out.set(fila, { texto: r?.estado === "respuesta" && r.texto ? r.texto : razon36eRegla, origen: r?.estado === "respuesta" ? "respuesta" : "regla", nota: "razón del «No» de créditos de carbono" });
       continue;
     }
     const desde = c?.datapoint ?? null;
@@ -239,7 +247,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (!v.e5 || !v.texto) continue;
     const enc = ENCABEZADOS_E5.filter((e) => e <= fila).at(-1) ?? 0;
     if (!vistos.has(enc)) vistos.add(enc);
-    else out.set(fila, { ...v, texto: v.texto.slice(ORACION_E5.length).trim(), e5: false });
+    else out.set(fila, { ...v, texto: v.texto.slice(oracionE5.length).trim(), e5: false });
   }
   // Los alivios del reporte, en K12 (la fila sin etiqueta tras el año de reporte): la hoja «Leyenda» ya no se entrega
   // (decisión de Esteban, Fase 5).
@@ -252,7 +260,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (/^fuera de alcance/.test(c.clasificacion)) return { texto: null, origen: "fuera de alcance" };
     // Sección «Para: Fideicomisos» (columna A de la plantilla): entera «No aplica» si la emisora no es fideicomiso
     // (revisión externa v5: K13, K17 y K19 llevaban la clave y la razón social de la emisora).
-    if (FILAS_FIDEICOMISO.has(c.fila) && !/fideicomiso/i.test(d.perfil.tipo_instrumento ?? "")) return { texto: "No aplica", origen: "perfil" };
+    // Fideicomiso: una de las cinco opciones fiduciarias de la plantilla (CKD, CERPI, FIBRA, FIBRAE incluidos).
+    if (FILAS_FIDEICOMISO.has(c.fila) && !esInstrumentoFiduciario(d.perfil.tipo_instrumento)) return { texto: "No aplica", origen: "perfil" };
     // Un encabezado narrativo con datapoint lleva texto (la referencia lo responde);
     // los demás encabezados y los subconceptos («se responde junto con la fila N»), no.
     const narrativo = c.clasificacion === "encabezado narrativo" && !!c.datapoint;
@@ -272,7 +281,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const seccion = SECCIONES_ACTIVIDAD.find((s) => c.fila >= s.desde && c.fila <= s.hasta);
     if (seccion && actividades.length && !actividades.includes(seccion.actividad)) {
       // D6: «declaradas por la emisora», no «del Perfil» (vocabulario de plataforma).
-      return { texto: `No aplica por actividad: la Compañía no participa en ${seccion.actividad.toLowerCase()} (actividades financieras declaradas por la emisora: ${actividades.join(", ")}).`, origen: "actividad" };
+      return { texto: enForma(`No aplica por actividad: la Compañía no participa en ${seccion.actividad.toLowerCase()} (actividades financieras declaradas por la emisora: ${actividades.join(", ")}).`, forma), origen: "actividad" };
     }
     if (c.capa === "sin candidato") return { texto: null, origen: "sin mapeo", nota: "código pedido sin datapoint en el catálogo (lista de ampliación del catálogo)" };
     if (c.datapoint && exentos.has(c.datapoint)) return { texto: noRevelado("C4"), origen: "alivio" };
@@ -295,7 +304,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
 
     const tipo = c.tipo === "(sin tipo)" ? "" : c.tipo ?? "";
     const ponE5 = (t: string) => c.alivioE5 && !!d.alivios.E5 && !t.includes("párrafo E5");
-    const conE5 = (t: string) => (ponE5(t) ? `${ORACION_E5} ${t}` : t);
+    const conE5 = (t: string) => (ponE5(t) ? `${oracionE5} ${t}` : t);
 
     // Fila 62 (NIIF S2 13(b), dónde se concentran; la 63 pide zonas, instalaciones y tipos de activos): el texto del
     // modelo y, después, la concentración por código desde los registros de clima (encargo 2026-10-24; antes iba en la 64).
@@ -316,11 +325,16 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       if (!t || !new RegExp(`(?<!\\d)${d.ejercicio}(?!\\d)`).test(t)) return { texto: null, origen: "pendiente", nota: "la respuesta de NIIF S2 22(b)(iii) no sitúa el análisis en el ejercicio" };
       return { texto: FECHAS_22B_III[c.fila] === "inicio" ? `01/01/${d.ejercicio}` : `31/12/${d.ejercicio}`, origen: "regla", nota: "el análisis se sitúa en el ejercicio del reporte (D5)" };
     }
-    // Fila 285: la declaración de cumplimiento, del bloque 2 aprobado (plantilla, sin hechos).
-    if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "párrafo del bloque 2 aprobado, tal cual", e5: ponE5(d.declaracion) } : { texto: null, origen: "pendiente" };
-    // Fila 286: ¿cumple con todos los requerimientos, explícitamente y sin reservas?
-    // Regla 1 de Esteban: «Sí» solo con cero pendientes y cero «parcial» en la cobertura aprobada; si no, «No» y qué falta.
+    // Fila 285: la declaración de cumplimiento de la emisora, tal cual (la que lleva el bloque 2 aprobado).
+    if (c.fila === 285) return d.declaracion ? { texto: conE5(d.declaracion), origen: "respuesta", nota: "declaración de la emisora, tal cual", e5: ponE5(d.declaracion) } : { texto: null, origen: "pendiente" };
+    // Fila 286: ¿cumple con todos los requerimientos, explícitamente y sin reservas? (encargo s1-72-reserva-y-emisora)
+    //   · sin declaración capturada: pendiente;
+    //   · con reserva: «No», siempre;
+    //   · sin reserva: «Sí» solo con cero pendientes y cero «parcial» en la cobertura aprobada (regla 1 de Esteban); si
+    //     no, «No» y qué falta, y un aviso para el revisor (decisión 3: la descarga no se bloquea).
     if (c.fila === 286) {
+      if (!d.modoDeclaracion) return { texto: null, origen: "pendiente", nota: "sin declaración de cumplimiento capturada en el régimen del reporte" };
+      if (d.modoDeclaracion === "con_reserva") return { texto: "No", origen: "regla", nota: "la emisora declara el cumplimiento con reserva" };
       const { parciales, pendientes } = d.cumplimiento;
       if (!parciales.length && !pendientes) return { texto: "Sí", origen: "regla", nota: "documento aprobado con cero pendientes y cero requisitos «parcial»" };
       const falta = [parciales.length ? `requisitos con información parcial: ${parciales.join(", ")}` : null, pendientes ? `${pendientes} pendiente(s) en el documento` : null].filter(Boolean).join("; ");
@@ -417,7 +431,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     if (c.fila === 263 || c.fila === 265) {
       // 36(e)(iii) en un solo estado: el de su inciso (el padre ya no dice «No aplica» si (i) responde).
       const r = resp("taxonomia", "NIIF S2 36 (e)(iii)");
-      return r?.estado === "no_aplica" ? { texto: textoNoAplicaHeredado("NIIF S2 36 (e)"), origen: "regla" } : { texto: null, origen: "por decidir" };
+      return r?.estado === "no_aplica" ? { texto: enForma(textoNoAplicaHeredado("NIIF S2 36 (e)"), forma), origen: "regla" } : { texto: null, origen: "por decidir" };
     }
     return { texto: null, origen: "por decidir" };
   }
@@ -425,7 +439,7 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
   function deperfil(c: ConceptoMapeo): ValorFormato {
     const campo = (c.perfil ?? c.regla ?? "").replace(/\s*\(nuevo\)/, "");
     const p = d.perfil;
-    const esFideicomiso = /fideicomiso/i.test(p.tipo_instrumento ?? "");
+    const esFideicomiso = esInstrumentoFiduciario(p.tipo_instrumento);
     const v = (x: string | null | undefined): ValorFormato => (x && x.trim() ? { texto: x.trim(), origen: "perfil" } : { texto: null, origen: "pendiente" });
     if (/tipo_instrumento/.test(campo)) return v(p.tipo_instrumento);
     if (/clave_cotizacion/.test(campo)) return v(p.clave_cotizacion);
@@ -522,6 +536,13 @@ export function avisosDeCoherencia(d: DatosFormato): string[] {
   const avisos: string[] = [];
   if (d.perfil.metricas_industria === "No" && d.perfil.sector_sasb.length) {
     avisos.push(`Métricas por industria en «No» (filas 364, 387 y 410) con sector SASB capturado (${d.perfil.sector_sasb.join("; ")}): confirmar el juicio de la emisora en el Perfil.`);
+  }
+  // Decisión 3 del encargo s1-72-reserva-y-emisora: la emisora declara el cumplimiento sin reserva y el documento
+  // aprobado tiene pendientes o requisitos «parcial»: la fila 286 dice «No» y la 285 afirma el cumplimiento.
+  const { parciales, pendientes } = d.modoDeclaracion === "sin_reserva" ? d.cumplimiento : { parciales: [], pendientes: 0 };
+  if (parciales.length || pendientes) {
+    const que = [parciales.length ? `${parciales.length} requisito(s) «parcial»` : null, pendientes ? `${pendientes} pendiente(s)` : null].filter(Boolean).join(" y ");
+    avisos.push(`Declaración de cumplimiento sin reserva (fila 285) con ${que} en el documento aprobado: la fila 286 dice «No». Confirmar con la emisora la declaración o completar lo que falta antes de presentar.`);
   }
   return avisos;
 }

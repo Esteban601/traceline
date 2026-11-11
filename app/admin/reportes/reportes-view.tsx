@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { fmtDiaLargo } from "@/lib/fechas";
 import { congelarReporte, guardarRegimen, type CongelarState, type RegimenState } from "./actions";
 import { ALIVIOS, REGIMEN_LABEL, regimenDe, type Alivios } from "@/lib/perfil-emisor";
+import { MODOS_DECLARACION, type Declaracion } from "@/lib/suplemento/declaracion";
 
 export type ReporteFila = {
   id: string;
@@ -20,6 +21,7 @@ export type ReporteFila = {
   solicitudesCongeladas: number;
   anioAdopcion: number | null;
   alivios: Alivios;
+  declaracion: Declaracion;
 };
 
 function limpiar(nombre: string): string {
@@ -281,6 +283,44 @@ function RegimenForm({ reporte }: { reporte: ReporteFila }) {
             </label>
           ))}
         </div>
+      </fieldset>
+
+      {/* Declaración de cumplimiento (NIIF S1 72): la escribe la emisora y va tal cual en el bloque 2, en NIIF S1 72 y
+          en la fila 285 del Formato electrónico. El generador nunca la redacta. */}
+      <fieldset>
+        <legend className="text-xs font-medium uppercase tracking-wide text-muted">
+          Declaración de cumplimiento (NIIF S1 72)
+        </legend>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {MODOS_DECLARACION.map((m) => (
+            <label
+              key={m.clave}
+              className="flex cursor-pointer gap-3 rounded-xl border border-line bg-crema/30 p-3 transition hover:border-teal/40"
+            >
+              <input
+                type="radio"
+                name="declaracion_cumplimiento"
+                value={m.clave}
+                defaultChecked={reporte.declaracion.modo === m.clave}
+                className="mt-0.5 size-4 shrink-0 accent-teal"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink">{m.titulo}</span>
+                <span className="block text-xs text-muted">{m.ayuda}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <label className="mt-3 block text-xs text-muted" htmlFor={`declaracion-${reporte.id}`}>
+          Texto de la declaración, tal cual lo escribe la emisora. Sin texto, el documento lleva un pendiente.
+        </label>
+        <textarea
+          id={`declaracion-${reporte.id}`}
+          name="declaracion_cumplimiento_texto"
+          defaultValue={reporte.declaracion.texto ?? ""}
+          rows={4}
+          className="mt-2 w-full rounded-xl border border-line bg-crema/40 px-3.5 py-2.5 text-sm text-ink outline-none transition duration-150 focus:border-teal/50 focus:bg-surface"
+        />
       </fieldset>
 
       <div className="flex items-center gap-3">
