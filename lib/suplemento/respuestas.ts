@@ -293,24 +293,26 @@ const cifrasDe = (t: string) => new Set((t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).m
  * párrafo; no recibe las declaraciones negativas generales (van en la síntesis, fila 84), no cae al respaldo con
  * oraciones del bloque (sin respuesta validada queda vacía) y no se parece a otra celda del mismo párrafo.
  */
-export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp }[] = [
+export const CONCEPTOS_FORMATO_CON_ENFOQUE: { fila: number; codigo: string; enfoque: string; noRepite?: string; prestadosDe?: number; porEfecto?: boolean; conNegativas?: boolean; sinHechos?: RegExp; distintaDe?: string[]; sinFechados?: boolean; soloHechos?: RegExp; conCifras?: boolean }[] = [
   // NIIF S2 29(a)(iii) por inciso (Fase 5): K596 el enfoque, K597 los datos de entrada y supuestos, K599 la razón (solo
   // con un hecho que la dé; si no, vacía y el marcador de §5 en el Excel). K601 (cambios) sale del cuestionario de GEI.
   { fila: 317, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, enfoque: "el enfoque de medición de las emisiones de GEI: la norma o el protocolo, el enfoque de consolidación y los factores de emisión. Sin los datos de entrada ni los supuestos, que van en la fila 318" },
   // K597 recibe también las declaraciones negativas: una exclusión del inventario (fugas de refrigerantes, HFC) es un
   // supuesto de la medición (Esteban, 29/10; antes la regla de las celdas por efecto la dejaba fuera).
-  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan). Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
+  // `conCifras` (Esteban, 10/11/2026, demo v6): las cantidades de los datos de entrada salen de las capturas (los 488,000
+  // litros de combustibles), no de una remisión a otra sección; el validador exige cada cifra capturada de sus hechos.
+  { fila: 318, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, conNegativas: true, conCifras: true, enfoque: "los datos de entrada y los supuestos de la medición de las emisiones de GEI (cantidades, estimaciones y exclusiones del inventario, con su razón si los hechos la dan), con las cantidades capturadas del ejercicio (litros de combustibles, kWh) tal como las dan los hechos. Sin la norma, el enfoque de consolidación ni los factores, que van en la fila 317" },
   { fila: 320, codigo: "NIIF S2 29 (a)(iii)", porEfecto: true, soloHechos: /(?<!\p{L})(porque|raz[oó]n|debido a|eligi[oó]|se eligi[oó]|a fin de|con el fin de)(?!\p{L})/iu, enfoque: "la razón por la que la Compañía eligió su enfoque de medición, sus datos de entrada y sus supuestos, tal como la dan los hechos" },
   // Gobernanza por inciso (Fase 3): K36 sin la remuneración (va en K38/K39); K43 el papel de la gerencia, sin la
   // supervisión del cargo (K47, 6(b)(i)) ni los controles (K52, 6(b)(ii)), que antes parafraseaba.
   { fila: 36, codigo: "NIIF S2 6 (a)(v)", porEfecto: true, sinHechos: /remuneraci[oó]n/i, enfoque: "cómo el órgano de gobierno supervisa el establecimiento de los objetivos relacionados con el clima y el seguimiento de su avance. Sin la remuneración, que va en las filas 38 y 39" },
   { fila: 43, codigo: "NIIF S2 6(b)", porEfecto: true, distintaDe: ["NIIF S2 6(b)(i)", "NIIF S2 6(b)(ii)"], enfoque: "el papel de la gerencia en la gestión de los riesgos y oportunidades relacionados con el clima: qué funciones de dirección los gestionan y de qué se encarga cada una. Sin cómo se supervisa a esos cargos (fila 47, NIIF S2 6(b)(i)) ni los controles y procedimientos (fila 52, NIIF S2 6(b)(ii))" },
-  // 16(d) por efecto (Fase 2, ajuste 3 de Esteban): K96 rendimiento previsto, con la razón de no cuantificar (NIIF S2 21);
-  // K98 flujos previstos, sin ella. Las tablas por horizonte (97 y 99) van aparte: TABLAS_POR_HORIZONTE.
+  // 16(d) por efecto (Fase 2, ajuste 3 de Esteban): K96 rendimiento previsto y K98 flujos previstos. La razón de no
+  // cuantificar (NIIF S2 21) va solo en K100 (Esteban, 10/11/2026, demo v6; antes también en K96). Las tablas por horizonte (97 y 99) van aparte: TABLAS_POR_HORIZONTE.
   // Con plazos declarados en 10(d), la fila de la pregunta lleva solo lo que no está fechado en un plazo (`sinFechados`);
   // lo fechado va en su tabla por plazo (95, 97, 99, 111), sin repetirse (regla de Esteban antes de la Fase 4).
   { fila: 94, codigo: "NIIF S2 16(c)(i)(ii)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "cómo se espera que cambie la situación financiera y con qué fuentes de financiación, con lo que no está fechado en un plazo; lo de cada plazo va en la tabla de la fila 95" },
-  { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) que no están fechados en un plazo, y la razón por la que la Compañía no da información cuantitativa adicional si los hechos la dan; lo de cada plazo va en la tabla de la fila 97" },
+  { fila: 96, codigo: "NIIF S2 16(d)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "los efectos previstos sobre el rendimiento financiero (margen, ingresos, gastos y resultados) que no están fechados en un plazo. Sin la razón de no dar información cuantitativa, que va en la fila 100; lo de cada plazo va en la tabla de la fila 97" },
   { fila: 98, codigo: "NIIF S2 16(d)", porEfecto: true, sinFechados: true, enfoque: "los efectos previstos sobre los flujos de efectivo que no están fechados en un plazo, sin inferir flujos que los hechos no dan. Sin el efecto sobre el margen ni la razón de no cuantificar, que van en la fila 96; lo de cada plazo va en la tabla de la fila 99" },
   { fila: 110, codigo: "NIIF S2 22(a)(iii)", porEfecto: true, conNegativas: true, sinFechados: true, enfoque: "la capacidad de la Compañía para ajustar o adaptar su estrategia y modelo de negocio, con lo que no está fechado en un plazo; lo de cada plazo va en la tabla de la fila 111" },
   // Encargo 2026-10-24-deuda-s2-formato, decisiones (b) y (c): síntesis que no repiten la fila que da el detalle.
@@ -1134,6 +1136,12 @@ async function responderBloque(
       if (deLaRazon.length && !deLaRazon.some((h) => s.hechos.includes(h.local))) errores.push(`no da la razón que pide el requisito: debe apoyarse en el hecho ${deLaRazon[0].local} y citarlo`);
       // Conceptos con enfoque del mismo datapoint (97/99): ninguna oración compartida con el anterior.
       const yo = CONCEPTOS_FORMATO_CON_ENFOQUE.find((c) => `fila:${c.fila}` === p.codigo);
+      // Cifras capturadas obligatorias (`conCifras`): cada hecho de captura (clave «….valor_<año>») con valor va en el texto.
+      if (yo?.conCifras) {
+        const enTexto = numerosDe(g.texto);
+        const faltan = p.hechos.filter((h) => h.valor != null && /\.valor_\d{4}$/.test(ctx.hechos.get(h.id)?.clave ?? "") && !enTexto.some((x) => Math.abs(x - Number(h.valor)) <= Math.abs(Number(h.valor)) * 1e-9 + 1e-9));
+        if (faltan.length) errores.push(`no da la cantidad capturada de ${faltan.map((h) => `${h.local} (${h.valor}${h.unidad ? ` ${h.unidad}` : ""})`).join(", ")}: los datos de entrada llevan sus cantidades, no una remisión a otra sección`);
+      }
       const norm = (o: string) => o.toLowerCase().replace(/\s+/g, " ").trim();
       const repetidasDe = (previa: string | null) => (previa ? oracionesDe(g.texto).filter((o) => oracionesDe(previa).some((q) => norm(q) === norm(o))) : []);
       // También contra la síntesis del mismo código (84 para 16(a)): ninguna celda del párrafo repite una oración de otra.
