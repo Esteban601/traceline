@@ -238,5 +238,20 @@ console.log("\n4. Hecho prestado: la razón de NIIF S2 21(a) en el bloque 10 (he
   ok(["sprint", "encargo", "ampliación del catálogo", "por decidir", "sin mapeo"].every((x) => vocabularioEnCeldaExportada(`Texto con ${x} interno.`).length), "glosario: sprint, encargo, ampliación del catálogo, por decidir, sin mapeo");
 }
 
+console.log("\n9. Reglas de la tabla GRI/SASB aprobada (10/11/2026)");
+{
+  const { descripcionGriSasb, erroresGriSasb, REGLAS_GRI_SASB } = await import("../lib/suplemento/gri-sasb.ts");
+  const d = (codigo) => descripcionGriSasb({ codigo, estandar: "GRI 2: Contenidos Generales", edicion: "2021", descripcion: "Texto literal." });
+  ok(d("GRI 2-5").includes(REGLAS_GRI_SASB["GRI 2-5"]) && /inventario de emisiones de GEI/.test(d("GRI 2-5")), "GRI 2-5: la descripción pide el alcance de lo verificado");
+  ok(["GRI 2-24", "GRI 3-3"].every((c) => /qué parte del contenido no se revela/.test(d(c))), "GRI 2-24 y 3-3: la descripción pide decir qué parte no cubre");
+  ok(!/no se revela/.test(d("GRI 2-9")), "los demás contenidos, sin regla añadida");
+  ok(erroresGriSasb("El presente informe fue verificado por un tercero independiente.", "GRI 2-5").length > 0, "GRI 2-5 que presenta el informe como verificado → rechazo");
+  ok(erroresGriSasb("La Compañía cuenta con verificación externa.", "GRI 2-5").some((e) => /alcance/.test(e)), "GRI 2-5 que afirma verificación sin alcance → rechazo");
+  ok(!erroresGriSasb("El inventario de emisiones de GEI de Alcances 1 y 2 de 2025 fue verificado por un tercero independiente con aseguramiento limitado.", "GRI 2-5").length, "GRI 2-5 con el alcance (inventario de GEI) → aceptada");
+  ok(!erroresGriSasb("La Compañía no cuenta con verificación externa de su información.", "GRI 2-5").length, "GRI 2-5 que declara que no hay verificación → aceptada");
+  ok(!erroresGriSasb("El presente informe fue verificado.", "GRI 2-9").length && !erroresDeForma("El presente informe fue verificado.", "NIIF S2 29 (a)(i)").some((e) => /verificado/.test(e)), "la regla solo toca GRI 2-5");
+  ok(erroresDeForma("El presente informe fue verificado por un tercero.", "GRI 2-5").length > 0, "erroresDeForma aplica la regla de 2-5 (respuestas nuevas y reutilizadas)");
+}
+
 console.log(fallas.length ? `\n✗ ${fallas.length} fallas` : "\n✓ todo en orden");
 process.exit(fallas.length ? 1 : 0);
