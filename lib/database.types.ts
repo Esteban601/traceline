@@ -1591,6 +1591,7 @@ export type Database = {
           actualizado_en: string | null
           actualizado_por: string | null
           administrador_patrimonio: string | null
+          banco_sistemico_global: boolean | null
           cadena_valor: Json
           carta_cargo: string | null
           carta_firmante: string | null
@@ -1629,6 +1630,7 @@ export type Database = {
           actualizado_en?: string | null
           actualizado_por?: string | null
           administrador_patrimonio?: string | null
+          banco_sistemico_global?: boolean | null
           cadena_valor?: Json
           carta_cargo?: string | null
           carta_firmante?: string | null
@@ -1667,6 +1669,7 @@ export type Database = {
           actualizado_en?: string | null
           actualizado_por?: string | null
           administrador_patrimonio?: string | null
+          banco_sistemico_global?: boolean | null
           cadena_valor?: Json
           carta_cargo?: string | null
           carta_firmante?: string | null
