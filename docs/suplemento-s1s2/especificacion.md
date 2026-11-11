@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.57** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.58** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.57** (encargo odonnell-alta-real, Fase 2): §10, alta de O'Donnell como cliente real en staging;
+staging queda con 23 tenants, 21 de demostración y 2 reales.
 
 **Cambios respecto a 0.56** (despliegue v47): §10, registro del release v45 de staging (v47), con el resultado del día.
 
@@ -2003,6 +2006,22 @@ auditor. **Sin plantilla ni cambio de catálogo.**
    salió con 143 (SIGTERM del release).
 7. **Pendiente de Esteban:** paso 5 (cierre de la terminal). Después, el alta de O'Donnell
    (`~/Downloads/odonnell-alta/comandos.md`).
+
+### staging · alta de O'Donnell como cliente real · 10 de noviembre de 2026 (después del release v45)
+
+Encargo `docs/encargos/2026-11-10-odonnell-alta-real.md`, Fase 2. Sin despliegue: datos escritos por Esteban con
+`scripts/alta/alta-cliente-real.mjs` (versión 2, en `main` desde `e21f894`), pasos T, U, R y V en verde.
+- **Mockup** `odonnell` → `odonnell-demo` / `ODND`, inactivo, sin borrar (conserva su reporte).
+- **Tenant real** `odonnell` / `ODN`: `es_demo = false`, vitrina apagada, lectura y generador encendidos, carga por
+  IRStrat encendida; cinco áreas; Perfil de fideicomiso (CKD ODOCK, CIB2659, forma de referencia «la Emisora», IF-RE e
+  IF-EN). La denominación formal «Fideicomiso CIB/2659» queda por confirmar con O'Donnell antes del Formato 2026.
+- **Usuarios:** las siete cuentas del mockup, trasladadas con sus contraseñas (decisión del 10/11/2026; consecuencias y
+  transición a correos reales en el encargo §5.4 y en la bitácora de cada traslado).
+- **Reportes:** 2025 con 37 solicitudes de la plantilla «con rubros», sin escena, y la declaración «con reserva» con el
+  texto de la p. 41 del Formato publicado; 2026 vacío.
+
+**Staging queda con 23 tenants: 21 de demostración y 2 reales** (Grupo Carso y O'Donnell). Toda comprobación posterior
+que cuente emisoras espera 23; las que cuentan reportes reales, los de los dos.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
