@@ -418,6 +418,9 @@ const PROSPECTOS = [
     slug: "odonnell",
     nombre: "O'Donnell",
     prefijo: "ODN",
+    // Retirado: O'Donnell pasó a cliente real (encargo odonnell-alta-real). El mockup se renombró a odonnell-demo /
+    // ODND y quedó inactivo; el slug odonnell es del tenant real. Este script ya no lo toca (ni con --solo).
+    retirado: "cliente real desde noviembre de 2026",
     logo: "odonnell.png",
     areas: [
       "Desarrollo y Construcción",
@@ -2023,7 +2026,9 @@ async function main() {
   validarCifrasEscena(PROSPECTOS);
   const ctx = await conectar();
 
-  const objetivo = SOLO ? PROSPECTOS.filter((p) => p.slug === SOLO) : PROSPECTOS;
+  // Un prospecto retirado (pasó a cliente real) no se toca: su slug ya es del tenant real.
+  for (const p of PROSPECTOS.filter((x) => x.retirado && (!SOLO || x.slug === SOLO))) console.log(`· ${p.slug}: retirado (${p.retirado}); no se toca.`);
+  const objetivo = (SOLO ? PROSPECTOS.filter((p) => p.slug === SOLO) : PROSPECTOS).filter((p) => !p.retirado);
   if (!objetivo.length) {
     console.error(`\n❌ No hay ningún prospecto con slug "${SOLO}".`);
     process.exit(2);
