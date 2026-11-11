@@ -126,15 +126,16 @@ console.log("\nFormato electrónico · NIIF S2 29(a)(iii) por inciso (Fase 5)");
 {
   const [enfoque, datos, razon, cambios] = [K(596), K(597), K(599), K(601)];
   ok(/Protocolo GEI/.test(enfoque) && !/488,000/.test(enfoque) && /488,000/.test(datos) && !/Protocolo GEI/.test(datos), "K596 el enfoque (protocolo, consolidación, factores) y K597 los datos de entrada y supuestos, sin repetirse");
-  ok(!razon, "K599 (razón de la elección): vacía, ningún hecho la da (§5: en el Formato el pendiente es la celda vacía)");
-  ok(!cambios || !/Protocolo GEI, con enfoque de control/.test(cambios), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo");
+  // Desde el demo v6 (Esteban, 10/11/2026) un hecho da la razón: K599 la lleva, y solo ella; K601 son solo los cambios.
+  ok(!!razon && /porque/.test(razon), "K599 (razón de la elección): con la razón que da el libro (control operacional, factores oficiales)");
+  ok(!cambios || (!/Protocolo GEI, con enfoque de control/.test(cambios) && !/porque|eligi[oó]/.test(cambios)), "K601 (cambios en el enfoque): del cuestionario de GEI o vacía, nunca el párrafo ni la razón de la elección");
 }
 
 console.log("\nFormato electrónico · cierre (Fase 6, revisión externa v5.2)");
 {
   const ors = (t) => t.split(/(?<=\.)\s+/).filter((o) => o.length > 20);
   // (1) K100: la razón de 19(a)/(b) de la declaración de criterio; la transparencia como complemento.
-  ok(/identificables por separado/.test(K(100)) && /incertidumbre/.test(K(100)) && /próximos periodos/.test(K(100)) && !/^[^.]*próximos periodos/.test(K(100)), "(1) K100: la razón de NIIF S2 19(a)/(b) primero; la limitación de los próximos periodos, como oración complementaria");
+  ok(/identificables por separado/.test(K(100)) && /incertidumbre/.test(K(100)) && /próximos (periodos|ejercicios)/.test(K(100)) && !/^[^.]*próximos (periodos|ejercicios)/.test(K(100)), "(1) K100: la razón de NIIF S2 19(a)/(b) primero; la limitación de los próximos ejercicios, como oración complementaria");
   // (2) K91: sin la oración de K92 ni la razón de no cuantificar.
   ok(!ors(K(91)).some((o) => ors(K(92)).some((q) => q === o || seParecen(o, q))) && !/no (proporciona información cuantitativa|cuantific)|identificables por separado/.test(K(91)), `(2) K91 sin la oración de K92 ni la razón de no cuantificar${K(91) ? "" : " (vacía: ninguna síntesis pasó el validador)"}`);
   // (3) K712 vacía: repetía K710.
@@ -186,7 +187,8 @@ console.log("\nFormato electrónico · NIIF S2 16(d) por efecto y por plazo (Fas
 {
   const oraciones = (t) => t.split(/(?<=\.)\s+|\n/).map((o) => o.replace(/^(Corto|Mediano|Largo) plazo:\s*/, "").trim()).filter(Boolean);
   // Regla de plazos (antes de la Fase 4): la fila de la pregunta lleva lo no fechado; la tabla, lo fechado por plazo.
-  ok(!!K(96) && /no proporciona información cuantitativa/.test(K(96)), "K96: lo no fechado (escenario de altas emisiones) y la razón de no cuantificar (NIIF S2 21)");
+  // La razón de no cuantificar va solo en K100 (Esteban, 10/11/2026, demo v6).
+  ok(!!K(96) && /escenario/.test(K(96)) && !/no proporciona información cuantitativa/.test(K(96)), "K96: lo no fechado (escenario de altas emisiones), sin la razón de no cuantificar (va en K100)");
   ok(!K(98), "K98 vacía: 16(d) no tiene hechos de flujos sin fecha; los flujos previstos van por plazo en K99");
   ok(/^Mediano plazo: .*9 millones/.test(K(99)) && !/9 millones/.test(K(96)), "el ahorro de 9 millones anuales desde 2027, en el mediano plazo de K99 (2027 cae en «más de 1 y hasta 5 años»)");
   for (const f of [95, 97, 99, 111]) {
