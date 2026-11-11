@@ -60,6 +60,7 @@ export type AccionEvento =
   | "usuario_creado"
   | "usuario_desactivado"
   | "usuario_reactivado"
+  | "usuario_trasladado"
   | "plantilla_creada"
   | "reporte_creado_desde_plantilla"
   | "reporte_congelado"

@@ -27,6 +27,7 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   usuario_creado: { label: "Usuario creado", tono: "verde" },
   usuario_desactivado: { label: "Usuario desactivado", tono: "rojo" },
   usuario_reactivado: { label: "Usuario reactivado", tono: "verde" },
+  usuario_trasladado: { label: "Usuario trasladado de emisora", tono: "ambar" },
   plantilla_creada: { label: "Plantilla creada", tono: "verde" },
   reporte_creado_desde_plantilla: { label: "Reporte creado", tono: "verde" },
   reporte_congelado: { label: "Reporte congelado", tono: "gris" },
@@ -194,6 +195,10 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
     case "usuario_desactivado":
     case "usuario_reactivado":
       return limpiar(s(detalle, "nombre")) ?? "";
+    case "usuario_trasladado": {
+      const de = s(detalle, "tenant_origen"), a = s(detalle, "tenant_destino");
+      return [limpiar(s(detalle, "nombre")), de && a ? `${de} → ${a}` : null].filter(Boolean).join(" · ");
+    }
     case "plantilla_creada": {
       const nombre = s(detalle, "nombre");
       const c = n(detalle, "solicitudes");
