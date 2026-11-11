@@ -1,6 +1,7 @@
 import type { Cobertura } from "@/lib/cobertura";
 import type { EstadoSolicitud } from "@/lib/estados";
 import type { OrigenSolicitud } from "@/lib/origen";
+import type { Marco } from "@/lib/catalogo-marcos";
 
 // =============================================================================
 // Cobertura: el TIPO y los agregados de presentación. Sin "server-only" a
@@ -15,8 +16,11 @@ export type DatapointCobertura = {
   id: string;
   codigo: string;
   norma: "S1" | "S2";
-  /** NIIF = los 91 de la taxonomía oficial · GRI = la extensión, con su código GRI. */
-  marco: "NIIF" | "GRI";
+  /** NIIF = la taxonomía oficial S1/S2 · GRI y SASB = otras normas, que cuentan aparte (lib/catalogo-marcos.ts). */
+  marco: Marco;
+  /** Norma y edición de las filas GRI y SASB («GRI 2», «2021»; «SASB FN-CB», «2025-12»). Nulas en NIIF. */
+  estandar: string | null;
+  edicion: string | null;
   pilar: string;
   seccionIndice: string | null;
   descripcion: string;
@@ -44,7 +48,7 @@ export type DatapointCobertura = {
 export const PILAR_ORDEN = ["gobernanza", "estrategia", "riesgos", "metricas"] as const;
 
 export const PILAR_LABEL: Record<string, string> = {
-  extension: "Métricas fuera de NIIF",
+  extension: "Fuera de NIIF S1/S2",
   gobernanza: "Gobernanza",
   estrategia: "Estrategia",
   riesgos: "Gestión de riesgos",

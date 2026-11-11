@@ -9,6 +9,9 @@ import { expandirMetricas, SECCION_METRICAS } from "@/lib/formato/metricas";
 import { insumosDelFormato } from "@/lib/formato/datos";
 import { RUTA_PLANTILLA_FORMATO, HOJA_ESTRUCTURA, IMAGENES_EN_CELDA } from "@/lib/formato/plantilla";
 import { celdasConCorchete, opcionesDeListas, ponerTexto, validarImagenesEnCelda } from "@/lib/formato/xlsx-xml";
+import { escribirMetricasSasb, filasMetricasSasb } from "@/lib/formato/metricas-sasb";
+import { industriaDe, industriasSasb } from "@/lib/catalogo-marcos";
+import type { EstadoRespuesta } from "@/lib/suplemento/respuestas";
 import { rutaDeHoja } from "@/lib/formato/zip";
 import { pendienteEnTextoPlano } from "@/lib/suplemento/respuestas";
 
@@ -105,6 +108,27 @@ export async function GET(request: Request) {
       zip.file(rutaTabla, tn);
     }
 
+    // Hoja «Métricas SASB»: las métricas de la industria del Perfil con su respuesta (encargo catalogo-gri-sasb).
+    let metricasSasb = "sin sector SASB";
+    const industrias = industriasSasb(datos.perfil.sector_sasb);
+    const rutaSasb = industrias.size ? await rutaDeHoja(zip, "Métricas SASB") : null;
+    if (rutaSasb) {
+      const { data: cat } = await db
+        .from("datapoints_taxonomia")
+        .select("codigo, descripcion, estandar")
+        .eq("marco", "SASB")
+        .eq("activo", true)
+        .eq("version_taxonomia", "2025");
+      const metricas = (cat ?? []).filter((m) => industrias.has(industriaDe(m.estandar) ?? ""));
+      const { data: rs } = metricas.length
+        ? await db.from("respuestas_datapoint").select("clave, estado, texto").eq("reporte_id", reporteId).eq("destino", "taxonomia").in("clave", metricas.map((m) => m.codigo))
+        : { data: [] };
+      const respuestas = new Map((rs ?? []).map((r) => [r.clave, { estado: r.estado as EstadoRespuesta, texto: r.texto }]));
+      const r = escribirMetricasSasb(await zip.file(rutaSasb)!.async("string"), filasMetricasSasb(metricas, respuestas));
+      zip.file(rutaSasb, r.xml);
+      metricasSasb = `${metricas.length} métricas, ${r.conRespuesta} con respuesta`;
+    }
+
     // Validador de entrega: las imágenes en celda siguen enlazadas; ningún «#VALUE!» suelto.
     const hojas: Record<string, string> = {};
     for (const nombre of Object.keys(zip.files).filter((x) => /^xl\/worksheets\/sheet\d+\.xml$/.test(x))) hojas[nombre] = await zip.file(nombre)!.async("string");
@@ -119,7 +143,7 @@ export async function GET(request: Request) {
 
     const nombre = `Formato_electronico_NIIF_${slug(ins.denominacion)}_${datos.ejercicio}.xlsx`;
     const salida = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
-    console.log(`[export-formato] reporte=${reporteId} respuestas=${escritas} archivo=${nombre}`);
+    console.log(`[export-formato] reporte=${reporteId} respuestas=${escritas} métricas SASB: ${metricasSasb} archivo=${nombre}`);
     return new NextResponse(salida as unknown as BodyInit, {
       status: 200,
       headers: {
