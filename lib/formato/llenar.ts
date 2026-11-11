@@ -215,16 +215,8 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
       continue;
     }
     const desde = c?.datapoint ?? null;
-    let t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
-    // Rama «No» con una celda de texto antes (v6.1, K841/K849): una línea, sin repetir ninguna oración de la vecina; si
-    // todo lo repite, vacía.
-    const vecina = VECINA_DE_RAMA[fila] != null ? out.get(VECINA_DE_RAMA[fila])?.texto ?? "" : "";
-    if (t && vecina) {
-      const suyas = vecina.split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
-      const propias = t.split(/(?<=\.)\s+/).map((o) => o.trim()).filter((o) => o && !suyas.some((q) => q === o || seParecen(o, q)));
-      t = propias[0] ?? null;
-    }
-    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "regla", nota: `la rama repetiría la fila ${VECINA_DE_RAMA[fila]}` });
+    const t = (propia?.texto ? propia.texto.replace(/^No\.\s*/, "") : desde ? textoDe(desde) : null)?.replace(/^No aplica[.:]\s*/i, "").trim() || null;
+    out.set(fila, t ? { texto: t, origen: "respuesta", nota: `razón del «No» de la fila ${booleano}` } : { texto: null, origen: "pendiente" });
   }
   // Cierre (Fase 6, revisión externa v5.2): celdas que repetían a su vecina o quedaban vacías sin regla.
   const fija = (fila: number, v: ValorFormato) => { if (out.has(fila)) out.set(fila, v); };
@@ -258,6 +250,16 @@ export function llenarFormato(d: DatosFormato, conceptos: ConceptoMapeo[] = CONC
     const enc = ENCABEZADOS_E5.filter((e) => e <= fila).at(-1) ?? 0;
     if (!vistos.has(enc)) vistos.add(enc);
     else out.set(fila, { ...v, texto: v.texto.slice(oracionE5.length).trim(), e5: false });
+  }
+  // Rama «No» con una celda de texto antes (v6.1, K841/K849): una línea, sin repetir ninguna oración (ni casi igual) de
+  // la vecina; si todo lo repite, vacía. Al final, cuando la vecina ya tiene su texto definitivo.
+  for (const [fila, vecinaFila] of Object.entries(VECINA_DE_RAMA).map(([f, v]) => [Number(f), v] as const)) {
+    const v = out.get(fila);
+    const vecina = out.get(vecinaFila)?.texto ?? "";
+    if (!v?.texto || !vecina) continue;
+    const suyas = vecina.split(/(?<=\.)\s+/).map((o) => o.trim()).filter(Boolean);
+    const propias = v.texto.split(/(?<=\.)\s+/).map((o) => o.trim()).filter((o) => o && !suyas.some((q) => q === o || seParecen(o, q) || q.startsWith(o.replace(/\.$/, ""))));
+    out.set(fila, propias[0] ? { ...v, texto: propias[0] } : { texto: null, origen: "regla", nota: `la rama repetiría la fila ${vecinaFila}` });
   }
   // Los alivios del reporte, en K12 (la fila sin etiqueta tras el año de reporte): la hoja «Leyenda» ya no se entrega
   // (decisión de Esteban, Fase 5).
