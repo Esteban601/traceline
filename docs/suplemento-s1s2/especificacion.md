@@ -1,6 +1,8 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.58** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.59** · 10 de noviembre de 2026.
+
+**Cambios respecto a 0.58** (encargo odonnell-alta-real, Fase 3): §10, precarga 2025 de O'Donnell aplicada en staging.
 
 **Cambios respecto a 0.57** (encargo odonnell-alta-real, Fase 2): §10, alta de O'Donnell como cliente real en staging;
 staging queda con 23 tenants, 21 de demostración y 2 reales.
@@ -2022,6 +2024,21 @@ Encargo `docs/encargos/2026-11-10-odonnell-alta-real.md`, Fase 2. Sin despliegue
 
 **Staging queda con 23 tenants: 21 de demostración y 2 reales** (Grupo Carso y O'Donnell). Toda comprobación posterior
 que cuente emisoras espera 23; las que cuentan reportes reales, los de los dos.
+
+**Precarga 2025 de O'Donnell (vía C), aplicada el mismo día.** Sin despliegue: Esteban corrió
+`scripts/alta/precarga-odonnell-2025.mjs` (en `main` desde `e6e292f`) contra staging; revisar con 45 por escribir,
+aplicar (45) y segunda pasada en 0. Fuentes: el Formato BMV 2025 publicado y el IAS 2025 (sha256 comprobado); cada cifra
+y cada texto, literal, con su página recortada como evidencia. Escribió:
+- en el Perfil, el criterio de cuantificación de 21(a);
+- 9 riesgos y oportunidades con valores 2025 (el capital publicado en $0, vacío con nota);
+- 6 objetivos, con las metas EDGE publicadas;
+- 14 capturas en 5 solicitudes, entre ellas la plantilla con su desglose y los totales 2023 y 2024 con su año real;
+- 9 extractos confirmados y 15 respuestas de cuestionario.
+
+Quedan 23 solicitudes pendientes, nunca en cero (Alcance 1, Alcance 3 y sus categorías, capacitación y las que las
+fuentes no traen). La lectura de las evidencias de la precarga quedó «omitido» (sin costo de modelo). Los eventos de la
+bitácora salen como `precarga_irstrat` hasta el próximo despliegue, que trae su etiqueta. Detalle y decisiones: encargo
+§5.5; observaciones a O'Donnell en `~/Downloads/odonnell-alta/precarga-2025.md`.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
