@@ -38,8 +38,8 @@ export async function GET(request: Request) {
     const [{ data: catalogo, error: eCat }, { data: perfilEmisor }] = await Promise.all([
       db
         .from("datapoints_taxonomia")
-        .select("codigo, marco, estandar, edicion, descripcion")
-        .in("marco", ["GRI", "SASB"])
+        .select("codigo, marco, estandar, edicion, descripcion, nombre")
+        .in("marco", ["GRI", "SASB", "NIS"])
         .eq("activo", true)
         .eq("version_taxonomia", "2025"),
       db.from("perfil_emisor").select("sector_sasb").eq("tenant_id", reporte.tenant_id).maybeSingle(),
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     if (eCat) return NextResponse.json({ error: "No se pudo leer el catálogo." }, { status: 500 });
     const industrias = industriasSasb(perfilEmisor?.sector_sasb);
     const filas = ((catalogo ?? []) as FilaGriSasb[]).filter((d) => aplicaAEmisora(d, industrias));
-    if (!filas.length) return NextResponse.json({ error: "El catálogo no tiene contenidos GRI ni métricas SASB para esta emisora." }, { status: 422 });
+    if (!filas.length) return NextResponse.json({ error: "El catálogo no tiene contenidos GRI, métricas SASB ni indicadores IBSO para esta emisora." }, { status: 422 });
 
     // Respuestas: como la columna del Excel de taxonomía, solo con el generador encendido y del último documento aprobado.
     let respuestas: Map<string, string> | null = null;
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     const { wb, hojas } = armarLibroGriSasb({
       filas,
       respuestas,
-      titulo: `Índice GRI/SASB · ${reporte.ejercicio}`,
+      titulo: `Índice GRI, SASB e IBSO · ${reporte.ejercicio}`,
       esDemo: tenant?.es_demo === true,
       ejercicio: reporte.ejercicio,
     });

@@ -32,6 +32,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { planIbso, aplicarIbso } from "./catalogo/ligar-ibso.mjs";
 
 // -----------------------------------------------------------------------------
 // Barrera de ambiente
@@ -590,6 +591,20 @@ const CUANTITATIVAS_FN_CB = [
     texto: "En 2025 la Compañía no registró pérdidas monetarias por procedimientos legales relacionados con fraude, uso de información privilegiada, competencia económica, manipulación de mercado, mala praxis u otras leyes o regulaciones del sector financiero.",
   },
 ];
+
+/**
+ * Paso 12: ligas IBSO (NIS A-1) de las solicitudes del demo, por título (encargo catalogo-ibso): la correspondencia de
+ * la plantilla más la del demo (scripts/catalogo/datos/ibso-correspondencia.json). Solo agrega enlaces. También solo,
+ * con `--solo ibso`. La plantilla de dev no se toca aquí (la liga scripts/catalogo/ligar-ibso.mjs).
+ */
+async function ibso() {
+  log("\n12. Ligas IBSO (NIS A-1) de solicitudes existentes");
+  const plan = await planIbso(db, { conjuntos: ["plantilla", "demo-dev"], plantillas: false, reporte: REPORTE });
+  const faltan = plan.solicitudes.filter((x) => x.faltan.length);
+  for (const x of plan.solicitudes) log(`  ${x.faltan.length ? "+" : "✓"} ${x.titulo}${x.faltan.length ? ` · ${x.faltan.join(", ")}` : ""}`);
+  const hecho = await aplicarIbso(db, plan);
+  log(`  ligas IBSO · ${plan.solicitudes.length} solicitudes con IBSO, ${hecho.enlaces} enlaces nuevos (${faltan.length} solicitudes)`);
+}
 
 /** Pasos 10 y 11: ligas GRI/SASB y métricas FN-CB. También solos, con `--solo gri-sasb`. */
 async function griSasb() {
@@ -1690,6 +1705,12 @@ async function main() {
     return;
   }
 
+  // `--solo ibso`: solo el paso 12 (encargo catalogo-ibso), sin tocar el resto del demo.
+  if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "ibso") {
+    await ibso();
+    return;
+  }
+
   // `--solo perfil`: solo el paso 1 (el Perfil del emisor, con el dato G-SIB de FN-CB-550a.1; v6.1), sin tocar el resto.
   if (process.argv.includes("--solo") && process.argv[process.argv.indexOf("--solo") + 1] === "perfil") {
     log("1. Perfil del emisor");
@@ -1759,6 +1780,7 @@ async function main() {
   await objetivos();
 
   await griSasb();
+  await ibso();
 
   log("\n=== resumen ===");
   log(`solicitudes creadas: ${cuenta.creado} · actualizadas: ${cuenta.actualizado}`);

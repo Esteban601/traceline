@@ -21,6 +21,8 @@ export type DatapointCobertura = {
   /** Norma y edición de las filas GRI y SASB («GRI 2», «2021»; «SASB FN-CB», «2025-12»). Nulas en NIIF. */
   estandar: string | null;
   edicion: string | null;
+  /** NIS: pilar ASG (A, S o G) de la NIS A-1. Nulo en los demás marcos. */
+  pilarAsg: string | null;
   pilar: string;
   seccionIndice: string | null;
   descripcion: string;
@@ -49,6 +51,10 @@ export const PILAR_ORDEN = ["gobernanza", "estrategia", "riesgos", "metricas"] a
 
 export const PILAR_LABEL: Record<string, string> = {
   extension: "Fuera de NIIF S1/S2",
+  // Grupos de la sección IBSO (NIS A-1), por pilar ASG.
+  "ibso-A": "Ambiental (A)",
+  "ibso-S": "Social (S)",
+  "ibso-G": "Gobernanza (G)",
   gobernanza: "Gobernanza",
   estrategia: "Estrategia",
   riesgos: "Gestión de riesgos",

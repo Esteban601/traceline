@@ -9,13 +9,18 @@ import { industriaDe } from "@/lib/catalogo-marcos";
 //
 //   · una hoja «GRI» con los contenidos GRI del catálogo;
 //   · una hoja «SASB <industria>» por cada industria del Perfil de la emisora (p. ej. «SASB FN-CB»);
+//   · una hoja «IBSO» con los 30 indicadores de la NIS A-1 (encargo 2026-11-17-catalogo-ibso), al final: Código,
+//     Indicador (el nombre; «qué recopilar» y «cómo se mide» son guía para recopilar y no salen al libro) y Respuesta.
+//     El nombre es redacción de IRStrat, no texto de la norma: le aplica el glosario de CLAUDE.md §5;
 //   · columnas: Código, Requisito (texto literal del catálogo) y, con el generador encendido para la emisora,
 //     Respuesta (la del último documento aprobado, o «En preparación»), como la columna de respuestas del Excel de
 //     taxonomía. Los marcadores de pendiente van en texto plano (CLAUDE.md §5).
 // La norma y la edición van en las propiedades del archivo, no en celdas.
 // =============================================================================
 
-export type FilaGriSasb = { codigo: string; marco: "GRI" | "SASB"; estandar: string | null; edicion: string | null; descripcion: string };
+export type FilaGriSasb = { codigo: string; marco: "GRI" | "SASB" | "NIS"; estandar: string | null; edicion: string | null; descripcion: string; nombre?: string | null };
+
+export const HOJA_IBSO = "IBSO";
 
 export const EN_PREPARACION = "En preparación";
 
@@ -60,21 +65,24 @@ export function armarLibroGriSasb(params: {
   const wb = new ExcelJS.Workbook();
   const grupos = new Map<string, FilaGriSasb[]>();
   for (const f of [...params.filas].sort((a, b) => compararCodigos(a.codigo, b.codigo))) {
-    const hoja = f.marco === "GRI" ? "GRI" : `SASB ${industriaDe(f.estandar) ?? f.estandar ?? ""}`.trim();
+    const hoja = f.marco === "GRI" ? "GRI" : f.marco === "NIS" ? HOJA_IBSO : `SASB ${industriaDe(f.estandar) ?? f.estandar ?? ""}`.trim();
     const arr = grupos.get(hoja) ?? [];
     arr.push(f);
     grupos.set(hoja, arr);
   }
   const conRespuesta = params.respuestas !== null;
   const hojas: { nombre: string; filas: number }[] = [];
-  for (const nombre of [...grupos.keys()].sort((a, b) => (a === "GRI" ? -1 : b === "GRI" ? 1 : a.localeCompare(b)))) {
+  // GRI primero, SASB por industria después, IBSO al final.
+  const orden = (h: string) => (h === "GRI" ? 0 : h === HOJA_IBSO ? 2 : 1);
+  for (const nombre of [...grupos.keys()].sort((a, b) => orden(a) - orden(b) || a.localeCompare(b))) {
+    const esIbso = nombre === HOJA_IBSO;
     const ws = wb.addWorksheet(nombre);
     ws.columns = [{ width: 16 }, { width: 100 }, ...(conRespuesta ? [{ width: 90 }] : [])];
-    const enc = ws.addRow(["Código", "Requisito", ...(conRespuesta ? ["Respuesta"] : [])]);
+    const enc = ws.addRow(["Código", esIbso ? "Indicador" : "Requisito", ...(conRespuesta ? ["Respuesta"] : [])]);
     enc.font = { bold: true };
     for (const f of grupos.get(nombre)!) {
       const r = params.respuestas?.get(f.codigo);
-      const fila = ws.addRow([f.codigo, f.descripcion, ...(conRespuesta ? [r ? textoDelLibro(r, params.ejercicio) : EN_PREPARACION] : [])]);
+      const fila = ws.addRow([f.codigo, esIbso ? (f.nombre ?? f.descripcion) : f.descripcion, ...(conRespuesta ? [r ? textoDelLibro(r, params.ejercicio) : EN_PREPARACION] : [])]);
       fila.alignment = { vertical: "top", wrapText: true };
     }
     ws.views = [{ state: "frozen", ySplit: 1 }];

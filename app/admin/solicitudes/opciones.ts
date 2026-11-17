@@ -41,7 +41,7 @@ export async function cargarOpcionesFormulario(
   const datapointsPromise = soyStaff
     ? db
         .from("datapoints_taxonomia")
-        .select("id, codigo, descripcion, norma, marco")
+        .select("id, codigo, descripcion, norma, marco, nombre")
         .eq("activo", true)
         .order("codigo", { ascending: true })
         .then(({ data }) => data ?? [])
@@ -133,12 +133,15 @@ export async function cargarOpcionesFormulario(
     usuariosCliente,
     staff,
     areas,
-    // `norma` se sustituye por el marco en GRI y SASB: en el selector, un datapoint
-    // de GRI o SASB rotulado 'S1'/'S2' se leería como parte de la norma NIIF.
-    datapoints: (datapoints as unknown as (DatapointOpcion & { marco?: string })[]).map(({ marco, ...d }) => ({
-      ...d,
-      norma: marco === "GRI" || marco === "SASB" ? marco : d.norma,
-    })) as DatapointOpcion[],
+    // `norma` se sustituye por el marco en GRI y SASB (e «IBSO» en NIS): en el selector, un datapoint
+    // de otro marco rotulado 'S1'/'S2' se leería como parte de la norma NIIF. En NIS, la lista muestra
+    // el nombre del indicador y «qué recopilar» (su `descripcion`) viaja aparte: es la descripción por
+    // defecto de una solicitud que se crea desde ese IBSO (encargo catalogo-ibso).
+    datapoints: (datapoints as unknown as (DatapointOpcion & { marco?: string; nombre?: string | null })[]).map(({ marco, nombre, ...d }) =>
+      marco === "NIS"
+        ? { ...d, norma: "IBSO", descripcion: nombre ?? d.descripcion, recopilar: d.descripcion }
+        : { ...d, norma: marco === "GRI" || marco === "SASB" ? marco : d.norma }
+    ) as DatapointOpcion[],
     rubros,
   };
 }

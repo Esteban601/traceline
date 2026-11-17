@@ -74,7 +74,7 @@ export async function cargarCobertura(
   ] = await Promise.all([
     db
       .from("datapoints_taxonomia")
-      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion")
+      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion, nombre, pilar_asg")
       .eq("version_taxonomia", "2025")
       // GRI y SASB retirados (activo = false, p. ej. «GRI 2-7 / 401-1», partido por contenido) no se listan. NIIF, como
       // siempre: este filtro no lo toca.
@@ -115,6 +115,8 @@ export async function cargarCobertura(
     ods: string | null;
     estandar: string | null;
     edicion: string | null;
+    nombre: string | null;
+    pilar_asg: string | null;
   }[];
 
   const tenantsLista = (tenants ?? []) as TenantOpcion[];
@@ -179,9 +181,11 @@ export async function cargarCobertura(
       marco: d.marco,
       estandar: d.estandar,
       edicion: d.edicion,
+      pilarAsg: d.pilar_asg,
       pilar: d.pilar,
       seccionIndice: d.seccion_indice,
-      descripcion: d.descripcion,
+      // NIS: el nombre del indicador va delante de «qué recopilar» (la descripción, redacción de IRStrat).
+      descripcion: d.marco === "NIS" && d.nombre ? `${d.nombre}: ${d.descripcion}` : d.descripcion,
       ods: d.ods,
       cobertura: coberturaDe(ligadas.map((s) => s.estado)),
       esPadre: PADRES.has(d.codigo),

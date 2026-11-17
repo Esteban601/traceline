@@ -8,6 +8,8 @@ export type DatapointOpcion = {
   codigo: string;
   descripcion: string;
   norma: string;
+  /** Solo IBSO: «qué recopilar», descripción por defecto de una solicitud nueva ligada a él. */
+  recopilar?: string;
 };
 
 /**
