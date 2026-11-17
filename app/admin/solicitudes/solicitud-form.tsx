@@ -131,6 +131,14 @@ export function SolicitudForm({
   const [rubroTaxonomia, setRubroTaxonomia] = useState(inicial?.rubro_taxonomia ?? "");
   const [notaAlcance, setNotaAlcance] = useState(inicial?.nota_alcance ?? "");
   const [datapointIds, setDatapointIds] = useState<string[]>(inicial?.datapointIds ?? []);
+  // Al crear, ligar un IBSO con la descripción vacía la llena con su «qué recopilar»; lo escrito no se toca.
+  const elegirDatapoints = (ids: string[]) => {
+    if (modo === "crear" && !descripcion.trim()) {
+      const nuevo = ids.filter((id) => !datapointIds.includes(id)).map((id) => datapoints.find((d) => d.id === id)).find((d) => d?.recopilar);
+      if (nuevo?.recopilar) setDescripcion(nuevo.recopilar);
+    }
+    setDatapointIds(ids);
+  };
   // Al crear, la solicitud nace con los presets default encendidos (la server
   // action aplica los mismos si el formulario no trae la sección, y son los que
   // heredan las solicitudes clonadas de plantilla: un solo criterio en los tres
@@ -516,7 +524,7 @@ export function SolicitudForm({
           <DatapointSelector
             todos={datapoints}
             seleccionados={datapointIds}
-            onChange={setDatapointIds}
+            onChange={elegirDatapoints}
           />
         </div>
       )}
