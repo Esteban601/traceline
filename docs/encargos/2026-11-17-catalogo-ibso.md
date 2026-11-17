@@ -168,6 +168,16 @@ Modelo: solo las respuestas IBSO del documento aprobado del demo, con una corrid
 3. **C.7 en la Política de Privacidad** del demo, o C.7 sin solicitud.
 4. **Pilar NIIF obligatorio:** `metricas` para A y S, y `gobernanza` para G. ¿O C.4 y C.5 a `riesgos` y `estrategia`?
 
+### 5.1 Decisiones (Esteban, 17/11/2026)
+
+1. IBSO se liga en la plantilla «con rubros» y también, por título, a las solicitudes existentes de staging, con un
+   script de revisar y `--aplicar` que corre Esteban. Foto de Cobertura antes y después, con esperado: la sección IBSO
+   nueva con sus enlaces y los totales NIIF sin cambio.
+2. Las tres columnas nuevas (`nombre`, `pilar_asg` y `como_se_mide`); `descripcion` lleva «qué recopilar».
+3. C.7 sin solicitud en el demo; la Política de Privacidad liga solo C.8.
+4. Pilar NIIF: C.4 riesgos, C.5 estrategia, A y S métricas, C.1–C.3 y C.6–C.8 gobernanza.
+5. Se versiona el TSV.
+
 ## 6. Paradas
 
 1. **Paso 0:** este documento. Parada para las decisiones de §5.
@@ -179,3 +189,4 @@ Modelo: solo las respuestas IBSO del documento aprobado del demo, con una corrid
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 17/11/2026 | **Paso 0** (lectura) | Cuarto marco sobre lo de v45, con tres columnas nuevas; correspondencia de los 30 (15 con solicitud en la plantilla, 15 sin ella); secciones de los cualitativos; hoja IBSO y sección en Cobertura; ligado de las nueve del demo; estimación de 3.75 jornadas. **Parada:** decisiones de §5 |
+| 17/11/2026 | **Fase 1** (decisiones §5.1), probada en el stack local. **Migraciones:** `20261117120000_catalogo_marco_nis` (marco NIS, tres columnas, CHECK de nombre y pilar ASG para NIS, barrera) y `20261117130000_catalogo_ibso_nis_a1` (los 30, generada por `scripts/catalogo/generar-ibso.mjs` desde el TSV, ya versionado), con su sección en `auditoria-catalogo.md`; tipos con las tres columnas. **Cobertura:** sección «IBSO · NIS A-1» por A/S/G en el tablero y el informe, con conteo aparte; el export la lista con el nombre. **Libro:** hoja «IBSO» al final (Código, Indicador, Respuesta); «qué recopilar» no sale al libro y la hoja no tiene vocabulario de plataforma. **Respuestas:** por la vía GRI/SASB, por captura; C.1–C.5 por sección (bloques 15/18, 18/15, 17/18, 9/27, 19/20/22); B.1, B.5 y C.6–C.8 por evidencia directa. El modelo recibe el nombre y lo que aborda el indicador, sin las instrucciones de recopilación. **Correspondencia** en `scripts/catalogo/datos/ibso-correspondencia.json` (plantilla, demo de dev y Fondo de Fondos). **Ligado** con `scripts/catalogo/ligar-ibso.mjs` (conjuntos `plantilla` y `fondo-de-fondos`, revisar y `--aplicar`), que también usa `poblar-demo --solo ibso`. Esperado de Cobertura `esperado-cobertura-ibso.json`: el comparador admite `solicitudes: "cualquiera"`. **Verificado:** `e2e-catalogo-ibso` en verde; `e2e-respuestas-gri-sasb` con IBSO en verde (57; A.14 por captura, C.1 por sección, C.7 por evidencia, B.5 pendiente, 30 filas y hoja IBSO); `e2e-respuestas-validadores` (110); tablero e informe con la sección; ligado local de los dos conjuntos con segunda pasada en 0; `tsc`, `eslint` y `verify:export`. **Sin probar:** `poblar-demo --solo ibso` (solo corre en dev, que no tiene la migración) | **Parada:** SQL antes de dev |
