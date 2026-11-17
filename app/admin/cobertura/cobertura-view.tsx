@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TONO_CLASSES, ESTADO_META, type EstadoSolicitud } from "@/lib/estados";
 import { ORIGEN_META } from "@/lib/origen";
 import { COBERTURA_META, COBERTURA_ORDEN, type Cobertura } from "@/lib/cobertura";
+import { PILARES_ASG } from "@/lib/catalogo-marcos";
 import {
   PILAR_CORTO,
   PILAR_LABEL,
@@ -98,6 +99,10 @@ export function CoberturaView({
     () => todosLosDatapoints.filter((d) => d.marco === "SASB"),
     [todosLosDatapoints]
   );
+  const datapointsIbso = useMemo(
+    () => todosLosDatapoints.filter((d) => d.marco === "NIS"),
+    [todosLosDatapoints]
+  );
 
   const [norma, setNorma] = useState<Norma | "todos">("todos");
   const [pilares, setPilares] = useState<Set<string>>(new Set());
@@ -172,6 +177,7 @@ export function CoberturaView({
   const clavesExpandibles = [
     ...grupos.map((g) => g.key),
     ...(datapointsGri.length > 0 ? ["gri"] : []),
+    ...PILARES_ASG.filter((p) => datapointsIbso.some((d) => d.pilarAsg === p.clave)).map((p) => `ibso-${p.clave}`),
   ];
   const todosAbiertos =
     clavesExpandibles.length > 0 && clavesExpandibles.every((k) => abiertos.has(k));
@@ -371,7 +377,64 @@ export function CoberturaView({
           onToggle={() => toggleGrupo("sasb")}
         />
       )}
+
+      {datapointsIbso.length > 0 && (
+        <SeccionIbso items={datapointsIbso} abiertos={abiertos} onToggle={toggleGrupo} />
+      )}
     </div>
+  );
+}
+
+/**
+ * IBSO · NIS A-1 — los 30 Indicadores Básicos de Sostenibilidad del CINIF, aparte de NIIF como GRI y SASB, con su
+ * propio conteo y agrupados por pilar ASG (A, S, G). Las tarjetas llevan el nombre del indicador y qué recopilar
+ * (redacción de IRStrat; el texto de la norma no se reproduce).
+ */
+function SeccionIbso({
+  items,
+  abiertos,
+  onToggle,
+}: {
+  items: DatapointCobertura[];
+  abiertos: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  const conteo = distribucion(items);
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-6">
+        <h2 className="font-display text-lg font-semibold text-ink">
+          IBSO · NIS A-1
+          <span className="ml-2 text-sm font-normal text-muted">
+            {items.length} {items.length === 1 ? "indicador" : "indicadores"} · NIS A-1 (2024)
+          </span>
+        </h2>
+        <p className="max-w-2xl text-xs leading-relaxed text-muted">
+          Fuera de la taxonomía NIIF S1/S2: los Indicadores Básicos de Sostenibilidad de la NIS A-1 del CINIF, por pilar
+          ambiental, social y de gobernanza. No cuentan en el avance de arriba; van en el libro GRI, SASB e IBSO.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {PILARES_ASG.map((p) => {
+          const delPilar = items.filter((d) => d.pilarAsg === p.clave);
+          if (!delPilar.length) return null;
+          return (
+            <div key={p.clave} className="rounded-card border border-gold/30 bg-gold/[0.04]">
+              <GrupoCobertura
+                norma={"IBSO" as unknown as Norma}
+                pilar={`ibso-${p.clave}`}
+                items={delPilar}
+                abierto={abiertos.has(`ibso-${p.clave}`)}
+                onToggle={() => onToggle(`ibso-${p.clave}`)}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <p className="sr-only">
+        {COBERTURA_ORDEN.map((c) => `${COBERTURA_META[c].label}: ${conteo[c]}`).join(", ")}
+      </p>
+    </section>
   );
 }
 
