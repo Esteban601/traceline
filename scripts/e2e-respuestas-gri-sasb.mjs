@@ -104,7 +104,7 @@ const ponerSector = (arr) => {
 };
 ponerSector([SECTOR]);
 
-let LIBRO = null, DOC = null, SOL_CAP = { s: null }, SOL_TXT = { s: null };
+let LIBRO = null, DOC = null, SOL_CAP = { s: null }, SOL_TXT = { s: null }, SOL_RES = { s: null };
 const nav = await chromium.launch();
 try {
 // --- Libro, hechos y documento ------------------------------------------------------------------
@@ -134,10 +134,14 @@ const solicitud = (titulo, cuant, unidad, codigo) => {
 SOL_CAP = solicitud("[e2e-gri-sasb] Participantes en educación financiera 2025", true, "participantes", "FN-CB-240a.4");
 psql(`insert into capturas_valor (solicitud_id, evidencia_id, valor, unidad, periodo, capturado_por, confirmado) values (${lit(SOL_CAP.s)}, ${lit(SOL_CAP.ev)}, 14200, 'participantes', '2025', ${lit(STAFF)}, true)`, true);
 SOL_TXT = solicitud("[e2e-gri-sasb] Política de seguridad de la información", false, null, "FN-CB-230a.2");
+// IBSO (encargo catalogo-ibso): la política también responde C.7 (evidencia directa) y una cifra de residuos, A.14 (captura).
+psql(`insert into mapeo_solicitud_datapoint (solicitud_id, datapoint_id) values (${lit(SOL_TXT.s)}, ${lit(dp("IBSO C.7"))})`);
+SOL_RES = solicitud("[e2e-gri-sasb] Residuos generados 2025", true, "t", "IBSO A.14");
+psql(`insert into capturas_valor (solicitud_id, evidencia_id, valor, unidad, periodo, capturado_por, confirmado) values (${lit(SOL_RES.s)}, ${lit(SOL_RES.ev)}, 1086.8, 't', '2025', ${lit(STAFF)}, true)`, true);
 // El trigger de evidencias ya creó su fila de lectura; se marca omitida (sin modelo) y se usa para el extracto.
 const CONT = id(`update evidencias_contenido set estado = 'omitido' where evidencia_id = ${lit(SOL_TXT.ev)} returning id`);
 psql(`insert into sugerencias_captura (solicitud_id, tenant_id, evidencia_id, contenido_id, evidencia_version, tipo, estado, extracto, decidido_en) values (${lit(SOL_TXT.s)}, ${lit(TENANT)}, ${lit(SOL_TXT.ev)}, ${lit(CONT)}, 1, 'texto', 'confirmada', 'La Compañía cuenta con una política de seguridad de la información revisada anualmente.', now())`);
-psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)}, ${lit(SOL_TXT.s)})`, true);
+psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)}, ${lit(SOL_TXT.s)}, ${lit(SOL_RES.s)})`, true);
 
   console.log("1. Aprobación y respuestas");
   const ctx = await nav.newContext();
@@ -166,6 +170,17 @@ psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)},
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave like 'FN-CB-%'`) === "17", "las 17 de FN-CB con fila");
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave like 'GRI %'`) === "37", "los 37 contenidos GRI con fila");
   ok(Number(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave like 'NIIF%'`)) >= 110, "las NIIF siguen todas");
+  // IBSO (catalogo-ibso): captura, sección y evidencia directa; los 30 con fila, solo en destino «taxonomia».
+  const iA14 = resp(DOC, "IBSO A.14");
+  ok(iA14.estado === "respuesta" && iA14.origen === "captura" && /1,?086\.8/.test(iA14.texto), `IBSO A.14 de la captura («${iA14.texto}»)`);
+  const iC1 = resp(DOC, "IBSO C.1");
+  ok(iC1.estado === "respuesta" && iC1.bloque === "15" && !/Ver sección/.test(iC1.texto), `IBSO C.1 de la sección 15, sin remisión (${iC1.estado}/${iC1.bloque})`);
+  const iC7 = resp(DOC, "IBSO C.7");
+  ok(iC7.estado === "pendiente" && /\[Pendiente: respuesta de IBSO C\.7 desde su evidencia — solicitud \[e2e-gri-sasb\] Política de seguridad/.test(iC7.texto), "IBSO C.7 por evidencia directa (sin modelo: pendiente que nombra la solicitud)");
+  const iB5 = resp(DOC, "IBSO B.5");
+  ok(iB5.estado === "pendiente" && /sin solicitud en el reporte ni sección del suplemento/.test(iB5.texto), "IBSO B.5 sin fuente: pendiente «sin solicitud…»");
+  ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave like 'IBSO %'`) === "30", "los 30 IBSO con fila");
+  ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='formato' and clave like 'IBSO %'`) === "0", "IBSO solo en destino «taxonomia»");
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='formato' and (clave like 'GRI %' or clave like 'FN-CB-%')`) === "0", "GRI y SASB solo en destino «taxonomia»");
 
   console.log("\n2. Libro GRI/SASB");
@@ -175,6 +190,10 @@ psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)},
     const w = new ExcelJS.Workbook(); await w.xlsx.load(b);
     const fila = (hoja, cod) => { let r = null; w.getWorksheet(hoja)?.eachRow((x) => { if (t(x.getCell(1).value) === cod) r = t(x.getCell(3).value); }); return r; };
     ok(fila("GRI", "GRI 2-9") === g29.texto, "GRI 2-9 con su respuesta");
+    let nIbso = 0; w.getWorksheet("IBSO")?.eachRow((x, i) => { if (i > 1) nIbso++; });
+    ok(w.worksheets.at(-1)?.name === "IBSO" && nIbso === 30, `hoja «IBSO» al final con 30 indicadores (${nIbso})`);
+    ok(fila("IBSO", "IBSO C.1") === iC1.texto, "IBSO C.1 con su respuesta");
+    ok(/1,?086\.8 t/.test(fila("IBSO", "IBSO A.14") ?? ""), `IBSO A.14 con su cifra («${fila("IBSO", "IBSO A.14")}»)`);
     ok(/^Pendiente: información no disponible en el reporte \d{4}$/.test(fila("SASB FN-CB", "FN-CB-230a.2") ?? ""), "FN-CB-230a.2 con el pendiente en voz de la emisora (v6.1)");
   }
 
@@ -202,6 +221,7 @@ psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)},
   ok(e4 === "listo", `respuestas en «listo» (${e4})`);
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and clave like 'FN-CB-%'`) === "0", "0 filas SASB");
   ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave like 'GRI %'`) === "37", "GRI sigue con 37");
+  ok(psql(`select count(*) from respuestas_datapoint where documento_id=${lit(DOC)} and destino='taxonomia' and clave like 'IBSO %'`) === "30", "IBSO sigue con 30 (no depende del sector SASB)");
 } catch (e) {
   fallas.push(`excepción: ${e.message}`);
   console.log(`  ✗ excepción: ${e.message}`);
@@ -210,10 +230,10 @@ psql(`update solicitudes set estado = 'validado' where id in (${lit(SOL_CAP.s)},
   console.log("\nLimpieza");
   if (DOC) psql(`delete from documentos_generados where id=${lit(DOC)}`);
   if (LIBRO) psql(`delete from libros_hechos where id=${lit(LIBRO)}`);
-  for (const s of [SOL_CAP.s, SOL_TXT.s].filter(Boolean)) {
+  for (const s of [SOL_CAP.s, SOL_TXT.s, SOL_RES.s].filter(Boolean)) {
     psql(`delete from sugerencias_captura where solicitud_id=${lit(s)}; delete from evidencias_contenido where solicitud_id=${lit(s)}; delete from capturas_valor where solicitud_id=${lit(s)}; delete from evidencias where solicitud_id=${lit(s)}; delete from solicitudes where id=${lit(s)}`, true);
   }
-  const ids = [DOC, SOL_CAP.s, SOL_TXT.s].filter(Boolean);
+  const ids = [DOC, SOL_CAP.s, SOL_TXT.s, SOL_RES.s].filter(Boolean);
   if (ids.length) psql(`delete from bitacora where created_at >= ${lit(inicio)}::timestamptz and entidad_id in (${ids.map(lit).join(",")})`, true);
   const [gA, m] = tenantAntes.split("|");
   psql(`update tenants set generador_activo = ${gA === "true" || gA === "t"}, generaciones_mes_max = ${m} where id=${lit(TENANT)}`);
