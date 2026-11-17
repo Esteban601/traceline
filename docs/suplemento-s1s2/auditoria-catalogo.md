@@ -438,3 +438,50 @@ renglones de plantilla pasan a las dos (en dev no tenía ninguno).
 | `GRI 404-1` | GRI 404 | 2016 | 8 | GRI 404_ Formación y educación 2016 - Spanish.pdf | Literal (sustituye la redacción de 2026-08) |
 | `GRI 401-1` | GRI 401 | 2016 | 9 | GRI 401_ Empleo 2016 - Spanish.pdf | Literal (nuevo) |
 | `GRI 2-7 / 401-1` | GRI 2 / GRI 401 | 2021 / 2016 | — | — | Retirado (`activo = false`) |
+
+## Catálogo IBSO (NIS A-1 del CINIF) · 17 de noviembre de 2026
+
+Encargo `docs/encargos/2026-11-17-catalogo-ibso.md`, Fase 1. Migraciones `20261117120000_catalogo_marco_nis` (marco
+`NIS`; columnas `nombre`, `pilar_asg` y `como_se_mide`; nombre y pilar ASG obligatorios para NIS) y
+`20261117130000_catalogo_ibso_nis_a1` (datos, GENERADA por `scripts/catalogo/generar-ibso.mjs` desde
+`scripts/catalogo/datos/ibso-nis-a1.tsv`).
+
+- **Redacción de IRStrat, no texto de la norma.** Nombre, cómo se mide y qué recopilar son del TSV; la NIS 2024
+  (`normas/_fuentes/…/NIS 2024.pdf`, no versionada) se cita por clave y no se reproduce (`CLAUDE.md` §4). Las 30 claves
+  del TSV aparecen en la NIS 2024. `pagina_origen` queda nula.
+- **Columnas:** `codigo` = «IBSO <clave>»; estándar «NIS A-1», edición «2024»; `descripcion` = qué recopilar.
+- **Relleno de columnas NIIF:** `norma` = S1. `pilar` según la decisión 4 de Esteban (17/11/2026): C.4 riesgos, C.5
+  estrategia, A y S métricas, C.1–C.3 y C.6–C.8 gobernanza.
+
+| Código | Nombre | ASG | Pilar NIIF | Veredicto |
+|---|---|---|---|---|
+| `IBSO A.1` | Emisiones GEI: alcance 1 | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.2` | Emisiones GEI: alcance 2 | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.3` | Emisiones GEI: alcance 3 | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.4` | Consumo energético | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.5` | Energía renovable consumida | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.6` | Inversión sostenible | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.7` | Agua ingresada | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.8` | Agua reaprovechada | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.9` | Aguas residuales descargadas | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.10` | Aguas residuales tratadas | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.11` | Agua de zonas con estrés hídrico | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.12` | Suelo en zonas sensibles para la biodiversidad o próximas a ellas | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.13` | Dependencia de sustancias que agotan el ozono | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.14` | Residuos generados | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.15` | Residuos reaprovechados | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO A.16` | Residuos peligrosos | A | metricas | Redacción IRStrat (nuevo) |
+| `IBSO B.1` | Gestión de igualdad y trabajo digno | S | metricas | Redacción IRStrat (nuevo) |
+| `IBSO B.2` | Brecha salarial | S | metricas | Redacción IRStrat (nuevo) |
+| `IBSO B.3` | Capacitación | S | metricas | Redacción IRStrat (nuevo) |
+| `IBSO B.4` | Evaluación y desarrollo profesional | S | metricas | Redacción IRStrat (nuevo) |
+| `IBSO B.5` | Gestión de salud y seguridad laboral | S | metricas | Redacción IRStrat (nuevo) |
+| `IBSO B.6` | Accidentes y enfermedades laborales con incapacidad o fallecimiento | S | metricas | Redacción IRStrat (nuevo) |
+| `IBSO C.1` | Consejo de administración | G | gobernanza | Redacción IRStrat (nuevo) |
+| `IBSO C.2` | Participación de mujeres en el consejo | G | gobernanza | Redacción IRStrat (nuevo) |
+| `IBSO C.3` | Vigilancia independiente | G | gobernanza | Redacción IRStrat (nuevo) |
+| `IBSO C.4` | Política de riesgos | G | riesgos | Redacción IRStrat (nuevo) |
+| `IBSO C.5` | Estrategia de sostenibilidad | G | estrategia | Redacción IRStrat (nuevo) |
+| `IBSO C.6` | Integridad y ética | G | gobernanza | Redacción IRStrat (nuevo) |
+| `IBSO C.7` | Seguridad de información | G | gobernanza | Redacción IRStrat (nuevo) |
+| `IBSO C.8` | Privacidad y protección de datos de terceros | G | gobernanza | Redacción IRStrat (nuevo) |

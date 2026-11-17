@@ -120,7 +120,9 @@ function comparar(antes, despues, esperado) {
     // `excepciones` (opcional): por emisora, el estado que tiene en lugar del general (p. ej. los enlaces que una
     // migración arrastra a un código nuevo en la única emisora que los tenía; v46, Grupo Carso).
     const de = (x) => ({ ...e, ...(e?.excepciones?.[x.emisora] ?? {}) });
-    const ok = e && (e.emisoras === "todas" ? cuantas === total : cuantas === e.emisoras) && (cambio !== "nuevo" || xs.every((x) => x.solicitudes === de(x).solicitudes && x.cobertura === de(x).cobertura));
+    // `solicitudes: "cualquiera"` (IBSO, encargo catalogo-ibso): un código nuevo que el ligado por título conecta con
+    // un número distinto de solicitudes en cada emisora; basta con que aparezca en las emisoras previstas.
+    const ok = e && (e.emisoras === "todas" ? cuantas === total : cuantas === e.emisoras) && (cambio !== "nuevo" || e.solicitudes === "cualquiera" || xs.every((x) => x.solicitudes === de(x).solicitudes && x.cobertura === de(x).cobertura));
     console.log(`${ok ? "✓" : "✗"} ${codigo} · ${cambio} en ${cuantas} de ${total} emisoras · ${estados.join(" | ")}${ok ? " (prevista)" : " (NO PREVISTA)"}`);
     if (!ok) noPrevistas.push(k);
   }

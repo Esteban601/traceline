@@ -636,7 +636,7 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // solo cambia lo que el código añade, como la remisión. Al reaprobar con un
     // bloque cambiado, solo se regeneran las respuestas de ese bloque.
     db.from("respuestas_datapoint").select("documento_id, destino, clave, origen, texto, bloque, bloque_version, prompt_version, hechos, notas, costo_usd, tokens_entrada, tokens_cache_escritura, tokens_cache_lectura, tokens_salida").eq("reporte_id", doc.reporte_id).eq("origen", "modelo"),
-    db.from("datapoints_taxonomia").select("id, codigo, descripcion, marco, estandar, edicion").eq("activo", true),
+    db.from("datapoints_taxonomia").select("id, codigo, descripcion, marco, estandar, edicion, nombre").eq("activo", true),
     // Todo el Perfil: `banco_sistemico_global` (FN-CB-550a.1, v6.1) puede no existir aún en un ambiente sin su migración.
     db.from("perfil_emisor").select("*").eq("tenant_id", doc.tenant_id).maybeSingle(),
     db.from("mapeo_solicitud_datapoint").select("datapoint_id, solicitud:solicitudes!inner(id, reporte_id, titulo)").eq("solicitud.reporte_id", doc.reporte_id),
@@ -693,13 +693,14 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     solsPorDatapoint.set(e.datapoint_id, [...(solsPorDatapoint.get(e.datapoint_id) ?? []), e.solicitud]);
   }
 
-  type FilaCatalogo = { id: string; codigo: string; descripcion: string; marco: string; estandar: string | null; edicion: string | null };
+  type FilaCatalogo = { id: string; codigo: string; descripcion: string; marco: string; estandar: string | null; edicion: string | null; nombre?: string | null };
   const codigos = ((catalogo ?? []) as FilaCatalogo[]).filter((c) => c.codigo.startsWith("NIIF"));
   const descripcion = new Map(codigos.map((c) => [c.codigo, c.descripcion]));
   // GRI y SASB (encargo catalogo-gri-sasb, Fase 2a): SASB solo de la industria del Perfil. Su descripción para el
   // modelo es el texto literal de la norma, con el aviso de que no es NIIF (lib/suplemento/gri-sasb.ts).
   const industrias = industriasSasb((perfil as { sector_sasb?: string[] | null } | null)?.sector_sasb);
-  const codigosGS = ((catalogo ?? []) as FilaCatalogo[]).filter((c) => (c.marco === "GRI" || c.marco === "SASB") && aplicaAEmisora(c, industrias));
+  // IBSO (marco NIS, encargo catalogo-ibso) entra por la misma vía y aplica a toda emisora.
+  const codigosGS = ((catalogo ?? []) as FilaCatalogo[]).filter((c) => (c.marco === "GRI" || c.marco === "SASB" || c.marco === "NIS") && aplicaAEmisora(c, industrias));
   for (const c of codigosGS) descripcion.set(c.codigo, descripcionGriSasb(c));
   const idDe = new Map([...codigos, ...codigosGS].map((c) => [c.codigo, c.id]));
   // Extractos de texto confirmados de las solicitudes ligadas a GRI/SASB: el más reciente por solicitud (como el libro).

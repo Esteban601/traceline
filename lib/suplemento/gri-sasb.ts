@@ -12,6 +12,10 @@
 //   4. si nada de eso hay, «Pendiente» con el marcador de CLAUDE.md §5.
 // Las tres que usan modelo pasan por los mismos validadores que las NIIF (validarRespuesta, erroresDeForma).
 // SASB solo entra para la industria del Perfil de la emisora (lib/catalogo-marcos.ts).
+//
+// IBSO (los 30 indicadores de la NIS A-1, encargo 2026-11-17-catalogo-ibso) entra por la misma vía: los cuantitativos
+// por captura; C.1–C.5 por sección (tabla de abajo); B.1, B.5 y C.6–C.8 sin sección, por evidencia directa (los
+// extractos de sus solicitudes). Su descripción para el modelo es la redacción de IRStrat (nombre y qué recopilar).
 // =============================================================================
 
 /**
@@ -69,6 +73,13 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
   "FN-CB-410b.3": { bloques: [33, 25, 39], tema: /PCAF|porcentaje de la cartera|cartera empresarial cubierta/i, extra: [/^alivios\.c4/] },
   "FN-CB-410b.4": { bloques: [33, 25, 39], tema: /PCAF|metodolog|calidad de (los )?datos/i, extra: [/^alivios\.c4/] },
   "FN-CB-550a.2": { bloques: [26, 34], tema: /pruebas? de estr[eé]s|estr[eé]s financiero|suficiencia de capital|planeaci[oó]n de capital|solvencia/i },
+  // IBSO · NIS A-1: los cualitativos de gobernanza con sección (Paso 0, §0.3). C.2 va primero por captura (la cifra de
+  // consejeras), y su sección con los extractos de sus solicitudes como hechos, como GRI 2-9.
+  "IBSO C.1": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer/i },
+  "IBSO C.2": { bloques: [18, 15], tema: /mujer|g[eé]nero|consejeras?/i, extractosEnSeccion: true },
+  "IBSO C.3": { bloques: [17, 18], tema: /independ|vigilancia|comit[eé] de auditor|auditor[ií]a interna|control(es)? interno/i },
+  "IBSO C.4": { bloques: [9, 27], tema: /riesgos?|apetito|pol[ií]tica de riesgos|gesti[oó]n integral/i },
+  "IBSO C.5": { bloques: [19, 20, 22], tema: /estrategia|sostenib|compromiso|hoja de ruta|plan/i },
 };
 
 /**
@@ -118,11 +129,25 @@ export function erroresGriSasb(texto: string, codigo: string): string[] {
   return errores;
 }
 
-/** Contenido GRI o SASB (no NIIF): lo que entra por esta vía. */
-export const esGriSasb = (codigo: string): boolean => /^GRI \d|^[A-Z]{2}-[A-Z]{2}-/.test(codigo);
+/** Contenido GRI, SASB o indicador IBSO (no NIIF): lo que entra por esta vía. */
+export const esGriSasb = (codigo: string): boolean => /^GRI \d|^[A-Z]{2}-[A-Z]{2}-|^IBSO [ABC]\.\d/.test(codigo);
+
+/**
+ * IBSO: de «qué información aborda y qué recopilar», solo lo que el indicador aborda. Las instrucciones de recopilación
+ * («Recopilar…», «Conservar…», «con evidencia de…») son para quien junta la información, no para la respuesta.
+ */
+export function queAborda(texto: string): string {
+  return texto
+    .split(/(?<=\.)\s+/)
+    .filter((o) => !/^(Recopilar|Conservar)\b/.test(o) && !/\bevidencia\b/i.test(o))
+    .join(" ")
+    .trim();
+}
 
 /** Descripción del requisito para el modelo: el texto literal de la norma, con el aviso de que no es NIIF. */
-export function descripcionGriSasb(d: { codigo: string; estandar: string | null; edicion: string | null; descripcion: string }): string {
+export function descripcionGriSasb(d: { codigo: string; marco?: string; estandar: string | null; edicion: string | null; descripcion: string; nombre?: string | null }): string {
+  // IBSO: redacción de IRStrat, no texto de la norma (que no se reproduce): el nombre y qué información aborda.
+  if (d.marco === "NIS") return `Indicador ${d.codigo} («${d.nombre ?? ""}») de la ${d.estandar ?? "NIS A-1"}${d.edicion ? ` (${d.edicion})` : ""} del CINIF, no de NIIF S1/S2. Qué información aborda: ${queAborda(d.descripcion)} Responde con lo que la fuente dice de este indicador, como respuesta propia; si la fuente no cubre una parte, no la afirmes ni la inventes.`;
   const norma = `${d.estandar ?? ""}${d.edicion ? ` (${d.edicion})` : ""}`.trim();
   const idioma = d.estandar?.startsWith("SASB") ? " El requisito está en inglés (norma SASB sin traducción oficial); la respuesta va en español." : "";
   const reglas = [REGLAS_GRI_SASB[d.codigo], /^GRI /.test(d.codigo) && REGLAS_GRI_SASB[d.codigo] !== COBERTURA_PARCIAL ? COBERTURA_PARCIAL : null].filter(Boolean);

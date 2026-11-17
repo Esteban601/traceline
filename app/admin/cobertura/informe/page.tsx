@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esStaff } from "@/lib/data";
+import { PILARES_ASG } from "@/lib/catalogo-marcos";
 import { APP_NAME } from "@/lib/app";
 import { cn } from "@/lib/cn";
 import { Anillo } from "@/components/ui/anillo";
@@ -169,6 +170,7 @@ export default async function InformeCoberturaPage({
   const niif = datos.filas.filter((d) => d.marco === "NIIF");
   const gri = datos.filas.filter((d) => d.marco === "GRI");
   const sasb = datos.filas.filter((d) => d.marco === "SASB");
+  const ibso = datos.filas.filter((d) => d.marco === "NIS");
   // Los padres que agrupan incisos se listan pero no cuentan (lib/cobertura-vista.ts, contables).
   const universo = contables(niif).length;
   const dist = distribucion(niif);
@@ -377,6 +379,21 @@ export default async function InformeCoberturaPage({
               industria de la emisora. No cuentan en el avance de arriba.
             </p>
             <Grupo titulo="Métricas con código SASB" items={sasb} />
+          </section>
+        )}
+        {ibso.length > 0 && (
+          <section className="mt-8">
+            <h2 className="bloque text-[11px] font-semibold uppercase tracking-wide text-muted">
+              IBSO · NIS A-1
+            </h2>
+            <p className="bloque mt-1 max-w-2xl text-[11px] leading-relaxed text-muted">
+              Fuera de la taxonomía NIIF S1/S2: los Indicadores Básicos de Sostenibilidad de
+              la NIS A-1 del CINIF, por pilar. No cuentan en el avance de arriba.
+            </p>
+            {PILARES_ASG.map((p) => {
+              const items = ibso.filter((d) => d.pilarAsg === p.clave);
+              return items.length ? <Grupo key={p.clave} titulo={`${p.titulo} (${p.clave})`} items={items} /> : null;
+            })}
           </section>
         )}
 

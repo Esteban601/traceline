@@ -83,7 +83,7 @@ export async function GET(request: Request) {
   ] = await Promise.all([
     supabase
       .from("datapoints_taxonomia")
-      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion")
+      .select("id, codigo, norma, marco, pilar, seccion_indice, descripcion, ods, estandar, edicion, nombre")
       .eq("version_taxonomia", "2025")
       // GRI y SASB retirados (activo = false, p. ej. «GRI 2-7 / 401-1», partido por contenido) no se listan. NIIF, como
       // siempre: este filtro no lo toca.
@@ -122,7 +122,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const catalogo = (dps ?? []) as {
+  const catalogo = ((dps ?? []) as {
     id: string;
     codigo: string;
     norma: string;
@@ -133,7 +133,10 @@ export async function GET(request: Request) {
     ods: string | null;
     estandar: string | null;
     edicion: string | null;
-  }[];
+    nombre: string | null;
+  }[])
+    // NIS: el nombre del indicador va delante de «qué recopilar», como en el tablero (lib/cobertura-datos.ts).
+    .map((d) => (d.marco === "NIS" && d.nombre ? { ...d, descripcion: `${d.nombre}: ${d.descripcion}` } : d));
   // SASB: solo la industria del Perfil del cliente seleccionado (sin selección, todas), como el tablero.
   const industrias = tenantParam
     ? industriasSasb((await supabase.from("perfil_emisor").select("sector_sasb").eq("tenant_id", tenantParam).maybeSingle()).data?.sector_sasb)
