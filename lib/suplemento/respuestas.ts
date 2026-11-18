@@ -22,7 +22,7 @@ import { enForma, formaDeReferencia, formasAjenas, mensajeFormaAjena, type Voz }
 import { PENDIENTE_DECLARACION, declaracionVigente } from "@/lib/suplemento/declaracion";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
-import { CAPTURA_IBSO, FUENTE_GRI_SASB, RESPUESTA_GRI_24_PRIMER_ANIO, capturaRespondeIbso, descripcionGriSasb, erroresGriSasb, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, respuestaIbsoDeCaptura, seccionDe } from "@/lib/suplemento/gri-sasb";
+import { CAPTURA_IBSO, FUENTE_GRI_SASB, RESPUESTA_GRI_24_PRIMER_ANIO, capturaRespondeIbso, descripcionGriSasb, erroresGriSasb, erroresIbsoDeCaptura, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, respuestaIbsoDeCaptura, seccionDe } from "@/lib/suplemento/gri-sasb";
 
 // =============================================================================
 // RESPUESTAS POR DATAPOINT (encargo 2026-10-13-excel-respuestas-narrativas,
@@ -809,7 +809,13 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // alcance. Si no, sigue a la sección, la evidencia o el pendiente.
     if (esIbso(codigo)) {
       const captura = deCaptura(codigo, (s) => capturaRespondeIbso(codigo, s.titulo, ibsoPorSolicitud.get(s.id) ?? 0));
-      if (captura) return { ...captura, texto: respuestaIbsoDeCaptura(codigo, nombreDe.get(codigo) ?? codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
+      if (captura) {
+        const texto = respuestaIbsoDeCaptura(codigo, nombreDe.get(codigo) ?? codigo, String(captura.valor.solicitud ?? ""), captura.texto);
+        // La línea de alcance es obligatoria cuando «cómo se mide» pide más que la cifra; sin ella, pendiente.
+        const errores = erroresIbsoDeCaptura(codigo, texto);
+        if (!errores.length) return { ...captura, texto };
+        return { codigo, via: "regla", estado: "pendiente", texto: marcador(`línea de alcance de ${codigo}: «cómo se mide» pide ${CAPTURA_IBSO[codigo]!.pide}`, `solicitud ${captura.valor.solicitud}`), notas: errores };
+      }
       // `siempre` (C.2): solo por esa captura; ni sección ni evidencia directa.
       if (CAPTURA_IBSO[codigo]?.siempre) return { codigo, via: "regla", estado: "pendiente", texto: marcador(`cifra que pide ${codigo} (${nombreDe.get(codigo) ?? codigo}) de una captura del consejo`, sols.length ? `solicitud ${sols[0].titulo}` : "sin solicitud en el reporte") };
     }

@@ -406,6 +406,8 @@ console.log("\nCorrecciones v6.2 (decisión de Esteban del 10/11/2026)");
       ok(/Alcance: solo electricidad; no incluye combustibles\.$/.test(I("A.4")), "[v48-IBSO] A.4 declara su alcance");
       ok(/Alcance: inversión y gasto ambiental; no se distingue la parte que califica como inversión sostenible\.$/.test(I("A.6")), "[v48-IBSO] A.6 declara su alcance");
       ok(/Alcance: horas totales; no incluye el promedio por trabajador\.$/.test(I("B.3")), "[v48-IBSO] B.3 declara que no trae el promedio por trabajador");
+      ok(/Alcance: consumo de agua por fuente, reportado como agua ingresada; no distingue agua reaprovechada\.$/.test(I("A.7")), "[v48-IBSO] A.7 declara su alcance");
+      ok(/Alcance: total de Alcance 3; la cifra no identifica las categorías incluidas ni los métodos de estimación\.$/.test(I("A.3")), "[v48-IBSO] A.3 declara su alcance");
     }
   }
 }
