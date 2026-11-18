@@ -22,7 +22,7 @@ import { enForma, formaDeReferencia, formasAjenas, mensajeFormaAjena, type Voz }
 import { PENDIENTE_DECLARACION, declaracionVigente } from "@/lib/suplemento/declaracion";
 import mapeoFormato from "@/docs/suplemento-s1s2/mapeo-formato-electronico.json" with { type: "json" };
 import { aplicaAEmisora, industriasSasb } from "@/lib/catalogo-marcos";
-import { FUENTE_GRI_SASB, RESPUESTA_GRI_24_PRIMER_ANIO, descripcionGriSasb, erroresGriSasb, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, seccionDe } from "@/lib/suplemento/gri-sasb";
+import { CAPTURA_IBSO, FUENTE_GRI_SASB, RESPUESTA_GRI_24_PRIMER_ANIO, capturaRespondeIbso, descripcionGriSasb, erroresGriSasb, esGriSasb, respuestaGri23, respuestaGriDeCaptura, respuestaGsib, respuestaIbsoDeCaptura, seccionDe } from "@/lib/suplemento/gri-sasb";
 
 // =============================================================================
 // RESPUESTAS POR DATAPOINT (encargo 2026-10-13-excel-respuestas-narrativas,
@@ -703,6 +703,11 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
   const codigosGS = ((catalogo ?? []) as FilaCatalogo[]).filter((c) => (c.marco === "GRI" || c.marco === "SASB" || c.marco === "NIS") && aplicaAEmisora(c, industrias));
   for (const c of codigosGS) descripcion.set(c.codigo, descripcionGriSasb(c));
   const idDe = new Map([...codigos, ...codigosGS].map((c) => [c.codigo, c.id]));
+  // IBSO: nombre del indicador y cuántos IBSO liga cada solicitud (CAPTURA_IBSO).
+  const esIbso = (codigo: string) => codigo.startsWith("IBSO ");
+  const nombreDe = new Map(codigosGS.filter((c) => c.marco === "NIS" && c.nombre).map((c) => [c.codigo, c.nombre!.trim()]));
+  const ibsoPorSolicitud = new Map<string, number>();
+  for (const c of codigosGS.filter((x) => x.marco === "NIS")) for (const s of solsPorDatapoint.get(c.id) ?? []) ibsoPorSolicitud.set(s.id, (ibsoPorSolicitud.get(s.id) ?? 0) + 1);
   // Extractos de texto confirmados de las solicitudes ligadas a GRI/SASB: el más reciente por solicitud (como el libro).
   const extractoDe = new Map<string, string>();
   {
@@ -748,8 +753,8 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
 
   const solicitudesDe = (codigo: string) => { const id = idDe.get(codigo); return id ? solsPorDatapoint.get(id) ?? [] : []; };
   /** Sin bloque dueño, con captura confirmada de una solicitud cuantitativa ligada: la cifra, sin modelo. */
-  const deCaptura = (codigo: string): Extract<Plan, { via: "captura" }> | null => {
-    for (const s of solicitudesDe(codigo)) {
+  const deCaptura = (codigo: string, acepta: (s: { id: string; titulo: string }) => boolean = () => true): Extract<Plan, { via: "captura" }> | null => {
+    for (const s of solicitudesDe(codigo).filter(acepta)) {
       const e = ens.entregaPorSolicitud.get(s.id);
       const sol = ens.solicitudes.find((x) => x.id === s.id);
       if (e?.estado === "entregado" && e.valor != null && sol?.es_cuantitativa) {
@@ -799,7 +804,16 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     };
     const seccionPrimero = fuente?.seccionPrimero ? seccionDe(codigo, porBloque, hechos.values()) : null;
     if (seccionPrimero) return { codigo, via: "bloque", bloque: seccionPrimero.bloque, hechos: conExtractos(seccionPrimero) };
-    const captura = deCaptura(codigo);
+    // IBSO (correcciones antes de v48): la captura responde solo si su solicitud liga ese único IBSO o su título nombra
+    // lo que el indicador mide (CAPTURA_IBSO); la respuesta lleva el nombre del indicador y, si lo responde en parte, su
+    // alcance. Si no, sigue a la sección, la evidencia o el pendiente.
+    if (esIbso(codigo)) {
+      const captura = deCaptura(codigo, (s) => capturaRespondeIbso(codigo, s.titulo, ibsoPorSolicitud.get(s.id) ?? 0));
+      if (captura) return { ...captura, texto: respuestaIbsoDeCaptura(codigo, nombreDe.get(codigo) ?? codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
+      // `siempre` (C.2): solo por esa captura; ni sección ni evidencia directa.
+      if (CAPTURA_IBSO[codigo]?.siempre) return { codigo, via: "regla", estado: "pendiente", texto: marcador(`cifra que pide ${codigo} (${nombreDe.get(codigo) ?? codigo}) de una captura del consejo`, sols.length ? `solicitud ${sols[0].titulo}` : "sin solicitud en el reporte") };
+    }
+    const captura = esIbso(codigo) ? null : deCaptura(codigo);
     // La captura nombra qué mide (título de su solicitud); en 401-1, también lo que no desglosa (v6.1).
     if (captura) return { ...captura, texto: respuestaGriDeCaptura(codigo, String(captura.valor.solicitud ?? ""), captura.texto) };
     const seccion = seccionDe(codigo, porBloque, hechos.values());
@@ -808,6 +822,11 @@ export async function generarRespuestas(db: Db, documentoId: string, opciones: {
     // Con `temaEnEvidencia`, los extractos que no tratan el tema no responden: pendiente con la causa (2-20 no repite 2-19).
     if (fuente?.temaEnEvidencia && sols.some((s) => extractoDe.has(s.id))) {
       return { codigo, via: "regla", estado: "pendiente", texto: marcador(`hechos del proceso de determinación que pide ${codigo}`, `solicitud ${sols[0].titulo}`), notas: ["Sus extractos tratan la política (la responde otro contenido), no el proceso que pide este."] };
+    }
+    // IBSO con una captura que no lo responde (CAPTURA_IBSO): el marcador dice que falta la cifra que el indicador pide.
+    const capturaAjena = esIbso(codigo) ? deCaptura(codigo) : null;
+    if (capturaAjena) {
+      return { codigo, via: "regla", estado: "pendiente", texto: marcador(`cifra que pide ${codigo} (${nombreDe.get(codigo) ?? codigo}); la captura no la desglosa`, `solicitud ${capturaAjena.valor.solicitud}`) };
     }
     return {
       codigo,
