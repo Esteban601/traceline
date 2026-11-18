@@ -14,7 +14,7 @@
 // SASB solo entra para la industria del Perfil de la emisora (lib/catalogo-marcos.ts).
 //
 // IBSO (los 30 indicadores de la NIS A-1, encargo 2026-11-17-catalogo-ibso) entra por la misma vía: los cuantitativos
-// por captura; C.1–C.5 por sección (tabla de abajo); B.1, B.5 y C.6–C.8 sin sección, por evidencia directa (los
+// por captura (C.2 solo con una captura del consejo); C.1 y C.3–C.5 por sección (tabla de abajo); B.1, B.5 y C.6–C.8 sin sección, por evidencia directa (los
 // extractos de sus solicitudes). Su descripción para el modelo es la redacción de IRStrat (nombre y qué recopilar).
 // =============================================================================
 
@@ -73,10 +73,10 @@ export const FUENTE_GRI_SASB: Record<string, { bloques: number[]; tema: RegExp; 
   "FN-CB-410b.3": { bloques: [33, 25, 39], tema: /PCAF|porcentaje de la cartera|cartera empresarial cubierta/i, extra: [/^alivios\.c4/] },
   "FN-CB-410b.4": { bloques: [33, 25, 39], tema: /PCAF|metodolog|calidad de (los )?datos/i, extra: [/^alivios\.c4/] },
   "FN-CB-550a.2": { bloques: [26, 34], tema: /pruebas? de estr[eé]s|estr[eé]s financiero|suficiencia de capital|planeaci[oó]n de capital|solvencia/i },
-  // IBSO · NIS A-1: los cualitativos de gobernanza con sección (Paso 0, §0.3). C.2 va primero por captura (la cifra de
-  // consejeras), y su sección con los extractos de sus solicitudes como hechos, como GRI 2-9.
+  // IBSO · NIS A-1: los cualitativos de gobernanza con sección (Paso 0, §0.3). C.2 sin sección (correcciones antes de
+  // v48): solo lo responde una captura que diga consejo (CAPTURA_IBSO); por la sección, el modelo declaraba que no hay
+  // información aunque el libro dé la composición por género en GRI 2-9.
   "IBSO C.1": { bloques: [15, 18], tema: /consejo|comit[eé]|composici[oó]n|miembros|consejer/i },
-  "IBSO C.2": { bloques: [18, 15], tema: /mujer|g[eé]nero|consejeras?/i, extractosEnSeccion: true },
   "IBSO C.3": { bloques: [17, 18], tema: /independ|vigilancia|comit[eé] de auditor|auditor[ií]a interna|control(es)? interno/i },
   "IBSO C.4": { bloques: [9, 27], tema: /riesgos?|apetito|pol[ií]tica de riesgos|gesti[oó]n integral/i },
   "IBSO C.5": { bloques: [19, 20, 22], tema: /estrategia|sostenib|compromiso|hoja de ruta|plan/i },
@@ -220,4 +220,38 @@ export function respuestaGriDeCaptura(codigo: string, titulo: string, cifra: str
   const mide = /rotaci[oó]n/i.test(titulo) ? "" : /contrataci/i.test(titulo) ? "" : " La cifra no indica si corresponde a nuevas contrataciones o a rotación de personal.";
   const noMide = /rotaci[oó]n/i.test(titulo) ? " No se revelan las nuevas contrataciones." : /contrataci/i.test(titulo) ? " No se revela la rotación de personal." : "";
   return `${base}${mide}${noMide} No se revela el desglose por grupo de edad, sexo y región.`;
+}
+
+/**
+ * IBSO por captura (correcciones antes de v48, decisión de Esteban del 17/11/2026). Una captura responde un IBSO solo si
+ * su solicitud liga ese único IBSO o si su título nombra lo que el indicador mide (`mide`, el desglose que pide). Con
+ * `siempre`, el título tiene que nombrarlo aunque la solicitud ligue solo ese IBSO (C.2: solo una captura del consejo, no
+ * una que mezcle plantilla y consejo). `alcance`: regla general, si la captura responde el indicador en parte, la respuesta
+ * lo declara (cuando el título de la solicitud casa con `re`).
+ */
+export const CAPTURA_IBSO: Record<string, { mide?: RegExp; siempre?: boolean; alcance?: { re: RegExp; texto: string }[] }> = {
+  "IBSO A.4": { alcance: [{ re: /el[eé]ctric/i, texto: "solo electricidad; no incluye combustibles" }] },
+  "IBSO A.6": { alcance: [{ re: /gastos?/i, texto: "inversión y gasto ambiental; no se distingue la parte que califica como inversión sostenible" }] },
+  "IBSO B.3": { alcance: [{ re: /^(?![^.]*promedio)[^.]*horas/i, texto: "horas totales; no incluye el promedio por trabajador" }] },
+  "IBSO A.14": { mide: /residuos generados|generaci[oó]n[^.]*residuos/i },
+  "IBSO A.15": { mide: /residuos[^.]*(reaprovech|recicl|valoriz)|(reaprovech|recicl|valoriz)[^.]*residuos/i },
+  "IBSO A.16": { mide: /residuos[^.]*peligros|peligros[^.]*residuos/i },
+  "IBSO C.2": { mide: /^(?![^.]*plantilla)[^.]*consejo/i, siempre: true },
+};
+
+/** Si la captura de una solicitud (por su título) responde el IBSO, dado cuántos IBSO liga esa solicitud. */
+export function capturaRespondeIbso(codigo: string, titulo: string, ibsoEnSolicitud: number): boolean {
+  const r = CAPTURA_IBSO[codigo];
+  if (r?.mide?.test(titulo)) return true;
+  return ibsoEnSolicitud === 1 && !r?.siempre;
+}
+
+/**
+ * Respuesta IBSO de una captura: el nombre del indicador (no el título de la solicitud), la cifra y, si la captura lo
+ * responde en parte, su alcance («Emisiones GEI, alcance 1: 1,240 tCO2e (ejercicio 2025).»).
+ */
+export function respuestaIbsoDeCaptura(codigo: string, nombre: string, titulo: string, cifra: string): string {
+  const base = `${nombre.replace(/:\s*/g, ", ")}: ${cifra.replace(/\.$/, "")}.`;
+  const alcance = (CAPTURA_IBSO[codigo]?.alcance ?? []).filter((a) => a.re.test(titulo)).map((a) => ` Alcance: ${a.texto}.`).join("");
+  return `${base}${alcance}`;
 }
