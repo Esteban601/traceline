@@ -1,6 +1,10 @@
 # CLAUDE.md · Reglas del proyecto TRACELINE
 
-Versión 1.15 · 10 de noviembre de 2026.
+Versión 1.16 · 17 de noviembre de 2026.
+
+**Cambios respecto a 1.15** (17 de noviembre de 2026, decisión de Esteban, correcciones IBSO antes de v48):
+- §5: las respuestas generadas (por el modelo, por captura o por regla) se leen antes de abrir el PR que las
+  entrega. Origen: tres respuestas IBSO del demo mal atribuidas que llegaron a `main` porque se leyeron después.
 
 **Cambios respecto a 1.14** (10 de noviembre de 2026, decisión de Esteban, correcciones v6.2 del demo):
 - §5: el glosario suma las formas de voz de proceso «la respuesta», «esta celda» y «este campo». «La respuesta» cuenta
@@ -159,6 +163,9 @@ después el código.
   v4 en `traceline-dev` el 25 de octubre de 2026, con los 8 editoriales; antes se estimaba en ~8 USD. No se regenera el documento entero
   "para ver".
 - Una regeneración nunca borra una edición humana sin confirmación (A6).
+- Las respuestas generadas se leen antes del PR (v1.16): quien regenera lee cada fila nueva o cambiada (texto y
+  origen) contra lo que pide su requisito o indicador, y reporta lo que encontró antes de abrir el PR. Un e2e en verde
+  no sustituye esa lectura.
 
 ## 6. Credenciales y secretos
 

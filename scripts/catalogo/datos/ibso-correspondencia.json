@@ -1,8 +1,8 @@
 {
-  "_nota": "Correspondencia IBSO (NIS A-1) → solicitudes, por título exacto (encargo docs/encargos/2026-11-17-catalogo-ibso.md, §0.2 y §0.5; decisiones de Esteban del 17/11/2026). Una captura de la solicitud responde a la vez sus códigos NIIF, GRI, SASB e IBSO. Claves IBSO sin el prefijo («A.1» = código «IBSO A.1»). Solo se agregan enlaces; nunca se quitan. Las solicitudes que no aparecen aquí no tienen IBSO (A.5, A.8–A.13, B.2, B.4–B.6, C.4, C.6–C.8 en la plantilla; C.7 tampoco en el demo de staging, decisión 3).",
+  "_nota": "Correspondencia IBSO (NIS A-1) → solicitudes, por título exacto (encargo docs/encargos/2026-11-17-catalogo-ibso.md, §0.2 y §0.5; decisiones de Esteban del 17/11/2026). Una captura de la solicitud responde a la vez sus códigos NIIF, GRI, SASB e IBSO. Claves IBSO sin el prefijo («A.1» = código «IBSO A.1»). Solo se agregan enlaces; nunca se quitan. Las solicitudes que no aparecen aquí no tienen IBSO (A.5, A.8–A.13, B.2, B.4–B.6, C.4, C.6–C.8 en la plantilla; C.7 tampoco en el demo de staging, decisión 3). C.2 no se liga por título: solo lo responde una captura que diga consejo (correcciones antes de v48, 17/11/2026).",
   "plantilla": {
     "Horas de capacitación 2025": ["B.3"],
-    "Diversidad e inclusión en plantilla y órganos de gobierno": ["B.1", "C.2"],
+    "Diversidad e inclusión en plantilla y órganos de gobierno": ["B.1"],
     "Política de derechos humanos y debida diligencia": ["B.1"],
     "Consumo de energía eléctrica 2025 por instalación (kWh)": ["A.4"],
     "Inventario GEI Alcance 1 con memoria de cálculo": ["A.1"],
@@ -20,8 +20,7 @@
   "demo-dev": {
     "Órgano responsable del clima y términos de referencia": ["C.1"],
     "Procesos de identificación, evaluación y priorización de riesgos climáticos": ["C.4"],
-    "Inversión y gastos ambientales 2025": ["A.6"],
-    "Mujeres en plantilla y en el Consejo 2025": ["C.2"]
+    "Inversión y gastos ambientales 2025": ["A.6"]
   },
   "fondo-de-fondos": {
     "Política de Inversión Responsable": ["C.4"],
