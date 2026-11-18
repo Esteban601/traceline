@@ -389,6 +389,24 @@ console.log("\nCorrecciones v6.2 (decisión de Esteban del 10/11/2026)");
     ok(!/exenci[oó]n/i.test(G("FN-CB-410b.2")), "[v6.1-GRI] 410b.2 sin «exención» (NIIF S2 30)");
     ok(/^13,900 participantes|: 13,900 participantes/.test(G("FN-CB-240a.4")), "[v6.1-GRI] 240a.4 con 13,900 participantes");
     ok([...g.values()].every((t) => !/^Pendiente:/.test(t) || /^Pendiente: información no disponible en el reporte \d{4}$/.test(t)), "[v6.1-GRI] todo pendiente del libro en voz de la emisora");
+    // Hoja IBSO (correcciones antes de v48): vocabulario en las tres columnas, un solo texto de pendiente en todo el libro
+    // y las respuestas por captura corregidas.
+    const ibso = wg.getWorksheet("IBSO");
+    ok(!!ibso, "[v48-IBSO] el libro trae la hoja «IBSO»");
+    if (ibso) {
+      const conVoc = [];
+      ibso.eachRow((r, i) => r.eachCell((c) => { const t = texto(c.value); if (i > 1 && t.length >= 3 && vocabularioEnCeldaExportada(t).length) conVoc.push(`IBSO!${c.address}`); }));
+      ok(!conVoc.length, `[v48-IBSO] sin vocabulario de plataforma en la hoja IBSO${conVoc.length ? ` — ${conVoc.join(", ")}` : ""}`);
+      const pendientes = new Set([...g.values()].filter((t) => /^Pendiente/i.test(t)));
+      ok(pendientes.size <= 1 && [...pendientes].every((t) => /^Pendiente: información no disponible en el reporte \d{4}$/.test(t)), `[v48-IBSO] un solo texto de pendiente en todas las hojas del libro (${[...pendientes].join(" | ")})`);
+      const I = (k) => G(`IBSO ${k}`);
+      ok(/^Pendiente:/.test(I("A.15")) && /^Pendiente:/.test(I("A.16")) && /^Residuos generados: /.test(I("A.14")), "[v48-IBSO] A.15 y A.16 pendientes; el total de residuos solo en A.14");
+      ok(!/plantilla/i.test(I("C.2")) && (/^Pendiente:/.test(I("C.2")) || /consejo/i.test(I("C.2"))), "[v48-IBSO] C.2 no toma la cifra de la plantilla");
+      ok(/^Emisiones GEI, alcance 1: /.test(I("A.1")), "[v48-IBSO] A.1 con el nombre del indicador, no el título de la solicitud");
+      ok(/Alcance: solo electricidad; no incluye combustibles\.$/.test(I("A.4")), "[v48-IBSO] A.4 declara su alcance");
+      ok(/Alcance: inversión y gasto ambiental; no se distingue la parte que califica como inversión sostenible\.$/.test(I("A.6")), "[v48-IBSO] A.6 declara su alcance");
+      ok(/Alcance: horas totales; no incluye el promedio por trabajador\.$/.test(I("B.3")), "[v48-IBSO] B.3 declara que no trae el promedio por trabajador");
+    }
   }
 }
 

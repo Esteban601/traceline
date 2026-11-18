@@ -8,7 +8,8 @@
 // Sin base (siempre):
 //   1. El TSV genera exactamente la migración versionada (salvo la fecha de generación).
 //   2. Libro: la hoja «IBSO» va al final, con «Indicador», los 30 en el orden de la NIS y sin vocabulario de plataforma.
-//   3. Respuestas: «IBSO …» entra por la vía GRI/SASB; C.1–C.5 tienen sección; B.1, B.5 y C.6–C.8 no (evidencia
+//   3. Respuestas: «IBSO …» entra por la vía GRI/SASB; C.1 y C.3–C.5 tienen sección; C.2 solo por una captura del consejo;
+//      B.1, B.5 y C.6–C.8 sin sección (evidencia
 //      directa); la descripción para el modelo lleva el nombre y no las instrucciones de recopilación.
 //   4. Correspondencia: códigos válidos; C.7 sin solicitud (decisión 3); Privacidad solo C.8.
 // Con base (si hay NEXT_PUBLIC_SUPABASE_URL y llave de servicio):
@@ -23,7 +24,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import { armarLibroGriSasb } from "../lib/excel/gri-sasb.ts";
-import { FUENTE_GRI_SASB, esGriSasb, descripcionGriSasb } from "../lib/suplemento/gri-sasb.ts";
+import { FUENTE_GRI_SASB, esGriSasb, descripcionGriSasb, capturaRespondeIbso, respuestaIbsoDeCaptura } from "../lib/suplemento/gri-sasb.ts";
 import { vocabularioEnCeldaExportada } from "../lib/suplemento/vocabulario.ts";
 import { correspondencia } from "./catalogo/ligar-ibso.mjs";
 
@@ -71,7 +72,17 @@ console.log("\n3. Respuestas");
 {
   ok(CLAVES.every((k) => esGriSasb(`IBSO ${k}`)) && !esGriSasb("NIIF S2 29 (a)(i)"), "los 30 «IBSO …» entran por la vía GRI/SASB; NIIF no");
   const conSeccion = CLAVES.filter((k) => FUENTE_GRI_SASB[`IBSO ${k}`]);
-  ok(conSeccion.join(",") === "C.1,C.2,C.3,C.4,C.5", `con sección: ${conSeccion.join(", ")} (C.1–C.5)`);
+  ok(conSeccion.join(",") === "C.1,C.3,C.4,C.5", `con sección: ${conSeccion.join(", ")} (C.1 y C.3–C.5; C.2 solo por captura del consejo)`);
+  // Correcciones antes de v48: la captura responde un IBSO solo si su solicitud liga ese único IBSO o su título nombra
+  // lo que mide; C.2 solo con una captura del consejo; la respuesta lleva el nombre del indicador y su alcance.
+  const residuos = "Generación y disposición de residuos 2025 (ton)";
+  ok(capturaRespondeIbso("IBSO A.14", residuos, 3) && !capturaRespondeIbso("IBSO A.15", residuos, 3) && !capturaRespondeIbso("IBSO A.16", residuos, 3), "residuos (tres IBSO en la solicitud): la captura del total responde A.14; A.15 y A.16 no");
+  ok(capturaRespondeIbso("IBSO A.1", "Inventario GEI Alcance 1 con memoria de cálculo", 1) && !capturaRespondeIbso("IBSO B.1", "x", 2), "un único IBSO en la solicitud: responde; dos sin desglose: no");
+  ok(!capturaRespondeIbso("IBSO C.2", "Mujeres en plantilla y en el Consejo 2025", 1) && capturaRespondeIbso("IBSO C.2", "Mujeres en el Consejo de Administración 2025", 1), "C.2: no con plantilla y consejo mezclados; sí con una captura del consejo");
+  const a1 = respuestaIbsoDeCaptura("IBSO A.1", "Emisiones GEI: alcance 1", "Inventario GEI Alcance 1 con memoria de cálculo", "1,240 tCO2e (ejercicio 2025).");
+  ok(a1 === "Emisiones GEI, alcance 1: 1,240 tCO2e (ejercicio 2025).", `A.1 con el nombre del indicador, no el título («${a1}»)`);
+  ok(/Alcance: solo electricidad; no incluye combustibles\.$/.test(respuestaIbsoDeCaptura("IBSO A.4", "Consumo energético", "Consumo de energía eléctrica 2025 por instalación (kWh)", "9 kWh.")), "A.4 de una captura eléctrica declara su alcance");
+  ok(/Alcance: inversión y gasto ambiental; no se distingue la parte que califica como inversión sostenible\.$/.test(respuestaIbsoDeCaptura("IBSO A.6", "Inversión sostenible", "Inversión y gastos ambientales 2025", "31.4 MDP.")), "A.6 de inversión y gasto declara su alcance");
   ok(["B.1", "B.5", "C.6", "C.7", "C.8"].every((k) => !FUENTE_GRI_SASB[`IBSO ${k}`]), "B.1, B.5 y C.6–C.8 sin sección: evidencia directa");
   const malas = filasTsv.filter(([k, nombre, , , que]) => {
     const d = descripcionGriSasb({ codigo: `IBSO ${k}`, marco: "NIS", estandar: "NIS A-1", edicion: "2024", descripcion: que, nombre });
@@ -86,6 +97,7 @@ const todas = correspondencia(["plantilla", "demo-dev", "fondo-de-fondos"]);
   const codigos = new Set([...todas.values()].flat());
   ok([...codigos].every((c) => CLAVES.includes(c.replace(/^IBSO /, ""))), `${codigos.size} códigos citados, todos del TSV`);
   ok(![...codigos].includes("IBSO C.7"), "C.7 sin solicitud (decisión 3)");
+  ok(![...codigos].includes("IBSO C.2"), "C.2 no se liga por título (solo una captura del consejo lo responde)");
   ok(JSON.stringify(correspondencia(["fondo-de-fondos"]).get("Política de Privacidad")) === JSON.stringify(["IBSO C.8"]), "Política de Privacidad liga solo C.8");
   ok(correspondencia(["fondo-de-fondos"]).size === 9, "nueve solicitudes de Fondo de Fondos");
 }
