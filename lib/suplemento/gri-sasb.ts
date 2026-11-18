@@ -227,12 +227,15 @@ export function respuestaGriDeCaptura(codigo: string, titulo: string, cifra: str
  * su solicitud liga ese único IBSO o si su título nombra lo que el indicador mide (`mide`, el desglose que pide). Con
  * `siempre`, el título tiene que nombrarlo aunque la solicitud ligue solo ese IBSO (C.2: solo una captura del consejo, no
  * una que mezcle plantilla y consejo). `alcance`: regla general, si la captura responde el indicador en parte, la respuesta
- * lo declara (cuando el título de la solicitud casa con `re`).
+ * lo declara (cuando el título de la solicitud casa con `re`). `pide`: lo que «cómo se mide» pide además de la cifra; con
+ * él, la línea de alcance es obligatoria y erroresIbsoDeCaptura la exige (decisión de Esteban del 17/11/2026).
  */
-export const CAPTURA_IBSO: Record<string, { mide?: RegExp; siempre?: boolean; alcance?: { re: RegExp; texto: string }[] }> = {
-  "IBSO A.4": { alcance: [{ re: /el[eé]ctric/i, texto: "solo electricidad; no incluye combustibles" }] },
-  "IBSO A.6": { alcance: [{ re: /gastos?/i, texto: "inversión y gasto ambiental; no se distingue la parte que califica como inversión sostenible" }] },
-  "IBSO B.3": { alcance: [{ re: /^(?![^.]*promedio)[^.]*horas/i, texto: "horas totales; no incluye el promedio por trabajador" }] },
+export const CAPTURA_IBSO: Record<string, { mide?: RegExp; siempre?: boolean; pide?: string; alcance?: { re: RegExp; texto: string }[] }> = {
+  "IBSO A.3": { pide: "las categorías incluidas y los métodos de estimación", alcance: [{ re: /alcance 3/i, texto: "total de Alcance 3; la cifra no identifica las categorías incluidas ni los métodos de estimación" }] },
+  "IBSO A.4": { pide: "la energía total, con combustibles y electricidad", alcance: [{ re: /el[eé]ctric/i, texto: "solo electricidad; no incluye combustibles" }] },
+  "IBSO A.6": { pide: "solo las inversiones que cumplen los criterios aplicables", alcance: [{ re: /gastos?/i, texto: "inversión y gasto ambiental; no se distingue la parte que califica como inversión sostenible" }] },
+  "IBSO A.7": { pide: "el agua que entra a la entidad", alcance: [{ re: /consumo de agua/i, texto: "consumo de agua por fuente, reportado como agua ingresada; no distingue agua reaprovechada" }] },
+  "IBSO B.3": { pide: "las horas y el promedio por trabajador", alcance: [{ re: /^(?![^.]*promedio)[^.]*horas/i, texto: "horas totales; no incluye el promedio por trabajador" }] },
   "IBSO A.14": { mide: /residuos generados|generaci[oó]n[^.]*residuos/i },
   "IBSO A.15": { mide: /residuos[^.]*(reaprovech|recicl|valoriz)|(reaprovech|recicl|valoriz)[^.]*residuos/i },
   "IBSO A.16": { mide: /residuos[^.]*peligros|peligros[^.]*residuos/i },
@@ -254,4 +257,13 @@ export function respuestaIbsoDeCaptura(codigo: string, nombre: string, titulo: s
   const base = `${nombre.replace(/:\s*/g, ", ")}: ${cifra.replace(/\.$/, "")}.`;
   const alcance = (CAPTURA_IBSO[codigo]?.alcance ?? []).filter((a) => a.re.test(titulo)).map((a) => ` Alcance: ${a.texto}.`).join("");
   return `${base}${alcance}`;
+}
+
+/**
+ * Validador de la respuesta IBSO por captura: si «cómo se mide» pide algo que la cifra no trae (`pide`), la respuesta
+ * lleva su línea de alcance. Sin ella, la respuesta no sale (queda pendiente).
+ */
+export function erroresIbsoDeCaptura(codigo: string, texto: string): string[] {
+  const pide = CAPTURA_IBSO[codigo]?.pide;
+  return pide && !/ Alcance: [^.]+\.$/.test(texto) ? [`sin línea de alcance: «cómo se mide» pide ${pide}, que la cifra no trae`] : [];
 }
