@@ -6,12 +6,13 @@
 //
 //   conjunto «plantilla» (por omisión): los renglones de toda plantilla con esos títulos (los reportes nuevos nacen
 //     ligados) y las solicitudes que ya existen con esos títulos en todos los reportes de todas las emisoras;
-//   conjunto «fondo-de-fondos»: las nueve solicitudes de demostración de Empresa Demo (políticas de Fondo de Fondos),
-//     solo en el reporte de Empresa Demo.
+//   conjunto «fondo-de-fondos»: las nueve solicitudes de demostración (políticas de Fondo de Fondos), solo en el
+//     reporte 2025 de un mockup: Empresa Demo por omisión, u otro con --tenant <slug> (el mockup «fondo-de-fondos»,
+//     decisión de Esteban del 19/11/2026; sus nueve las crea solicitudes-demo-rh.mjs con el mismo --tenant).
 //
 //   staging (lo corre Esteban; CLAUDE.md §1 y §9):
 //     node --env-file=.env.staging.local scripts/catalogo/ligar-ibso.mjs --destino staging \
-//          --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json [--conjunto fondo-de-fondos] [--aplicar]
+//          --credenciales .credenciales-demo/seed-ewgnvjtjhvdltvkopptn.json [--conjunto fondo-de-fondos [--tenant <slug>]] [--aplicar]
 //   dev:   node --env-file=<.env.local de dev> scripts/catalogo/ligar-ibso.mjs --destino dev [--aplicar]
 //   local: node --env-file=<entorno local> scripts/catalogo/ligar-ibso.mjs --destino local [--aplicar]
 //
@@ -134,9 +135,11 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const salir = (m) => { console.error(`✗ ${m}`); process.exit(2); };
   const destino = opcion("--destino");
   const conjunto = opcion("--conjunto") ?? "plantilla";
+  const slugTenant = opcion("--tenant");
   const aplicar = argv.includes("--aplicar");
   const cfg = DESTINOS[destino];
-  if (!cfg || !["plantilla", "fondo-de-fondos"].includes(conjunto)) salir("Uso: --destino <staging|dev|local> [--conjunto plantilla|fondo-de-fondos] [--credenciales <archivo>] [--aplicar]");
+  if (!cfg || !["plantilla", "fondo-de-fondos"].includes(conjunto)) salir("Uso: --destino <staging|dev|local> [--conjunto plantilla|fondo-de-fondos [--tenant <slug>]] [--credenciales <archivo>] [--aplicar]");
+  if (slugTenant && conjunto !== "fondo-de-fondos") salir("--tenant solo va con --conjunto fondo-de-fondos.");
   const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   if (!cfg.prueba(URL_SB) || Object.entries(DESTINOS).some(([k, d]) => k !== destino && k !== "local" && URL_SB.includes(d.ref))) salir(`NEXT_PUBLIC_SUPABASE_URL no es la de ${destino}.`);
 
@@ -162,13 +165,26 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   staffId = yo.id;
   console.log(`Destino: ${destino} · sesión de ${STAFF} (rol ${yo.rol}) · conjunto «${conjunto}» · ${aplicar ? "APLICAR" : "revisar, sin escribir"}`);
 
+  // Reporte del conjunto «fondo-de-fondos»: el de Empresa Demo, o el 2025 del mockup de --tenant.
+  let reporteFdf = REPORTE_DEMO, nombreFdf = "Empresa Demo";
+  if (slugTenant) {
+    const { data: t, error: eT } = await db.from("tenants").select("id, nombre, es_demo, activo").eq("slug", slugTenant).maybeSingle();
+    if (eT || !t) salir(`No hay tenant con slug «${slugTenant}».`);
+    if (!t.es_demo) salir(`«${slugTenant}» no es de demostración: el conjunto «fondo-de-fondos» es solo para mockups.`);
+    const { data: rs, error: eR } = await db.from("reportes").select("id").eq("tenant_id", t.id).eq("ejercicio", 2025);
+    if (eR || (rs ?? []).length !== 1) salir(`Se esperaba un reporte 2025 de ${t.nombre}; hay ${(rs ?? []).length}.`);
+    reporteFdf = rs[0].id;
+    nombreFdf = t.nombre;
+    console.log(`Mockup: ${t.nombre} (${slugTenant}) · ${t.activo ? "activo" : "INACTIVO"} · reporte 2025`);
+  }
+  const pedir = () => (conjunto === "plantilla" ? { conjuntos: ["plantilla"], plantillas: true } : { conjuntos: ["fondo-de-fondos"], plantillas: false, reporte: reporteFdf });
   let plan;
   try {
-    plan = await planIbso(db, conjunto === "plantilla" ? { conjuntos: ["plantilla"], plantillas: true } : { conjuntos: ["fondo-de-fondos"], plantillas: false, reporte: REPORTE_DEMO });
+    plan = await planIbso(db, pedir());
   } catch (e) { salir(e.message); }
   if (conjunto === "fondo-de-fondos") {
     for (const s of plan.solicitudes) console.log(`  ${s.faltan.length ? "→" : "✓"} ${s.titulo} · ${s.faltan.length ? `agrega ${s.faltan.join(", ")}` : "ya ligada"}`);
-    if (plan.solicitudes.length !== plan.titulos) console.log(`  ⚠ ${plan.titulos - plan.solicitudes.length} de las ${plan.titulos} no están en el reporte de Empresa Demo`);
+    if (plan.solicitudes.length !== plan.titulos) console.log(`  ⚠ ${plan.titulos - plan.solicitudes.length} de las ${plan.titulos} no están en el reporte de ${nombreFdf}`);
   }
   const total = imprimirPlan(plan);
   if (!aplicar) { console.log(`Revisión terminada: ${total} enlaces por agregar. Nada se escribió.`); process.exit(0); }
@@ -183,7 +199,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
       if (error) throw new Error(`bitácora: ${error.message}`);
     },
   });
-  const despues = await planIbso(db, conjunto === "plantilla" ? { conjuntos: ["plantilla"], plantillas: true } : { conjuntos: ["fondo-de-fondos"], plantillas: false, reporte: REPORTE_DEMO });
+  const despues = await planIbso(db, pedir());
   const restante = despues.renglones.reduce((a, x) => a + x.faltan.length, 0) + despues.solicitudes.reduce((a, x) => a + x.faltan.length, 0);
   console.log(`✓ ${hecho.renglones} renglones de plantilla y ${hecho.enlaces} enlaces de solicitudes agregados; por agregar ahora: ${restante}.`);
   if (restante) process.exit(1);
