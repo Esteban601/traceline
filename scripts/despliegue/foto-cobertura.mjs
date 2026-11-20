@@ -24,6 +24,11 @@
 // del encargo). La comparación exige que los totales «sin padres» de después sean
 // los «todos» de antes menos los padres que existían y más los códigos nuevos que
 // no son padre, emisora por emisora.
+// Cada emisora va por el id de su tenant, con su nombre como rótulo (`rotulos`): dos tenants con el mismo nombre (el
+// mockup retirado y su cliente real, O'Donnell en v48) se pisaban cuando la clave era el nombre. Las fotos viejas (por
+// nombre, sin `rotulos`) no se comparan con las nuevas: con un nombre repetido no se sabe a qué tenant corresponden.
+// En el esperado, "emisoras": "cualquiera" acepta cualquier número de emisoras y "opcional": true, que el código no
+// aparezca (ligado por título: depende de los títulos de cada reporte).
 // La llave (SUPABASE_SERVICE_ROLE_KEY) y la URL no se imprimen.
 // =============================================================================
 import fs from "node:fs";
@@ -74,7 +79,7 @@ const catalogo = dps.filter((d) => d.version_taxonomia === "2025");
 const tenantDeReporte = new Map(reportes.map((r) => [r.id, r.tenant_id]));
 const solPorId = new Map(sols.map((s) => [s.id, s]));
 const PADRES = [...new Set(Object.values(PADRE_DE))].filter((p) => catalogo.some((d) => d.codigo === p));
-const foto = { destino, tomada: new Date().toISOString(), catalogo: catalogo.length, mapeo: mapeo.length, solicitudes: sols.length, padres: PADRES, emisoras: {}, totales: {} };
+const foto = { destino, tomada: new Date().toISOString(), catalogo: catalogo.length, mapeo: mapeo.length, solicitudes: sols.length, padres: PADRES, rotulos: {}, emisoras: {}, totales: {} };
 const totalesDe = (porCodigo, sinPadres) => {
   const cods = catalogo.filter((d) => d.marco === "NIIF" && !(sinPadres && PADRES.includes(d.codigo))).map((d) => d.codigo);
   const dist = { cubierto: 0, parcial: 0, sin_evidencia: 0, sin_solicitud: 0 };
@@ -88,22 +93,31 @@ for (const t of tenants) {
     const vivas = ligadas.filter((s) => !s.declinada && !s.desactivada);
     porCodigo[d.codigo] = { solicitudes: ligadas.length, vivas: vivas.length, cobertura: coberturaDe(vivas.map((s) => s.estado)), activo: d.activo };
   }
-  foto.emisoras[t.nombre] = porCodigo;
-  foto.totales[t.nombre] = { todos: totalesDe(porCodigo, false), sinPadres: totalesDe(porCodigo, true) };
+  foto.rotulos[t.id] = t.nombre;
+  foto.emisoras[t.id] = porCodigo;
+  foto.totales[t.id] = { todos: totalesDe(porCodigo, false), sinPadres: totalesDe(porCodigo, true) };
 }
 fs.writeFileSync(salida, JSON.stringify(foto, null, 1));
 console.log(`Foto de ${destino}: ${tenants.length} emisoras × ${catalogo.length} códigos del catálogo 2025 · ${sols.length} solicitudes · ${mapeo.length} enlaces → ${salida}`);
 
 function comparar(antes, despues, esperado) {
+  if (!antes.rotulos || !despues.rotulos) {
+    console.error(`✗ ${!antes.rotulos ? "La foto «antes»" : "La foto «después»"} es del formato viejo (por nombre de emisora): con un nombre repetido no se sabe a qué tenant corresponde. Toma las dos fotos con este script.`);
+    return 2;
+  }
+  // Rótulo de una emisora: su nombre; si se repite, con el inicio del id.
+  const nombres = { ...antes.rotulos, ...despues.rotulos };
+  const repetidos = new Set(Object.values(nombres).filter((n, i, xs) => xs.indexOf(n) !== i));
+  const rotulo = (id) => (repetidos.has(nombres[id]) ? `${nombres[id]} [${id.slice(0, 8)}]` : nombres[id] ?? id);
   const emisoras = [...new Set([...Object.keys(antes.emisoras), ...Object.keys(despues.emisoras)])];
   const difs = [];
   for (const e of emisoras) {
     const a = antes.emisoras[e] ?? {}, d = despues.emisoras[e] ?? {};
-    if (!antes.emisoras[e] || !despues.emisoras[e]) { difs.push({ emisora: e, codigo: "(emisora)", cambio: antes.emisoras[e] ? "quitada" : "nueva" }); continue; }
+    if (!antes.emisoras[e] || !despues.emisoras[e]) { difs.push({ emisora: rotulo(e), codigo: "(emisora)", cambio: antes.emisoras[e] ? "quitada" : "nueva" }); continue; }
     for (const c of new Set([...Object.keys(a), ...Object.keys(d)])) {
-      if (!a[c]) difs.push({ emisora: e, codigo: c, cambio: "nuevo", ...d[c] });
-      else if (!d[c]) difs.push({ emisora: e, codigo: c, cambio: "quitado", ...a[c] });
-      else if (JSON.stringify(a[c]) !== JSON.stringify(d[c])) difs.push({ emisora: e, codigo: c, cambio: "cambia", antes: a[c], despues: d[c] });
+      if (!a[c]) difs.push({ emisora: rotulo(e), codigo: c, cambio: "nuevo", ...d[c] });
+      else if (!d[c]) difs.push({ emisora: rotulo(e), codigo: c, cambio: "quitado", ...a[c] });
+      else if (JSON.stringify(a[c]) !== JSON.stringify(d[c])) difs.push({ emisora: rotulo(e), codigo: c, cambio: "cambia", antes: a[c], despues: d[c] });
     }
   }
   console.log(`Antes: ${antes.destino} ${antes.tomada} · catálogo ${antes.catalogo} · solicitudes ${antes.solicitudes} · enlaces ${antes.mapeo}`);
@@ -122,11 +136,11 @@ function comparar(antes, despues, esperado) {
     const de = (x) => ({ ...e, ...(e?.excepciones?.[x.emisora] ?? {}) });
     // `solicitudes: "cualquiera"` (IBSO, encargo catalogo-ibso): un código nuevo que el ligado por título conecta con
     // un número distinto de solicitudes en cada emisora; basta con que aparezca en las emisoras previstas.
-    const ok = e && (e.emisoras === "todas" ? cuantas === total : cuantas === e.emisoras) && (cambio !== "nuevo" || e.solicitudes === "cualquiera" || xs.every((x) => x.solicitudes === de(x).solicitudes && x.cobertura === de(x).cobertura));
+    const ok = e && (e.emisoras === "todas" ? cuantas === total : e.emisoras === "cualquiera" || cuantas === e.emisoras) && (cambio !== "nuevo" || e.solicitudes === "cualquiera" || xs.every((x) => x.solicitudes === de(x).solicitudes && x.cobertura === de(x).cobertura));
     console.log(`${ok ? "✓" : "✗"} ${codigo} · ${cambio} en ${cuantas} de ${total} emisoras · ${estados.join(" | ")}${ok ? " (prevista)" : " (NO PREVISTA)"}`);
     if (!ok) noPrevistas.push(k);
   }
-  for (const e of esperado) if (!porCodigo.has(`${e.codigo}|${e.cambio}`)) { console.log(`✗ ${e.codigo} · ${e.cambio}: esperado y no apareció`); noPrevistas.push(e.codigo); }
+  for (const e of esperado) if (!e.opcional && !porCodigo.has(`${e.codigo}|${e.cambio}`)) { console.log(`✗ ${e.codigo} · ${e.cambio}: esperado y no apareció`); noPrevistas.push(e.codigo); }
   // Totales por emisora: «todos» de antes (v41) → «sin padres» de después (v42).
   if (antes.totales && despues.totales) {
     console.log("\nTotales NIIF por emisora · antes (cuenta todo, v41) → después (sin padres, v42):");
@@ -140,8 +154,8 @@ function comparar(antes, despues, esperado) {
       for (const c of despues.padres) if (enAntes[c] && /^NIIF/.test(c)) { esperadoDist[enAntes[c].cobertura]--; n--; }
       for (const c of Object.keys(enDespues)) if (!enAntes[c] && /^NIIF/.test(c) && !despues.padres.includes(c)) { esperadoDist[enDespues[c].cobertura]++; n++; }
       const ok = n === d.n && Object.keys(esperadoDist).every((k) => esperadoDist[k] === d.dist[k]);
-      console.log(`${ok ? "✓" : "✗"} ${e}\n    antes:   ${fmt(a)}\n    después: ${fmt(d)}${ok ? "" : `\n    esperado: ${n} · ${JSON.stringify(esperadoDist)} (NO PREVISTO)`}`);
-      if (!ok) noPrevistas.push(`totales ${e}`);
+      console.log(`${ok ? "✓" : "✗"} ${rotulo(e)}\n    antes:   ${fmt(a)}\n    después: ${fmt(d)}${ok ? "" : `\n    esperado: ${n} · ${JSON.stringify(esperadoDist)} (NO PREVISTO)`}`);
+      if (!ok) noPrevistas.push(`totales ${rotulo(e)}`);
     }
   }
   if (antes.solicitudes !== despues.solicitudes || antes.mapeo !== despues.mapeo) console.log(`· solicitudes ${antes.solicitudes} → ${despues.solicitudes}, enlaces ${antes.mapeo} → ${despues.mapeo}`);
