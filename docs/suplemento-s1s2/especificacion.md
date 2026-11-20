@@ -2062,8 +2062,9 @@ del auditor. **Sin plantilla del Formato.**
 **Resultado.**
 1. **Privilegios de `service_role`:** 37 tablas con los 7 privilegios, las mismas de v47.
 2. **Foto «antes»** (00:26 UTC): 23 emisoras × 172 códigos, 967 solicitudes y 1,534 enlaces.
-3. **Migraciones** (Esteban, `migrar-remoto.sh staging` en tres pasadas, «todo lo esperado»): 105 de 105 y barrera
-   108; 30 NIS.
+3. **Migraciones** (Esteban, `migrar-remoto.sh staging`, 00:27 UTC): pendientes == esperadas (2); aplicadas; 105 de
+   105, 0 desalineadas y barrera 108; dos segundas pasadas sin pendientes. En la base, NIS A 16 · G 8 · S 6 y marcos
+   activos GRI 37, NIIF 117, NIS 30 y SASB 17.
 4. **Release:** `git push heroku main` por Claude Code, con autorización de Esteban por chat → **v46**, `Deploy daedf09d`,
    00:30:13 UTC.
 5. **`comprobar-v48.mjs --destino staging`** (solo lectura, con autorización de Esteban): 13 de 14 bloques en verde.
@@ -2088,12 +2089,16 @@ del auditor. **Sin plantilla del Formato.**
      cola: `bitacora-filtro-servidor` (`docs/encargos/COLA.md`).
 6. **Logs desde el release:** 37 líneas; 10 respuestas 200 y una 409 (el Formato); 0 respuestas 5xx, 0 códigos H, 0
    R14/R15. El dyno anterior salió con 143 (SIGTERM del release, con su `[ELIFECYCLE] Command failed`).
-7. **Ligado IBSO** (Esteban, paso 6 del runbook versión 2, desde `main` `51c0621`):
-   - el mockup se llama ahora «O'Donnell (demo)», con su evento `tenant_renombrado`;
-   - el conjunto «plantilla» agregó 396 enlaces y los 15 renglones de la plantilla «con rubros»;
-   - el conjunto «fondo-de-fondos» agregó 9 enlaces en Empresa Demo;
-   - la foto previa al ligado y la posterior pasaron de 1,534 a 1,939 enlaces, con la diferencia «exactamente la
-     esperada» (`esperado-ligado-ibso.json`: solo IBSO, en las 23 emisoras por id).
+7. **Cierre de la terminal** (paso 5): `unset STAGING_DB_URL`, longitud 0.
+8. **Ligado IBSO** (Esteban, paso 6 del runbook versión 2, desde `main` `51c0621`):
+   - el mockup se llama ahora «O'Donnell (demo)», con su evento `tenant_renombrado` (revisar con 1 cambio, aplicar);
+   - el conjunto «plantilla» agregó 18 enlaces en 15 renglones de la «Plantilla IAS NIIF S1/S2 (con rubros)» y 396
+     enlaces en 330 solicitudes de 22 emisoras (18 por emisora; Grupo Carso no tiene esos títulos); segunda pasada en 0;
+   - el conjunto «fondo-de-fondos» agregó 9 enlaces en 9 solicitudes de Empresa Demo; segunda pasada en 0;
+   - la foto previa al ligado (00:47 UTC) y la posterior (00:52 UTC) pasaron de 1,534 a 1,939 enlaces con 967
+     solicitudes, y la diferencia fue «exactamente la esperada» (`esperado-ligado-ibso.json`, 311 celdas): 14 IBSO en 22
+     de 23 emisoras; C.4, C.6 y C.8 solo en Empresa Demo; ningún NIIF, GRI ni SASB. Los totales NIIF de las 23
+     emisoras dieron ✓, con «O'Donnell» y «O'Donnell (demo)» por separado.
 
 **`main` va por delante de lo desplegado:** `51c0621` contra `daedf09`. Solo cambian scripts y el rótulo «Cliente
 renombrado» de la bitácora, que se ve como `tenant_renombrado` hasta el próximo despliegue.
