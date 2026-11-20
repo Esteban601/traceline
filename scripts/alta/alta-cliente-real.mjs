@@ -17,7 +17,8 @@
 // el encargo (§5.4) y en `consecuencias_cuentas_mockup` de los datos; cada traslado las deja en la bitácora con su fecha.
 //
 // Pasos (cada uno revisa sin escribir; con --aplicar pide escribir el ref y escribe):
-//   tenant     1. el mockup: slug y prefijo nuevos (p. ej. odonnell-demo / ODND) y activo = false; sin borrar nada;
+//   tenant     1. el mockup: slug y prefijo nuevos (p. ej. odonnell-demo / ODND), nombre visible «<nombre> (demo)» y
+//                 activo = false; sin borrar nada (el nombre, para que no se repita con el del real en listas y fotos);
 //              2. el tenant real: es_demo = false, nombre, slug y prefijo del real, banderas y topes de los datos
 //                 (vitrina apagada, lectura y generador según el contrato), áreas;
 //              3. el Perfil: identidad, fideicomiso, forma de referencia y sector SASB (solo campos que existen en el
@@ -122,6 +123,8 @@ const confirmar = async (que) => {
 const fallas = [];
 const ok = (c, m) => { if (!c) fallas.push(m); console.log(`  ${c ? "✓" : "✗"} ${m}`); };
 const igual = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+/** Nombre visible del mockup retirado: «<nombre> (demo)», sin duplicar el sufijo. */
+const nombreDemo = (n) => (/ \(demo\)$/.test(n) ? n : `${n} (demo)`);
 
 // Estado actual ----------------------------------------------------------------------------------------------------
 const COLS_TENANT = "id, nombre, slug, prefijo_folio, activo, es_demo, vitrina_habilitada, lectura_evidencias_activa, generador_activo, staff_puede_cargar, generaciones_mes_max, lecturas_mes_max";
@@ -152,10 +155,12 @@ async function pasoTenant() {
   if (renombrado && !renombrado.es_demo) salir(`«${renombrado.slug}» existe y NO es de demostración: no es el mockup. No se toca.`);
   const mock = renombrado ?? (original?.es_demo ? original : null);
   const mockRenombrado = !!renombrado;
+  const mockNombreDemo = mock ? nombreDemo(mock.nombre) : null;
+  const mockPendiente = !!mock && (!mockRenombrado || mock.activo || mock.nombre !== mockNombreDemo);
   console.log("\n1. Mockup");
   if (!mock) console.log(`  · no hay mockup «${D.mockup.slug}» de demostración ni «${D.mockup.nuevo_slug}»: nada que renombrar`);
-  else if (mockRenombrado && !mock.activo) console.log(`  · ya renombrado y desactivado: ${mock.slug} / ${mock.prefijo_folio}`);
-  else console.log(`  · ${mock.slug} / ${mock.prefijo_folio} · demo=${mock.es_demo} · activo=${mock.activo} → ${D.mockup.nuevo_slug} / ${D.mockup.nuevo_prefijo} · activo=false`);
+  else if (!mockPendiente) console.log(`  · ya renombrado y desactivado: «${mock.nombre}» · ${mock.slug} / ${mock.prefijo_folio}`);
+  else console.log(`  · «${mock.nombre}» · ${mock.slug} / ${mock.prefijo_folio} · demo=${mock.es_demo} · activo=${mock.activo} → «${mockNombreDemo}» · ${D.mockup.nuevo_slug} / ${D.mockup.nuevo_prefijo} · activo=false`);
   const choquePrefijoMock = await porPrefijo(D.mockup.nuevo_prefijo);
   if (choquePrefijoMock && choquePrefijoMock.id !== mock?.id) salir(`El prefijo ${D.mockup.nuevo_prefijo} ya lo usa «${choquePrefijoMock.slug}».`);
 
@@ -180,16 +185,22 @@ async function pasoTenant() {
   const perfilDifs = Object.keys(perfilObjetivo).filter((k) => !igual(perfilYa?.[k], perfilObjetivo[k]));
   console.log(`  · ${Object.keys(perfilObjetivo).length} campos (${perfilDifs.length} por escribir): ${Object.keys(perfilObjetivo).join(", ")}`);
 
-  const hayQueHacer = (mock && (!mockRenombrado || mock.activo)) || !real || areasNuevas.length || perfilDifs.length || (real && Object.entries(objetivo).some(([k, v]) => !igual(real[k], v)));
+  const hayQueHacer = mockPendiente || !real || areasNuevas.length || perfilDifs.length || (real && Object.entries(objetivo).some(([k, v]) => !igual(real[k], v)));
   if (!aplicar) { console.log(`\nRevisión terminada${hayQueHacer ? "" : ": nada que hacer"}. Nada se escribió.`); return; }
   if (!hayQueHacer) { console.log("\nNada que hacer: todo está como dicen los datos."); return; }
   await confirmar(`renombrar y desactivar el mockup y dar de alta «${D.tenant.slug}»`);
 
-  if (mock && (!mockRenombrado || mock.activo)) {
+  if (mockPendiente && (!mockRenombrado || mock.activo)) {
     const r = await db.from("tenants").update({ slug: D.mockup.nuevo_slug, prefijo_folio: D.mockup.nuevo_prefijo, activo: false }).eq("id", mock.id);
     if (r.error) salir(`mockup: ${r.error.message}`);
     await log(mock.id, "tenant_desactivado", "tenants", mock.id, { nombre: mock.nombre, slug_anterior: mock.slug, slug: D.mockup.nuevo_slug, prefijo_anterior: mock.prefijo_folio, prefijo_folio: D.mockup.nuevo_prefijo, motivo: `El mockup se retira: ${D.tenant.nombre} pasa a cliente real; se conserva sin borrar.` });
     console.log(`  ✓ mockup → ${D.mockup.nuevo_slug} / ${D.mockup.nuevo_prefijo}, inactivo`);
+  }
+  if (mockPendiente && mock.nombre !== mockNombreDemo) {
+    const r = await db.from("tenants").update({ nombre: mockNombreDemo }).eq("id", mock.id);
+    if (r.error) salir(`nombre del mockup: ${r.error.message}`);
+    await log(mock.id, "tenant_renombrado", "tenants", mock.id, { nombre_anterior: mock.nombre, nombre: mockNombreDemo, motivo: `El mockup lleva «(demo)» para no repetir el nombre de ${D.tenant.nombre}, cliente real.` });
+    console.log(`  ✓ mockup «${mock.nombre}» → «${mockNombreDemo}»`);
   }
   let t = real ?? (await porSlug(D.tenant.slug));
   if (!t) {
@@ -346,6 +357,7 @@ async function pasoVerificar() {
   console.log("\n1. Mockup");
   const mock = await porSlug(D.mockup.nuevo_slug);
   ok(!!mock && mock.es_demo && !mock.activo && mock.prefijo_folio === D.mockup.nuevo_prefijo, `«${D.mockup.nuevo_slug}» / ${D.mockup.nuevo_prefijo}, demo e inactivo, sin borrar`);
+  ok(!!mock && mock.nombre === nombreDemo(mock.nombre) && mock.nombre !== D.tenant.nombre, `nombre visible del mockup «${mock?.nombre ?? "—"}», con «(demo)» y distinto del real`);
   if (mock) {
     const { count } = await db.from("reportes").select("id", { count: "exact", head: true }).eq("tenant_id", mock.id);
     ok((count ?? 0) > 0, `el mockup conserva sus reportes (${count})`);
