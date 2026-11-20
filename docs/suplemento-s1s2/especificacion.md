@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.59** · 10 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.60** · 19 de noviembre de 2026.
+
+**Cambios respecto a 0.59** (despliegue v48): §10, registro del release v46 de staging (v48: catálogo IBSO y etiqueta
+«Precarga por IRStrat»), con el ligado IBSO y el nombre del mockup de O'Donnell.
 
 **Cambios respecto a 0.58** (encargo odonnell-alta-real, Fase 3): §10, precarga 2025 de O'Donnell aplicada en staging.
 
@@ -2039,6 +2042,66 @@ Quedan 23 solicitudes pendientes, nunca en cero (Alcance 1, Alcance 3 y sus cate
 fuentes no traen). La lectura de las evidencias de la precarga quedó «omitido» (sin costo de modelo). Los eventos de la
 bitácora salen como `precarga_irstrat` hasta el próximo despliegue, que trae su etiqueta. Detalle y decisiones: encargo
 §5.5; observaciones a O'Donnell en `~/Downloads/odonnell-alta/precarga-2025.md`.
+
+### staging · release v46 (v48) · 19 de noviembre de 2026 (20/11 00:30 UTC) · `daedf09`
+
+**Catálogo IBSO (NIS A-1) y etiqueta «Precarga por IRStrat».** Encargo `docs/encargos/2026-11-17-catalogo-ibso.md`;
+runbook `docs/encargos/2026-11-17-runbook-v48.md` (versión 2); comandos en `~/Downloads/v48/comandos.md`. En `main`
+desde los PR #64 (`b8416e2`), #66 (`5050fab`: correcciones de las respuestas IBSO) y #68 (`daedf09`: alcance de A.3 y
+A.7). Qué entra:
+- el marco NIS con los 30 IBSO;
+- la sección «IBSO · NIS A-1» en Cobertura;
+- la hoja «IBSO» del libro GRI/SASB;
+- las respuestas IBSO del generador;
+- «qué recopilar» en el alta de una solicitud;
+- la etiqueta de la bitácora para la precarga de O'Donnell.
+
+**Migraciones:** `20261117120000_catalogo_marco_nis` y `20261117130000_catalogo_ibso_nis_a1`, aditivas, con la barrera
+del auditor. **Sin plantilla del Formato.**
+
+**Resultado.**
+1. **Privilegios de `service_role`:** 37 tablas con los 7 privilegios, las mismas de v47.
+2. **Foto «antes»** (00:26 UTC): 23 emisoras × 172 códigos, 967 solicitudes y 1,534 enlaces.
+3. **Migraciones** (Esteban, `migrar-remoto.sh staging`, 00:27 UTC): pendientes == esperadas (2); aplicadas; 105 de
+   105, 0 desalineadas y barrera 108; dos segundas pasadas sin pendientes. En la base, NIS A 16 · G 8 · S 6 y marcos
+   activos GRI 37, NIIF 117, NIS 30 y SASB 17.
+4. **Release:** `git push heroku main` por Claude Code, con autorización de Esteban por chat → **v46**, `Deploy daedf09d`,
+   00:30:13 UTC.
+5. **`comprobar-v48.mjs --destino staging`** (solo lectura, con autorización de Esteban): 13 de 14 bloques en verde.
+   - `/login` 200; 23 emisoras;
+   - foto «después» con la diferencia exactamente esperada (`esperado-cobertura-ibso.json`): los 30 IBSO nuevos, sin
+     solicitudes, y ningún NIIF, GRI ni SASB con cambios (660 celdas);
+   - plantilla `217912465e5c…`; Formato de Empresa Demo 409; Excel de taxonomía 200; libro con 37 GRI y la hoja
+     «IBSO» al final con 30;
+   - catálogo GRI 37, FN-CB 17, NIIF 117 y NIS 30 (A 16, S 6, G 8);
+   - Perfil y bloque 10 como en v47 (21 emisoras con los dos faltantes);
+   - declaración: el 2025 de O'Donnell «con_reserva» con su texto; los 21 `es_demo` en «sin_reserva»;
+   - Cobertura (tablero e informe) con la sección IBSO; el alta de solicitud con los 30 IBSO y su «qué recopilar»;
+     `/admin/reportes` 200.
+   - **En rojo, «foto antes con 22 emisoras».** No fue el despliegue: la foto usaba el nombre como clave, y en staging
+     hay dos «O'Donnell» (el mockup retirado y el cliente real). Uno pisaba al otro, también en v47, así que la
+     comparación cubrió 22 de las 23 emisoras. Corregido en `main` `51c0621` (PR #69 y #70): la foto va por el id del
+     tenant, el alta le pone «(demo)» al mockup retirado y `scripts/alta/nombre-mockup-demo.mjs` lo aplica al de
+     O'Donnell.
+   - **La etiqueta «Precarga por IRStrat» no se pudo ver.** Los 54 eventos `precarga_irstrat` (11/11, 05:34–05:35 UTC,
+     todos del tenant real) quedan fuera de los últimos 500 que carga la bitácora del staff (891 eventos posteriores).
+     Para el administrador de O'Donnell sí entran (un solo evento suyo posterior), pero no se comprobó en pantalla. En
+     cola: `bitacora-filtro-servidor` (`docs/encargos/COLA.md`).
+6. **Logs desde el release:** 37 líneas; 10 respuestas 200 y una 409 (el Formato); 0 respuestas 5xx, 0 códigos H, 0
+   R14/R15. El dyno anterior salió con 143 (SIGTERM del release, con su `[ELIFECYCLE] Command failed`).
+7. **Cierre de la terminal** (paso 5): `unset STAGING_DB_URL`, longitud 0.
+8. **Ligado IBSO** (Esteban, paso 6 del runbook versión 2, desde `main` `51c0621`):
+   - el mockup se llama ahora «O'Donnell (demo)», con su evento `tenant_renombrado` (revisar con 1 cambio, aplicar);
+   - el conjunto «plantilla» agregó 18 enlaces en 15 renglones de la «Plantilla IAS NIIF S1/S2 (con rubros)» y 396
+     enlaces en 330 solicitudes de 22 emisoras (18 por emisora; Grupo Carso no tiene esos títulos); segunda pasada en 0;
+   - el conjunto «fondo-de-fondos» agregó 9 enlaces en 9 solicitudes de Empresa Demo; segunda pasada en 0;
+   - la foto previa al ligado (00:47 UTC) y la posterior (00:52 UTC) pasaron de 1,534 a 1,939 enlaces con 967
+     solicitudes, y la diferencia fue «exactamente la esperada» (`esperado-ligado-ibso.json`, 311 celdas): 14 IBSO en 22
+     de 23 emisoras; C.4, C.6 y C.8 solo en Empresa Demo; ningún NIIF, GRI ni SASB. Los totales NIIF de las 23
+     emisoras dieron ✓, con «O'Donnell» y «O'Donnell (demo)» por separado.
+
+**`main` va por delante de lo desplegado:** `51c0621` contra `daedf09`. Solo cambian scripts y el rótulo «Cliente
+renombrado» de la bitácora, que se ve como `tenant_renombrado` hasta el próximo despliegue.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
