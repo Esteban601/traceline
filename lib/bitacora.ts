@@ -104,6 +104,8 @@ export type AccionEvento =
   | "tenant_creado"
   | "tenant_desactivado"
   | "tenant_reactivado"
+  // Cambio del nombre visible de un cliente (mockup que pasa a «<nombre> (demo)» en el alta de su real).
+  | "tenant_renombrado"
   | "tenant_logo_actualizado"
   | "tenant_logo_eliminado"
   // Toggle "carga por IRStrat", por cliente (solo el rol admin de la firma).

@@ -45,6 +45,7 @@ export const ACCION_META: Record<string, { label: string; tono: Tono }> = {
   tenant_creado: { label: "Cliente dado de alta", tono: "verde" },
   tenant_desactivado: { label: "Cliente desactivado", tono: "rojo" },
   tenant_reactivado: { label: "Cliente reactivado", tono: "verde" },
+  tenant_renombrado: { label: "Cliente renombrado", tono: "gris" },
   tenant_logo_actualizado: { label: "Logo actualizado", tono: "gris" },
   tenant_logo_eliminado: { label: "Logo eliminado", tono: "gris" },
   tenant_carga_staff_habilitada: {
@@ -231,6 +232,11 @@ export function resumenBitacora(accion: string, detalle: Detalle): string {
       const nombre = limpiar(s(detalle, "nombre"));
       const prefijo = s(detalle, "prefijo_folio");
       return [nombre, prefijo].filter(Boolean).join(" · ");
+    }
+    case "tenant_renombrado": {
+      const antes = limpiar(s(detalle, "nombre_anterior"));
+      const nombre = limpiar(s(detalle, "nombre"));
+      return antes && nombre ? `${antes} → ${nombre}` : nombre ?? "";
     }
     case "tenant_desactivado":
     case "tenant_reactivado":
