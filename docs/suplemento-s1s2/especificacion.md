@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.60** · 19 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.61** · 20 de noviembre de 2026.
+
+**Cambios respecto a 0.60** (decisión de Esteban del 19/11/2026): §10, las nueve solicitudes de demostración de Fondo de
+Fondos creadas y ligadas en su propio mockup de staging.
 
 **Cambios respecto a 0.59** (despliegue v48): §10, registro del release v46 de staging (v48: catálogo IBSO y etiqueta
 «Precarga por IRStrat»), con el ligado IBSO y el nombre del mockup de O'Donnell.
@@ -2102,6 +2105,24 @@ del auditor. **Sin plantilla del Formato.**
 
 **`main` va por delante de lo desplegado:** `51c0621` contra `daedf09`. Solo cambian scripts y el rótulo «Cliente
 renombrado» de la bitácora, que se ve como `tenant_renombrado` hasta el próximo despliegue.
+
+### staging · las nueve solicitudes de demostración en el mockup de Fondo de Fondos · 20 de noviembre de 2026
+
+Sin despliegue (decisión de Esteban del 19/11/2026). Las nueve solicitudes de demostración de Empresa Demo (políticas de
+Fondo de Fondos) se crearon en el mockup `fondo-de-fondos`, en su reporte 2025, y no solo en Empresa Demo. Las escribió
+Esteban (pasos F0–F8 de `~/Downloads/solicitudes-demo-rh/comandos.md`, todos en verde) desde `main` `c0c90dd` (PR #71
+y #72), con tres scripts parametrizados por `--tenant fondo-de-fondos`:
+- `solicitudes-demo-rh.mjs`: 9 solicitudes creadas, asignadas al área de RH del mockup («Capital Humano») y a su único
+  usuario de área. Lo previsto: 6 enlaces NIIF, 18 recordatorios y 0 evidencias. El script exige un mockup de
+  demostración activo con la lectura de evidencias encendida y con tope.
+- `ligar-gri-sasb-demo-rh.mjs`: 9 enlaces GRI (6 → 15). Sin FN-CB porque Fondo de Fondos no es banco comercial (su
+  industria SASB sería FN-AC, aún no en el catálogo): Inversión Responsable, Generales de Inversión y Privacidad
+  quedan sin códigos GRI/SASB.
+- `scripts/catalogo/ligar-ibso.mjs --conjunto fondo-de-fondos`: 9 enlaces IBSO (C.4, C.5, C.6, B.1 y C.8, como en
+  Empresa Demo).
+
+Quedan los mismos enlaces que en Empresa Demo, menos los tres FN-CB. Los dos primeros scripts viven fuera del repo, en
+`~/Downloads/solicitudes-demo-rh/`. `reiniciar-demo-rh.mjs` sigue siendo solo para Empresa Demo.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
