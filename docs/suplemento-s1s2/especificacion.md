@@ -1,6 +1,9 @@
 # TRACELINE · Fase A · Generador de Suplemento NIIF S1 / S2
 
-Especificación para revisión interna. **Versión 0.61** · 20 de noviembre de 2026.
+Especificación para revisión interna. **Versión 0.62** · 22 de noviembre de 2026.
+
+**Cambios respecto a 0.61** (decisión de Esteban del 22/11/2026): §10, los nueve PDF de Fondo de Fondos subidos a sus
+nueve solicitudes de demostración en el mockup de staging, con la lectura que propone el extracto.
 
 **Cambios respecto a 0.60** (decisión de Esteban del 19/11/2026): §10, las nueve solicitudes de demostración de Fondo de
 Fondos creadas y ligadas en su propio mockup de staging.
@@ -2123,6 +2126,25 @@ y #72), con tres scripts parametrizados por `--tenant fondo-de-fondos`:
 
 Quedan los mismos enlaces que en Empresa Demo, menos los tres FN-CB. Los dos primeros scripts viven fuera del repo, en
 `~/Downloads/solicitudes-demo-rh/`. `reiniciar-demo-rh.mjs` sigue siendo solo para Empresa Demo.
+
+### staging · los nueve PDF de Fondo de Fondos en sus solicitudes de demostración · 22 de noviembre de 2026
+
+Sin despliegue: staging sigue en el release de v48 (`daedf09`). Esteban subió los nueve PDF de Fondo de Fondos a sus
+nueve solicitudes de demostración del mockup `fondo-de-fondos` con `scripts/demo/subir-evidencias-demo-rh.mjs`. Usó los
+pasos S1–S3 de `~/Downloads/solicitudes-demo-rh/comandos.md`, desde `main` `ee9b73d` (PR #73 y #74).
+
+El script entra al portal con la cuenta del usuario de área de RH del mockup y usa la tarjeta de siempre (periodo 2025;
+en solicitudes de texto el botón es «Enviar»). La lectura corre en el `after()` de `subirEvidencia` y propone el
+extracto. El script no confirma, no corrige ni rechaza ninguna propuesta.
+
+Resultado:
+- 9 evidencias subidas como `usuario4@fondo-de-fondos.example` (área «Capital Humano»), una por solicitud;
+- 9 lecturas terminadas, las 9 con extracto propuesto;
+- 0 propuestas confirmadas;
+- la segunda pasada (S3) no subió nada;
+- en pantalla, la Cobertura del administrador del cliente del mockup muestra IBSO.
+
+Las nueve propuestas quedan en espera de decisión en el paso 3 de cada solicitud.
 
 ### Para el despliegue del Excel con respuestas y el Formato electrónico (encargo 2026-10-13; aplicado en v41)
 
